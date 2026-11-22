@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-import rasterio  # type: ignore[import-untyped]
+import rasterio
 from affine import Affine
 from numpy.typing import NDArray
 from pyproj import Proj, Transformer

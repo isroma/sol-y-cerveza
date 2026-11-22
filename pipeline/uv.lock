@@ -635,6 +635,7 @@ name = "solycerveza"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "affine" },
     { name = "httpx" },
     { name = "numpy" },
     { name = "pydantic" },
@@ -651,6 +652,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "affine", specifier = ">=3.0.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.5.5" },
     { name = "pydantic", specifier = ">=2.14.4" },

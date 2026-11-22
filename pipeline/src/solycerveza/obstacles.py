@@ -23,11 +23,11 @@ from pathlib import Path
 import httpx
 import numpy as np
 import numpy.typing as npt
-import rasterio  # type: ignore[import-untyped]
+import rasterio
 from affine import Affine
 from pyproj import Transformer
-from rasterio.enums import Resampling  # type: ignore[import-untyped]
-from rasterio.warp import reproject  # type: ignore[import-untyped]
+from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 from solycerveza.geo import BADAJOZ_BBOX, BoundingBox
 

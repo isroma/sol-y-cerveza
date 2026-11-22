@@ -28,12 +28,12 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import rasterio  # type: ignore[import-untyped]
+import rasterio
 from affine import Affine
 from numpy.typing import NDArray
 from pyproj import CRS, Transformer
-from rasterio.io import DatasetReader  # type: ignore[import-untyped]
-from rasterio.windows import Window  # type: ignore[import-untyped]
+from rasterio.io import DatasetReader
+from rasterio.windows import Window
 
 EYE_HEIGHT_M = 1.2
 MAX_DISTANCE_M = 300.0
