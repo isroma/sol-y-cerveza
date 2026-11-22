@@ -53,4 +53,4 @@ Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the wor
 
 ## License
 
-Code is MIT. Generated datasets keep the licences of their sources ([data sources](docs/research/data-sources.md)).
+Code is MIT. `web/public/data/terraces.json` contains OpenStreetMap data and is released under the [ODbL](https://opendatacommons.org/licenses/odbl/); its other sources are credited inside the file ([data sources](docs/research/data-sources.md), [ADR-0002](docs/adr/0002-terrace-data-sources.md)).

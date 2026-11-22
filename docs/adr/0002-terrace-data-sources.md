@@ -1,6 +1,6 @@
 # ADR-0002: Terrace data sources
 
-- Status: proposed
+- Status: accepted (2026-11-22, recommended options)
 - Date: 2026-11-22
 - Issue: #2. Evidence and links: [research notes](../research/data-sources.md).
 
@@ -94,3 +94,16 @@ The curated CSV from #3 (`id,osm_id,name,kind,terrace_lat,terrace_lon,verified,n
 6. A venue with two separate terrace areas: one record at the larger area (recommended for v1), or one record per area, which needs a new id scheme.
 7. Add the `ayto_ref` (and, under B, `overture_id`) columns to the CSV in #3.
 8. State in the README that `terraces.json` is ODbL (README is out of scope for this PR).
+
+## Resolution (2026-11-22)
+
+Accepted as proposed, with the recommended option wherever there was one:
+
+1. The combination of sources above is approved.
+2. The transparency request is the user's to file. **Pending.**
+3. Overture: **option A**, a to-do list for curators only. Nothing from Overture is copied into `terraces.json`.
+4. OSM write-back (decision 5): survey results go to OSM under each contributor's own account.
+5. Desk-placed, unverified positions ship with `verified: null`, and the app marks them (#21).
+6. A venue with two terrace areas gets one record, at the larger area, for v1.
+7. The `ayto_ref` column is added to the curated CSV (#22). Option A means no `overture_id` column.
+8. The README states that `terraces.json` is ODbL.
