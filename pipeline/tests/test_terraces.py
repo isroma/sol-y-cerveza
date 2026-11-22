@@ -54,8 +54,9 @@ def test_shipped_curated_list_has_the_expected_header() -> None:
 def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path) -> None:
     path = curated_csv(
         tmp_path,
-        f"terraza-linked,{LUGARIS},,,38.8838501,-6.9877,2026-11-01,  junto a la fuente  ",
-        "terraza-sola,,Terraza de prueba,bar,38.88,-6.97,,",
+        f"terraza-linked,{LUGARIS},,,38.8838501,-6.9877,2026-11-01,"
+        " EXP-2025/0042 ,  junto a la fuente  ",
+        "terraza-sola,,Terraza de prueba,bar,38.88,-6.97,,,",
     )
 
     linked, alone = read_curated(path)
@@ -66,6 +67,7 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
         terrace_lat=38.88385,
         terrace_lon=-6.9877,
         verified=date(2026, 11, 1),
+        ayto_ref="EXP-2025/0042",
         notes="junto a la fuente",
     )
     assert alone.name == "Terraza de prueba"
@@ -77,21 +79,21 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
 @pytest.mark.parametrize(
     ("row", "message"),
     [
-        ("sin-osm,,,bar,38.88,-6.97,,", "name and kind are required"),
-        ("sin-osm,,Terraza,,38.88,-6.97,,", "name and kind are required"),
-        ("Mal Slug,,Terraza,bar,38.88,-6.97,,", "\nid\n"),
-        ("x,node/1,,,38.88,-6.97,,", "\nosm_id\n"),
-        ("x,,Terraza,disco,38.88,-6.97,,", "\nkind\n"),
+        ("sin-osm,,,bar,38.88,-6.97,,,", "name and kind are required"),
+        ("sin-osm,,Terraza,,38.88,-6.97,,,", "name and kind are required"),
+        ("Mal Slug,,Terraza,bar,38.88,-6.97,,,", "\nid\n"),
+        ("x,node/1,,,38.88,-6.97,,,", "\nosm_id\n"),
+        ("x,,Terraza,disco,38.88,-6.97,,,", "\nkind\n"),
         ("x,,Terraza,bar,,-6.97,,", "\nterrace_lat\n"),
         ("x,,Terraza,bar,91,-6.97,,", "\nterrace_lat\n"),
-        ("x,,Terraza,bar,38.88,-6.97,22/11/2026,", "\nverified\n"),
-        ("x,,Terraza,bar,38.88,-6.97,,,extra", "more cells than columns"),
+        ("x,,Terraza,bar,38.88,-6.97,22/11/2026,,", "\nverified\n"),
+        ("x,,Terraza,bar,38.88,-6.97,,,,extra", "more cells than columns"),
     ],
 )
 def test_read_curated_rejects_invalid_rows_with_line_number(
     tmp_path: Path, row: str, message: str
 ) -> None:
-    path = curated_csv(tmp_path, "ok,,Terraza,bar,38.88,-6.97,,", row)
+    path = curated_csv(tmp_path, "ok,,Terraza,bar,38.88,-6.97,,,", row)
     with pytest.raises(ValueError, match=rf"curated.csv:3: (?s:.*){message}"):
         read_curated(path)
 
@@ -106,8 +108,9 @@ def test_read_curated_rejects_an_unexpected_header(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("rows", "message"),
     [
-        (("a,,T,bar,38.88,-6.97,,", "a,,U,bar,38.87,-6.96,,"), "duplicate id: a"),
-        ((f"a,{JUEVES},,,38.88,-6.97,,", f"b,{JUEVES},,,38.87,-6.96,,"), "duplicate osm_id"),
+        (("a,,T,bar,38.88,-6.97,,,", "a,,U,bar,38.87,-6.96,,,"), "duplicate id: a"),
+        ((f"a,{JUEVES},,,38.88,-6.97,,,", f"b,{JUEVES},,,38.87,-6.96,,,"), "duplicate osm_id"),
+        (("a,,T,bar,38.88,-6.97,,R1,", "b,,U,bar,38.87,-6.96,,R1,"), "duplicate ayto_ref: R1"),
     ],
 )
 def test_read_curated_rejects_duplicates(
@@ -260,3 +263,9 @@ def test_cli_writes_terraces_base_json(tmp_path: Path, monkeypatch: pytest.Monke
 
     records = json.loads((tmp_path / "terraces_base.json").read_text(encoding="utf-8"))
     assert [record["id"] for record in records] == [PANECAFE, VELADOR]
+
+
+def test_ayto_ref_is_not_exported(tmp_path: Path) -> None:
+    rows = read_curated(curated_csv(tmp_path, "solo,,Terraza,bar,38.88,-6.97,,EXP-1,"))
+    (terrace,) = build_terraces([], rows)
+    assert "ayto_ref" not in terrace.model_dump()
