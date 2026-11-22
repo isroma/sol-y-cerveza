@@ -1,0 +1,47 @@
+import { z } from 'zod'
+
+/** Relative, so it resolves under /sol-y-cerveza/ on GitHub Pages and inside Capacitor. */
+export const TERRACES_URL = './data/terraces.json'
+
+export const HORIZON_BINS = 360
+
+// Mirrors docs/data-contract.md (version 1).
+const latLonSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180),
+})
+
+const terraceSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  kind: z.enum(['bar', 'pub', 'cafe', 'restaurant', 'biergarten']),
+  venue: latLonSchema,
+  terrace: latLonSchema,
+  sources: z.array(z.string()),
+  verified: z.iso.date().nullable(),
+  // Tenths of a degree per compass azimuth bin, 0 = north, clockwise.
+  horizon: z
+    .array(z.number().int().min(0).max(900))
+    .length(HORIZON_BINS)
+    .nullable(),
+})
+
+export const terracesFileSchema = z.object({
+  version: z.literal(1),
+  generated: z.iso.datetime(),
+  sample: z.boolean(),
+  attribution: z.array(z.string()),
+  terraces: z.array(terraceSchema),
+})
+
+export type LatLon = z.infer<typeof latLonSchema>
+export type Terrace = z.infer<typeof terraceSchema>
+export type TerracesFile = z.infer<typeof terracesFileSchema>
+
+export async function loadTerraces(): Promise<TerracesFile> {
+  const response = await fetch(TERRACES_URL)
+  if (!response.ok) {
+    throw new Error(`Failed to load ${TERRACES_URL}: HTTP ${response.status}`)
+  }
+  return terracesFileSchema.parse(await response.json())
+}

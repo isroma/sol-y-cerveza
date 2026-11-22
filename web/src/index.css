@@ -3,6 +3,10 @@
   --text: #1f1b16;
   --muted: #6b6375;
   --bg: #fffaf2;
+  --surface: #ffffff;
+  --border: #e8dfd0;
+  --notice-bg: #fff1cc;
+  --notice-text: #5c4300;
   font:
     16px/1.45 system-ui,
     'Segoe UI',
@@ -18,6 +22,10 @@
     --text: #f4efe6;
     --muted: #b7aec2;
     --bg: #17140f;
+    --surface: #221e18;
+    --border: #3a332a;
+    --notice-bg: #3d3010;
+    --notice-text: #ffe08a;
   }
 }
 
@@ -28,10 +36,11 @@ body,
   margin: 0;
 }
 
+/* Phone first: one scrolling column of controls, map and list. */
 .app {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
 }
 
 .app-header {
@@ -50,12 +59,196 @@ body,
   font-size: 0.875rem;
 }
 
+.sample-notice {
+  margin: 0;
+  padding: 8px 16px;
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .app-main {
-  flex: 1;
-  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'controls'
+    'map'
+    'results';
+}
+
+.time-controls {
+  grid-area: controls;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+}
+
+.time-controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.time-controls input[type='date'],
+.time-controls input[type='time'],
+.time-controls button {
+  font: inherit;
+  font-size: 1rem;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.time-controls button {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.time-slider {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--sun);
+}
+
+.time-controls-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.map-pane {
+  grid-area: map;
+  height: 50vh;
+  min-height: 280px;
 }
 
 .terrace-map {
   width: 100%;
   height: 100%;
+}
+
+/* MapLibre popups are always white, also in dark mode. */
+.terrace-map .maplibregl-popup-content {
+  color: #1f1b16;
+  font-size: 0.875rem;
+}
+
+.results {
+  grid-area: results;
+  padding: 12px 16px;
+}
+
+.terrace-list h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.state-dot {
+  flex: none;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  /* Same white ring as the dots on the map. */
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3px var(--border);
+}
+
+.terrace-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.terrace-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.terrace-item p {
+  margin: 0;
+}
+
+.terrace-name {
+  font-weight: 600;
+}
+
+.terrace-detail {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.attribution {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.attribution p {
+  margin: 0;
+}
+
+/* Wide screens: map on the left, controls and list in a sidebar. */
+@media (min-width: 900px) {
+  .app {
+    height: 100%;
+  }
+
+  .app-main {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'map controls'
+      'map results';
+  }
+
+  .map-pane {
+    height: auto;
+    min-height: 0;
+  }
+
+  .time-controls,
+  .results {
+    border-left: 1px solid var(--border);
+  }
+
+  .results {
+    overflow-y: auto;
+  }
 }
