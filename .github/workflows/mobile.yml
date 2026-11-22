@@ -1,14 +1,11 @@
 name: Mobile
 
-# Builds the Capacitor shells (unsigned) to catch native build breaks early.
+# Builds the Capacitor shells (unsigned) to catch native build breaks.
 # Not a required check: native toolchains are slow and runner image updates can break them.
+# Manual only while mobile work is paused (#24). To resume, restore the pull_request
+# (paths: web/**, this file) and push-to-main triggers.
 on:
-  pull_request:
-    paths:
-      - 'web/**'
-      - '.github/workflows/mobile.yml'
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
