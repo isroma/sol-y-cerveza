@@ -47,8 +47,9 @@ def curated(**fields: str | float) -> CuratedTerrace:
     )
 
 
-def test_shipped_curated_list_has_the_expected_header() -> None:
-    assert read_curated(CURATED_CSV) == []
+def test_shipped_curated_list_is_valid_and_says_where_each_row_comes_from() -> None:
+    rows = read_curated(CURATED_CSV)
+    assert all(row.notes for row in rows), "every curated row needs notes with its evidence"
 
 
 def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path) -> None:
@@ -258,6 +259,7 @@ def test_written_file_follows_the_contract_and_is_deterministic(tmp_path: Path) 
 def test_cli_writes_terraces_base_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(terraces, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(terraces, "load_venues", lambda refresh: fixture_venues())
+    monkeypatch.setattr(terraces, "read_curated", lambda: [])
 
     assert terraces.main([]) == 0
 

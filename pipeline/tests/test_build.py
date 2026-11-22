@@ -8,7 +8,16 @@ import rasterio
 from pydantic import ValidationError
 from rasterio.transform import from_origin
 
-from solycerveza.build import TerracesFile, add_horizons, raster_attribution, render
+from solycerveza.build import (
+    PNOA_ATTRIBUTION,
+    TerracesFile,
+    add_horizons,
+    attribution_lines,
+    height_above_ground,
+    position_warnings,
+    raster_attribution,
+    render,
+)
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
 
@@ -94,7 +103,7 @@ def test_render_is_deterministic() -> None:
     assert render(_file(terraces)) == render(_file(terraces))
 
 
-def _raster(path: Path, tags: dict[str, str]) -> Path:
+def _raster(path: Path, tags: dict[str, str], value: float = 0.0) -> Path:
     with rasterio.open(
         path,
         "w",
@@ -105,10 +114,73 @@ def _raster(path: Path, tags: dict[str, str]) -> Path:
         dtype="float32",
         crs="EPSG:25829",
         transform=from_origin(0, 2, 1, 1),
+        nodata=-9999.0,
     ) as dst:
-        dst.write(np.zeros((2, 2), dtype=np.float32), 1)
+        dst.write(np.full((2, 2), value, dtype=np.float32), 1)
         dst.update_tags(**tags)
     return path
+
+
+# A 40 m x 40 m raster in EPSG:25829 around the Plaza Alta test terrace.
+def _local_raster(path: Path, value: float, nodata: bool = False) -> Path:
+    from pyproj import Transformer
+
+    x, y = Transformer.from_crs("EPSG:4326", "EPSG:25829", always_xy=True).transform(
+        -6.96976, 38.88256
+    )
+    data = np.full((20, 20), -9999.0 if nodata else value, dtype=np.float32)
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=20,
+        height=20,
+        count=1,
+        dtype="float32",
+        crs="EPSG:25829",
+        transform=from_origin(x - 20, y + 20, 2, 2),
+        nodata=-9999.0,
+    ) as dst:
+        dst.write(data, 1)
+        dst.update_tags(SOURCE="test")
+    return path
+
+
+def test_height_above_ground_is_surface_minus_terrain(tmp_path: Path) -> None:
+    dsm = _local_raster(tmp_path / "dsm.tif", 210.0)
+    dtm = _local_raster(tmp_path / "dtm.tif", 200.0)
+    assert height_above_ground(38.88256, -6.96976, dsm, dtm) == pytest.approx(10.0)
+
+
+def test_height_above_ground_is_none_without_data(tmp_path: Path) -> None:
+    dsm = _local_raster(tmp_path / "dsm.tif", 0.0, nodata=True)
+    dtm = _local_raster(tmp_path / "dtm.tif", 200.0)
+    assert height_above_ground(38.88256, -6.96976, dsm, dtm) is None
+    assert height_above_ground(38.9, -6.9, dtm, dtm) is None  # outside the raster
+
+
+def test_position_warnings_flag_points_on_roofs(tmp_path: Path) -> None:
+    dtm = _local_raster(tmp_path / "dtm.tif", 200.0)
+    roof = _local_raster(tmp_path / "roof.tif", 209.0)
+    street = _local_raster(tmp_path / "street.tif", 200.5)
+
+    (warning,) = position_warnings([_terrace()], roof, dtm)
+    assert "curated:plaza-alta" in warning
+    assert "9.0 m above the ground" in warning
+    assert position_warnings([_terrace()], street, dtm) == []
+
+
+def test_attribution_credits_pnoa_only_for_curated_positions(tmp_path: Path) -> None:
+    dsm = _raster(tmp_path / "dsm.tif", {"SOURCE": "MDS"})
+    dtm = _raster(tmp_path / "dtm.tif", {"SOURCE": "MDT"})
+    osm_only = _terrace("osm:node/1").model_copy(update={"sources": ["osm"]})
+
+    assert attribution_lines([osm_only], dsm, dtm) == [
+        "© OpenStreetMap contributors (ODbL)",
+        "MDS",
+        "MDT",
+    ]
+    assert attribution_lines([_terrace()], dsm, dtm)[-1] == PNOA_ATTRIBUTION
 
 
 def test_raster_attribution_reads_the_source_tag(tmp_path: Path) -> None:
