@@ -19,6 +19,7 @@ from typing import Literal
 
 import rasterio
 from pydantic import BaseModel, ConfigDict, field_serializer
+from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
 from solycerveza.terraces import Terrace, build_terraces, read_curated
@@ -30,6 +31,10 @@ OUTPUT = Path(__file__).resolve().parents[3] / "web" / "public" / "data" / "terr
 DSM_PATH = CACHE_DIR / "badajoz_dsm.tif"
 DTM_PATH = CACHE_DIR / "badajoz_dtm.tif"
 OSM_ATTRIBUTION = "© OpenStreetMap contributors (ODbL)"
+PNOA_ATTRIBUTION = "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
+# A terrace point higher than this above the terrain is on a roof or under a canopy: the
+# horizon from there is meaningless (roof) or all shade (canopy), so a curator should check it.
+MAX_HEIGHT_ABOVE_GROUND_M = 2.0
 
 HorizonFn = Callable[[float, float], list[int]]
 
@@ -72,6 +77,44 @@ def raster_attribution(path: Path) -> str:
     return str(source)
 
 
+def height_above_ground(lat: float, lon: float, dsm_path: Path, dtm_path: Path) -> float | None:
+    """Surface minus terrain at a WGS84 point, or None where either raster has no data."""
+    values: list[float] = []
+    for path in (dsm_path, dtm_path):
+        with rasterio.open(path) as dataset:
+            to_raster = Transformer.from_crs("EPSG:4326", dataset.crs, always_xy=True)
+            x, y = to_raster.transform(lon, lat)
+            left, bottom, right, top = dataset.bounds
+            if not (left <= x < right and bottom < y <= top):
+                return None
+            value = float(next(dataset.sample([(x, y)]))[0])
+            if dataset.nodata is not None and value == float(dataset.nodata):
+                return None
+            values.append(value)
+    return values[0] - values[1]
+
+
+def position_warnings(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Path) -> list[str]:
+    """One message per terrace whose point sits on a roof or under a canopy."""
+    warnings: list[str] = []
+    for t in terraces:
+        height = height_above_ground(t.terrace.lat, t.terrace.lon, dsm_path, dtm_path)
+        if height is not None and height > MAX_HEIGHT_ABOVE_GROUND_M:
+            warnings.append(
+                f"{t.id} ({t.name}): terrace point is {height:.1f} m above the ground "
+                "(roof or canopy?); check its position"
+            )
+    return warnings
+
+
+def attribution_lines(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Path) -> list[str]:
+    """Credits for every source the file is derived from."""
+    lines = [OSM_ATTRIBUTION, raster_attribution(dsm_path), raster_attribution(dtm_path)]
+    if any("curated" in t.sources for t in terraces):
+        lines.append(PNOA_ATTRIBUTION)
+    return lines
+
+
 def render(file: TerracesFile) -> str:
     """Serialize per the contract: 2-space indent, each horizon on one line, trailing newline."""
     text = json.dumps(file.model_dump(mode="json"), ensure_ascii=False, indent=2)
@@ -93,17 +136,16 @@ def build(
     """Run every stage and return the file contents."""
     terraces = build_terraces(load_venues(refresh=refresh), read_curated())
 
+    for warning in position_warnings(terraces, dsm_path, dtm_path):
+        logger.warning(warning)
+
     def horizon_for(lat: float, lon: float) -> list[int]:
         return terrace_horizon(lat, lon, dsm_path, dtm_path=dtm_path)
 
     return TerracesFile(
         generated=generated or datetime.now(UTC),
         sample=False,
-        attribution=[
-            OSM_ATTRIBUTION,
-            raster_attribution(dsm_path),
-            raster_attribution(dtm_path),
-        ],
+        attribution=attribution_lines(terraces, dsm_path, dtm_path),
         terraces=add_horizons(terraces, horizon_for),
     )
 

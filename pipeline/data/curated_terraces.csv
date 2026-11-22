@@ -1,1 +1,6 @@
 id,osm_id,name,kind,terrace_lat,terrace_lon,verified,ayto_ref,notes
+el-muelle-del-guadiana,osm:way/564742759,,,38.884083,-6.977708,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: open paving south-east of the building, between tree rows. Evidence: OSM amenity=biergarten."
+el-velador,osm:node/9384007214,,,38.882474,-6.995114,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: pavement in front of the venue. Evidence: OSM outdoor_seating=yes."
+kiosco-san-francisco,osm:way/572854568,,,38.876237,-6.973112,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: paving south of the kiosk (Paseo de San Francisco). Evidence: park kiosk."
+kiosco-silva,osm:way/572854567,,,38.87666,-6.973496,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: paving east of the kiosk (Paseo de San Francisco). Evidence: park kiosk."
+panecafe,osm:node/12949582124,,,38.864535,-6.976902,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: corner pavement east of the building. Evidence: OSM outdoor_seating=yes."
