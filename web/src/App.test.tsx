@@ -58,10 +58,10 @@ describe('App', () => {
     expect(screen.getByLabelText('Fecha')).toHaveValue('2026-12-21')
     expect(screen.getByLabelText('Hora')).toHaveValue('14:00')
     expect(await listedTerraces()).toEqual([
-      'Terraza de ejemplo · Plaza AltaSol · Quedan 3 h 15 min de sol hoy',
-      'Terraza de ejemplo · Calle MenachoSol · Quedan 45 min de sol hoy',
-      'Terraza de ejemplo · Paseo de San FranciscoSombra · Sin más sol hoy',
-      'Terraza de ejemplo · Sin horizonteSin datos · Horizonte sin calcular',
+      'Terraza de ejemplo · Plaza AltaSol · Quedan 3 h 15 min de sol hoyPosición sin verificar',
+      'Terraza de ejemplo · Calle MenachoSol · Quedan 45 min de sol hoyPosición sin verificar',
+      'Terraza de ejemplo · Paseo de San FranciscoSombra · Sin más sol hoyPosición sin verificar',
+      'Terraza de ejemplo · Sin horizonteSin datos · Horizonte sin calcularPosición sin verificar',
     ])
   })
 
@@ -88,6 +88,25 @@ describe('App', () => {
     expect(
       screen.getByText('Datos de ejemplo: terrazas y horizontes ficticios'),
     ).toBeInTheDocument()
+  })
+
+  it('shows when a terrace position was checked on site', async () => {
+    stubFetch(
+      Response.json({
+        ...sampleFile,
+        terraces: sampleFile.terraces.map((terrace, index) =>
+          index === 0 ? { ...terrace, verified: '2026-11-01' } : terrace,
+        ),
+      }),
+    )
+    render(<App />)
+
+    expect(
+      await screen.findByText('Posición verificada el 1 nov 2026'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Posición sin verificar')).toHaveLength(
+      sampleFile.terraces.length - 1,
+    )
   })
 
   it('hides the sample notice for real data', async () => {

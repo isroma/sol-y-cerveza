@@ -12,6 +12,7 @@ import { useEffect, useRef } from 'react'
 import { BADAJOZ_CENTER, BASEMAP_STYLE_URL, DEFAULT_ZOOM } from '../config.ts'
 import type { SunState } from '../sun/sunState.ts'
 import { STATE_COLORS, STATE_LABELS } from '../ui/stateStyle.ts'
+import { verificationLabel } from '../ui/verification.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
 // Let Vite bundle the worker and tell MapLibre where it ended up.
@@ -38,6 +39,7 @@ export type MapTerrace = {
   lat: number
   lon: number
   state: SunState
+  verified: string | null
 }
 
 type TerraceFeatureCollection = {
@@ -60,7 +62,7 @@ function toFeatureCollection(
       properties: {
         id: terrace.id,
         state: terrace.state,
-        label: `${terrace.name}: ${STATE_LABELS[terrace.state]}`,
+        label: `${terrace.name}: ${STATE_LABELS[terrace.state]} · ${verificationLabel(terrace.verified)}`,
       },
     })),
   }

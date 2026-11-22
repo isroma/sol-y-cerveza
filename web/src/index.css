@@ -212,6 +212,15 @@ body,
   color: var(--muted);
 }
 
+.terrace-verification {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.terrace-verification.is-unverified {
+  font-style: italic;
+}
+
 .attribution {
   margin-top: 12px;
   font-size: 0.75rem;
