@@ -1,2 +1,49 @@
-# sol-y-cerveza
-Terrazas de Badajoz al sol o a la sombra, según fecha y hora. Bars &amp; restaurant terraces in Badajoz with sun/shade by date and time.
+# Sol y Cerveza ☀️🍺
+
+Terrazas de bares y restaurantes de Badajoz, y si les da el sol o la sombra según la fecha y la hora.
+
+Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
+
+- **Web:** <https://isroma.github.io/sol-y-cerveza/>
+- **iOS / Android:** planned, via Capacitor ([#7](https://github.com/isroma/sol-y-cerveza/issues/7))
+
+## How it works
+
+```
+pipeline/ (offline, Python)                         web/ (static, TypeScript)
+venues + terrace positions ─┐
+LiDAR surface model ────────┴─► horizon profile ──► data/terraces.json ──► sun position for the chosen
+                                 per terrace (360°)                          date/time vs. horizon → sun / shade
+```
+
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device for any date. Details: [ADR-0001](docs/adr/0001-architecture.md).
+
+## Roadmap
+
+1. [Decide where terrace data comes from](https://github.com/isroma/sol-y-cerveza/issues/2): OSM alone has almost no terrace tags in Badajoz
+2. [Terrace dataset](https://github.com/isroma/sol-y-cerveza/issues/3)
+3. [Obstacle surface from PNOA LiDAR](https://github.com/isroma/sol-y-cerveza/issues/4)
+4. [Horizon profiles](https://github.com/isroma/sol-y-cerveza/issues/5)
+5. [Sun/shade map for any date and time](https://github.com/isroma/sol-y-cerveza/issues/6)
+6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7)
+7. [Median beer price per venue (v2)](https://github.com/isroma/sol-y-cerveza/issues/8)
+
+## Development
+
+You need Node 26 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+cd web && npm ci && npm run dev        # web app on http://localhost:5173
+cd pipeline && uv sync && uv run pytest
+```
+
+Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
+
+## Data and attribution
+
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org).
+- Planned: PNOA LiDAR © IGN/CNIG (CC-BY 4.0) and Dirección General del Catastro.
+
+## License
+
+Code is MIT. Generated datasets keep the licences of their sources ([data sources](docs/research/data-sources.md)).
