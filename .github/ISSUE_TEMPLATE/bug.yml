@@ -1,0 +1,22 @@
+name: Bug
+description: Something is wrong (including wrong sun/shade results)
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: For wrong sun/shade results, include the terrace, date and time, and what you saw on site.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Web (browser + version), iOS or Android.

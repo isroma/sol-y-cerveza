@@ -1,0 +1,32 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Pipeline raw downloads and rasters (never commit)
+pipeline/.cache/
+*.tif
+*.tiff
+*.laz
+*.las
+
+# Claude Code local settings
+.claude/settings.local.json
