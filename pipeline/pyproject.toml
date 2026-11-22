@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Data pipeline: Badajoz terraces and their sun/shade horizon profiles."
 requires-python = ">=3.14"
 dependencies = [
+    "affine>=3.0.1",
     "httpx>=0.28.1",
     "numpy>=2.5.5",
     "pydantic>=2.14.4",
@@ -30,6 +31,11 @@ ban-relative-imports = "all"
 [tool.mypy]
 strict = true
 files = ["src", "tests"]
+
+# rasterio ships no type information.
+[[tool.mypy.overrides]]
+module = ["rasterio", "rasterio.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

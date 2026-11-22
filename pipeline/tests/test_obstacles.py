@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 import pytest
-import rasterio  # type: ignore[import-untyped]
+import rasterio
 from affine import Affine
 from pyproj import Transformer
 

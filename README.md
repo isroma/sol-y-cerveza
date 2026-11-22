@@ -37,12 +37,19 @@ cd web && npm ci && npm run dev        # web app on http://localhost:5173
 cd pipeline && uv sync && uv run pytest
 ```
 
+To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
+
+```bash
+uv run python -m solycerveza.obstacles --source wcs   # surface + terrain rasters, once (see docs/research/lidar.md for the 2 m data)
+uv run python -m solycerveza.build                     # venues + curated list + horizons -> terraces.json
+```
+
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 
 ## Data and attribution
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org).
-- Planned: PNOA LiDAR © IGN/CNIG (CC-BY 4.0) and Dirección General del Catastro.
+- Surface and terrain models: `Obra derivada de MDS05 2008-2015 CC-BY 4.0 scne.es` and `Obra derivada de MDT05-cob1 2008-2015 CC-BY 4.0 scne.es` (IGN/CNIG). The wording changes if the 2 m models are used ([details](docs/research/lidar.md)).
 
 ## License
 
