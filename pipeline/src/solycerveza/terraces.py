@@ -14,6 +14,8 @@ Curated list (`pipeline/data/curated_terraces.csv`, UTF-8, one row per terrace, 
 - `terrace_lat`, `terrace_lon`: WGS84 position of the tables (required). It always wins over the
   venue position, because the horizon is computed from here.
 - `verified`: optional YYYY-MM-DD of the last on-site check of the terrace position.
+- `ayto_ref`: optional reference of the Ayuntamiento's terrace authorization (from the register,
+  ADR-0002), used to match register entries to rows; unique, not exported.
 - `notes`: optional free text for curators; not exported.
 
 An unlinked row has no venue position of its own, so its `venue` equals its `terrace`. An
@@ -47,6 +49,7 @@ CURATED_COLUMNS = (
     "terrace_lat",
     "terrace_lon",
     "verified",
+    "ayto_ref",
     "notes",
 )
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -70,6 +73,7 @@ class CuratedTerrace(BaseModel):
     terrace_lat: Lat
     terrace_lon: Lon
     verified: date | None = None
+    ayto_ref: str | None = None
     notes: str | None = None
 
     @model_validator(mode="after")
@@ -117,6 +121,7 @@ def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
     for column, values in (
         ("id", [row.id for row in rows]),
         ("osm_id", [row.osm_id for row in rows if row.osm_id is not None]),
+        ("ayto_ref", [row.ayto_ref for row in rows if row.ayto_ref is not None]),
     ):
         duplicates = sorted(value for value, count in Counter(values).items() if count > 1)
         if duplicates:
