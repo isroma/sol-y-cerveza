@@ -43,7 +43,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
 
-`suncalc` returns the azimuth in radians measured from **south**, positive towards west. Convert it: `az = (azimuth * 180 / π + 180) mod 360`.
+`suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 
 Times are entered and shown in `Europe/Madrid`.
 
