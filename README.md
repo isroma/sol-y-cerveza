@@ -12,11 +12,11 @@ Which bar and restaurant terraces in Badajoz get sun or shade, for any date and 
 ```
 pipeline/ (offline, Python)                         web/ (static, TypeScript)
 venues + terrace positions ─┐
-LiDAR surface model ────────┴─► horizon profile ──► data/terraces.json ──► sun position for the chosen
-                                 per terrace (360°)                          date/time vs. horizon → sun / shade
+LiDAR surface model ────────┴─► horizon profile ──► web/public/data/ ──► sun position for the chosen
+                                 per terrace (360°)   terraces.json       date/time vs. horizon → sun / shade
 ```
 
-Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device for any date. Details: [ADR-0001](docs/adr/0001-architecture.md).
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device for any date. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Roadmap
 

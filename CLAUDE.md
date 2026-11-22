@@ -4,7 +4,7 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 
 ## Architecture (see `docs/adr/0001-architecture.md`)
 
-- `pipeline/` (Python 3.14, uv): runs offline. Builds the terrace dataset and, for each terrace, a 360° horizon profile from a LiDAR surface model. Output goes to `data/terraces.json` (contract: `docs/data-contract.md`, created in #5).
+- `pipeline/` (Python 3.14, uv): runs offline. Builds the terrace dataset and, for each terrace, a 360° horizon profile from a LiDAR surface model. Output goes to `web/public/data/terraces.json`, which follows [`docs/data-contract.md`](docs/data-contract.md). The file holds sample data until #12.
 - `web/` (Vite, React, TypeScript, MapLibre GL JS): a static client. It computes the sun position for any date and time and compares it with each terrace's horizon. There is no backend.
 - Mobile: Capacitor wraps `web/` (issue #7).
 - Hosting: GitHub Pages, deployed on every push to `main`.
