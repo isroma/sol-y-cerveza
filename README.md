@@ -5,7 +5,7 @@ Terrazas de bares y restaurantes de Badajoz, y si les da el sol o la sombra seg√
 Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
 
 - **Web:** <https://isroma.github.io/sol-y-cerveza/>
-- **iOS / Android:** planned, via Capacitor ([#7](https://github.com/isroma/sol-y-cerveza/issues/7))
+- **iOS / Android:** Capacitor shells exist, paused until the web version is polished
 
 ## How it works
 
@@ -25,7 +25,7 @@ Shade is precomputed as each terrace's horizon: how high the surrounding buildin
 3. [Obstacle surface from PNOA LiDAR](https://github.com/isroma/sol-y-cerveza/issues/4)
 4. [Horizon profiles](https://github.com/isroma/sol-y-cerveza/issues/5)
 5. [Sun/shade map for any date and time](https://github.com/isroma/sol-y-cerveza/issues/6)
-6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7)
+6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7) (shells built, paused until the web version is polished)
 7. [Median beer price per venue (v2)](https://github.com/isroma/sol-y-cerveza/issues/8)
 
 ## Development

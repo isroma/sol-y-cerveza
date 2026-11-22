@@ -1,12 +1,12 @@
 # Sol y Cerveza: agent guide
 
-Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz get sun or shade at a chosen date and time. Second iteration: median price of a standard beer per venue. All changes arrive as agent-authored PRs, gated by CI and merged by a human.
+Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz get sun or shade at a chosen date and time. Second iteration: median price of a standard beer per venue. All changes arrive as agent-authored PRs, gated by CI and auto-merged when green.
 
 ## Architecture (see `docs/adr/0001-architecture.md`)
 
 - `pipeline/` (Python 3.14, uv): runs offline. Builds the terrace dataset and, for each terrace, a 360° horizon profile from a LiDAR surface model. Output goes to `web/public/data/terraces.json`, which follows [`docs/data-contract.md`](docs/data-contract.md). `python -m solycerveza.build` regenerates it; it holds sample data until curated terrace positions exist (#12).
 - `web/` (Vite, React, TypeScript, MapLibre GL JS): a static client. It computes the sun position for any date and time and compares it with each terrace's horizon. There is no backend.
-- Mobile: Capacitor wraps `web/` (issue #7).
+- Mobile: Capacitor wraps `web/` (`web/ios`, `web/android`). **Paused**: don't work on mobile unless asked; the Mobile workflow only runs manually.
 - Hosting: GitHub Pages, deployed on every push to `main`.
 
 ## Workflow (every change)
@@ -20,10 +20,10 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 5. Run the quality gates below before pushing.
 6. `main` is protected:
    - A PR is required, and `ci-ok` and `pr-title` must pass.
-   - The branch must be up to date and all conversations resolved.
+   - All conversations must be resolved. The branch does not need to be up to date; CI on `main` catches combined breakage.
    - Squash merge only.
    - Never push to `main`, never force-push a shared branch, never use `--no-verify`.
-7. Every merge needs explicit human approval for that PR.
+7. Once the PR is ready, enable auto-merge: `gh pr merge <n> --auto --squash`. GitHub merges it when the required checks pass. Never use `--admin`. If CI fails, fix it on the branch.
 
 ## Quality gates
 
