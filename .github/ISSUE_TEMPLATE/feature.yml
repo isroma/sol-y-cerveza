@@ -1,0 +1,24 @@
+name: Feature or task
+description: Something to build, change or investigate
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this is done, and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: Checkable acceptance criteria.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Context, links, dependencies on other issues.
