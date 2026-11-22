@@ -1,6 +1,7 @@
 import type { TerraceStatus } from '../sun/terraceStatus.ts'
 import { formatDuration } from '../time/madrid.ts'
 import { STATE_COLORS, STATE_LABELS, STATES } from './stateStyle.ts'
+import { verificationLabel } from './verification.ts'
 
 function sunLeftLabel(minutesLeft: number | null): string {
   if (minutesLeft === null) return 'Horizonte sin calcular'
@@ -41,6 +42,15 @@ export function TerraceList({
               <p className="terrace-detail">
                 <strong>{STATE_LABELS[state]}</strong> ·{' '}
                 {sunLeftLabel(minutesLeft)}
+              </p>
+              <p
+                className={
+                  terrace.verified === null
+                    ? 'terrace-verification is-unverified'
+                    : 'terrace-verification'
+                }
+              >
+                {verificationLabel(terrace.verified)}
               </p>
             </div>
           </li>

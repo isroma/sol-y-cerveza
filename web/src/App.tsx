@@ -51,6 +51,7 @@ export function App() {
         lat: terrace.terrace.lat,
         lon: terrace.terrace.lon,
         state,
+        verified: terrace.verified,
       })),
     [statuses],
   )
