@@ -1,0 +1,53 @@
+# Public-information request: authorized terraces in Badajoz
+
+Ready-to-file request under Ley 19/2013 for the Ayuntamiento's register of terrace (velador) authorizations. Context: [ADR-0002](../adr/0002-terrace-data-sources.md), [research notes](data-sources.md).
+
+## How to file (the user does this)
+
+- **Where**: the [sede electrónica](https://sede.aytobadajoz.es) (the access-to-information procedure, or a general *instancia*, signed with Cl@ve or a digital certificate), or in person at the Registro General.
+- **Fill in** the `[…]` fields. Leave everything else as it is: every item asks for data the ordinance already requires in each authorization (art. 28.3), so the answer should not count as *reelaboración* (CTBG [Criterio Interpretativo 4/2026](https://consejodetransparencia.es/content/dam/ctransparencia/portal-ctbg/publicaciones/criterios-interpretativos/2026/4_CI-18-1-c_Reelaboracion.pdf), §4.3.c: a direct extraction from a database is not reelaboración).
+- **Deadline**: one month from receipt, extendable by one more (art. 20.1). No answer by then means refusal (art. 20.4).
+- **If refused or unanswered**: complain to the Consejo de Transparencia y Buen Gobierno within one month (art. 24), quoting RA CTBG 2023-0153, in which the CTBG upheld access to a Badajoz velador file.
+- **Once it arrives**: keep the original out of the repo. Record the file date and reuse conditions in the research notes, and seed the curated CSV from it (ADR-0002).
+
+## Request text
+
+> **AL EXCMO. AYUNTAMIENTO DE BADAJOZ**
+>
+> A la atención de la unidad responsable del acceso a la información pública y del servicio que tramita las autorizaciones de terrazas de veladores.
+>
+> **Solicitante**
+>
+> - Nombre y apellidos: [NOMBRE Y APELLIDOS]
+> - DNI/NIE: [DNI]
+> - Domicilio a efectos de notificaciones: [DIRECCIÓN POSTAL]
+> - Correo electrónico (medio preferente de notificación): [EMAIL]
+>
+> **EXPONE**
+>
+> Que, al amparo del artículo 105.b) de la Constitución, de los artículos 12, 13 y 17 de la Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno, y de la Ley 4/2013, de 21 de mayo, de Gobierno Abierto de Extremadura, ejerce su derecho de acceso a la información pública.
+>
+> Que la Ordenanza reguladora de la instalación de veladores en el término municipal de Badajoz exige que cada resolución de autorización recoja, entre otros datos, la localización del espacio autorizado (vía y número del edificio más próximo), la superficie en metros cuadrados y el número de mesas, sillas y sombrillas (art. 28.3). Por tanto, la información solicitada ya obra en poder del Ayuntamiento.
+>
+> **SOLICITA**
+>
+> 1. **Relación de las autorizaciones de terrazas de veladores vigentes** en el término municipal (en 2026, o a la fecha en que se atienda la solicitud), con una fila por autorización y, para cada una:
+>    1. nombre comercial o rótulo del establecimiento y, si el titular es persona jurídica, su razón social;
+>    2. dirección del establecimiento al que sirve la terraza;
+>    3. ubicación del espacio autorizado: vía, número del edificio más próximo y tipo de espacio (acera, calzada, plaza, espacio libre privado de uso público…);
+>    4. superficie autorizada en metros cuadrados;
+>    5. número de mesas, sillas o sillones y sombrillas autorizados;
+>    6. si la instalación tiene cerramiento estable y permanente;
+>    7. fecha de concesión o de la última renovación, y referencia o número de expediente.
+> 2. Si el Ayuntamiento dispone de ella, **copia de la capa georreferenciada** (SIG) de las terrazas autorizadas, en cualquier formato estándar (GeoJSON, Shapefile, KML, GeoPackage o CSV con coordenadas).
+> 3. Las **condiciones de reutilización** aplicables a la información facilitada, conforme a la Ley 37/2007, de 16 de noviembre, sobre reutilización de la información del sector público.
+>
+> **Formato**: se solicita la entrega por vía electrónica (art. 22.1 de la Ley 19/2013) en un formato reutilizable (CSV o XLSX), tal como se pueda exportar de las aplicaciones de gestión municipales. No se pide que se elabore ningún documento nuevo. Según el Criterio Interpretativo 4/2026, de 17 de junio, del Consejo de Transparencia y Buen Gobierno (apartado 4.3.c), extraer directamente la información de las bases de datos o aplicaciones informáticas que gestiona el órgano requerido no es reelaboración.
+>
+> **Datos personales**: no se solicitan datos de personas físicas. Si el titular de alguna autorización es persona física, basta con el nombre comercial del establecimiento, omitiendo su nombre y NIF (art. 15 de la Ley 19/2013). Tampoco se solicitan datos tributarios (padrón o liquidaciones de la tasa).
+>
+> **Finalidad** (no es obligatorio indicarla, art. 17.3): elaborar un mapa abierto y sin ánimo de lucro que muestra qué terrazas de Badajoz tienen sol o sombra a cada hora. Los datos resultantes se publicarán con licencia abierta, citando al Ayuntamiento de Badajoz como fuente. Asimismo, se sugiere al Ayuntamiento que publique esta relación en formato abierto, como ya hacen Madrid, Barcelona o Zaragoza.
+>
+> En Badajoz, a [FECHA].
+>
+> Firmado: [NOMBRE Y APELLIDOS]
