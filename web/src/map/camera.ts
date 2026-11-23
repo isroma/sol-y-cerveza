@@ -53,22 +53,15 @@ export function pitchForZoom(zoom: number): number {
 }
 
 /**
- * The selected venue's card follows the zoom: full up close, only the name
- * and the sun line in between (cardLevel), shrinking smoothly with the pinch
- * (cardScale), and folded back into its badge in the city overview
+ * The selected venue's card follows the zoom: it shrinks smoothly with the
+ * pinch (cardScale) and folds back into its badge in the city overview
  * (cardFolded), with a short pop rather than a see-through fade.
  */
-export type CardLevel = 'full' | 'compact'
 /** Below this the card folds into the selected badge. */
 export const CARD_FOLD_BELOW = 15
-export const CARD_FULL_FROM = 15.75
 /** The card's size just before it folds. */
-export const CARD_MIN_SCALE = 0.75
-const CARD_MAX_SCALE_ZOOM = 16
-
-export function cardLevel(zoom: number): CardLevel {
-  return zoom < CARD_FULL_FROM ? 'compact' : 'full'
-}
+export const CARD_MIN_SCALE = 0.6
+const CARD_MAX_SCALE_ZOOM = 16.5
 
 export function cardFolded(zoom: number): boolean {
   return zoom < CARD_FOLD_BELOW

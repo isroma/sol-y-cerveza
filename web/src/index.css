@@ -1096,6 +1096,9 @@ button {
      badge centre, 41 px from the top, so the tab stays on the venue. */
   scale: var(--card-scale, 1);
   transform-origin: 50% 41px;
+  /* Its own GPU layer: a pinch rescales the painted card instead of
+     repainting its shadow every frame. */
+  will-change: scale, transform;
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
@@ -1122,15 +1125,6 @@ button {
 
 .pin-card--unknown {
   --card-accent: #c2a88e;
-}
-
-/* Mid zoom: name and sun line only, on a narrower card. */
-.pin-card--compact {
-  width: 240px;
-}
-
-.pin-card--compact .pin-card-title {
-  margin-bottom: var(--space-2);
 }
 
 /* The selected badge, grown into a tab on top of the card. */

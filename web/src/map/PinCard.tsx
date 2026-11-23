@@ -11,8 +11,6 @@ type Props = {
   minutes: number
   /** Today's sunset (kept for callers; the countdown uses the sun spell). */
   sunset: number | null
-  /** Mid zoom: only the name and the sun line. */
-  compact?: boolean
 }
 
 /** Shoulder radius where the badge tab flares into the card body. */
@@ -54,14 +52,12 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
  * joined to a card below it with the name, how much sun is left and a bar
  * counting down the current sun spell.
  */
-export function PinCard({ status, minutes, compact = false }: Props) {
+export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
 
   return (
-    <div
-      className={`pin-card pin-card--${status.category}${compact ? ' pin-card--compact' : ''}`}
-    >
+    <div className={`pin-card pin-card--${status.category}`}>
       <div className="pin-card-tab">
         <Shoulder side="left" />
         <span className="pin-card-badge" aria-hidden="true">
@@ -72,12 +68,10 @@ export function PinCard({ status, minutes, compact = false }: Props) {
       <div className="pin-card-body">
         <div className="pin-card-title">
           <strong>{venue.name}</strong>
-          {!compact && (
-            <span>
-              {KIND_LABELS[venue.kind]}
-              {status.hasTerrace && ' · Terraza'}
-            </span>
-          )}
+          <span>
+            {KIND_LABELS[venue.kind]}
+            {status.hasTerrace && ' · Terraza'}
+          </span>
         </div>
         <div className="pin-card-sun">
           <CategoryIcon category={status.category} size={30} />
@@ -86,10 +80,10 @@ export function PinCard({ status, minutes, compact = false }: Props) {
             {box.detail && <span>{box.detail}</span>}
           </div>
         </div>
-        {!compact && status.timeline && (
+        {status.timeline && (
           <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
-        {!compact && <PriceSection venue={venue} />}
+        <PriceSection venue={venue} />
       </div>
     </div>
   )
