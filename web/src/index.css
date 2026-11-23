@@ -989,19 +989,44 @@ button {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 }
 
-/* Night: the whole app goes dark while the sun is down (the map via night.ts). */
+/* Night: the whole app goes dark while the sun is down (the map via night.ts),
+   softer at dusk and darkest overnight: --night-depth goes 0 → 1 (App.tsx). */
 .app.is-night {
   --ink: #e8eaf0;
   --muted: #9aa3b5;
-  --line: #2a3043;
-  --field: #1d2231;
-  --bg: #141826;
-  --surface-hover: #1c2132;
-  --highlight: #2c2818;
+  --line: color-mix(
+    in srgb,
+    #2a3043 calc(var(--night-depth, 1) * 100%),
+    #434a62
+  );
+  --field: color-mix(
+    in srgb,
+    #1d2231 calc(var(--night-depth, 1) * 100%),
+    #383f56
+  );
+  --bg: color-mix(in srgb, #141826 calc(var(--night-depth, 1) * 100%), #2d3348);
+  --surface-hover: color-mix(
+    in srgb,
+    #1c2132 calc(var(--night-depth, 1) * 100%),
+    #363d54
+  );
+  --highlight: color-mix(
+    in srgb,
+    #2c2818 calc(var(--night-depth, 1) * 100%),
+    #46412c
+  );
   --text-soft: #c3c9d6;
   --placeholder: #7d8596;
-  --toggle-off: #2f3647;
-  --legend-bg: rgba(20, 24, 38, 0.96);
+  --toggle-off: color-mix(
+    in srgb,
+    #2f3647 calc(var(--night-depth, 1) * 100%),
+    #4a5168
+  );
+  --legend-bg: color-mix(
+    in srgb,
+    #141826 calc(var(--night-depth, 1) * 100%),
+    #2d3348
+  );
   --shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
   color: var(--ink);
   color-scheme: dark;

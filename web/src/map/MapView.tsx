@@ -15,7 +15,7 @@ import type { VenueStatus } from '../sun/venueStatus.ts'
 import { pitchForZoom, SHADOW_OPACITY } from './camera.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
-import { createNightSwitch } from './night.ts'
+import { createNightSwitch, nightDepth } from './night.ts'
 import { sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { shadowCollection } from './shadowLayer.ts'
@@ -88,11 +88,12 @@ export function MapView({
   const pinsRef = useRef(new Map<string, PinEntry>())
   const onSelectRef = useRef(onSelect)
   const sunRef = useRef(sun)
-  const nightSwitchRef = useRef<((night: boolean) => void) | null>(null)
+  const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
-  const night = sun.altitude <= 0
+  const depth = nightDepth(sun.altitude)
+  const night = depth !== null
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
 
   useEffect(() => {
@@ -286,8 +287,8 @@ export function MapView({
 
   // A dark map at night.
   useEffect(() => {
-    if (ready) nightSwitchRef.current?.(night)
-  }, [ready, night])
+    if (ready) nightSwitchRef.current?.(depth)
+  }, [ready, depth])
 
   // Pins for terraces, grey dots for the rest.
   useEffect(() => {
