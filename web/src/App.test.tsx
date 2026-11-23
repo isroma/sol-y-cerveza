@@ -56,7 +56,7 @@ describe('App', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders the brand, the controls and the map', () => {
+  it('renders the brand, the controls and the map', async () => {
     stubFetch(Response.json(sampleFile))
     render(<App />)
 
@@ -69,7 +69,7 @@ describe('App', () => {
     expect(
       screen.getByRole('switch', { name: 'Con sol ahora' }),
     ).toBeInTheDocument()
-    expect(screen.getByTestId('map')).toBeInTheDocument()
+    expect(await screen.findByTestId('map')).toBeInTheDocument()
   })
 
   it('on phones, keeps the time in the footer and the rest in a menu', () => {

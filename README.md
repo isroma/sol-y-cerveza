@@ -48,6 +48,8 @@ uv run python -m solycerveza.obstacles --source wcs   # surface + terrain raster
 uv run python -m solycerveza.build                     # venues + curated list + horizons -> terraces.json
 ```
 
+The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && node scripts/brand-images.mjs` (needs Playwright's Chromium).
+
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 
 ## Data and attribution

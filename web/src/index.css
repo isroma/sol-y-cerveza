@@ -39,8 +39,32 @@
   color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
+/* Cascade order: these resets, then MapLibre's styles (src/map/maplibre.css,
+   loaded with the lazy map), then every unlayered rule in this file. So
+   MapLibre keeps beating the resets, and our overrides beat MapLibre,
+   whichever stylesheet loads first. */
+@layer base, maplibre;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgba(245, 158, 11, 0.55);
+    outline-offset: 2px;
+  }
 }
 
 html,
@@ -48,22 +72,6 @@ body,
 #root {
   height: 100%;
   margin: 0;
-}
-
-button,
-input,
-select {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.55);
-  outline-offset: 2px;
 }
 
 .muted {
@@ -536,6 +544,24 @@ button {
    map's attribution, too. */
 .maplibregl-canvas-container {
   isolation: isolate;
+}
+
+/* While the map chunk loads: the map's land colour, dark at night. */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #f6eee2;
+  color: var(--text-soft);
+}
+
+.map-loading p {
+  margin: 0;
+}
+
+.app.is-night .map-loading {
+  background: var(--bg);
 }
 
 .map-error {
