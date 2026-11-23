@@ -23,7 +23,7 @@ type Terrace = {
   kind: 'bar' | 'pub' | 'cafe' | 'restaurant' | 'biergarten'
   venue: LatLon // the venue itself (building or entrance)
   terrace: LatLon | null // where the tables are (horizon computed from here); null = no known terrace
-  sources: string[] // e.g. ["curated", "osm"], ["overture"] or ["junta"], sorted
+  sources: string[] // e.g. ["curated", "osm"], ["overture"], ["junta"] or ["osm", "review"], sorted
   verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
   horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
 }

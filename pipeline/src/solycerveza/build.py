@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
+from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.sources import load_all_venues
 from solycerveza.terraces import Terrace, build_terraces, read_curated
 from solycerveza.venues import CACHE_DIR, load_seating
@@ -152,9 +153,14 @@ def build(
     generated: datetime | None = None,
 ) -> TerracesFile:
     """Run every stage and return the file contents."""
+    reviews = read_review()
+    dropped = dropped_ids(reviews)
     terraces = build_terraces(
-        load_all_venues(refresh=refresh), read_curated(), load_seating(refresh=False)
+        review_venues(load_all_venues(refresh=refresh), reviews),
+        [row for row in read_curated() if row.venue_id not in dropped],
+        load_seating(refresh=False),
     )
+    terraces = review_terraces(terraces, reviews)
 
     for warning in position_warnings(terraces, dsm_path, dtm_path):
         logger.warning(warning)
