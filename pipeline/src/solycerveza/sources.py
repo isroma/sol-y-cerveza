@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+from solycerveza.corrections import apply_corrections, read_corrections
 from solycerveza.junta import add_register_venues, load_register
 from solycerveza.overture import cache_path, fetch_places, merge_venues, read_places
 from solycerveza.venues import CACHE_DIR, Venue, load_venues
@@ -17,5 +18,6 @@ def load_all_venues(*, refresh: bool = False, cache_dir: Path = CACHE_DIR) -> li
         fetch_places(cache_dir=cache_dir)
     venues = merge_venues(load_venues(cache_dir=cache_dir, refresh=refresh), read_places(places))
     venues, confirmed = add_register_venues(venues, load_register(cache_dir, refresh=refresh))
+    venues = apply_corrections(venues, read_corrections())
     logger.info("Junta register confirms %d venues; %d venues in total", confirmed, len(venues))
     return venues
