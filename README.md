@@ -18,13 +18,7 @@ Shade is precomputed as each terrace's horizon: how high the surrounding buildin
 
 ## Roadmap
 
-1. [Decide where terrace data comes from](https://github.com/isroma/sol-y-cerveza/issues/2): OSM alone has almost no terrace tags in Badajoz
-2. [Terrace dataset](https://github.com/isroma/sol-y-cerveza/issues/3)
-3. [Obstacle surface from PNOA LiDAR](https://github.com/isroma/sol-y-cerveza/issues/4)
-4. [Horizon profiles](https://github.com/isroma/sol-y-cerveza/issues/5)
-5. [Sun/shade map for any date and time](https://github.com/isroma/sol-y-cerveza/issues/6)
-6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7) (shells built, paused until the web version is polished)
-7. [Median beer price per venue (v2)](https://github.com/isroma/sol-y-cerveza/issues/8)
+The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, clouds, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
 
 ## Design
 
