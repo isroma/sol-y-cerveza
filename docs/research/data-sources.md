@@ -184,4 +184,14 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
 - **Junta register:** 714 city rows, of which 399 geocode to an exact street number. They confirm 143 existing venues and add 101 recent ones (opened 2010 or later).
 - **Wikimedia Commons:** 616 geotagged files in the area, none of them a terrace. Dead end.
 - **KartaView:** the public API didn't answer usefully, and earlier research found almost no coverage. Dead end.
-- **Still open, needing a person** (issue #46): the Ayuntamiento velador register, a Mapillary token (street-level detection feeding OSM edits), 2 m LiDAR and the summer-2023 point clouds.
+- **Still open, needing a person** (issue #46): the Ayuntamiento velador register and the summer-2023 point clouds. The Mapillary token and 2 m LiDAR are done.
+
+### Mapillary pilot (2026-11-23)
+
+- **Route:** a COCO detector (chair, dining table, umbrella) ranks venues by street-level evidence. A local mapper reviews each candidate's photo, and confirmed terraces go into OSM under their account. The pipeline then reads them from OSM like any other tag, which keeps us within Mapillary's terms (§13).
+- **Review:** of 40 candidates, 30 were confirmed terraces, 4 were not terraces and 6 showed a different venue from the one listed.
+- **OSM edits:** changeset [192357025](https://www.openstreetmap.org/changeset/192357025) added `outdoor_seating=yes` to 8 existing venues and created 22 venue nodes that OSM lacked.
+- **Positions:** a venue node sits on its building, so a terrace placed there reads as a rooftop in the LiDAR (6–19 m up) and gets an all-shade horizon. The confirmed terraces have curated rows at the open ground nearest the venue instead.
+  - Carmen, Siente La Dehesa and La Cascada are on narrow old-town streets that the 2 m LiDAR reads as covered, with no open ground within 24 m, so they show shade all day.
+  - Domino's Pizza is tagged `amenity=fast_food` in OSM, which is not an app venue kind, so its curated row links the Overture record.
+- **Result:** 41 terraces in the app, up from 13.
