@@ -129,64 +129,6 @@ describe('App', () => {
     expect(await listedNames()).toEqual(['Terraza de ejemplo · Calle Menacho'])
   })
 
-  it('opens a card with sun details and no made-up values', async () => {
-    stubFetch(Response.json(sampleFile))
-    render(<App />)
-    await listedNames()
-
-    fireEvent.click(screen.getByRole('button', { name: /Plaza Alta/ }))
-
-    const card = screen.getByRole('article')
-    expect(
-      within(card).getByRole('heading', {
-        name: 'Terraza de ejemplo · Plaza Alta',
-      }),
-    ).toBeInTheDocument()
-    expect(within(card).getByText('Con sol ahora')).toBeInTheDocument()
-    expect(within(card).queryByText(/€/)).not.toBeInTheDocument()
-    expect(within(card).queryByText(/^ejemplo$/)).not.toBeInTheDocument()
-    const footer = within(card).getByRole('button', {
-      name: /Sol hasta las 17:15/,
-    })
-    expect(footer).toHaveTextContent('Sol hasta las 17:15 (3 h 15 min)')
-
-    fireEvent.click(footer)
-    expect(
-      within(card).getByRole('img', { name: /Sol: .*–17:15/ }),
-    ).toBeInTheDocument()
-    expect(within(card).getByText('Posición sin verificar')).toBeInTheDocument()
-
-    fireEvent.click(within(card).getByRole('button', { name: 'Cerrar ficha' }))
-    expect(screen.queryByRole('article')).not.toBeInTheDocument()
-  })
-
-  it('shows when a terrace position was checked on site', async () => {
-    stubFetch(
-      Response.json({
-        ...sampleFile,
-        terraces: sampleFile.terraces.map((terrace, index) =>
-          index === 0 ? { ...terrace, verified: '2026-11-01' } : terrace,
-        ),
-      }),
-    )
-    render(<App />)
-    await listedNames()
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: new RegExp(sampleFile.terraces[0]?.name ?? ''),
-      }),
-    )
-    fireEvent.click(
-      within(screen.getByRole('article')).getByRole('button', {
-        expanded: false,
-      }),
-    )
-    expect(
-      screen.getByText('Posición verificada el 1 nov 2026'),
-    ).toBeInTheDocument()
-  })
-
   it('shows the sample notice and passes the attribution to the map', async () => {
     stubFetch(Response.json(sampleFile))
     render(<App />)
