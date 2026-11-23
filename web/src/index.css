@@ -1026,7 +1026,9 @@ button {
 
 .pin-card-shoulder {
   position: absolute;
-  bottom: 0;
+  /* The tab reaches 1 px past the card's top border (see .pin-card-tab), so
+     lift the curves by that pixel to meet the border's centre line. */
+  bottom: 1px;
   overflow: visible;
   z-index: 1;
 }
