@@ -26,18 +26,24 @@ A review of the whole project after the phone layout work, and what to do next. 
 
 Both are owner decisions (2026-11-23), recorded in `CLAUDE.md`.
 
+## Parked: not now
+
+Not rejected: they may come back later, but don't propose or start them unless the owner asks (owner, 2026-11-23, recorded in `CLAUDE.md`).
+
+- **Accessibility pass.** Keyboard path through the map, focus management in the phone menu, contrast at night.
+- **More cities.** The pipeline is Badajoz-specific in `geo.py` and the LiDAR sheets.
+- **Native mobile apps.** Paused; the web app is installable.
+
 ## Next, in order
 
-1. **Prices.** Seed them without scraping third-party platforms (their terms forbid it, and the data contract forbids storing it):
-   - read prices from venue websites already fetched for terrace evidence (ADR-0004) into the admin's suggestion queue;
-   - photo of the price board → the admin pre-fills caña and tercios, the owner confirms;
-   - visitor suggestions (ADR-0005) once `PRICES_API` and Turnstile are configured.
-2. **Verified terraces.** Use the admin on a phone, on site: mark terrace / no terrace, drag the pin, set `verified`. Send batches to OSM with `solycerveza.osm_export`.
-3. **Seasonal trees.** Classify vegetation in the LiDAR point cloud and treat deciduous crowns as open from December to March. Needs the classified tiles and a check against a few known terraces.
-4. **Accessibility pass.** Keyboard path through the map (pins are buttons already), focus management in the phone menu, contrast at night, reduced motion for the card.
-5. **Offline and install.** A service worker only once deploys slow down: stale caches are worse than no cache while the app changes daily.
-6. **More cities.** The city pill already says "Más ciudades, próximamente". The pipeline is Badajoz-specific in `geo.py` and the LiDAR sheets; generalise only when a second city is real.
-7. **Mobile apps.** Still paused. The web app is installable; revisit when prices and verified terraces give people a reason to return.
+Prices come without scraping third-party platforms (their terms forbid it, and the data contract forbids storing it).
+
+1. **Photo to price.** Photo of the price board → the admin pre-fills caña and tercios, the owner confirms.
+2. **Admin on a phone.** Use it on site: mark terrace / no terrace, drag the pin, set `verified`. Send batches to OSM with `solycerveza.osm_export`.
+3. **Prices from venue websites.** Read them from the sites already fetched for terrace evidence (ADR-0004) into the admin's suggestion queue.
+4. **Visitor suggestions** (ADR-0005). Needs the owner's Cloudflare account for `PRICES_API` and Turnstile.
+5. **Seasonal trees.** ADR first. Classify vegetation in the LiDAR point cloud and treat deciduous crowns as open from December to March; check against a few known terraces.
+6. **Offline caching.** A service worker for the app and its data.
 
 ## How to iterate
 
