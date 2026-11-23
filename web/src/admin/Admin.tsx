@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadTerraces, type LatLon, type Terrace } from '../data/terraces.ts'
 import { AdminMap } from './AdminMap.tsx'
 import { PricesEditor } from './PricesEditor.tsx'
+import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
 import { BRANDS } from '../data/prices.ts'
 import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
@@ -127,6 +128,7 @@ export function Admin() {
   // The terrace pin while it is being dragged, for a live sun preview.
   const [dragging, setDragging] = useState<LatLon | null>(null)
   const [queueOpen, setQueueOpen] = useState(false)
+  const [candidatesOpen, setCandidatesOpen] = useState(false)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
 
   const select = useCallback((id: string | null) => {
@@ -445,6 +447,13 @@ export function Admin() {
               >
                 Suggestions
               </button>
+              <button
+                type="button"
+                aria-pressed={candidatesOpen}
+                onClick={() => setCandidatesOpen(!candidatesOpen)}
+              >
+                Website prices
+              </button>
               <button type="button" onClick={startAdding}>
                 + Add venue
               </button>
@@ -482,6 +491,13 @@ export function Admin() {
               nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
               onSelect={select}
               onAccept={acceptSuggestion}
+            />
+          )}
+          {candidatesOpen && (
+            <PriceCandidates
+              nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
+              onSelect={select}
+              onAccept={(price) => savePrice(priceKey(price), price)}
             />
           )}
           <input

@@ -55,6 +55,8 @@ The app icons in the web manifest (`web/public/icon-*.png`) and the link preview
 
 `cd web && npm run admin` opens the dev-only admin. It needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza.obstacles` above) for the sun preview; everything else works without them.
 
+Besides terraces, its **Website prices** button lists the beer prices `python -m solycerveza.price_candidates` found on venues' own websites ([ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page: check it, then **Accept** (it becomes the venue's price, shipped with the next Publish) or **Dismiss**.
+
 1. Pick **Needs a look**: terraces whose current horizon gets no sun today, on 21 Jun or on 21 Dec, or is above 60° over most of the southern half. Usually the pin is against a wall, under a tree crown or on a roof.
 2. Click one, press **T** and click (or drag the pin to) where the tables stand. The panel's **Sun at the terrace pin** updates as you go: today's hours of sun, a 24 h strip (amber sun, grey shade, light night) and the **height above ground** at the pin.
 3. Read it:
