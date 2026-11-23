@@ -652,10 +652,23 @@ button {
   font-size: 14px;
 }
 
-.map-legend {
+/* The map's attribution "i" and the legend, side by side: bottom-right on
+   desktop, centred as one group on phones. */
+.map-bottom {
   position: absolute;
   right: var(--map-inset);
   bottom: var(--map-inset);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.map-attrib {
+  flex: none;
+}
+
+.map-legend {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
@@ -743,20 +756,23 @@ button {
 
 @media (max-width: 899px) {
   /* The attribution button sits left of the legend, both at the bottom. */
-  /* The map's attribution button sits bottom-left and the legend, as wide as
-     its rows, right next to it; the attribution opens upwards. */
   .map-wrap {
     --legend-height: 56px;
   }
 
-  .map-legend {
+  .map-bottom {
     right: auto;
     bottom: var(--space-3);
-    /* Just right of the attribution button, 8 px from it. */
-    left: calc(var(--space-3) + 24px + var(--space-2));
+    left: 50%;
+    translate: -50% 0;
     align-items: center;
     width: max-content;
-    max-width: calc(100% - 2 * var(--space-3) - 24px - var(--space-2));
+    max-width: calc(100% - 2 * var(--space-3));
+  }
+
+  .map-legend {
+    align-items: center;
+    min-width: 0;
     height: var(--legend-height);
     /* Room on the right for the info button. */
     padding: var(--space-2) 40px var(--space-2) var(--space-3);
@@ -934,6 +950,42 @@ button {
 /* MapLibre draws the "i" as a black image: flip it to light at night. */
 .app.is-night .maplibregl-ctrl-attrib-button {
   filter: invert(1);
+}
+
+/* Our own slot, so no corner margins; the button keeps no focus ring after a
+   tap. */
+.map-attrib .maplibregl-ctrl-attrib.maplibregl-compact {
+  margin: 0;
+}
+
+.map-attrib .maplibregl-ctrl-attrib-button:focus,
+.map-attrib .maplibregl-ctrl-attrib-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Opened, the "i" stays a plain button and the credits rise above it as a
+   thin vertical strip, read bottom to top. */
+.map-attrib .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+  padding: 2px 24px 2px 0;
+}
+
+.map-attrib
+  .maplibregl-ctrl-attrib.maplibregl-compact-show
+  .maplibregl-ctrl-attrib-inner {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 0;
+  width: 24px;
+  padding: var(--space-3) 0;
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  line-height: 24px;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  rotate: 180deg;
 }
 
 .pin-price:empty {
@@ -1328,43 +1380,4 @@ button {
    card is folded away in the overview, where the selected badge stands in). */
 .map-wrap:not(.is-card-folded) .pin-marker[aria-pressed='true'] {
   visibility: hidden;
-}
-
-/* Attribution sits on the same 16px map inset as the other overlays. */
-.maplibregl-ctrl-bottom-left .maplibregl-ctrl {
-  margin: 0 0 var(--map-inset) var(--map-inset);
-}
-
-@media (max-width: 899px) {
-  /* Bottom-left, centred on the legend's height. */
-  .maplibregl-ctrl-bottom-left {
-    bottom: calc(var(--space-3) + (var(--legend-height) - 24px) / 2);
-    left: var(--space-3);
-  }
-
-  .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
-    margin: 0;
-  }
-
-  /* Opened, the button stays put and the credits unfold upwards as a small
-     card above the legend's line, instead of sideways across it. */
-  .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
-    padding: 2px 24px 2px 0;
-  }
-
-  .maplibregl-ctrl-attrib.maplibregl-compact-show
-    .maplibregl-ctrl-attrib-inner {
-    position: absolute;
-    bottom: calc((var(--legend-height) + 24px) / 2 + var(--space-2));
-    left: 0;
-    /* A narrow, upright card: the credits stack line by line. */
-    width: max-content;
-    max-width: 140px;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-m);
-    background: var(--bg);
-    box-shadow: var(--shadow);
-    font-size: 12px;
-    line-height: 1.5;
-  }
 }

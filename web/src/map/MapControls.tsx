@@ -20,9 +20,16 @@ type Props = {
   mapRef: RefObject<MapLibreMap | null>
   ready: boolean
   attribution: readonly string[]
+  /** Where MapView mounts the map's attribution control, next to the legend. */
+  attributionSlot: RefObject<HTMLDivElement | null>
 }
 
-export function MapControls({ mapRef, ready, attribution }: Props) {
+export function MapControls({
+  mapRef,
+  ready,
+  attribution,
+  attributionSlot,
+}: Props) {
   const [cityOpen, setCityOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
@@ -164,44 +171,52 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
         </p>
       )}
 
-      <aside className="map-legend" aria-label="Leyenda">
-        <ul>
-          {(['sun', 'soon', 'nosun'] as const).map((category) => (
-            <li key={category}>
-              <CategoryIcon category={category} size={22} />
-              {CATEGORY_LABELS[category]}
+      {/* The map's attribution and the legend, side by side as one group. */}
+      <div className="map-bottom">
+        <div className="map-attrib" ref={attributionSlot} />
+        <aside className="map-legend" aria-label="Leyenda">
+          <ul>
+            {(['sun', 'soon', 'nosun'] as const).map((category) => (
+              <li key={category}>
+                <CategoryIcon category={category} size={22} />
+                {CATEGORY_LABELS[category]}
+              </li>
+            ))}
+            <li>
+              <span className="legend-dot" aria-hidden="true" />
+              {CATEGORY_LABELS.unknown}
             </li>
-          ))}
-          <li>
-            <span className="legend-dot" aria-hidden="true" />
-            {CATEGORY_LABELS.unknown}
-          </li>
-        </ul>
-        <button
-          type="button"
-          className="icon-button legend-info"
-          aria-label="Información sobre los datos"
-          aria-expanded={infoOpen}
-          onClick={() => setInfoOpen(!infoOpen)}
-        >
-          <InfoIcon size={20} />
-        </button>
-        {infoOpen && (
-          <div className="map-info" role="dialog" aria-label="Sobre los datos">
-            <h3>Sobre los datos</h3>
-            <p>
-              El sol y la sombra se calculan con la posición del sol y el
-              relieve de edificios y árboles (LiDAR del PNOA). Las terrazas aún
-              no están verificadas sobre el terreno.
-            </p>
-            <ul className="map-info-sources">
-              {attribution.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </aside>
+          </ul>
+          <button
+            type="button"
+            className="icon-button legend-info"
+            aria-label="Información sobre los datos"
+            aria-expanded={infoOpen}
+            onClick={() => setInfoOpen(!infoOpen)}
+          >
+            <InfoIcon size={20} />
+          </button>
+          {infoOpen && (
+            <div
+              className="map-info"
+              role="dialog"
+              aria-label="Sobre los datos"
+            >
+              <h3>Sobre los datos</h3>
+              <p>
+                El sol y la sombra se calculan con la posición del sol y el
+                relieve de edificios y árboles (LiDAR del PNOA). Las terrazas
+                aún no están verificadas sobre el terreno.
+              </p>
+              <ul className="map-info-sources">
+                {attribution.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+      </div>
     </>
   )
 }
