@@ -194,8 +194,8 @@ button {
     font-size: 20px;
   }
 
-  .time-footer .time-slider {
-    margin: var(--space-3) 0 var(--space-2);
+  .time-footer .time-track {
+    --slider-top: var(--space-3);
   }
 }
 
@@ -311,7 +311,7 @@ button {
 .time-slider {
   width: 100%;
   height: 8px;
-  margin: var(--space-4) 0 var(--space-2);
+  margin: var(--slider-top) 0 var(--space-2);
   border-radius: 999px;
   background: linear-gradient(
     to right,
@@ -665,7 +665,7 @@ button {
   box-shadow: var(--shadow);
 }
 
-.map-legend ul {
+.map-legend > ul {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -674,7 +674,7 @@ button {
   list-style: none;
 }
 
-.map-legend li {
+.map-legend > ul > li {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -710,6 +710,8 @@ button {
   right: 0;
   bottom: calc(100% + var(--space-3));
   width: min(340px, calc(100vw - 2 * var(--map-inset)));
+  max-height: 60dvh;
+  overflow-y: auto;
   padding: var(--space-4);
   border-radius: var(--radius-l);
   background: var(--bg);
@@ -727,8 +729,14 @@ button {
 }
 
 .map-info-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   margin: 0;
-  padding-left: 16px;
+  padding: 0;
+  list-style: none;
+  /* Licence lines carry long unbroken names and URLs. */
+  overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 12px;
 }
@@ -744,14 +752,15 @@ button {
     border-radius: 14px;
   }
 
-  .map-legend ul {
+  .map-legend > ul {
     display: grid;
     flex: 1;
-    grid-template-columns: auto 1fr;
-    gap: 4px 10px;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 4px var(--space-4);
   }
 
-  .map-legend li {
+  .map-legend > ul > li {
     gap: 6px;
     font-size: 12px;
     white-space: nowrap;
@@ -761,7 +770,7 @@ button {
     right: var(--space-1);
   }
 
-  .map-legend li svg {
+  .map-legend > ul > li svg {
     width: 16px;
     height: 16px;
   }
@@ -975,13 +984,15 @@ button {
 
 /* Sunrise, sunset and "now" marks sit on the time bar itself. */
 .time-track {
+  /* The gap above the slider's track; the marks below sit at the same height. */
+  --slider-top: var(--space-4);
   position: relative;
 }
 
 .time-markers {
   position: absolute;
-  /* Lined up with the 8px track inside the slider (its top margin is 18px). */
-  top: var(--space-4);
+  /* Lined up with the 8px track inside the slider. */
+  top: var(--slider-top);
   right: 0;
   left: 0;
   height: 8px;
@@ -1022,7 +1033,7 @@ button {
 /* "Now": a deep amber "Ahora" bubble over a dot on the bar; tap it to come back. */
 .time-now-layer {
   position: absolute;
-  top: var(--space-4);
+  top: var(--slider-top);
   right: 0;
   left: 0;
   height: 8px;
@@ -1295,6 +1306,11 @@ button {
 }
 
 @media (max-width: 899px) {
+  /* Opened, the attribution runs across the legend: give it the room. */
+  .map-wrap:has(.maplibregl-compact-show) .map-legend {
+    visibility: hidden;
+  }
+
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
     margin: 0 0 var(--space-3) var(--space-3);
   }
