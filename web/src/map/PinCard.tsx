@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
-import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
+import { BARE_TREES_NOTE, KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { shareUrl } from '../urlState.ts'
@@ -146,6 +146,9 @@ export function PinCard({ status, minutes }: Props) {
           <div>
             <strong>{box.title}</strong>
             {box.detail && <span>{box.detail}</span>}
+            {status.throughBareTrees && (
+              <span className="pin-card-trees">{BARE_TREES_NOTE}</span>
+            )}
           </div>
         </div>
         {status.timeline && (

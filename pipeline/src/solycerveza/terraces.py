@@ -117,12 +117,16 @@ class Terrace(BaseModel):
     sources: Annotated[list[str], Field(min_length=1)]
     verified: date | None
     horizon: Horizon | None = None
+    # Leaf-off profile (ADR-0007); None when it equals `horizon` or was not computed.
+    horizon_winter: Horizon | None = None
     prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _no_terrace_means_no_terrace_data(self) -> Self:
         if self.terrace is None and (self.verified is not None or self.horizon is not None):
             raise ValueError("verified and horizon must be null when terrace is null")
+        if self.horizon is None and self.horizon_winter is not None:
+            raise ValueError("horizon_winter needs a horizon")
         return self
 
 

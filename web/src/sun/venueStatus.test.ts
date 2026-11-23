@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Terrace } from '../data/terraces.ts'
 import {
   calleMenacho,
+  horizonFromRuns,
   paseoSanFrancisco,
   plazaAlta,
   withoutHorizon,
@@ -92,6 +93,65 @@ describe('venueStatus', () => {
       'nosun',
       'unknown',
     ])
+  })
+})
+
+describe('leaf-off horizon (ADR-0007)', () => {
+  // Paseo de San Francisco: 31° of crowns all around, 8.3° once they are bare.
+  const bareInWinter = {
+    ...paseoSanFrancisco,
+    horizon_winter: horizonFromRuns([[0, 359, 83]]),
+  }
+  const march = dayTrack('2027-03-10')
+
+  it('gives sun through bare trees inside the leaf-off period', () => {
+    expect(at(paseoSanFrancisco, winter, '13:00').state).toBe('shade')
+    const status = at(bareInWinter, winter, '13:00')
+    expect(status.state).toBe('sun')
+    expect(status.throughBareTrees).toBe(true)
+    // The same day as Plaza Alta, which has the same 8.3° horizon.
+    expect(status.sunUntil).toBe(at(plazaAlta, winter, '13:00').sunUntil)
+  })
+
+  it('flags the next spell when it is through bare trees', () => {
+    const status = at(bareInWinter, winter, '09:00')
+    expect(status.state).not.toBe('sun')
+    expect(status.nextSun).not.toBeNull()
+    expect(status.throughBareTrees).toBe(true)
+  })
+
+  it('uses the full horizon outside the period', () => {
+    // Mid-March: the trees are back in the model.
+    const full = venueDay(paseoSanFrancisco, march)
+    const day = venueDay(bareInWinter, march)
+    expect(day.timeline).toEqual(full.timeline)
+    expect(day.bareTrees).toBeNull()
+    expect(at(bareInWinter, march, '13:00').throughBareTrees).toBe(false)
+  })
+
+  it('does not flag sun that the full horizon already gives', () => {
+    // Bare trees only to the north: the winter sun is to the south anyway.
+    const northTrees = {
+      ...plazaAlta,
+      horizon: horizonFromRuns([
+        [0, 89, 600],
+        [90, 270, 83],
+        [271, 359, 600],
+      ]),
+      horizon_winter: horizonFromRuns([[0, 359, 83]]),
+    }
+    const status = at(northTrees, winter, '13:00')
+    expect(status.state).toBe('sun')
+    expect(status.throughBareTrees).toBe(false)
+    expect(venueDay(northTrees, winter).bareTrees).toBeNull()
+  })
+
+  it('behaves as before without a leaf-off horizon', () => {
+    for (const venue of [plazaAlta, calleMenacho, paseoSanFrancisco]) {
+      const day = venueDay({ ...venue, horizon_winter: null }, winter)
+      expect(day).toEqual({ ...venueDay(venue, winter), venue: day.venue })
+      expect(day.bareTrees).toBeNull()
+    }
   })
 })
 

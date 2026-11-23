@@ -27,7 +27,22 @@ describe('terracesFileSchema', () => {
     expect(terracesFileSchema.safeParse(file).success).toBe(true)
   })
 
+  it('accepts a leaf-off horizon, null or absent', () => {
+    for (const horizon_winter of [Array(360).fill(0), null, undefined])
+      expect(
+        terracesFileSchema.safeParse(withTerrace({ horizon_winter })).success,
+      ).toBe(true)
+  })
+
   it.each([
+    [
+      'a leaf-off horizon with 359 bins',
+      withTerrace({ horizon_winter: Array(359).fill(0) }),
+    ],
+    [
+      'a leaf-off horizon without a horizon',
+      withTerrace({ horizon: null, horizon_winter: Array(360).fill(0) }),
+    ],
     ['an old version', { ...sampleFile, version: 1 }],
     ['a missing attribution', { ...sampleFile, attribution: undefined }],
     ['a non-UTC timestamp', { ...sampleFile, generated: '22/11/2026' }],

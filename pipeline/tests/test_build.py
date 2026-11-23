@@ -82,8 +82,43 @@ def test_render_follows_the_contract_layout() -> None:
         "sources",
         "verified",
         "horizon",
+        "horizon_winter",
         "prices",
     ]
+
+
+def test_add_horizons_keeps_a_winter_horizon_only_where_it_differs() -> None:
+    plaza = _terrace("curated:plaza-alta")
+    street = _terrace("curated:calle").model_copy(
+        update={"terrace": LatLon(lat=38.877, lon=-6.9705)}
+    )
+    no_terrace = _terrace("osm:node/1").model_copy(update={"terrace": None, "sources": ["osm"]})
+
+    def winter_for(lat: float, _lon: float) -> list[int]:
+        # Bare trees open up the plaza; the street is walled by buildings either way.
+        return [3] * 360 if lat > 38.88 else [10] * 360
+
+    result = add_horizons([plaza, street, no_terrace], lambda _lat, _lon: [10] * 360, winter_for)
+    assert [t.horizon_winter for t in result] == [[3] * 360, None, None]
+    assert result[2].horizon is None
+
+
+def test_add_horizons_without_a_leaf_off_model_has_no_winter_horizons() -> None:
+    (result,) = add_horizons([_terrace()], lambda _lat, _lon: [10] * 360)
+    assert result.horizon_winter is None
+
+
+def test_a_winter_horizon_needs_a_horizon() -> None:
+    with pytest.raises(ValidationError, match="horizon_winter needs a horizon"):
+        Terrace.model_validate({**_terrace().model_dump(), "horizon_winter": [0] * 360})
+
+
+def test_render_puts_the_winter_horizon_on_one_line() -> None:
+    terrace = add_horizons(
+        [_terrace()], lambda _lat, _lon: [9] * 360, lambda _lat, _lon: [1] * 360
+    )[0]
+    lines = render(_file([terrace])).splitlines()
+    assert '      "horizon_winter": [' + ",".join(["1"] * 360) + "]," in lines
 
 
 def test_render_keeps_a_null_horizon() -> None:
@@ -182,6 +217,19 @@ def test_attribution_credits_pnoa_only_for_curated_positions(tmp_path: Path) -> 
         "MDT",
     ]
     assert attribution_lines([_terrace()], dsm, dtm)[-1] == PNOA_ATTRIBUTION
+
+
+def test_attribution_credits_sentinel_only_when_winter_horizons_exist(tmp_path: Path) -> None:
+    dsm = _raster(tmp_path / "dsm.tif", {"SOURCE": "MDS"})
+    dtm = _raster(tmp_path / "dtm.tif", {"SOURCE": "MDT"})
+    leafoff = _raster(tmp_path / "leafoff.tif", {"SOURCE": "Copernicus"})
+    osm = _terrace("osm:node/1").model_copy(update={"sources": ["osm"]})
+    (with_winter,) = add_horizons([osm], lambda _a, _b: [9] * 360, lambda _a, _b: [1] * 360)
+    (same,) = add_horizons([osm], lambda _a, _b: [9] * 360, lambda _a, _b: [9] * 360)
+
+    assert attribution_lines([with_winter], dsm, dtm, leafoff)[-1] == "Copernicus"
+    assert "Copernicus" not in attribution_lines([same], dsm, dtm, leafoff)
+    assert "Copernicus" not in attribution_lines([with_winter], dsm, dtm)
 
 
 def test_raster_attribution_reads_the_source_tag(tmp_path: Path) -> None:

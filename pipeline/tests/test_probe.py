@@ -82,6 +82,51 @@ def test_probe_sees_the_wall_to_the_south(tmp_path: Path) -> None:
     assert result["max_height_above_ground"] == MAX_HEIGHT_ABOVE_GROUND_M
 
 
+def _leafoff(tmp_path: Path) -> Path:
+    """The same street as ``_rasters`` with a bare tree crown 10 m north of the point lowered
+    away; the full DSM gets the crown from ``_with_crown``."""
+    xs, ys = _cell_centres()
+    dsm = np.full((SIZE, SIZE), GROUND, dtype=np.float32)
+    south_of_point = _Y - ys
+    wall = (
+        (south_of_point >= WALL_DISTANCE)
+        & (south_of_point < WALL_DISTANCE + 6)
+        & (np.abs(xs - _X) <= 60)
+    )
+    dsm[wall] = GROUND + EYE_HEIGHT_M + WALL_HEIGHT
+    return _write(tmp_path / "leafoff.tif", dsm)
+
+
+def _with_crown(dsm_path: Path) -> None:
+    xs, ys = _cell_centres()
+    with rasterio.open(dsm_path, "r+") as dst:
+        data = dst.read(1)
+        data[np.hypot(xs - _X, ys - (_Y + 10)) < 4] = GROUND + 12
+        dst.write(data, 1)
+
+
+def test_probe_returns_the_leaf_off_horizon(tmp_path: Path) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    _with_crown(dsm)
+    leafoff = _leafoff(tmp_path)
+
+    result = probe(LAT, LON, dsm, dtm, leafoff)
+    horizon, winter = result["horizon"], result["horizon_winter"]
+    assert isinstance(horizon, list)
+    assert isinstance(winter, list)
+    assert horizon[0] > 300  # the crown, ~45° up to the north
+    assert winter[0] == 0
+    assert winter[180] == horizon[180]  # the wall stays
+
+
+def test_probe_has_no_winter_horizon_without_the_leaf_off_model(tmp_path: Path) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    assert probe(LAT, LON, dsm, dtm)["horizon_winter"] is None
+    assert probe(LAT, LON, dsm, dtm, tmp_path / "missing.tif")["horizon_winter"] is None
+    # Same surface: nothing to add.
+    assert probe(LAT, LON, dsm, dtm, dsm)["horizon_winter"] is None
+
+
 def test_probe_reports_a_point_on_a_roof(tmp_path: Path) -> None:
     dsm, dtm = _rasters(tmp_path, roof=7.456)
     assert probe(LAT, LON, dsm, dtm)["height_above_ground"] == 7.46
@@ -96,11 +141,19 @@ def test_probe_rejects_points_outside_badajoz(tmp_path: Path) -> None:
 def test_main_prints_one_json_object(tmp_path: Path) -> None:
     dsm, dtm = _rasters(tmp_path)
     out = io.StringIO()
-    code = main(["--lat", str(LAT), "--lon", str(LON), "--dsm", str(dsm), "--dtm", str(dtm)], out)
+    no_leafoff = str(tmp_path / "none.tif")
+    args = ["--lat", str(LAT), "--lon", str(LON), "--dsm", str(dsm), "--dtm", str(dtm)]
+    code = main([*args, "--dsm-leafoff", no_leafoff], out)
     assert code == 0
     (line,) = out.getvalue().splitlines()
     payload = json.loads(line)
-    assert set(payload) == {"horizon", "height_above_ground", "max_height_above_ground"}
+    assert set(payload) == {
+        "horizon",
+        "horizon_winter",
+        "height_above_ground",
+        "max_height_above_ground",
+    }
+    assert payload["horizon_winter"] is None
     assert len(payload["horizon"]) == BINS
 
 

@@ -12,6 +12,10 @@ const latLonSchema = z.object({
   lon: z.number().min(-180).max(180),
 })
 
+const horizonSchema = z
+  .array(z.number().int().min(0).max(900))
+  .length(HORIZON_BINS)
+
 const priceSchema = z
   .object({
     item: z.enum(ITEMS),
@@ -33,10 +37,10 @@ const terraceSchema = z.object({
   sources: z.array(z.string()),
   verified: z.iso.date().nullable(),
   // Tenths of a degree per compass azimuth bin, 0 = north, clockwise.
-  horizon: z
-    .array(z.number().int().min(0).max(900))
-    .length(HORIZON_BINS)
-    .nullable(),
+  horizon: horizonSchema.nullable(),
+  // The same with deciduous trees bare, used from 15 Dec to end of February
+  // (ADR-0007). Null or absent: same as `horizon`.
+  horizon_winter: horizonSchema.nullable().optional(),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.array(priceSchema).optional(),
 })
@@ -46,7 +50,12 @@ export const terracesFileSchema = z.object({
   generated: z.iso.datetime(),
   sample: z.boolean(),
   attribution: z.array(z.string()),
-  terraces: z.array(terraceSchema),
+  terraces: z.array(
+    terraceSchema.refine(
+      (t) => t.horizon !== null || (t.horizon_winter ?? null) === null,
+      { message: 'horizon_winter needs a horizon' },
+    ),
+  ),
 })
 
 export type LatLon = z.infer<typeof latLonSchema>

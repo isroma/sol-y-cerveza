@@ -95,6 +95,12 @@ export function App() {
         : [],
     [load, track],
   )
+  const leafOffTrees = useMemo(
+    () =>
+      load.status === 'ready' &&
+      load.file.terraces.some((venue) => venue.horizon_winter),
+    [load],
+  )
   const statuses = useMemo(
     () => days.map((day) => venueStatus(day, minutes)).sort(compareStatus),
     [days, minutes],
@@ -213,6 +219,7 @@ export function App() {
           minutes={minutes}
           sunset={times?.sunset ?? null}
           attribution={load.status === 'ready' ? load.file.attribution : []}
+          leafOffTrees={leafOffTrees}
         />
       </main>
       {phone && <footer className="time-footer">{timeSlider}</footer>}

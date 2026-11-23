@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { sunBox } from '../ui/categoryStyle.ts'
+import { BARE_TREES_NOTE, sunBox } from '../ui/categoryStyle.ts'
 import { PinCard } from './PinCard.tsx'
 
 function status(patch: Partial<VenueStatus>): VenueStatus {
@@ -23,6 +23,7 @@ function status(patch: Partial<VenueStatus>): VenueStatus {
     sunUntil: null,
     nextSun: null,
     minutesLeft: null,
+    throughBareTrees: false,
     ...patch,
   }
 }
@@ -72,6 +73,31 @@ describe('PinCard', () => {
     expect(screen.getByText('17:30')).toBeInTheDocument()
     expect(screen.getByRole('meter')).toHaveAttribute('aria-valuenow', '178')
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
+  })
+
+  it('says when the sun only gets through bare trees', () => {
+    const { rerender } = render(
+      <PinCard
+        status={status({ category: 'sun', sunUntil: at + 60 })}
+        minutes={at}
+        sunset={18 * 60}
+      />,
+    )
+    expect(screen.queryByText(BARE_TREES_NOTE)).toBeNull()
+    rerender(
+      <PinCard
+        status={status({
+          category: 'sun',
+          sunUntil: at + 60,
+          throughBareTrees: true,
+        })}
+        minutes={at}
+        sunset={18 * 60}
+      />,
+    )
+    expect(
+      screen.getByText('Sol entre árboles sin hoja (estimado)'),
+    ).toBeInTheDocument()
   })
 
   it('has no bar without sun', () => {

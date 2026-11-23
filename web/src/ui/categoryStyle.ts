@@ -16,6 +16,16 @@ export const CATEGORY_LABELS: Record<SunCategory, string> = {
   unknown: 'Terraza sin confirmar',
 }
 
+/**
+ * Card line when the sun shown only gets through because deciduous trees
+ * count as bare (leaf-off period, ADR-0007).
+ */
+export const BARE_TREES_NOTE = 'Sol entre árboles sin hoja (estimado)'
+
+/** "Sobre los datos" on the winter rule (ADR-0007). */
+export const LEAF_OFF_INFO =
+  'Del 15 de diciembre al 28 de febrero contamos con que los árboles de hoja caduca, detectados con imágenes de satélite Sentinel-2, no tienen hoja. Los de hoja perenne siguen dando sombra. Es una estimación: un árbol mal clasificado puede dar sombra donde marcamos sol.'
+
 /** Badge text for a venue's category. */
 export function categoryLabel(status: VenueStatus): string {
   if (status.category === 'unknown' && status.hasTerrace)

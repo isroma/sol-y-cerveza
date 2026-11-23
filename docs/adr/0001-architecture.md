@@ -23,7 +23,7 @@ Shade depends on the sun position (date, time, location) and on the obstacles ar
 ## Consequences
 
 - Accuracy depends on **where the terrace point is** (the tables, not the building entrance) and on the DSM's resolution and capture date. Terrace positions need curation (#2, #3).
-- Deciduous trees in winter will be reported as shade: a known bias, which could later be corrected with a per-season factor or tree classes from LiDAR.
+- Deciduous trees in winter will be reported as shade: a known bias, which could later be corrected with a per-season factor or tree classes from LiDAR. Addressed by [ADR-0007](0007-seasonal-trees.md) (leaf-off horizons from Sentinel-2).
 - Awnings and umbrellas are not modelled.
 - Adding the v2 beer prices needs a backend for user reports (see #8). This ADR keeps v1 static on purpose.
 - Data refreshes are PRs with deterministic output, so changes are reviewable.
