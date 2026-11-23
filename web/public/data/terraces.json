@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2026-11-23T10:00:58Z",
+  "generated": "2026-11-23T13:36:48Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
@@ -3950,21 +3950,6 @@
       "venue": {
         "lat": 38.866344,
         "lon": -6.982524
-      },
-      "terrace": null,
-      "sources": [
-        "overture"
-      ],
-      "verified": null,
-      "horizon": null
-    },
-    {
-      "id": "overture:0bc321ae-5bf2-4ed8-a875-b18924362d9c",
-      "name": "Café bar Ricomiendo",
-      "kind": "bar",
-      "venue": {
-        "lat": 38.869621,
-        "lon": -6.979528
       },
       "terrace": null,
       "sources": [
