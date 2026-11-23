@@ -1,7 +1,7 @@
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
-import type { Plugin } from 'vite'
+import { loadEnv, type Plugin } from 'vite'
 import { publishStatus, startPublish } from './publish.ts'
 import {
   formatReviewCsv,
@@ -107,6 +107,41 @@ export function reviewServer(): Plugin {
           startPublish()
             ? send(res, 202, publishStatus())
             : send(res, 409, { error: 'a Publish is still building' }),
+        )
+      })
+      // The suggestions review queue, proxied to the API so the admin token
+      // (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the browser.
+      const env = loadEnv(
+        server.config.mode,
+        server.config.envDir || process.cwd(),
+        '',
+      )
+      const api = env['VITE_PRICES_API'] ?? ''
+      const token = env['PRICES_ADMIN_TOKEN'] ?? ''
+      server.middlewares.use('/__admin/suggestions', (req, res) => {
+        if (!api || !token)
+          return send(res, 503, {
+            error:
+              'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
+          })
+        const forward = async () => {
+          const path =
+            req.method === 'POST'
+              ? '/v1/admin/resolve'
+              : '/v1/admin/suggestions'
+          const init: RequestInit = {
+            method: req.method === 'POST' ? 'POST' : 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+          if (req.method === 'POST') init.body = JSON.stringify(await body(req))
+          const response = await fetch(`${api}${path}`, init)
+          send(res, response.status, await response.json())
+        }
+        forward().catch((error: unknown) =>
+          send(res, 502, { error: String(error) }),
         )
       })
       server.middlewares.use('/__admin/prices', (req, res) => {

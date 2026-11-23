@@ -60,6 +60,19 @@ type Props = {
   attribution: readonly string[]
 }
 
+/**
+ * A click inside the venue card (e.g. its price form) is not a map click.
+ * Uses the path recorded at dispatch: React may have already replaced the
+ * clicked element (a button that opens a form) by the time the map sees it.
+ */
+function onCard(event: Event): boolean {
+  return event
+    .composedPath()
+    .some(
+      (node) => node instanceof Element && node.classList.contains('pin-card'),
+    )
+}
+
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
 function dotsData(statuses: readonly VenueStatus[], selectedId: string | null) {
@@ -249,6 +262,7 @@ export function MapView({
           })
           for (const layer of [DOTS_LAYER, LABELS_LAYER]) {
             map.on('click', layer, (event) => {
+              if (onCard(event.originalEvent)) return
               const id: unknown = event.features?.[0]?.properties['id']
               if (typeof id === 'string') onSelectRef.current(id)
             })
@@ -261,6 +275,7 @@ export function MapView({
           }
           map.on('click', (event) => {
             if (!map) return
+            if (onCard(event.originalEvent)) return
             const hit = map.queryRenderedFeatures(event.point, {
               layers: [DOTS_LAYER, LABELS_LAYER],
             })

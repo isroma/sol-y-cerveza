@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadTerraces, type LatLon, type Terrace } from '../data/terraces.ts'
 import { AdminMap } from './AdminMap.tsx'
 import { PricesEditor } from './PricesEditor.tsx'
+import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
+import { BRANDS } from '../data/prices.ts'
 import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
 import {
@@ -112,6 +114,7 @@ export function Admin() {
   const [filter, setFilter] = useState<Filter>('todo')
   const [message, setMessage] = useState('Loading…')
   const [pinning, setPinning] = useState(false)
+  const [queueOpen, setQueueOpen] = useState(false)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
 
   const select = useCallback((id: string | null) => {
@@ -375,6 +378,18 @@ export function Admin() {
     }
   }
 
+  const acceptSuggestion = async (g: SuggestionGroup) => {
+    const brand = BRANDS.find((b) => b === g.brand) ?? null
+    const price: VenuePrice = {
+      venueId: g.venue_id,
+      item: g.item,
+      brand,
+      cents: g.cents,
+      seen: g.last.slice(0, 10),
+    }
+    await savePrice(priceKey(price), price)
+  }
+
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
   const osm = selectedId ? osmUrl(selectedId) : null
 
@@ -384,9 +399,18 @@ export function Admin() {
         <header className="admin-head">
           <div className="admin-title">
             <h1>Venue review</h1>
-            <button type="button" onClick={startAdding}>
-              + Add venue
-            </button>
+            <span className="admin-title-actions">
+              <button
+                type="button"
+                aria-pressed={queueOpen}
+                onClick={() => setQueueOpen(!queueOpen)}
+              >
+                Suggestions
+              </button>
+              <button type="button" onClick={startAdding}>
+                + Add venue
+              </button>
+            </span>
           </div>
           <p>
             {reviewed} of {venues.length} reviewed
@@ -415,6 +439,13 @@ export function Admin() {
               </p>
             )}
           </div>
+          {queueOpen && (
+            <SuggestionsQueue
+              nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
+              onSelect={select}
+              onAccept={acceptSuggestion}
+            />
+          )}
           <input
             type="search"
             placeholder="Search by name"
