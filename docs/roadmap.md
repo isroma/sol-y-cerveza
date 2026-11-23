@@ -12,11 +12,11 @@ A review of the whole project after the phone layout work, and what to do next. 
 
 | Area               | Finding                                                                                                                    | Action                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Reach              | No link opens a venue or a time, and the day can't be chosen, although "any date" is the promise. No link preview.         | Share links, day picker, share button, Open Graph image     |
+| Reach              | No link opens a venue or a time. No link preview.                                                                          | Share links, share button, Open Graph image                 |
 | First load         | One 1.4 MB script before anything paints.                                                                                  | Load the map chunk lazily; web manifest                     |
 | Regressions        | Unit tests mock the map, so layout, pins, card and shadows are only checked by hand.                                       | Browser smoke tests on a real map in CI                     |
 | Data upkeep        | A pin's sun can't be seen until the next build and deploy.                                                                 | Sun preview and a "needs a look" list in the admin          |
-| Honesty            | "Sun" ignores clouds. Deciduous trees shade all year (LiDAR flown with leaves on).                                         | Cloud cover; seasonal trees (below)                         |
+| Honesty            | Deciduous trees shade all year (LiDAR flown with leaves on).                                                               | Seasonal trees (below)                                      |
 | Shadows on the map | Drawn from basemap building heights (×1.4), while the answer comes from LiDAR, so the picture and the answer can disagree. | Accept for now; say so in "Sobre los datos" if users notice |
 
 ## Decided: not doing
