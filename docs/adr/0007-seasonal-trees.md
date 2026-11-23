@@ -1,6 +1,6 @@
 # ADR-0007: Bare deciduous trees in winter
 
-- Status: Proposed
+- Status: Accepted (owner, 2026-11-23)
 - Date: 2026-11-23
 - Issue: #177
 
@@ -47,10 +47,10 @@ LiDAR alone can't tell. Options:
 
    Clouds and shadows are masked with the L2A scene classification, and only scenes whose bbox is at least 95 % clear are used.
 2. **Data contract:** a new optional field, `horizon_winter`, holds the leaf-off profile. It is `null` (or absent, in older files) when it would equal `horizon`, or when there is no leaf-off surface model. The app then uses `horizon`. Old files stay valid, so this is not a version bump.
-3. **The leaf-off period runs from 15 December to the end of February, by Madrid date.** In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
-4. **What the app says.** When the sun shown in the card (the current spell, or the next one if there's no sun now) only reaches the terrace because trees are taken as bare, the card adds a muted line: **"Sol entre árboles sin hoja (estimado)"**. The "Sobre los datos" panel explains the rule, but only when the file has leaf-off horizons:
+3. **The leaf-off period runs from 1 December to 15 March, by Madrid date.** In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
+4. **What the app says.** Nothing new on the venue card: the owner wants the UI as simple as possible, so the leaf-off horizon just changes the answer (badge, list, filters, card, sun bar). The "Sobre los datos" panel explains the rule, but only when the file has leaf-off horizons:
 
-   > Del 15 de diciembre al 28 de febrero contamos con que los árboles de hoja caduca, detectados con imágenes de satélite Sentinel-2, no tienen hoja. Los de hoja perenne siguen dando sombra. Es una estimación: un árbol mal clasificado puede dar sombra donde marcamos sol.
+   > Del 1 de diciembre al 15 de marzo contamos con que los árboles de hoja caduca, detectados con imágenes de satélite Sentinel-2, no tienen hoja. Los de hoja perenne siguen dando sombra. Es una estimación: un árbol mal clasificado puede dar sombra donde marcamos sol.
 
    The attribution gains `Contiene datos modificados de Copernicus Sentinel (<year>)` (Copernicus' required wording, in Spanish like the other lines).
 5. **Failure mode: when in doubt, shade.** Every uncertain case keeps today's behaviour:
@@ -58,16 +58,16 @@ LiDAR alone can't tell. Options:
    - A mixed 10 m pixel, a deciduous tree over winter-green grass (common in Badajoz, where grass greens up with the autumn rain), or a crown too small for Sentinel-2 keeps its leaves in the model.
    - Outside the period, the full horizon applies.
 
-### Why 15 December to end of February
+### Why 1 December to 15 March
 
 - It is a rule of thumb, not a phenology model. Plane trees in south-west Iberia usually drop most of their leaves from November into December and leaf out again during March, but dates vary by year, species and how well-watered a tree is.
-- I chose the **core** of the leaf-off season, not its edges: in late November and in March many crowns still (or already) hold enough leaves to shade. Cutting the period short errs towards shade, which is today's behaviour.
-- It matches the classifier's evidence window: "deciduous" means "lost its green in January–February".
-- The owner can widen it (e.g. 1 December – 15 March) after checking real trees. It is one constant in `web/src/sun/leafOff.ts`.
+- I first proposed only the core of the season (15 December to the end of February), because in early December and in March many crowns still (or already) hold enough leaves to shade. **The owner chose the wider window on 2026-11-23**, accepting more risk at the edges: in early December and early March some terraces will show sun where crowns still cast real shade.
+- The classifier's evidence window (January–February) sits inside the period, so "deciduous" still means "lost its green in mid-winter".
+- It is one constant in `web/src/sun/leafOff.ts`, easy to narrow again if the edges prove wrong.
 
 ### Why lower crowns to the ground and not make them partly transparent
 
-The horizon is one angle per direction, and the app's answer is sun or shade. Bare branches still cast dappled shade, roughly a third to a half of the direct sun from memory of the urban-forestry literature (not verified here). A partial-transparency model would need a "dappled" state the app doesn't have. "Sol entre árboles sin hoja" says what it is instead.
+The horizon is one angle per direction, and the app's answer is sun or shade. Bare branches still cast dappled shade, roughly a third to a half of the direct sun from memory of the urban-forestry literature (not verified here). A partial-transparency model would need a "dappled" state the app doesn't have. The "Sobre los datos" paragraph says that this is an estimate.
 
 ## Consequences
 
@@ -79,7 +79,8 @@ The horizon is one angle per direction, and the app's answer is sun or shade. Ba
 - **Epochs differ:** the LiDAR is from 2018–2019 and the Sentinel-2 composite from 2025. Where a tree has been felled since, Sentinel-2 sees no vegetation, so the DSM crown stays (shade, as today). A tree planted since isn't in the DSM at all (sun all year, as today).
 - **The LiDAR flight season is unknown.** The 2nd coverage of Extremadura was flown between July 2018 and April 2019 ([lidar research](../research/lidar.md)). If sheet 0775 was flown in winter, its deciduous crowns are already thinner in the DSM. Then the summer answer under them is too sunny, and this ADR doesn't fix that. The CNIG file listing ("Fecha" column) settles it.
 - The admin's probe returns `horizon_winter` too, so a curator can compare the two horizons for a pin. The admin page doesn't show it yet (follow-up).
-- The ADR-0001 bias becomes "deciduous trees are bare from 15 December to the end of February, where Sentinel-2 sees them".
+- The ADR-0001 bias becomes "deciduous trees are bare from 1 December to 15 March, where Sentinel-2 sees them".
+- The card doesn't say when sun depends on bare trees. Only the "Sobre los datos" panel explains the rule.
 
 ## What was verified and what wasn't (2026-11-23)
 
@@ -104,7 +105,8 @@ Not verified, and needing the owner:
 - **A per-season factor** (ADR-0001's suggestion). A single factor can't tell an orange-tree street from a plane-tree square.
 - **The conservative all-vegetation rule** (above). It overclaims sun under evergreens.
 - **The PNOA point-cloud classes.** Cleaner vegetation and building separation, but blocked by the captcha, and they still don't tell deciduous from evergreen.
-- **A "dappled" fourth sun state.** It would mean new colours and a legend change, for a distinction most users won't need. The text line covers it.
+- **A "dappled" fourth sun state.** It would mean new colours and a legend change, for a distinction most users won't need.
+- **A card line when the sun only gets through bare trees** ("Sol entre árboles sin hoja (estimado)"). It was proposed, and the owner rejected it to keep the UI as simple as possible.
 - **A date picker** to show winter in summer: rejected by the product decisions (today only).
 
 ## Follow-ups
