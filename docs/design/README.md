@@ -143,12 +143,42 @@ One family: the **system UI font** (SF Pro on Apple, Segoe UI on Windows, Roboto
 
 Numbers that change (times, durations, prices) use `font-variant-numeric: tabular-nums` so they don't jump.
 
-## 5. Shape, space and depth
+## 5. Layout, space and depth
 
-- **Radius:** 999 px for pills, badges, toggles and tracks; 50 % for round icons; 14–16 px for boxes inside cards; 18–22 px for cards and floating panels.
-- **Spacing:** 4 px base; use 4, 8, 12, 14, 16, 20, 24. Sidebar padding 24 px, card padding 14 px, 20 px between sidebar sections.
-- **Shadows:** one soft shadow for floating UI (`--shadow`: `0 4px 16px rgba(31,35,40,.10), 0 1px 3px rgba(31,35,40,.08)`); stronger only for the map card (`0 10px 28px rgba(31,35,40,.22)`). At night shadows are black and deeper.
-- **Borders:** 1 px `line` for dividers; 3 px coloured border only for the selected map card.
+Spacing follows a **4-point grid**, and every value comes from the tokens in `web/src/index.css` (`--space-*`, `--radius-*`, `--control`, `--map-inset`). If a value isn't on the scale, it's wrong.
+
+| Token | Value | Typical use |
+| --- | --- | --- |
+| `--space-1` | 4 px | Tight inner gaps, menu padding |
+| `--space-2` | 8 px | Label to control, list title to list, small paddings |
+| `--space-3` | 12 px | Icon to text in rows, legend rows, map button gap |
+| `--space-4` | 16 px | Panel and card padding, map overlay inset |
+| `--space-5` | 20 px | Above a sidebar section (filters, results) |
+| `--space-6` | 24 px | Sidebar padding and the gap between sidebar blocks |
+| `--space-8` | 32 px | Reserved for large separations |
+
+**Radius:** `--radius-s` 8 px (small buttons), `--radius-m` 12 px (fields, rows, notices), `--radius-l` 16 px (floating panels, menus, legend), `--radius-xl` 24 px (cards); 999 px for pills, toggles and tracks; 50 % for round buttons and badges.
+
+### Sidebar
+
+- 400 px wide, **24 px padding** on every side, **24 px between blocks** (brand, search, time, filters, results).
+- Sections that follow a divider (filters, results) start **20 px** below it.
+- Search field: at least **48 px** tall, 12 px radius, icon 16 px from the left edge, text starting at 44 px.
+- List rows: 10 px × 12 px padding, 12 px icon-to-text gap. The list bleeds 12 px past the sidebar padding, so **row content lines up with every other element's left edge** and the selected row's highlight extends past it, as in iOS grouped lists.
+- Filter rows: 8 px vertical padding, 12 px gap, toggle aligned to the right edge.
+
+### Map overlays
+
+- Everything floating on the map sits on one **16 px inset** (`--map-inset`): city pill top-left, buttons top-right, legend bottom-right, attribution bottom-left.
+- Map buttons and the city pill are **44 px tall** (`--control`, Apple's minimum touch target); buttons are round, the zoom pair is one 44 px-wide capsule; **12 px** between button groups.
+- Toasts appear 12 px under the top controls.
+- Legend: 16 px padding, 12 px between rows and between icon and label, 16 px radius; the info button is centred on the last row, 12 px from the right edge.
+- Info panel: 16 px padding and radius, opens 12 px above the legend, at most 340 px wide.
+
+### Depth and borders
+
+- **Shadows:** one soft shadow for floating UI (`--shadow`: `0 4px 16px rgba(31,35,40,.10), 0 1px 3px rgba(31,35,40,.08)`); stronger only for the map card. At night shadows are black and deeper.
+- **Borders:** 1 px `line` for dividers; a 3 px border in the state colour only on the selected map card.
 
 ## 6. Iconography
 
@@ -162,7 +192,7 @@ Numbers that change (times, durations, prices) use `font-variant-numeric: tabula
 | Component | Standard |
 | --- | --- |
 | **Map badge** | Round gradient badge with the beer mug and a pointer under it; white ring and soft shadow. Shows only the badge until real prices exist; the price slot then sits to its right in bold `ink`. |
-| **Map card** | Opens above the selected badge: badge + name + "Tipo · Terraza", a `highlight` sun box with the headline and "Hasta las …", and a sun bar from now through "until" to sunset. 260 px wide, 22 px radius, 3 px border in the state colour, pointer to the badge. |
+| **Map card** | The selected badge grows into a tab that sits on the card below it: name + "Tipo · Terraza", a `highlight` sun box (12 × 16 px padding) with the headline and "Hasta las …", and a sun bar 16 px below it, from now through "until" to sunset. 280 px wide, 3 px border in the state colour. |
 | **Time bar** | 8 px track, `sun-soft` fill, white knob with a 4 px `sun-soft` ring. Sunrise and sunset sit on the track as small icons in a ring; "now" is a blue dot (`#2563EB`) when the knob is elsewhere. |
 | **List row** | State icon, bold name, caption with the sun summary; selected row on `highlight`. |
 | **Toggle** | Pill, `toggle-off` when off, `sun-soft` when on, white knob. |

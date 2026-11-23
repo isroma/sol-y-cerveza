@@ -7,6 +7,20 @@
   --sun-soft: #ffc53d;
   --sun-dark: #b45309;
   --chip: #ffc83d;
+  /* Layout scale (docs/design/README.md §5): 4-point grid, 44px controls. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 24px;
+  --control: 44px;
+  --map-inset: 16px;
   /* Surfaces and secondary text: day values here, night values on .app.is-night. */
   --bg: #fff;
   --surface-hover: #faf8f4;
@@ -67,8 +81,8 @@ button {
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px 24px 16px;
+  gap: var(--space-6);
+  padding: var(--space-6);
   overflow-y: auto;
   border-right: 1px solid var(--line);
   background: var(--bg);
@@ -103,7 +117,7 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .brand h1 {
@@ -116,8 +130,8 @@ button {
 .sample-notice,
 .status-line {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
   background: var(--highlight);
   font-size: 14px;
 }
@@ -130,12 +144,13 @@ button {
 
 .search input {
   width: 100%;
-  padding: 14px 44px 14px 48px;
+  padding: var(--space-3) 44px;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-m);
   background: var(--field);
   font-size: 16px;
   outline-offset: 0;
+  min-height: 48px;
 }
 
 .search input::placeholder {
@@ -149,7 +164,7 @@ button {
 .search-icon {
   position: absolute;
   top: 50%;
-  left: 16px;
+  left: var(--space-4);
   translate: 0 -50%;
   color: var(--text-soft);
 }
@@ -157,7 +172,7 @@ button {
 .search-clear {
   position: absolute;
   top: 50%;
-  right: 10px;
+  right: var(--space-2);
   translate: 0 -50%;
 }
 
@@ -178,60 +193,6 @@ button {
   color: var(--ink);
 }
 
-/* Day */
-
-.day-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.calendar-button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  color: var(--text-soft);
-  cursor: pointer;
-}
-
-.calendar-button:hover {
-  background: var(--field);
-}
-
-.calendar-button input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.calendar-button input::-webkit-calendar-picker-indicator {
-  position: absolute;
-  inset: 0;
-  width: auto;
-  height: auto;
-  cursor: pointer;
-}
-
-.chip {
-  padding: 9px 24px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--bg);
-  font-size: 16px;
-  font-weight: 500;
-  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.06);
-}
-
-.chip[aria-pressed='true'] {
-  border-color: transparent;
-  background: var(--chip);
-  font-weight: 600;
-}
-
 /* Time */
 
 .time-header {
@@ -248,9 +209,9 @@ button {
 
 .link-button {
   margin-left: auto;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   background: none;
   color: var(--sun-dark);
   font-weight: 600;
@@ -263,7 +224,7 @@ button {
 .time-slider {
   width: 100%;
   height: 8px;
-  margin: 18px 0 10px;
+  margin: var(--space-4) 0 var(--space-2);
   border-radius: 999px;
   background: linear-gradient(
     to right,
@@ -303,7 +264,7 @@ button {
 /* Filters */
 
 .filters {
-  padding-top: 16px;
+  padding-top: var(--space-5);
   border-top: 1px solid var(--line);
 }
 
@@ -334,15 +295,15 @@ button {
 .filters-body {
   display: flex;
   flex-direction: column;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .filter-row {
   display: grid;
   grid-template-columns: 30px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
   font-size: 16px;
 }
 
@@ -352,19 +313,6 @@ button {
 
 .filter-icon.sun {
   color: var(--sun);
-}
-
-.filter-row select {
-  padding: 4px 22px 4px 6px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2328' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 2px center / 16px;
-  color: var(--text-soft);
-  text-align: right;
-  appearance: none;
-  cursor: pointer;
 }
 
 .toggle {
@@ -403,12 +351,12 @@ button {
 /* Results */
 
 .results {
-  padding-top: 16px;
+  padding-top: var(--space-5);
   border-top: 1px solid var(--line);
 }
 
 .results-title {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-2);
   font-size: 15px;
   font-weight: 700;
 }
@@ -424,7 +372,7 @@ button {
 }
 
 .venue-list {
-  margin: 0;
+  margin: 0 calc(-1 * var(--space-3));
   padding: 0;
   list-style: none;
 }
@@ -433,11 +381,11 @@ button {
   display: grid;
   grid-template-columns: 24px 1fr auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 9px 8px;
+  padding: 10px var(--space-3);
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: none;
   text-align: left;
 }
@@ -471,10 +419,10 @@ button {
 
 .more-button {
   width: 100%;
-  margin-top: 6px;
-  padding: 10px;
+  margin-top: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background: var(--bg);
   font-weight: 600;
 }
@@ -496,47 +444,48 @@ button {
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
   background: var(--bg);
   box-shadow: var(--shadow);
 }
 
 .map-city {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: var(--map-inset);
+  left: var(--map-inset);
 }
 
 .map-pill {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: 999px;
   background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 17px;
   font-weight: 500;
+  min-height: var(--control);
 }
 
 .map-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-2));
   left: 0;
   min-width: 220px;
   margin: 0;
-  padding: 6px;
-  border-radius: 14px;
+  padding: var(--space-1);
+  border-radius: var(--radius-l);
   background: var(--bg);
   box-shadow: var(--shadow);
   list-style: none;
 }
 
 .map-menu li {
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-m);
   font-size: 15px;
 }
 
@@ -547,20 +496,20 @@ button {
 
 .map-buttons {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: var(--map-inset);
+  right: var(--map-inset);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-3);
 }
 
 .map-round,
 .map-zoom button {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: var(--control);
+  height: var(--control);
   padding: 0;
   border: 0;
   background: var(--bg);
@@ -575,7 +524,7 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 26px;
+  border-radius: calc(var(--control) / 2);
   box-shadow: var(--shadow);
 }
 
@@ -590,15 +539,15 @@ button {
 
 .map-toast {
   position: absolute;
-  top: 84px;
-  left: 20px;
+  top: calc(var(--map-inset) + var(--control) + var(--space-3));
+  left: var(--map-inset);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   max-width: min(360px, calc(100% - 100px));
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-m);
   background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 14px;
@@ -606,15 +555,15 @@ button {
 
 .map-legend {
   position: absolute;
-  right: 20px;
-  bottom: 28px;
+  right: var(--map-inset);
+  bottom: var(--map-inset);
   /* Above the venue pins, which are positioned in the map below. */
   z-index: 10;
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  padding: 14px 52px 14px 18px;
-  border-radius: 18px;
+  gap: var(--space-3);
+  padding: var(--space-4) 52px var(--space-4) var(--space-4);
+  border-radius: var(--radius-l);
   background: var(--legend-bg);
   box-shadow: var(--shadow);
 }
@@ -622,7 +571,7 @@ button {
 .map-legend ul {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -631,7 +580,7 @@ button {
 .map-legend li {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   font-size: 15px;
 }
 
@@ -649,8 +598,8 @@ button {
 .legend-info {
   /* Centred on the last legend row, in the bottom-right corner. */
   position: absolute;
-  right: 10px;
-  bottom: 9px;
+  right: var(--space-3);
+  bottom: 11px;
   display: grid;
   place-items: center;
   width: 32px;
@@ -662,22 +611,22 @@ button {
 .map-info {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 10px);
-  width: min(340px, calc(100vw - 40px));
-  padding: 14px 16px;
-  border-radius: 16px;
+  bottom: calc(100% + var(--space-3));
+  width: min(340px, calc(100vw - 2 * var(--map-inset)));
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
   background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 14px;
 }
 
 .map-info h3 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   font-size: 16px;
 }
 
 .map-info p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .map-info-sources {
@@ -928,7 +877,7 @@ button {
 .time-markers {
   position: absolute;
   /* Lined up with the 8px track inside the slider (its top margin is 18px). */
-  top: 18px;
+  top: var(--space-4);
   right: 0;
   left: 0;
   height: 8px;
@@ -969,7 +918,7 @@ button {
 /* "Now": a deep amber "Ahora" bubble over a dot on the bar; tap it to come back. */
 .time-now-layer {
   position: absolute;
-  top: 18px;
+  top: var(--space-4);
   right: 0;
   left: 0;
   height: 8px;
@@ -1138,7 +1087,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-4);
   border-radius: 14px;
   background: var(--highlight);
 }
@@ -1159,7 +1108,7 @@ button {
 }
 
 .pin-card-bar {
-  margin-top: 14px;
+  margin-top: var(--space-4);
 }
 
 .pin-card-track {
@@ -1204,4 +1153,9 @@ button {
 /* The badge has become the card's tab: hide the pin underneath. */
 .pin-marker[aria-pressed='true'] {
   visibility: hidden;
+}
+
+/* Attribution sits on the same 16px map inset as the other overlays. */
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl {
+  margin: 0 0 var(--map-inset) var(--map-inset);
 }
