@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 OUTPUT = Path(__file__).resolve().parents[3] / "web" / "public" / "data" / "terraces.json"
 DSM_PATH = CACHE_DIR / "badajoz_dsm.tif"
 DTM_PATH = CACHE_DIR / "badajoz_dtm.tif"
+# Attribution lines are shown in the app, so they are in Spanish like the rest of the UI.
 OSM_ATTRIBUTION = "© OpenStreetMap contributors (ODbL)"
 PNOA_ATTRIBUTION = "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
 JUNTA_ATTRIBUTION = (

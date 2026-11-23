@@ -1,17 +1,25 @@
 # Public-information request: authorized terraces in Badajoz
 
-Ready-to-file request under Ley 19/2013 for the Ayuntamiento's register of terrace (velador) authorizations. Context: [ADR-0002](../adr/0002-terrace-data-sources.md), [research notes](data-sources.md).
+Ready-to-file request under Ley 19/2013 (the Spanish transparency law) for the Ayuntamiento's register of terrace (velador) authorizations. The notes are in English; the letter itself is in Spanish on purpose (see [Request text](#request-text-in-spanish)). Context: [ADR-0002](../adr/0002-terrace-data-sources.md), [research notes](data-sources.md).
 
 ## How to file (the user does this)
 
-- **Where**: the [sede electrónica](https://sede.aytobadajoz.es). It has no specific access-to-information procedure, so use the **Solicitud Genérica**, signed with Cl@ve or a digital certificate, addressed to the **Oficina Auxiliar de Vías y Obras** (it handles velador licences: viasyobras@aytobadajoz.es, 924 21 00 10). Alternatively, file in person at the Registro General.
-- **Fill in** the `[…]` fields. Leave everything else as it is: every item asks for data the ordinance already requires in each authorization (art. 28.3), so the answer should not count as *reelaboración* (CTBG [Criterio Interpretativo 4/2026](https://consejodetransparencia.es/content/dam/ctransparencia/portal-ctbg/publicaciones/criterios-interpretativos/2026/4_CI-18-1-c_Reelaboracion.pdf), §4.3.c: a direct extraction from a database is not reelaboración).
+- **Where**: the council's online office, the [sede electrónica](https://sede.aytobadajoz.es). It has no specific access-to-information procedure, so use the generic application form, **Solicitud Genérica**, signed with Cl@ve or a digital certificate, addressed to the **Oficina Auxiliar de Vías y Obras** (it handles velador licences: viasyobras@aytobadajoz.es, 924 21 00 10). Alternatively, file in person at the council's main registry, the Registro General.
+- **Fill in** the `[…]` fields: full name, DNI/NIE, postal address, email and date. Leave everything else as it is: every item asks for data the ordinance already requires in each authorization (art. 28.3), so the answer should not count as *reelaboración*, i.e. having to create new information, which is a ground for refusal (CTBG [Criterio Interpretativo 4/2026](https://consejodetransparencia.es/content/dam/ctransparencia/portal-ctbg/publicaciones/criterios-interpretativos/2026/4_CI-18-1-c_Reelaboracion.pdf), §4.3.c: a direct extraction from a database is not reelaboración).
 - **Deadline**: one month from receipt, extendable by one more (art. 20.1). No answer by then means refusal (art. 20.4).
 - **If refused or unanswered**: complain to the Consejo de Transparencia y Buen Gobierno within one month (art. 24). Quote [RA CTBG 2023-0153](https://web.archive.org/web/20230421031929/https://www.consejodetransparencia.es/ct_Home/dam/jcr:124cf368-4059-41c7-93c6-f8d232a12bc3/RA%20CTBG%202023-0153%20%5BExpediente%20914-2023%5D_Censurado.pdf) (access to a Badajoz velador file upheld) and [RA CTBG 2024-0298](https://web.archive.org/web/20240516025109/https://www.consejodetransparencia.es/ct_Home/dam/jcr:70f1ad4f-9861-437c-b754-6e7f2c37e66c/RA%20CTBG%202024-0298%20%5BExpediente%202382_2023%5D_Censurado.pdf) (access to Badajoz activity licences upheld). **Expect silence**: in both cases Badajoz answered neither the requester nor the CTBG, so set a reminder to complain on day 31.
 - **Known gap**: terraces on the venue's own private plot (patios, gardens, rooftops) fall under the activity licence, not the velador licence (2024 acoustic ordinance), so this list will miss them.
 - **Once it arrives**: keep the original out of the repo. Record the file date and reuse conditions in the research notes, and seed the curated CSV from it (ADR-0002).
 
-## Request text
+## Request text (in Spanish)
+
+The letter is intentionally in Spanish: it must be filed in Spanish, so do not translate it. In short, it asks for:
+
+1. The list of current terrace authorizations, one row each: business name, venue address, authorized space (street, nearest building number, type of space), area in m², number of tables, chairs and umbrellas, whether it has a fixed enclosure, and grant or renewal date with file number.
+2. The GIS layer of authorized terraces and the occupancy plans, if they exist in digital form.
+3. The reuse conditions under Ley 37/2007.
+
+It asks for electronic delivery as CSV or XLSX, rules out personal and tax data, and states the purpose: an open, non-profit sun and shade map.
 
 > **AL EXCMO. AYUNTAMIENTO DE BADAJOZ**
 >

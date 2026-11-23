@@ -2,7 +2,8 @@
 
 Every named venue gets a record. It has a terrace (`terrace` set) when OSM tags it
 `outdoor_seating=yes` or when a row in the curated list describes it; otherwise `terrace` is
-null ("terraza sin confirmar"). `horizon` stays null here; a later stage computes it.
+null (the app shows "terraza sin confirmar", unconfirmed terrace). `horizon` stays null here; a
+later stage computes it.
 
 Curated list (`pipeline/data/curated_terraces.csv`, UTF-8, one row per terrace, header required):
 

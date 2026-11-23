@@ -42,8 +42,8 @@ Overture places, release `2026-11-18.0` (latest on 2026-11-22), read with DuckDB
 
 ## Finding: the Ayuntamiento has the terrace register, but does not publish it
 
-- **No open data.** datos.gob.es has terrace datasets for Madrid, Barcelona, Gijón and Zaragoza ("veladores en calzada"), and none for Badajoz. The Ayuntamiento's [transparency page](https://www.aytobadajoz.es/es/ayto/participacion-ciudadana/58345/transparencia) has no terrace register.
-- **Ordinance**: [Ordenanza reguladora de la instalación de veladores](https://www.aytobadajoz.es/files/archivos/ayto/2011_04/ordenanza_definitiva_veladores.pdf) (2011 text, linked from [Ordenanzas](https://www.aytobadajoz.es/es/ayto/ordenanzas)). What an authorization contains:
+- **No open data.** datos.gob.es has terrace datasets for Madrid, Barcelona, Gijón and Zaragoza ("veladores en calzada", roadway terraces), and none for Badajoz. The Ayuntamiento's [transparency page](https://www.aytobadajoz.es/es/ayto/participacion-ciudadana/58345/transparencia) has no terrace register.
+- **Ordinance**: the terrace (*velador*) ordinance, [Ordenanza reguladora de la instalación de veladores](https://www.aytobadajoz.es/files/archivos/ayto/2011_04/ordenanza_definitiva_veladores.pdf) (2011 text, linked from [Ordenanzas](https://www.aytobadajoz.es/es/ayto/ordenanzas)). What an authorization contains:
   - Art. 28.3 (resolution): holder and business name, NIF/CIF, address of the venue; the exact space authorized (street and **nearest building number**); **area in m²**; whether it has a fixed enclosure; **number of tables, chairs and umbrellas**; other elements; hours.
   - Art. 26.2: every application includes a 1:2000 location map and a **1:100 dimensioned plan** of the terrace. Art. 28.4: the plan is attached to the resolution.
   - Art. 24.2: while the terrace is set up, a document with the authorization and that plan must be **visible from the street**. On-site curators can photograph it.
@@ -120,7 +120,7 @@ Three research passes: open POI datasets and APIs, imagery, and the public secto
 | Source | Venues | Licence | Outdoor-seating signal |
 | --- | --- | --- | --- |
 | OSM (2026-11-22) | 191 hospitality, of which 157 bar/pub/café/restaurant/biergarten | ODbL | `outdoor_seating` on 9 (4 yes), 2 bare `leisure=outdoor_seating` |
-| Overture 2026-11-18.0 | 994 hospitality (859 core). Confidence median 0.80; 41 permanently closed | CDLA-Permissive-2.0 (Meta, Microsoft, BrightQuery), Apache-2.0 (Foursquare, 10), CC0 (AllThePlaces, 5) | None in the schema; 15 names with terraza/jardín/kiosko/chiringuito |
+| Overture 2026-11-18.0 | 994 hospitality (859 core). Confidence median 0.80; 41 permanently closed | CDLA-Permissive-2.0 (Meta, Microsoft, BrightQuery), Apache-2.0 (Foursquare, 10), CC0 (AllThePlaces, 5) | None in the schema; 15 names with terraza/jardín/kiosko/chiringuito (terrace, garden, kiosk, beach bar) |
 | Foursquare OS Places (ungated mirror 2025-02-06) | 1,175 hospitality, but 974 last refreshed before 2023 | Apache-2.0 + NOTICE | None in the open schema (paid add-on only) |
 | AllThePlaces 2026-11-14 | 12 chain sites | CC0 | Chain flags only (McDonald's yes) |
 | Wikidata | 0 | CC0 | — |
@@ -154,7 +154,7 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
 
 ### Public sector (2026-11-24)
 
-- **Ayuntamiento de Badajoz:** holds the only terrace data (velador licences: which venues, where, m², tables) and publishes none of it. There is no open data portal or IDE, `mapas.aytobadajoz.es` answers 503, and the new tourism site's "Dónde comer" has only test entries. The Oficina Auxiliar de Vías y Obras handles velador licences. The terrace tax roll exists but is confidential. Terraces on private plots fall under activity licences instead.
+- **Ayuntamiento de Badajoz:** holds the only terrace data (velador licences: which venues, where, m², tables) and publishes none of it. There is no open data portal or IDE, `mapas.aytobadajoz.es` answers 503, and the new tourism site's "Dónde comer" ("Where to eat") section has only test entries. The Oficina Auxiliar de Vías y Obras (the roads and works office) handles velador licences. The terrace tax roll exists but is confidential. Terraces on private plots fall under activity licences instead.
 - **Junta de Extremadura, [Establecimientos de restauración](https://datos.gob.es/es/catalogo/a11002926-establecimientos-de-restauracion-en-extremadura):**
   - CC BY 4.0, last updated 2025-03-10.
   - 1,100 rows in the municipality (737 café-bars, 211 restaurants, 63 pubs, 48 cafeterías…).
@@ -163,7 +163,7 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
   - Geocoded with CartoCiudad (CC BY 4.0 ign.es), 849 of 998 city rows place, 458 at an exact portal.
   - Not imported yet: it adds no terrace signal, and its staleness would add closed venues. It is a candidate for venue confirmation or curator to-do lists (follow-up issue).
 - **Diputación, IDEEX, INE:** nothing on hospitality or terraces.
-- **Catastro:** a parcel's use code is not a hospitality flag. Only 4 of 60 OSM venues' parcels have an "Ocio y Hostelería" unit.
+- **Catastro:** a parcel's use code is not a hospitality flag. Only 4 of 60 OSM venues' parcels have an "Ocio y Hostelería" (leisure and hospitality) unit.
 - **Other cities that publish terrace data** (models for the request):
 
   | City | Dataset | Content |
@@ -179,7 +179,7 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
 
 - **Venue websites:** a working signal ([ADR-0004](../adr/0004-junta-register-and-website-evidence.md)).
   - 141 venues have their own site (not Facebook or Instagram) in OSM or Overture. 88 loaded.
-  - **9 say the venue has a terrace** ("nuestra terraza", a booking form with a "Terraza" option, "suplemento en terraza"). 3 more were false positives ("Ciudad Jardín", a link to "Jardin Majorelle", a Seville chain).
+  - **9 say the venue has a terrace** ("nuestra terraza", "our terrace"; a booking form with a "Terraza" option; "suplemento en terraza", a terrace surcharge). 3 more were false positives ("Ciudad Jardín", a link to "Jardin Majorelle", a Seville chain).
   - 5 were placed on the orthophoto and added as curated rows. 4 were left out: the point fell on a mall or covered structure newer than the 2009 LiDAR, or the terrace's location was unclear.
 - **Junta register:** 714 city rows, of which 399 geocode to an exact street number. They confirm 143 existing venues and add 101 recent ones (opened 2010 or later).
 - **Wikimedia Commons:** 616 geotagged files in the area, none of them a terrace. Dead end.

@@ -43,7 +43,7 @@ def curated_csv(tmp_path: Path, *rows: str) -> Path:
 
 def curated(**fields: str | float) -> CuratedTerrace:
     return CuratedTerrace.model_validate(
-        {"id": "prueba", "terrace_lat": 38.88, "terrace_lon": -6.97, **fields}
+        {"id": "test-row", "terrace_lat": 38.88, "terrace_lon": -6.97, **fields}
     )
 
 
@@ -55,21 +55,21 @@ def test_shipped_curated_list_is_valid_and_says_where_each_row_comes_from() -> N
 def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path) -> None:
     path = curated_csv(
         tmp_path,
-        f"terraza-linked,{LUGARIS},,,38.8838501,-6.9877,2026-11-01,"
-        " EXP-2025/0042 ,  junto a la fuente  ",
-        "terraza-sola,,Terraza de prueba,bar,38.88,-6.97,,,",
+        f"linked-terrace,{LUGARIS},,,38.8838501,-6.9877,2026-11-01,"
+        " EXP-2025/0042 ,  next to the fountain  ",
+        "standalone-terrace,,Terraza de prueba,bar,38.88,-6.97,,,",
     )
 
     linked, alone = read_curated(path)
 
     assert linked == CuratedTerrace(
-        id="terraza-linked",
+        id="linked-terrace",
         venue_id=LUGARIS,
         terrace_lat=38.88385,
         terrace_lon=-6.9877,
         verified=date(2026, 11, 1),
         ayto_ref="EXP-2025/0042",
-        notes="junto a la fuente",
+        notes="next to the fountain",
     )
     assert alone.name == "Terraza de prueba"
     assert alone.kind == "bar"
@@ -80,8 +80,8 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
 @pytest.mark.parametrize(
     ("row", "message"),
     [
-        ("sin-osm,,,bar,38.88,-6.97,,,", "name and kind are required"),
-        ("sin-osm,,Terraza,,38.88,-6.97,,,", "name and kind are required"),
+        ("no-venue,,,bar,38.88,-6.97,,,", "name and kind are required"),
+        ("no-venue,,Terraza,,38.88,-6.97,,,", "name and kind are required"),
         ("Mal Slug,,Terraza,bar,38.88,-6.97,,,", "\nid\n"),
         ("x,node/1,,,38.88,-6.97,,,", "\nvenue_id\n"),
         ("x,,Terraza,disco,38.88,-6.97,,,", "\nkind\n"),
@@ -173,19 +173,21 @@ def test_curated_row_wins_over_outdoor_seating_no() -> None:
 
 
 def test_unlinked_curated_row_gets_a_curated_id_and_no_osm_source() -> None:
-    row = curated(id="terraza-sola", name="Terraza de prueba", kind="bar", verified="2026-10-30")
+    row = curated(
+        id="standalone-terrace", name="Terraza de prueba", kind="bar", verified="2026-10-30"
+    )
 
     records = build_terraces(fixture_venues(), [row])
 
     assert [record.id for record in records] == [
-        "curated:terraza-sola",
+        "curated:standalone-terrace",
         PANECAFE,
         JUEVES,
         VELADOR,
         LUGARIS,
     ]
     assert records[0] == Terrace(
-        id="curated:terraza-sola",
+        id="curated:standalone-terrace",
         name="Terraza de prueba",
         kind="bar",
         venue=LatLon(lat=38.88, lon=-6.97),

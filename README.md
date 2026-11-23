@@ -1,7 +1,5 @@
 # Sol y Cerveza ☀️🍺
 
-Terrazas de bares y restaurantes de Badajoz, y si les da el sol o la sombra según la fecha y la hora.
-
 Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
 
 - **Web:** <https://isroma.github.io/sol-y-cerveza/>

@@ -21,9 +21,9 @@ No open source says which venues have a terrace (see `docs/research/data-sources
    - Every city row with a street number is geocoded with CartoCiudad (IGN/CNIG, CC BY 4.0), restricted to the municipality. Only exact street-number matches are kept, and results are cached in `.cache/`.
    - A row that matches an existing venue (same rules as the Overture merge) only confirms it.
    - An unmatched row becomes a venue (`junta:<hash>`, sources `["junta"]`) only if it opened in **2010 or later**, since old unmatched rows are the likeliest to have closed.
-   - Attribution: "Registro de restauración de la Junta de Extremadura (CC BY 4.0), geocodificado con CartoCiudad (CC BY 4.0 ign.es)".
+   - Attribution, shown in the app and so in Spanish: "Registro de restauración de la Junta de Extremadura (CC BY 4.0), geocodificado con CartoCiudad (CC BY 4.0 ign.es)".
 2. **Venue websites as terrace evidence:**
-   - A curated terrace row may cite the venue's own website when it explicitly says the venue has a terrace (for example "nuestra terraza", or a booking form with a "Terraza" option). The URL and the check date go in `notes`.
+   - A curated terrace row may cite the venue's own website when it explicitly says the venue has a terrace (for example "nuestra terraza", "our terrace", or a booking form with a "Terraza" option). The URL and the check date go in `notes`.
    - Sites are fetched politely: one request per homepage, respecting robots.txt, with a descriptive User-Agent.
    - Only the fact is recorded, never text.
    - Without a visible terrace, the position is the open ground nearest the venue point, checked on the orthophoto. It stays unverified, and the app says so.
