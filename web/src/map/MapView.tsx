@@ -14,9 +14,8 @@ import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
-  CARD_FOLD_BELOW,
+  cardFolded,
   cardLevel,
-  cardOpacity,
   cardScale,
   pitchForZoom,
   SHADOW_OPACITY,
@@ -56,10 +55,9 @@ const MAP_LOCALE = {
   'Map.Title': 'Mapa',
 }
 
-/** Size and fade the venue card for a zoom (see cardScale, cardOpacity). */
+/** Size the venue card for a zoom (see cardScale). */
 function sizeCard(el: HTMLElement, zoom: number) {
   el.style.setProperty('--card-scale', String(cardScale(zoom)))
-  el.style.setProperty('--card-opacity', String(cardOpacity(zoom)))
 }
 
 /** Bring a venue into view, close enough for its full card. */
@@ -149,7 +147,7 @@ export function MapView({
   const [failed, setFailed] = useState(false)
   const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
   const [level, setLevel] = useState<CardLevel>(cardLevel(INITIAL_ZOOM))
-  const [folded, setFolded] = useState(INITIAL_ZOOM < CARD_FOLD_BELOW)
+  const [folded, setFolded] = useState(cardFolded(INITIAL_ZOOM))
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
@@ -198,7 +196,7 @@ export function MapView({
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
           const zoom = map.getZoom()
           setLevel(cardLevel(zoom))
-          setFolded(zoom < CARD_FOLD_BELOW)
+          setFolded(cardFolded(zoom))
           // Every frame of a pinch: size and fade the card straight from the
           // zoom, without waiting for React.
           sizeCard(cardEl, zoom)
@@ -467,7 +465,6 @@ export function MapView({
       )}
       <MapControls mapRef={mapRef} ready={ready} attribution={attribution} />
       {selectedStatus &&
-        level !== 'hidden' &&
         createPortal(
           <PinCard
             status={selectedStatus}

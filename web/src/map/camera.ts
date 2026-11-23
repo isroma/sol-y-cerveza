@@ -53,39 +53,34 @@ export function pitchForZoom(zoom: number): number {
 }
 
 /**
- * How much of the selected venue's card shows at a zoom: the whole card up
- * close, only the name and the sun line in between, and none in the city
- * overview, where the venue is just its selected badge. Size and opacity
- * follow the zoom continuously (cardScale, cardOpacity), so a pinch shrinks
- * and fades the card smoothly; the level only swaps its content.
+ * The selected venue's card follows the zoom: full up close, only the name
+ * and the sun line in between (cardLevel), shrinking smoothly with the pinch
+ * (cardScale), and folded back into its badge in the city overview
+ * (cardFolded), with a short pop rather than a see-through fade.
  */
-export type CardLevel = 'full' | 'compact' | 'hidden'
-/** Below this the card is gone and the selected badge stands in. */
-export const CARD_GONE_BELOW = 14.5
-/** Below this the card starts fading over the selected badge. */
+export type CardLevel = 'full' | 'compact'
+/** Below this the card folds into the selected badge. */
 export const CARD_FOLD_BELOW = 15
 export const CARD_FULL_FROM = 15.75
-/** Smallest size, reached as the card fades out. */
-export const CARD_MIN_SCALE = 0.6
+/** The card's size just before it folds. */
+export const CARD_MIN_SCALE = 0.75
 const CARD_MAX_SCALE_ZOOM = 16
 
 export function cardLevel(zoom: number): CardLevel {
-  if (zoom < CARD_GONE_BELOW) return 'hidden'
   return zoom < CARD_FULL_FROM ? 'compact' : 'full'
 }
 
-const clamp01 = (t: number) => Math.min(1, Math.max(0, t))
-
-export function cardScale(zoom: number): number {
-  const t = clamp01(
-    (zoom - CARD_GONE_BELOW) / (CARD_MAX_SCALE_ZOOM - CARD_GONE_BELOW),
-  )
-  return Math.round((CARD_MIN_SCALE + t * (1 - CARD_MIN_SCALE)) * 1000) / 1000
+export function cardFolded(zoom: number): boolean {
+  return zoom < CARD_FOLD_BELOW
 }
 
-export function cardOpacity(zoom: number): number {
-  const t = clamp01(
-    (zoom - CARD_GONE_BELOW) / (CARD_FOLD_BELOW - CARD_GONE_BELOW),
+export function cardScale(zoom: number): number {
+  const t = Math.min(
+    1,
+    Math.max(
+      0,
+      (zoom - CARD_FOLD_BELOW) / (CARD_MAX_SCALE_ZOOM - CARD_FOLD_BELOW),
+    ),
   )
-  return Math.round(t * 1000) / 1000
+  return Math.round((CARD_MIN_SCALE + t * (1 - CARD_MIN_SCALE)) * 1000) / 1000
 }

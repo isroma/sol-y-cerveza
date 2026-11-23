@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   CARD_FOLD_BELOW,
   CARD_FULL_FROM,
-  CARD_GONE_BELOW,
   CARD_MIN_SCALE,
+  cardFolded,
   cardLevel,
-  cardOpacity,
   cardScale,
   FLAT_ZOOM,
   RELIEF_ZOOM,
@@ -52,25 +51,23 @@ describe('pitchForZoom', () => {
   })
 })
 
-describe('cardLevel', () => {
-  it('folds the card away in the overview and opens it up close', () => {
-    expect(cardLevel(13.8)).toBe('hidden')
-    expect(cardLevel(CARD_GONE_BELOW)).toBe('compact')
-    expect(cardLevel(15.5)).toBe('compact')
+describe('the venue card and the zoom', () => {
+  it('shows the full card up close and a compact one in between', () => {
     expect(cardLevel(CARD_FULL_FROM)).toBe('full')
     expect(cardLevel(18)).toBe('full')
+    expect(cardLevel(15.5)).toBe('compact')
   })
-})
 
-describe('cardScale and cardOpacity', () => {
-  it('shrink and fade the card smoothly as the map zooms out', () => {
+  it('folds the card into its badge in the overview', () => {
+    expect(cardFolded(13.8)).toBe(true)
+    expect(cardFolded(CARD_FOLD_BELOW)).toBe(false)
+  })
+
+  it('shrinks the card smoothly, never below its minimum size', () => {
     expect(cardScale(17)).toBe(1)
     expect(cardScale(16)).toBe(1)
-    expect(cardScale(15.25)).toBe(0.8)
-    expect(cardScale(CARD_GONE_BELOW)).toBe(CARD_MIN_SCALE)
+    expect(cardScale(15.5)).toBe(0.875)
+    expect(cardScale(CARD_FOLD_BELOW)).toBe(CARD_MIN_SCALE)
     expect(cardScale(13)).toBe(CARD_MIN_SCALE)
-    expect(cardOpacity(CARD_FOLD_BELOW)).toBe(1)
-    expect(cardOpacity(14.75)).toBe(0.5)
-    expect(cardOpacity(CARD_GONE_BELOW)).toBe(0)
   })
 })
