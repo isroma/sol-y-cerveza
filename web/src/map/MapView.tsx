@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { pitchForZoom } from './camera.ts'
+import { pitchForZoom, SHADOW_OPACITY } from './camera.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch } from './night.ts'
@@ -31,10 +31,10 @@ const LABELS_LAYER = 'venues-unconfirmed-labels'
 /** From this zoom, unconfirmed venues show their name next to the dot. */
 const LABELS_ZOOM = 16.5
 
-/** Old town, tilted like the design: Plaza de España in front, river behind. */
-const INITIAL_ZOOM = 15.9
+/** City overview in the top view: the old town, the river and the south-west districts. */
+const INITIAL_ZOOM = 13.8
 const INITIAL_VIEW = {
-  center: [-6.9712, 38.8792] as [number, number],
+  center: [-6.978, 38.8725] as [number, number],
   zoom: INITIAL_ZOOM,
   pitch: pitchForZoom(INITIAL_ZOOM),
   bearing: -18,
@@ -149,7 +149,7 @@ export function MapView({
               minzoom: 14,
               paint: {
                 'fill-color': '#2B3048',
-                'fill-opacity': 0.42,
+                'fill-opacity': SHADOW_OPACITY,
                 'fill-antialias': false,
               },
             },
