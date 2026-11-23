@@ -1110,3 +1110,160 @@ button {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Card above the selected venue on the map (PinCard.tsx). */
+.pin-card-marker {
+  z-index: 6;
+  pointer-events: none;
+}
+
+.pin-card {
+  position: relative;
+  width: 260px;
+  padding: 14px;
+  border: 3px solid #d1d5db;
+  border-radius: 22px;
+  background: var(--bg);
+  box-shadow: 0 10px 28px rgba(31, 35, 40, 0.22);
+  color: var(--ink);
+  pointer-events: auto;
+}
+
+.pin-card--sun,
+.pin-card--soon {
+  border-color: var(--sun-soft);
+}
+
+.pin-card--unknown {
+  border-color: #c2a88e;
+}
+
+/* Pointer down to the badge. */
+.pin-card::after {
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  translate: -50% 0;
+  border: 10px solid transparent;
+  border-bottom: 0;
+  border-top-color: inherit;
+  content: '';
+}
+
+.pin-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pin-card-badge {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #c6cbd3, #8b919c);
+  color: #fff;
+}
+
+.pin-card--sun .pin-card-badge {
+  background: linear-gradient(160deg, #ffc53d, #f59e0b);
+}
+
+.pin-card--soon .pin-card-badge {
+  background: linear-gradient(160deg, #fff1b8, #f7c948);
+  color: #a16207;
+}
+
+.pin-card--unknown .pin-card-badge {
+  background: linear-gradient(160deg, #dcc8b4, #a88d73);
+}
+
+.pin-card-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pin-card-title strong {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card-title span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pin-card-sun {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--highlight);
+}
+
+.pin-card-sun > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.pin-card-sun strong {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.pin-card-sun span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pin-card-bar {
+  margin-top: 14px;
+}
+
+.pin-card-track {
+  position: relative;
+  height: 8px;
+  margin: 0 8px;
+  border-radius: 999px;
+  background: var(--toggle-off);
+}
+
+.pin-card-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, #ffc53d, #f59e0b);
+}
+
+.pin-card-knob {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  translate: -50% -50%;
+  border: 3px solid #f59e0b;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.pin-card-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-card-ticks strong {
+  color: var(--ink);
+}

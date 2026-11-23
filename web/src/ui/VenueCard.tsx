@@ -2,18 +2,15 @@ import { useState } from 'react'
 import { sunRuns, type VenueStatus } from '../sun/venueStatus.ts'
 import { formatClock } from '../time/madrid.ts'
 import { CategoryIcon } from './CategoryIcon.tsx'
-import { CATEGORY_COLORS, categoryLabel, sunSummary } from './categoryStyle.ts'
+import {
+  CATEGORY_COLORS,
+  categoryLabel,
+  KIND_LABELS,
+  sunSummary,
+} from './categoryStyle.ts'
 import { ChevronRightIcon, CloseIcon, SunIcon } from './icons.tsx'
 import { SunTimeline } from './SunTimeline.tsx'
 import { verificationLabel } from './verification.ts'
-
-const KIND_LABELS = {
-  bar: 'Bar',
-  pub: 'Pub',
-  cafe: 'Café',
-  restaurant: 'Restaurante',
-  biergarten: 'Cervecería al aire libre',
-} as const
 
 type Props = { status: VenueStatus; minutes: number; onClose: () => void }
 
