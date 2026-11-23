@@ -1,23 +1,49 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadTerraces, type TerracesFile } from './data/terraces.ts'
-import { TerraceMap, type MapTerrace } from './map/TerraceMap.tsx'
-import { terraceStatuses } from './sun/terraceStatus.ts'
 import {
-  fromMadridLocal,
-  MINUTES_PER_DAY,
-  toMadridLocal,
-} from './time/madrid.ts'
-import { TerraceList } from './ui/TerraceList.tsx'
-import { TimeControls } from './ui/TimeControls.tsx'
+  applyFilters,
+  DEFAULT_FILTERS,
+  type Filters,
+} from './filters/filters.ts'
+import { MapView } from './map/MapView.tsx'
+import { dayTrack, stepIndex } from './sun/dayTrack.ts'
+import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
+import { formatClock, toMadridLocal } from './time/madrid.ts'
+import { DaySelector } from './ui/DaySelector.tsx'
+import { FiltersPanel } from './ui/FiltersPanel.tsx'
+import { Logo } from './ui/icons.tsx'
+import { SearchBox } from './ui/SearchBox.tsx'
+import { SLIDER_END, SLIDER_START, TimeSlider } from './ui/TimeSlider.tsx'
+import { VenueCard } from './ui/VenueCard.tsx'
+import { VenueList } from './ui/VenueList.tsx'
+import { readUrlState, writeUrlState } from './urlState.ts'
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; file: TerracesFile }
 
+/** Now in Madrid nudged into the slider's terrace hours, unless the URL says otherwise. */
+function initialTime() {
+  const now = toMadridLocal(new Date())
+  const url = readUrlState(window.location.search)
+  return {
+    today: now.date,
+    date: url.date ?? now.date,
+    minutes:
+      url.minutes ?? Math.min(SLIDER_END, Math.max(SLIDER_START, now.minutes)),
+  }
+}
+
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
-  const [local, setLocal] = useState(() => toMadridLocal(new Date()))
+  const [{ today, date: startDate, minutes: startMinutes }] =
+    useState(initialTime)
+  const [date, setDate] = useState(startDate)
+  const [minutes, setMinutes] = useState(startMinutes)
+  const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -34,60 +60,93 @@ export function App() {
     }
   }, [])
 
-  const statuses = useMemo(() => {
-    if (load.status !== 'ready') return []
-    return terraceStatuses(
-      load.file.terraces,
-      fromMadridLocal(local.date, local.minutes),
-      fromMadridLocal(local.date, MINUTES_PER_DAY),
+  useEffect(() => {
+    window.history.replaceState(
+      null,
+      '',
+      writeUrlState(date, formatClock(minutes)),
     )
-  }, [load, local])
+  }, [date, minutes])
 
-  const mapTerraces = useMemo(
-    (): MapTerrace[] =>
-      statuses.map(({ terrace, state }) => ({
-        id: terrace.id,
-        name: terrace.name,
-        lat: (terrace.terrace ?? terrace.venue).lat,
-        lon: (terrace.terrace ?? terrace.venue).lon,
-        state,
-        verified: terrace.verified,
-      })),
-    [statuses],
+  const track = useMemo(() => dayTrack(date), [date])
+  // Sun/shade per venue for the whole day: recomputed only when the day changes.
+  const days = useMemo(
+    () =>
+      load.status === 'ready'
+        ? load.file.terraces.map((venue) => venueDay(venue, track))
+        : [],
+    [load, track],
   )
+  const statuses = useMemo(
+    () => days.map((day) => venueStatus(day, minutes)).sort(compareStatus),
+    [days, minutes],
+  )
+  const visible = useMemo(
+    () => applyFilters(statuses, filters, query),
+    [statuses, filters, query],
+  )
+  const selected = statuses.find((s) => s.venue.id === selectedId) ?? null
+  const sun = track.positions[stepIndex(minutes)] ?? {
+    altitude: -1,
+    azimuth: 0,
+  }
+
+  const goToNow = useCallback(() => {
+    const now = toMadridLocal(new Date())
+    setDate(now.date)
+    setMinutes(now.minutes)
+  }, [])
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Sol y Cerveza</h1>
-        <p>Terrazas de Badajoz al sol o a la sombra</p>
-      </header>
-      {load.status === 'ready' && load.file.sample && (
-        <p className="sample-notice" role="note">
-          Datos de ejemplo: estas terrazas y sus sombras son ficticias.
-        </p>
-      )}
-      <main className="app-main">
-        <TimeControls value={local} onChange={setLocal} />
-        <div className="map-pane">
-          <TerraceMap terraces={mapTerraces} />
-        </div>
-        <div className="results">
-          {load.status === 'loading' && <p>Cargando terrazas…</p>}
-          {load.status === 'error' && (
-            <p role="alert">No se han podido cargar las terrazas.</p>
-          )}
-          {load.status === 'ready' && (
-            <>
-              <TerraceList statuses={statuses} />
-              <footer className="attribution">
-                {load.file.attribution.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </footer>
-            </>
-          )}
-        </div>
+      <aside className="sidebar">
+        <header className="brand">
+          <Logo />
+          <h1>Sol y Cerveza</h1>
+        </header>
+        <SearchBox value={query} onChange={setQuery} />
+        <DaySelector date={date} today={today} onChange={setDate} />
+        <TimeSlider minutes={minutes} onChange={setMinutes} onNow={goToNow} />
+        <FiltersPanel filters={filters} onChange={setFilters} />
+        {load.status === 'ready' && load.file.sample && (
+          <p className="sample-notice" role="note">
+            Datos de ejemplo: estas terrazas y sus sombras son ficticias.
+          </p>
+        )}
+        {load.status === 'loading' && (
+          <p className="status-line">Cargando bares…</p>
+        )}
+        {load.status === 'error' && (
+          <p className="status-line" role="alert">
+            No se han podido cargar las terrazas.
+          </p>
+        )}
+        {load.status === 'ready' && (
+          <VenueList
+            statuses={visible}
+            total={statuses.length}
+            minutes={minutes}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        )}
+        {selected && (
+          <VenueCard
+            key={selected.venue.id}
+            status={selected}
+            minutes={minutes}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
+      </aside>
+      <main className="map-area">
+        <MapView
+          statuses={visible}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          sun={sun}
+          attribution={load.status === 'ready' ? load.file.attribution : []}
+        />
       </main>
     </div>
   )
