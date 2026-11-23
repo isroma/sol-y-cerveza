@@ -158,6 +158,7 @@ export function App() {
           selectedId={selectedId}
           onSelect={setSelectedId}
           sun={sun}
+          minutes={minutes}
           attribution={load.status === 'ready' ? load.file.attribution : []}
         />
       </main>

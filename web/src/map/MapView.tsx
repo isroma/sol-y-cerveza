@@ -51,6 +51,8 @@ type Props = {
   selectedId: string | null
   onSelect: (id: string | null) => void
   sun: SunPosition
+  /** Chosen minute of the day, for the sun left in the selected badge. */
+  minutes: number
   attribution: readonly string[]
 }
 
@@ -81,6 +83,7 @@ export function MapView({
   selectedId,
   onSelect,
   sun,
+  minutes,
   attribution,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -197,8 +200,8 @@ export function MapView({
               'circle-color': [
                 'case',
                 ['get', 'selected'],
-                '#6B7280',
-                '#B4B9C1',
+                '#8A6F55',
+                '#C2A88E',
               ],
               'circle-stroke-width': [
                 'interpolate',
@@ -319,7 +322,7 @@ export function MapView({
         entry = { marker, el }
         pins.set(id, entry)
       }
-      updatePin(entry.el, status, id === selectedId)
+      updatePin(entry.el, status, id === selectedId, minutes)
       const top = highlighted.has(id)
       entry.el.classList.toggle('pin-marker--top', top)
       entry.el.style.zIndex =
@@ -327,11 +330,11 @@ export function MapView({
           ? '4'
           : top
             ? '3'
-            : status.category === 'sun'
+            : status.category === 'sun' || status.category === 'soon'
               ? '2'
               : '1'
     }
-  }, [ready, statuses, selectedId, highlighted])
+  }, [ready, statuses, selectedId, highlighted, minutes])
 
   // Bring the selected venue into view when the selection changes.
   const lastSelected = useRef<string | null>(null)

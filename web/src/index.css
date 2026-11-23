@@ -788,8 +788,8 @@ button {
   margin: 0 5px;
   border: 2px solid #fff;
   border-radius: 50%;
-  background: #a3a9b3;
-  box-shadow: 0 0 0 1px #d1d5db;
+  background: #c2a88e;
+  box-shadow: 0 0 0 1px #d9c7b5;
 }
 
 .legend-info {
@@ -944,7 +944,7 @@ button {
 }
 
 .pin--unknown .pin-icon {
-  background: linear-gradient(160deg, #e4e7eb, #b6bbc3);
+  background: linear-gradient(160deg, #dcc8b4, #a88d73);
 }
 
 /* No sun: smaller than the sunny badges, so the sun stands out. */
@@ -995,11 +995,14 @@ button {
 .map-wrap.is-overview
   .pin-marker:not(.pin-marker--top)
   .pin:not(.pin--selected) {
-  scale: 0.62;
+  scale: 0.7;
 }
 
-.map-wrap.is-overview .pin-marker:not(.pin-marker--top) .pin-price {
-  display: none;
+/* Grey badges stay a step smaller than the yellow ones. */
+.map-wrap.is-overview
+  .pin-marker:not(.pin-marker--top)
+  :is(.pin--nosun, .pin--unknown):not(.pin--selected) {
+  scale: 0.56;
 }
 
 .map-wrap.is-night .pin {
