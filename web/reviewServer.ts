@@ -4,6 +4,13 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
+import {
+  answerPhoto,
+  claudeReader,
+  PHOTO_MAX_BODY,
+  photoStatus,
+  readJsonCapped,
+} from './pricePhotoServer.ts'
 import { publishStatus, startPublish } from './publish.ts'
 import {
   formatReviewCsv,
@@ -193,8 +200,9 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
  * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
- * price candidates (price_candidates.csv), and probe the sun at
- * a pin (`python -m solycerveza.probe`). Never part of the built site.
+ * price candidates (price_candidates.csv), probe the sun at a pin
+ * (`python -m solycerveza.probe`) and read prices from a photo
+ * (pricePhotoServer.ts). Never part of the built site.
  */
 export function reviewServer(): Plugin {
   // Writes run one after another so two quick clicks never lose a row.
@@ -287,6 +295,31 @@ export function reviewServer(): Plugin {
             if (!abort.signal.aborted) send(res, status, body)
           },
         )
+      })
+      // Prices from a photo of the price board, read by the Claude API with
+      // ANTHROPIC_API_KEY (web/.env.local). Before /__admin/prices, which
+      // would otherwise match this path too.
+      const anthropicKey = env['ANTHROPIC_API_KEY'] ?? ''
+      server.middlewares.use('/__admin/prices/photo', (req, res) => {
+        if (req.method === 'GET')
+          return send(res, 200, photoStatus(anthropicKey))
+        if (req.method !== 'POST')
+          return send(res, 405, { error: 'method not allowed' })
+        void readJsonCapped(req, PHOTO_MAX_BODY).then(async (read) => {
+          if (!read.ok)
+            return send(res, read.status, {
+              error:
+                read.status === 413
+                  ? 'the photo is larger than 5 MB'
+                  : 'not JSON',
+            })
+          const answer = await answerPhoto(
+            read.json,
+            anthropicKey,
+            claudeReader(anthropicKey),
+          )
+          send(res, answer.status, answer.body)
+        })
       })
       server.middlewares.use('/__admin/prices', (req, res) => {
         const run = queue.then(async () => {

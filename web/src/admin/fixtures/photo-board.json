@@ -1,0 +1,36 @@
+{
+  "prices": [
+    {
+      "item": "tercio",
+      "brand": "mahou-5-estrellas",
+      "cents": 180,
+      "label": "Tercio Mahou 5* 1,80",
+      "confidence": "high"
+    },
+    {
+      "item": "cana",
+      "brand": null,
+      "cents": 150,
+      "label": "Caña 1'50",
+      "confidence": "high"
+    },
+    {
+      "item": "tercio",
+      "brand": "cruzcampo",
+      "cents": 170,
+      "label": "Tercio Cruzcampo 1.7 €",
+      "confidence": "high"
+    },
+    {
+      "item": "tercio",
+      "brand": "super-bock",
+      "cents": 200,
+      "label": "Super Bock 33cl 2€",
+      "confidence": "low"
+    }
+  ],
+  "notes": [
+    "Quinto Cruzcampo 1,20: 20 cl bottle, not reported",
+    "Doble 2,20: not a caña"
+  ]
+}

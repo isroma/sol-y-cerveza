@@ -1,0 +1,47 @@
+{
+  "prices": [
+    {
+      "item": "cana",
+      "brand": "cruzcampo",
+      "cents": 140,
+      "label": "Caña Cruzcampo 1,40",
+      "confidence": "high"
+    },
+    {
+      "item": "tercio",
+      "brand": null,
+      "cents": 190,
+      "label": "Tercio 1,90",
+      "confidence": "low"
+    },
+    {
+      "item": "tercio",
+      "brand": "heineken",
+      "cents": 2200,
+      "label": "Heineken 22,00",
+      "confidence": "low"
+    },
+    {
+      "item": "tercio",
+      "brand": "amstel",
+      "cents": 180,
+      "label": "Amstel terraza 1,80",
+      "confidence": "high"
+    },
+    {
+      "item": "tercio",
+      "brand": "amstel",
+      "cents": 160,
+      "label": "Amstel barra 1,60",
+      "confidence": "high"
+    },
+    {
+      "item": "cana",
+      "brand": null,
+      "cents": 140,
+      "label": "Caña 1,40",
+      "confidence": "high"
+    }
+  ],
+  "notes": ["  ", "Tercio Mahou Clásica 2,00: brand not in the list"]
+}
