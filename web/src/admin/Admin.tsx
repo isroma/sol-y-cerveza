@@ -68,12 +68,10 @@ function savedMessage(outcome: Outcome | 'queued'): string | null {
   return null
 }
 
-type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all' | 'look'
+type Filter = 'todo' | 'not_venue' | 'all' | 'look'
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'todo', label: 'To review' },
-  { id: 'terrace', label: 'Terrace' },
-  { id: 'no_terrace', label: 'No terrace' },
   { id: 'not_venue', label: 'Not a venue' },
   { id: 'all', label: 'All' },
   { id: 'look', label: 'Needs a look' },
