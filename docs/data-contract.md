@@ -18,7 +18,7 @@ type TerracesFile = {
 }
 
 type Terrace = {
-  id: string // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "junta:<hash>", "curated:<slug>", "sample:<slug>"
+  id: string // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "junta:<hash>", "review:<slug>" (added in the admin view), "curated:<slug>", "sample:<slug>"
   name: string
   kind: 'bar' | 'pub' | 'cafe' | 'restaurant' | 'biergarten'
   venue: LatLon // the venue itself (building or entrance)

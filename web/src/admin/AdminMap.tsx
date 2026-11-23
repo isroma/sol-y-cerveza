@@ -23,6 +23,8 @@ type Props = {
   /** Where the selected venue's tables are, if known. */
   terrace: LatLon | null
   onSelect: (id: string | null) => void
+  /** A click on the map away from any venue dot. */
+  onMapClick: (at: LatLon) => void
   onPinTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
 }
@@ -79,6 +81,7 @@ export function AdminMap({
   selected,
   terrace,
   onSelect,
+  onMapClick,
   onPinTerrace,
   onMoveVenue,
 }: Props) {
@@ -86,11 +89,23 @@ export function AdminMap({
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
-  const callbacks = useRef({ onSelect, onPinTerrace, onMoveVenue, selected })
+  const callbacks = useRef({
+    onSelect,
+    onMapClick,
+    onPinTerrace,
+    onMoveVenue,
+    selected,
+  })
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    callbacks.current = { onSelect, onPinTerrace, onMoveVenue, selected }
+    callbacks.current = {
+      onSelect,
+      onMapClick,
+      onPinTerrace,
+      onMoveVenue,
+      selected,
+    }
   })
 
   useEffect(() => {
@@ -189,8 +204,8 @@ export function AdminMap({
           const id = hit?.properties['id']
           if (typeof id === 'string') {
             callbacks.current.onSelect(id)
-          } else if (callbacks.current.selected) {
-            callbacks.current.onPinTerrace({
+          } else {
+            callbacks.current.onMapClick({
               lat: event.lngLat.lat,
               lon: event.lngLat.lng,
             })

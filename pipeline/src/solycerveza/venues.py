@@ -32,8 +32,11 @@ RETRYABLE_STATUS = frozenset({429, 502, 503, 504})
 
 Kind = Literal["bar", "pub", "cafe", "restaurant", "biergarten"]
 KINDS: tuple[Kind, ...] = ("bar", "pub", "cafe", "restaurant", "biergarten")
-# OSM elements, or Overture places (GERS ids) for venues missing from OSM.
-VENUE_ID_PATTERN = r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12})$"
+# OSM elements, Overture places (GERS ids), Junta register rows, or venues added in the admin view.
+VENUE_ID_PATTERN = (
+    r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}"
+    r"|review:[a-z0-9]+(-[a-z0-9]+)*)$"
+)
 
 
 def is_kind(value: object) -> TypeIs[Kind]:

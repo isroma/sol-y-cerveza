@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addedId,
+  cleanName,
   formatReviewCsv,
   nextReview,
   parseReviewCsv,
@@ -9,12 +11,14 @@ import {
 } from './review.ts'
 
 const HEADER =
-  'venue_id,status,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed\n'
+  'venue_id,status,name,kind,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed\n'
 const TODAY = '2026-11-23'
 
 const terrace: Review = {
   venueId: 'osm:node/2',
   status: 'terrace',
+  name: null,
+  kind: null,
   venue: null,
   terrace: { lat: 38.8812341, lon: -6.9712349 },
   reviewed: TODAY,
@@ -22,6 +26,8 @@ const terrace: Review = {
 const moved: Review = {
   venueId: 'overture:abc-1',
   status: null,
+  name: null,
+  kind: null,
   venue: { lat: 38.88, lon: -6.97 },
   terrace: null,
   reviewed: TODAY,
@@ -32,8 +38,8 @@ describe('venue review CSV', () => {
     const text = formatReviewCsv([moved, terrace])
     expect(text).toBe(
       HEADER +
-        'osm:node/2,terrace,,,38.881234,-6.971235,2026-11-23\n' +
-        'overture:abc-1,,38.88,-6.97,,,2026-11-23\n',
+        'osm:node/2,terrace,,,,,38.881234,-6.971235,2026-11-23\n' +
+        'overture:abc-1,,,,38.88,-6.97,,,2026-11-23\n',
     )
     expect(parseReviewCsv(text)).toEqual([
       { ...terrace, terrace: { lat: 38.881234, lon: -6.971235 } },
@@ -44,10 +50,12 @@ describe('venue review CSV', () => {
   it('rejects a bad header and inconsistent rows', () => {
     expect(() => parseReviewCsv('id\n')).toThrow('header')
     expect(() =>
-      parseReviewCsv(HEADER + 'osm:node/1,no_terrace,,,38.8,-6.9,2026-11-23\n'),
+      parseReviewCsv(
+        HEADER + 'osm:node/1,no_terrace,,,,,38.8,-6.9,2026-11-23\n',
+      ),
     ).toThrow(':2:')
     expect(() =>
-      parseReviewCsv(HEADER + 'google:1,terrace,,,,,2026-11-23\n'),
+      parseReviewCsv(HEADER + 'google:1,terrace,,,,,,,2026-11-23\n'),
     ).toThrow()
   })
 
@@ -73,6 +81,8 @@ describe('nextReview', () => {
     ).toEqual({
       venueId: 'osm:node/9',
       status: 'terrace',
+      name: null,
+      kind: null,
       venue: null,
       terrace: at,
       reviewed: TODAY,
@@ -100,5 +110,39 @@ describe('nextReview', () => {
     )
     expect(row.status).toBe('terrace')
     expect(row.venue).toEqual(at)
+  })
+})
+
+describe('added venues', () => {
+  it('round-trip with their name and kind', () => {
+    const added: Review = {
+      venueId: 'review:bar-nuevo',
+      status: null,
+      name: 'Bar Nuevo',
+      kind: 'bar',
+      venue: { lat: 38.879, lon: -6.971 },
+      terrace: null,
+      reviewed: TODAY,
+    }
+    const text = formatReviewCsv([added])
+    expect(text).toContain('review:bar-nuevo,,Bar Nuevo,bar,38.879,-6.971,,,')
+    expect(parseReviewCsv(text)).toEqual([added])
+  })
+
+  it('need a name, kind and position, and existing venues take none', () => {
+    expect(() =>
+      parseReviewCsv(HEADER + 'review:x,terrace,X,,38.8,-6.9,,,2026-11-23\n'),
+    ).toThrow()
+    expect(() =>
+      parseReviewCsv(HEADER + 'osm:node/1,terrace,X,bar,,,,,2026-11-23\n'),
+    ).toThrow()
+  })
+
+  it('get a unique slug id and a CSV-safe name', () => {
+    expect(addedId('Café Añil', new Set())).toBe('review:cafe-anil')
+    expect(addedId('Café Añil', new Set(['review:cafe-anil']))).toBe(
+      'review:cafe-anil-2',
+    )
+    expect(cleanName(' Bar, "El"  Sitio ')).toBe('Bar El Sitio')
   })
 })
