@@ -39,8 +39,32 @@
   color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
+/* Cascade order: these resets, then MapLibre's styles (src/map/maplibre.css,
+   loaded with the lazy map), then every unlayered rule in this file. So
+   MapLibre keeps beating the resets, and our overrides beat MapLibre,
+   whichever stylesheet loads first. */
+@layer base, maplibre;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 3px solid rgba(245, 158, 11, 0.55);
+    outline-offset: 2px;
+  }
 }
 
 html,
@@ -48,22 +72,6 @@ body,
 #root {
   height: 100%;
   margin: 0;
-}
-
-button,
-input,
-select {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.55);
-  outline-offset: 2px;
 }
 
 .muted {
@@ -536,6 +544,24 @@ button {
    map's attribution, too. */
 .maplibregl-canvas-container {
   isolation: isolate;
+}
+
+/* While the map chunk loads: the map's land colour, dark at night. */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #f6eee2;
+  color: var(--text-soft);
+}
+
+.map-loading p {
+  margin: 0;
+}
+
+.app.is-night .map-loading {
+  background: var(--bg);
 }
 
 .map-error {
@@ -1277,11 +1303,41 @@ button {
 }
 
 .pin-card-body {
+  position: relative;
   align-self: stretch;
   padding: 26px 16px 16px;
   border: 3px solid var(--card-accent);
   border-radius: 26px;
   background: var(--bg);
+}
+
+/* Share: a small icon button in the card's top-right corner. */
+.pin-card-share {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+
+/* "Enlace copiado": a brief pill under the share button. */
+.pin-card-share-note {
+  position: absolute;
+  top: 44px;
+  right: var(--space-2);
+  z-index: 3;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pin-card-share-note:empty {
+  display: none;
 }
 
 .pin-card-badge {
@@ -1317,6 +1373,8 @@ button {
   align-items: center;
   min-width: 0;
   margin-bottom: 12px;
+  /* Clear of the share button, and still centred. */
+  padding: 0 var(--space-6);
   text-align: center;
 }
 

@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
-import { BeerIcon } from '../ui/icons.tsx'
+import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
+import { shareUrl } from '../urlState.ts'
 
 type Props = {
   status: VenueStatus
@@ -48,6 +50,66 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
 }
 
 /**
+ * Shares a link to the venue at the chosen day and time: the system share
+ * sheet where there is one, else the link goes to the clipboard.
+ */
+function ShareButton({
+  name,
+  id,
+  text,
+  minutes,
+}: {
+  name: string
+  id: string
+  text: string
+  minutes: number
+}) {
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    if (note === '') return
+    const timer = window.setTimeout(() => setNote(''), 2000)
+    return () => window.clearTimeout(timer)
+  }, [note])
+
+  const share = async () => {
+    const url = shareUrl(window.location.href, id, minutes)
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: name, text, url })
+        return
+      } catch (error) {
+        // Closing the share sheet is not a failure.
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setNote('Enlace copiado')
+    } catch {
+      setNote('No se ha podido copiar el enlace')
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="icon-button pin-card-share"
+        aria-label={`Compartir ${name}`}
+        title="Compartir"
+        onClick={() => void share()}
+      >
+        <ShareIcon size={20} />
+      </button>
+      <span className="pin-card-share-note" role="status">
+        {note}
+      </span>
+    </>
+  )
+}
+
+/**
  * The card a selected badge opens into on the map: the badge becomes a tab
  * joined to a card below it with the name, how much sun is left and a bar
  * counting down the current sun spell.
@@ -66,6 +128,12 @@ export function PinCard({ status, minutes }: Props) {
         <Shoulder side="right" />
       </div>
       <div className="pin-card-body">
+        <ShareButton
+          name={venue.name}
+          id={venue.id}
+          text={`${venue.name}: ${box.title}`}
+          minutes={minutes}
+        />
         <div className="pin-card-title">
           <strong>{venue.name}</strong>
           <span>

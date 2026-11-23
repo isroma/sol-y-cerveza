@@ -1,6 +1,6 @@
 # Sol y Cerveza ☀️🍺
 
-Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
+Which bar and restaurant terraces in Badajoz get sun or shade today, at any time of day.
 
 - **Web:** <https://isroma.github.io/sol-y-cerveza/>
 - **iOS / Android:** Capacitor shells exist, paused until the web version is polished
@@ -14,17 +14,11 @@ LiDAR surface model ────────┴─► horizon profile ──► 
                                  per terrace (360°)   terraces.json       date/time vs. horizon → sun / shade
 ```
 
-Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device for any date. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Roadmap
 
-1. [Decide where terrace data comes from](https://github.com/isroma/sol-y-cerveza/issues/2): OSM alone has almost no terrace tags in Badajoz
-2. [Terrace dataset](https://github.com/isroma/sol-y-cerveza/issues/3)
-3. [Obstacle surface from PNOA LiDAR](https://github.com/isroma/sol-y-cerveza/issues/4)
-4. [Horizon profiles](https://github.com/isroma/sol-y-cerveza/issues/5)
-5. [Sun/shade map for any date and time](https://github.com/isroma/sol-y-cerveza/issues/6)
-6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7) (shells built, paused until the web version is polished)
-7. [Median beer price per venue (v2)](https://github.com/isroma/sol-y-cerveza/issues/8)
+The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
 
 ## Design
 
@@ -54,6 +48,8 @@ To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
 uv run python -m solycerveza.obstacles --source wcs   # surface + terrain rasters, once (see docs/research/lidar.md for the 2 m data)
 uv run python -m solycerveza.build                     # venues + curated list + horizons -> terraces.json
 ```
+
+The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && node scripts/brand-images.mjs` (needs Playwright's Chromium).
 
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 

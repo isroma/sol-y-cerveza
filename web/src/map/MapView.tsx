@@ -6,7 +6,7 @@ import {
   type GeoJSONSource,
   type StyleSpecification,
 } from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import './maplibre.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -458,13 +458,15 @@ export function MapView({
     }
   }, [ready, selectedStatus, cardEl])
 
-  // Bring the selected venue into view when the selection changes.
+  // Bring the selected venue into view when the selection changes. A venue
+  // from a shared link may be selected before the data arrives: wait for it.
   const lastSelected = useRef<string | null>(null)
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map || selectedId === lastSelected.current) return
-    lastSelected.current = selectedId
     const status = statuses.find((s) => s.venue.id === selectedId)
+    if (selectedId !== null && !status) return
+    lastSelected.current = selectedId
     if (status) focusVenue(map, status)
   }, [ready, selectedId, statuses])
 
