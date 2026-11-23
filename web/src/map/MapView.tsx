@@ -91,7 +91,7 @@ export function MapView({
   sunset,
   attribution,
 }: Props) {
-  // The selected venue's card floats above its badge, as its own marker.
+  // The selected badge opens into a card below it, as its own marker.
   const cardEl = useMemo(() => {
     const el = document.createElement('div')
     el.className = 'pin-card-marker'
@@ -350,7 +350,7 @@ export function MapView({
 
   const selectedStatus = statuses.find((s) => s.venue.id === selectedId) ?? null
 
-  // Place the card above the selected venue (badge or dot).
+  // Place the card so its badge tab sits exactly on the selected badge (or dot).
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map || !selectedStatus) {
@@ -359,11 +359,13 @@ export function MapView({
       return
     }
     const position = selectedStatus.venue.terrace ?? selectedStatus.venue.venue
-    const offset: [number, number] = [0, selectedStatus.hasTerrace ? -58 : -14]
+    // The tab's badge centre is 37 px below the card's top; a terrace badge
+    // centre is 27 px above its point, a dot is centred on it.
+    const offset: [number, number] = [0, selectedStatus.hasTerrace ? -64 : -37]
     if (!cardMarkerRef.current) {
       cardMarkerRef.current = new Marker({
         element: cardEl,
-        anchor: 'bottom',
+        anchor: 'top',
         offset,
       })
         .setLngLat([position.lon, position.lat])
@@ -389,8 +391,8 @@ export function MapView({
       center: [position.lon, position.lat],
       zoom,
       pitch: pitchForZoom(zoom),
-      // Venue a bit below centre, so its card above the badge fits in view.
-      offset: [0, 110],
+      // Venue a bit above centre, so the card below its badge fits in view.
+      offset: [0, -120],
       duration: 900,
     })
   }, [ready, selectedId, statuses])
