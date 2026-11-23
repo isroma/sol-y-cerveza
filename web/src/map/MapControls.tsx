@@ -208,10 +208,6 @@ export function MapControls({
                 relieve de edificios y árboles (LiDAR del PNOA). Las terrazas
                 aún no están verificadas sobre el terreno.
               </p>
-              <p>
-                En 3D, los árboles salen del LiDAR; las ventanas, los colores de
-                fachada y las sombrillas son decorativos.
-              </p>
               <ul className="map-info-sources">
                 {attribution.map((line) => (
                   <li key={line}>{line}</li>
