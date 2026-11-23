@@ -24,14 +24,6 @@ export function categoryLabel(status: VenueStatus): string {
   return CATEGORY_LABELS[status.category]
 }
 
-/** Short text on a map pin: "hasta 17:25" in sun, "desde 12:10" before it, else none. */
-export function pinLabel(status: VenueStatus): string {
-  if (status.sunUntil !== null)
-    return `hasta ${formatClock(status.sunUntil % (24 * 60))}`
-  if (status.nextSun !== null) return `desde ${formatClock(status.nextSun)}`
-  return ''
-}
-
 /** "Sol hasta las 17:25 (2 h 53 min)", "Sol desde las 12:10 (en 40 min)", … */
 export function sunSummary(status: VenueStatus, minutes: number): string {
   if (status.category === 'unknown') {

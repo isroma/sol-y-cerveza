@@ -877,24 +877,27 @@ button {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px 4px 4px;
+  gap: 7px;
+  padding: 4px 13px 4px 4px;
   border-radius: 999px;
   background: #fff;
-  box-shadow: 0 3px 10px rgba(31, 35, 40, 0.22);
+  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.2);
+  color: #1f2328;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
-  transform-origin: 50% calc(100% + 7px);
+  /* Scales from the tip of the pointer, under the badge. */
+  transform-origin: 19px calc(100% + 8px);
   transition: scale 0.15s;
 }
 
+/* The pointer hangs under the beer badge, like a map pin. */
 .pin::after {
   position: absolute;
-  bottom: -7px;
-  left: 50%;
+  bottom: -8px;
+  left: 19px;
   translate: -50% 0;
-  border: 7px solid transparent;
+  border: 8px solid transparent;
   border-bottom: 0;
   border-top-color: #fff;
   content: '';
@@ -903,10 +906,17 @@ button {
 .pin-icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
   border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.25);
   color: #fff;
+}
+
+.pin-price--unknown {
+  color: #9ca3af;
+  letter-spacing: 0.5px;
 }
 
 .pin--sun .pin-icon {
@@ -933,7 +943,7 @@ button {
 .pin--selected {
   scale: 1.28;
   box-shadow:
-    0 0 0 4px rgba(245, 158, 11, 0.35),
+    0 0 0 3px #ffc53d,
     0 6px 16px rgba(31, 35, 40, 0.28);
 }
 

@@ -50,7 +50,7 @@ describe('sunlitStyle', () => {
     const building = style.layers.find((l) => l.id === 'building-3d')
     expect(building && 'paint' in building && building.paint).toMatchObject({
       'fill-extrusion-color': '#F4E6D0',
-      'fill-extrusion-height': ['get', 'render_height'],
+      'fill-extrusion-height': ['*', 1.4, ['get', 'render_height']],
     })
   })
 
