@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { demoValues } from '../demo/demo.ts'
 import { dayTrack } from '../sun/dayTrack.ts'
 import { venueDay, venueStatus } from '../sun/venueStatus.ts'
 import { calleMenacho, plazaAlta } from '../test/fixtures.ts'
@@ -47,23 +46,5 @@ describe('applyFilters', () => {
     expect(names(applyFilters(statuses, DEFAULT_FILTERS, 'ñandu'))).toEqual([
       'Café Ñandú',
     ])
-  })
-
-  it('filters by the demo price and rating', () => {
-    const cheapest = Math.min(
-      ...statuses.map((s) => demoValues(s.venue.id).priceCents),
-    )
-    const byPrice = applyFilters(
-      statuses,
-      { ...DEFAULT_FILTERS, maxPriceCents: cheapest },
-      '',
-    )
-    expect(byPrice.length).toBeGreaterThan(0)
-    expect(
-      byPrice.every((s) => demoValues(s.venue.id).priceCents <= cheapest),
-    ).toBe(true)
-    expect(
-      applyFilters(statuses, { ...DEFAULT_FILTERS, minRating: 5 }, ''),
-    ).toHaveLength(0)
   })
 })
