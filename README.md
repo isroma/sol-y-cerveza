@@ -39,8 +39,26 @@ Browser smoke tests (Playwright, `web/e2e/`) drive the real app and map in Chrom
 
 ```bash
 cd web && npx playwright install --with-deps chromium
-npm run e2e                            # phone and desktop, against the Vite dev server
+npm run e2e                            # phone and desktop on the dev server, plus the offline tests
 ```
+
+`npm run e2e` also runs `e2e/offline.spec.ts` (Playwright project `offline`): the service worker against production builds served under `/sol-y-cerveza/` by `web/scripts/sw-test-server.mjs`, which builds them first and can switch between two deploys and the kill switch.
+
+### Offline and the service worker
+
+The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `serviceWorker` plugin in `web/vite.config.ts`). It is never registered in dev (`npm run dev`, `npm run admin`), in the admin or inside the Capacitor apps (`web/src/registerServiceWorker.ts`).
+
+| Request                                                  | Strategy                                                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets/*-<hash>.*`                                      | Precached at install, cache-first. One cache per build (`syc-app-<build>`); the previous build's is kept so pages still open on it keep working. |
+| The page, `data/terraces.json`, icons, other files       | Network-first, past the HTTP cache (revalidated), 3 s timeout; the cache only when offline, slow or on a 5xx. A late response still updates it. |
+| OpenFreeMap style and TileJSON                            | Network-first with the same timeout (they name the tile version to load).                                                                     |
+| OpenFreeMap tiles, glyphs, sprites                        | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                              |
+| Prices API `GET /v1/prices`                               | Network-first. POSTs (suggestions) and everything else are not touched.                                                                       |
+
+A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloads an open page; its next load is the new version. If a page asks for a map chunk that a deploy removed and no cache has, `LazyMapView` reloads once (guarded by `sessionStorage`, no loops) and then shows "No se pudo cargar el mapa".
+
+**Kill switch.** If the worker misbehaves, set the repository variable `SW_KILL_SWITCH` to `1` (Settings → Secrets and variables → Actions → Variables) and run the **Deploy web to GitHub Pages** workflow (or push anything to `main`). That build ships `web/sw/kill-switch.ts` as `sw.js`: browsers check `sw.js` on every visit, even when the app's own code is broken, and it deletes the site's caches and unregisters itself; the page also unregisters and clears them. Pages are not reloaded under the user. Delete the variable (or set it to `0`) and deploy again to turn caching back on. Without CI: `cd web && VITE_SW_KILL_SWITCH=1 npm run build` and publish `dist/`.
 
 To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
 
@@ -111,7 +129,7 @@ Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the wor
 
 ## Data and attribution
 
-- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org).
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org). The service worker keeps a bounded copy of the basemap files a visitor has already loaded in that visitor's browser (at most 600 files, 30 days), so areas already seen work offline; the project does not store or redistribute them.
 - More venues from [Overture Maps](https://overturemaps.org) (CDLA-Permissive-2.0, [licence text](web/public/data/licenses/CDLA-Permissive-2.0.txt)); see [ADR-0003](docs/adr/0003-venue-base-osm-plus-overture.md).
 - Venues from the Junta de Extremadura's restaurant register (CC BY 4.0), geocoded with CartoCiudad (CC BY 4.0 ign.es); see [ADR-0004](docs/adr/0004-junta-register-and-website-evidence.md).
 - Terrace positions placed on the PNOA orthophoto © IGN (CC-BY 4.0).

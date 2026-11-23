@@ -123,6 +123,17 @@ test('loads the map with pins, legend and attribution slot', async ({
   })
 })
 
+test('no service worker in dev', async ({ page }) => {
+  await openApp(page)
+  // The production build registers it right after the load event.
+  await page.waitForLoadState('load')
+  await page.waitForTimeout(1000)
+  const registrations = await page.evaluate(
+    async () => (await navigator.serviceWorker.getRegistrations()).length,
+  )
+  expect(registrations).toBe(0)
+})
+
 test('layout: phone footer and menu, desktop sidebar', async ({ page }) => {
   await openApp(page)
   const search = page.getByRole('searchbox', { name: /Buscar bar/ })

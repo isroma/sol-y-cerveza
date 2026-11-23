@@ -25,6 +25,8 @@
     "reviewServer.ts",
     "pricePhotoServer.ts",
     "pricePhotoServer.test.ts",
-    "publish.ts"
+    "publish.ts",
+    "serviceWorker.ts",
+    "serviceWorker.test.ts"
   ]
 }

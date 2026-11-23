@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { reviewServer } from './reviewServer.ts'
+import { serviceWorker } from './serviceWorker.ts'
 
 /**
  * The map is a lazy chunk (src/map/LazyMapView.tsx), so the browser would only
@@ -57,10 +58,12 @@ export default defineConfig(({ mode }) => ({
   // Mode `lan` (`npm run admin:lan`) serves it over HTTPS with a self-signed
   // certificate, because a phone only gets geolocation and the camera on a
   // secure origin.
+  // serviceWorker: emits dist/sw.js, the offline cache (sw/sw.ts).
   plugins: [
     react(),
     reviewServer(),
     preloadMapChunk(),
+    serviceWorker(),
     ...(mode === 'lan' ? [basicSsl({ name: 'sol-y-cerveza-admin' })] : []),
   ],
   // MapLibre's worker is an ES module.
