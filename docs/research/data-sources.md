@@ -174,3 +174,14 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
   | Zaragoza | WFS `movilidad:MU2_veladores` | Roadway terraces |
   | Gijón | Licencias de terrazas | 2002–2017 only |
 
+
+### Terrace signals tried on 2026-11-24
+
+- **Venue websites:** a working signal ([ADR-0004](../adr/0004-junta-register-and-website-evidence.md)).
+  - 141 venues have their own site (not Facebook or Instagram) in OSM or Overture. 88 loaded.
+  - **9 say the venue has a terrace** ("nuestra terraza", a booking form with a "Terraza" option, "suplemento en terraza"). 3 more were false positives ("Ciudad Jardín", a link to "Jardin Majorelle", a Seville chain).
+  - 5 were placed on the orthophoto and added as curated rows. 4 were left out: the point fell on a mall or covered structure newer than the 2009 LiDAR, or the terrace's location was unclear.
+- **Junta register:** 714 city rows, of which 399 geocode to an exact street number. They confirm 143 existing venues and add 101 recent ones (opened 2010 or later).
+- **Wikimedia Commons:** 616 geotagged files in the area, none of them a terrace. Dead end.
+- **KartaView:** the public API didn't answer usefully, and earlier research found almost no coverage. Dead end.
+- **Still open, needing a person** (issue #46): the Ayuntamiento velador register, a Mapillary token (street-level detection feeding OSM edits), 2 m LiDAR and the summer-2023 point clouds.

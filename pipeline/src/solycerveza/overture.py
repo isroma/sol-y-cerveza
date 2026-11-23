@@ -25,7 +25,7 @@ from pathlib import Path
 import duckdb
 
 from solycerveza.geo import BADAJOZ_BBOX, BoundingBox
-from solycerveza.venues import CACHE_DIR, Kind, LatLon, Venue, load_venues
+from solycerveza.venues import CACHE_DIR, Kind, LatLon, Venue
 
 logger = logging.getLogger(__name__)
 
@@ -217,14 +217,6 @@ def merge_venues(osm: Iterable[Venue], overture: Iterable[Venue]) -> list[Venue]
         added += 1
     logger.info("Overture adds %d venues to %d from OSM", added, len(kept) - added)
     return sorted(kept, key=lambda venue: venue.id)
-
-
-def load_all_venues(*, refresh: bool = False, cache_dir: Path = CACHE_DIR) -> list[Venue]:
-    """OSM venues merged with Overture's, downloading what is not cached (or everything)."""
-    path = cache_path(cache_dir)
-    if refresh or not path.exists():
-        fetch_places(cache_dir=cache_dir)
-    return merge_venues(load_venues(cache_dir=cache_dir, refresh=refresh), read_places(path))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
