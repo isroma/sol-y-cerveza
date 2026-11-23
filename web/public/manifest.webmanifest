@@ -1,7 +1,7 @@
 {
   "name": "Sol y Cerveza",
   "short_name": "Sol y Cerveza",
-  "description": "¿Caña al sol o a la sombra? Descubre hasta qué hora da el sol en cada terraza de Badajoz.",
+  "description": "Descubre hasta qué hora da el sol en cada terraza de Badajoz y cuánto te cuesta la caña.",
   "lang": "es-ES",
   "start_url": "./",
   "scope": "./",
