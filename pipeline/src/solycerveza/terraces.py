@@ -55,7 +55,9 @@ CURATED_COLUMNS = (
 )
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 OSM_ID_PATTERN = r"^osm:(node|way)/\d+$"
-TERRACE_ID_PATTERN = r"^(osm:(node|way)/\d+|(curated|sample):[a-z0-9]+(-[a-z0-9]+)*)$"
+TERRACE_ID_PATTERN = (
+    r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+|(curated|sample):[a-z0-9]+(-[a-z0-9]+)*)$"
+)
 
 Horizon = Annotated[
     list[Annotated[int, Field(ge=0, le=900)]], Field(min_length=360, max_length=360)
@@ -183,7 +185,7 @@ def _osm_only(venue: Venue, name: str) -> Terrace:
         kind=venue.kind,
         venue=venue.location,
         terrace=venue.location if has_terrace else None,
-        sources=["osm"],
+        sources=["overture" if venue.id.startswith("overture:") else "osm"],
         verified=None,
     )
 

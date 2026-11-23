@@ -49,6 +49,8 @@ Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the wor
 ## Data and attribution
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org).
+- More venues from [Overture Maps](https://overturemaps.org) (CDLA-Permissive-2.0, [licence text](web/public/data/licenses/CDLA-Permissive-2.0.txt)); see [ADR-0003](docs/adr/0003-venue-base-osm-plus-overture.md).
+- Terrace positions placed on the PNOA orthophoto © IGN (CC-BY 4.0).
 - Surface and terrain models: `Obra derivada de MDS05 2008-2015 CC-BY 4.0 scne.es` and `Obra derivada de MDT05-cob1 2008-2015 CC-BY 4.0 scne.es` (IGN/CNIG). The wording changes if the 2 m models are used ([details](docs/research/lidar.md)).
 
 ## License

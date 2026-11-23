@@ -1,6 +1,7 @@
 # ADR-0002: Terrace data sources
 
 - Status: accepted (2026-11-22, recommended options)
+- Amended: decision 3 (Overture as a to-do list only) is superseded by [ADR-0003](0003-venue-base-osm-plus-overture.md), 2026-11-24.
 - Date: 2026-11-22
 - Issue: #2. Evidence and links: [research notes](../research/data-sources.md).
 

@@ -5,6 +5,7 @@ description = "Data pipeline: Badajoz terraces and their sun/shade horizon profi
 requires-python = ">=3.14"
 dependencies = [
     "affine>=3.0.1",
+    "duckdb>=2.0.1",
     "httpx>=0.28.1",
     "numpy>=2.5.5",
     "pydantic>=2.14.4",

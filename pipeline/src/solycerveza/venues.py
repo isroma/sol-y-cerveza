@@ -32,6 +32,8 @@ RETRYABLE_STATUS = frozenset({429, 502, 503, 504})
 
 Kind = Literal["bar", "pub", "cafe", "restaurant", "biergarten"]
 KINDS: tuple[Kind, ...] = ("bar", "pub", "cafe", "restaurant", "biergarten")
+# OSM elements, or Overture places (GERS ids) for venues missing from OSM.
+VENUE_ID_PATTERN = r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+)$"
 
 
 def is_kind(value: object) -> TypeIs[Kind]:
@@ -60,7 +62,7 @@ class Venue(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    id: Annotated[str, Field(pattern=r"^osm:(node|way)/\d+$")]
+    id: Annotated[str, Field(pattern=VENUE_ID_PATTERN)]
     name: str | None
     kind: Kind
     location: LatLon  # node position, or the centre of a way
