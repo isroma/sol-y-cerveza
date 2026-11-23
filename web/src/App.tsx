@@ -16,23 +16,28 @@ import { SearchBox } from './ui/SearchBox.tsx'
 import { TimeSlider } from './ui/TimeSlider.tsx'
 import { useMediaQuery } from './ui/useMediaQuery.ts'
 import { VenueList } from './ui/VenueList.tsx'
+import { readUrlState, writeUrlState } from './urlState.ts'
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; file: TerracesFile }
 
-/** The app always shows today in Madrid, starting at the current time. */
+/** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
 
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
   const [now, setNow] = useState(madridNow)
-  const [minutes, setMinutes] = useState(now.minutes)
+  // Time and venue start from the URL (a shared link), else the current
+  // time with nothing selected. A null time follows the clock.
+  const [linked] = useState(() => readUrlState(window.location.search))
+  const [time, setTime] = useState(linked.time)
+  const minutes = time ?? now.minutes
   const date = now.date
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState(linked.venue)
   // Phones: the time bar is the footer; search, filters and the list live in
   // a menu that opens over the map.
   const phone = useMediaQuery('(max-width: 899px)')
@@ -42,7 +47,15 @@ export function App() {
     let cancelled = false
     loadTerraces().then(
       (file) => {
-        if (!cancelled) setLoad({ status: 'ready', file })
+        if (cancelled) return
+        setLoad({ status: 'ready', file })
+        // A linked venue that doesn't exist is dropped; one without a
+        // terrace needs the terrace filter off to show.
+        if (linked.venue === null) return
+        const venue = file.terraces.find((v) => v.id === linked.venue)
+        if (!venue) setSelectedId((id) => (id === linked.venue ? null : id))
+        else if (venue.terrace === null)
+          setFilters((f) => ({ ...f, onlyTerrace: false }))
       },
       () => {
         if (!cancelled) setLoad({ status: 'error' })
@@ -51,9 +64,23 @@ export function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [linked])
 
-  // Keep "now" current (the marker on the bar, and the date after midnight).
+  // Mirror the time and the venue into the URL, so the address is a link to
+  // this view.
+  useEffect(() => {
+    const { pathname, search, hash } = window.location
+    const next = writeUrlState(search, { time, venue: selectedId })
+    if (next !== search)
+      window.history.replaceState(
+        window.history.state,
+        '',
+        pathname + next + hash,
+      )
+  }, [time, selectedId])
+
+  // Keep "now" current: the marker on the bar, the time while it follows the
+  // clock, and the date after midnight.
   useEffect(() => {
     const timer = window.setInterval(() => setNow(madridNow()), 60_000)
     return () => window.clearInterval(timer)
@@ -102,9 +129,8 @@ export function App() {
   const times = useMemo(() => sunTimes(track), [track])
 
   const goToNow = useCallback(() => {
-    const current = madridNow()
-    setNow(current)
-    setMinutes(current.minutes)
+    setNow(madridNow())
+    setTime(null)
   }, [])
 
   // Picking a venue from the list closes the menu so its map card shows.
@@ -125,7 +151,7 @@ export function App() {
   const timeSlider = (
     <TimeSlider
       minutes={minutes}
-      onChange={setMinutes}
+      onChange={setTime}
       onNow={goToNow}
       now={now.minutes}
       sunrise={times?.sunrise ?? null}

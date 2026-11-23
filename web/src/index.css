@@ -1277,11 +1277,41 @@ button {
 }
 
 .pin-card-body {
+  position: relative;
   align-self: stretch;
   padding: 26px 16px 16px;
   border: 3px solid var(--card-accent);
   border-radius: 26px;
   background: var(--bg);
+}
+
+/* Share: a small icon button in the card's top-right corner. */
+.pin-card-share {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+
+/* "Enlace copiado": a brief pill under the share button. */
+.pin-card-share-note {
+  position: absolute;
+  top: 44px;
+  right: var(--space-2);
+  z-index: 3;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pin-card-share-note:empty {
+  display: none;
 }
 
 .pin-card-badge {
@@ -1317,6 +1347,8 @@ button {
   align-items: center;
   min-width: 0;
   margin-bottom: 12px;
+  /* Clear of the share button, and still centred. */
+  padding: 0 var(--space-6);
   text-align: center;
 }
 
