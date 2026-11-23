@@ -73,7 +73,7 @@ The horizon is one angle per direction, and the app's answer is sun or shade. Ba
 
 - The pipeline needs two more inputs, both cached in `pipeline/.cache/` and both fetched by the new step `python -m solycerveza.leafoff`:
   - OSM building footprints, from Overpass.
-  - The Sentinel-2 NDVI composite, read from public COGs on AWS: about 8–16 scenes × two 10 m bands, windowed to the bbox, a few MB each.
+  - The Sentinel-2 NDVI composite, read from public COGs on AWS. Every scene of those four months is checked, by reading the scene classification, red and NIR windows over the bbox, and up to 6 per season are kept. A run in this sandbox took about 2 minutes, and the cached composite is 6 MB.
 - The step writes `badajoz_dsm_leafoff.tif` next to the DSM. `build` and `probe` use it when it exists.
 - `terraces.json` grows by one 360-integer line per terrace whose answer can change, and by `"horizon_winter": null` elsewhere.
 - **Epochs differ:** the LiDAR is from 2018–2019 and the Sentinel-2 composite from 2025. Where a tree has been felled since, Sentinel-2 sees no vegetation, so the DSM crown stays (shade, as today). A tree planted since isn't in the DSM at all (sun all year, as today).
@@ -89,6 +89,7 @@ Verified from this sandbox:
 - In January 2025, 4 scenes were 100 % clear over the old town, and in July 2025 more than 8 were.
 - The reflectances in that bucket are already harmonized (no −1000 offset; red band 5th percentile ≈ 300).
 - On a 3 × 2 km window around the old town (58,140 pixels at 10 m), 13,495 pixels have summer NDVI ≥ 0.40. Of those, 3,686 lose ≥ 0.20 by January–February, mostly along the Guadiana and the Rivillas and in tree-lined avenues, while 4,968 lose less than 0.05 (evergreen, or deciduous over green grass).
+- The pipeline's own step (`load_ndvi(2025)`) ran end to end against the bucket. It kept 6 summer scenes (19 Jul – 28 Aug) and 5 winter ones (13 Jan – 4 Feb). Over the whole bbox, 24 % of the pixels are green in summer and 8.4 % pass the deciduous rule. Most of those are irrigated summer crops in the Vegas del Guadiana: ground-level fields, which the 1 m height rule leaves alone. The rest is riparian woodland and scattered urban trees.
 
 Not verified, and needing the owner:
 
