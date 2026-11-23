@@ -68,7 +68,7 @@ def test_render_follows_the_contract_layout() -> None:
 
     assert text.endswith("}\n")
     horizon_lines = [line for line in text.splitlines() if '"horizon"' in line]
-    assert horizon_lines == ['      "horizon": [' + ",".join(map(str, range(360))) + "]"]
+    assert horizon_lines == ['      "horizon": [' + ",".join(map(str, range(360))) + "],"]
     data = json.loads(text)
     assert list(data) == ["version", "generated", "sample", "attribution", "terraces"]
     assert data["version"] == 2
@@ -82,6 +82,7 @@ def test_render_follows_the_contract_layout() -> None:
         "sources",
         "verified",
         "horizon",
+        "prices",
     ]
 
 

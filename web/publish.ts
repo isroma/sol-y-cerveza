@@ -11,6 +11,7 @@ const run = promisify(execFile)
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const REVIEW = 'pipeline/data/venue_review.csv'
+const PRICES = 'pipeline/data/venue_prices.csv'
 const DATA = 'web/public/data/terraces.json'
 const BRANCH_PREFIX = 'data/venue-review-'
 
@@ -176,6 +177,7 @@ function stamp(): string {
 async function publishReview(mine: number): Promise<void> {
   // A snapshot: edits made from here on go out with the next Publish.
   const csv = await readFile(join(ROOT, REVIEW), 'utf-8')
+  const prices = await readFile(join(ROOT, PRICES), 'utf-8').catch(() => null)
   const reviews = parseReviewCsv(csv)
   update({ decisions: reviews.length })
   await sh(ROOT, 'git', ['fetch', '--quiet', 'origin', 'main'])
@@ -194,6 +196,7 @@ async function publishReview(mine: number): Promise<void> {
       open ? `origin/${branch}` : 'origin/main',
     ])
     await writeFile(join(dir, REVIEW), csv, 'utf-8')
+    if (prices !== null) await writeFile(join(dir, PRICES), prices, 'utf-8')
     // Rasters and downloads are gitignored: reuse this checkout's cache.
     await symlink(join(ROOT, 'pipeline/.cache'), join(dir, 'pipeline/.cache'))
     await sh(join(dir, 'pipeline'), 'uv', [
@@ -203,9 +206,10 @@ async function publishReview(mine: number): Promise<void> {
       '-m',
       'solycerveza.build',
     ])
-    await sh(dir, 'git', ['add', REVIEW, DATA])
+    await sh(dir, 'git', ['add', REVIEW, PRICES, DATA])
     const changed = await sh(dir, 'git', ['diff', '--cached', '--name-only'])
-    if (!changed.split('\n').includes(REVIEW)) {
+    const files = changed.split('\n')
+    if (!files.includes(REVIEW) && !files.includes(PRICES)) {
       update({ step: 'nothing' })
       return
     }
