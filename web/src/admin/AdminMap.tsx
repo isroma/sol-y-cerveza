@@ -203,6 +203,10 @@ export function AdminMap({
           setReady(true)
         })
         m.on('click', (event) => {
+          // Clicks on the venue or terrace pin are grabs, not map clicks.
+          const target = event.originalEvent.target
+          if (target instanceof Element && target.closest('.maplibregl-marker'))
+            return
           const [hit] = m.queryRenderedFeatures(event.point, { layers: [DOTS] })
           const id = hit?.properties['id']
           if (typeof id === 'string') {

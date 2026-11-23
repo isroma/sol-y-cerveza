@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process'
-import { copyFile, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { IDLE, isBusy, type PublishStatus } from './src/admin/publishStatus.ts'
 import { parseReviewCsv, type Review } from './src/admin/review.ts'
 
 const run = promisify(execFile)
@@ -13,7 +14,21 @@ const REVIEW = 'pipeline/data/venue_review.csv'
 const DATA = 'web/public/data/terraces.json'
 const BRANCH_PREFIX = 'data/venue-review-'
 
-export type PublishResult = { message: string; url: string | null }
+/** Polling GitHub (git only) for the PR and its merge: every 10 s, for up to 30 min. */
+const WATCH_EVERY_MS = 10_000
+const WATCH_FOR_MS = 30 * 60_000
+
+let status: PublishStatus = IDLE
+/** Bumped by every Publish, so an older watcher stops. */
+let generation = 0
+
+export function publishStatus(): PublishStatus {
+  return status
+}
+
+function update(patch: Partial<PublishStatus>) {
+  status = { ...status, ...patch }
+}
 
 async function sh(cwd: string, command: string, args: string[]) {
   const { stdout } = await run(command, args, {
@@ -57,12 +72,88 @@ async function openPublishBranch(): Promise<string | null> {
   return branches.at(-1) ?? null
 }
 
-/** The GitHub pull request search for `branch`, from the origin URL. */
-async function prSearchUrl(branch: string): Promise<string | null> {
+/** https://github.com/<owner>/<repo>, from the origin URL. */
+async function repoUrl(): Promise<string | null> {
   const origin = await sh(ROOT, 'git', ['remote', 'get-url', 'origin'])
   const match = /github\.com[/:]([^/]+\/[^/.]+)/.exec(origin)
-  if (!match) return null
-  return `https://github.com/${match[1]}/pulls?q=is%3Apr+head%3A${encodeURIComponent(branch)}`
+  return match ? `https://github.com/${match[1]}` : null
+}
+
+/** The PR whose head is `sha`, from GitHub's refs/pull/<n>/head refs. */
+async function prFor(sha: string): Promise<number | null> {
+  const refs = await sh(ROOT, 'git', [
+    'ls-remote',
+    'origin',
+    'refs/pull/*/head',
+  ])
+  for (const line of refs.split('\n')) {
+    const [head, ref] = line.split('\t')
+    const number = /^refs\/pull\/(\d+)\/head$/.exec(ref ?? '')?.[1]
+    if (head === sha && number) return Number(number)
+  }
+  return null
+}
+
+async function branchExists(branch: string): Promise<boolean> {
+  const refs = await sh(ROOT, 'git', [
+    'ls-remote',
+    '--heads',
+    'origin',
+    `refs/heads/${branch}`,
+  ])
+  return refs !== ''
+}
+
+const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms))
+
+/**
+ * Follows the pushed commit: the Publish review workflow opens its PR, then
+ * auto-merge merges it and GitHub deletes the branch.
+ */
+async function watch(
+  mine: number,
+  branch: string,
+  sha: string,
+  repo: string | null,
+) {
+  const until = Date.now() + WATCH_FOR_MS
+  while (Date.now() < until && generation === mine) {
+    await sleep(WATCH_EVERY_MS)
+    if (generation !== mine) return
+    try {
+      if (status.step === 'opening') {
+        const pr = await prFor(sha)
+        if (pr)
+          update({ step: 'checks', pr, url: repo && `${repo}/pull/${pr}` })
+      } else if (!(await branchExists(branch))) {
+        return update({ step: 'live' })
+      }
+    } catch {
+      // A failed poll is retried on the next tick.
+    }
+  }
+  if (generation === mine && status.step !== 'live') {
+    update({
+      step: 'failed',
+      error: 'still not merged after 30 minutes; check the PR on GitHub',
+    })
+  }
+}
+
+/** Starts a Publish in the background; false when one is still building. */
+export function startPublish(): boolean {
+  if (isBusy(status)) return false
+  const mine = ++generation
+  status = { ...IDLE, step: 'building' }
+  void publishReview(mine).catch((error: unknown) => {
+    if (generation === mine) {
+      update({
+        step: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  })
+  return true
 }
 
 function stamp(): string {
@@ -80,9 +171,13 @@ function stamp(): string {
  * admin's network cannot reach api.github.com: the Publish review workflow
  * opens the PR and enables auto-merge, and GitHub Pages deploys it once CI
  * passes. A publish branch whose PR is still open gets a new commit instead.
+ * Progress goes to `status`; the review file is read once, at the start.
  */
-export async function publishReview(): Promise<PublishResult> {
-  const reviews = parseReviewCsv(await readFile(join(ROOT, REVIEW), 'utf-8'))
+async function publishReview(mine: number): Promise<void> {
+  // A snapshot: edits made from here on go out with the next Publish.
+  const csv = await readFile(join(ROOT, REVIEW), 'utf-8')
+  const reviews = parseReviewCsv(csv)
+  update({ decisions: reviews.length })
   await sh(ROOT, 'git', ['fetch', '--quiet', 'origin', 'main'])
   const open = await openPublishBranch()
   const branch = open ?? `${BRANCH_PREFIX}${stamp()}`
@@ -98,7 +193,7 @@ export async function publishReview(): Promise<PublishResult> {
       dir,
       open ? `origin/${branch}` : 'origin/main',
     ])
-    await copyFile(join(ROOT, REVIEW), join(dir, REVIEW))
+    await writeFile(join(dir, REVIEW), csv, 'utf-8')
     // Rasters and downloads are gitignored: reuse this checkout's cache.
     await symlink(join(ROOT, 'pipeline/.cache'), join(dir, 'pipeline/.cache'))
     await sh(join(dir, 'pipeline'), 'uv', [
@@ -110,12 +205,9 @@ export async function publishReview(): Promise<PublishResult> {
     ])
     await sh(dir, 'git', ['add', REVIEW, DATA])
     const changed = await sh(dir, 'git', ['diff', '--cached', '--name-only'])
-    const url = await prSearchUrl(branch)
     if (!changed.split('\n').includes(REVIEW)) {
-      return {
-        message: 'Nothing new to publish.',
-        url: open ? url : null,
-      }
+      update({ step: 'nothing' })
+      return
     }
     await sh(dir, 'git', [
       'commit',
@@ -129,13 +221,15 @@ export async function publishReview(): Promise<PublishResult> {
         'Merges itself when CI passes, which deploys the site.',
       ].join('\n\n'),
     ])
+    update({ step: 'pushing' })
     await sh(dir, 'git', ['push', '--quiet', '-u', 'origin', branch])
-    return {
-      message: open
-        ? 'Added to the open publish PR; it deploys when CI passes.'
-        : 'Pushed. GitHub opens the PR in about a minute; it deploys when CI passes.',
-      url,
-    }
+    const sha = await sh(dir, 'git', ['rev-parse', 'HEAD'])
+    const repo = await repoUrl()
+    update({
+      step: 'opening',
+      url: repo && `${repo}/actions/workflows/publish-review.yml`,
+    })
+    void watch(mine, branch, sha, repo)
   } finally {
     await sh(ROOT, 'git', ['worktree', 'remove', '--force', dir]).catch(() =>
       rm(dir, { recursive: true, force: true }),

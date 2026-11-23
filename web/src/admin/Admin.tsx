@@ -13,15 +13,17 @@ import {
   type Review,
   type Status,
 } from './review.ts'
+import {
+  describe,
+  IDLE,
+  isActive,
+  isBusy,
+  publishStatusSchema,
+  type PublishStatus,
+} from './publishStatus.ts'
 
 const API = '/__admin/review'
 const PUBLISH_API = '/__admin/publish'
-
-type Publish =
-  | { state: 'idle' }
-  | { state: 'running' }
-  | { state: 'done'; text: string; url: string | null }
-  | { state: 'failed'; text: string }
 
 type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all'
 
@@ -98,7 +100,7 @@ export function Admin() {
   const [filter, setFilter] = useState<Filter>('todo')
   const [message, setMessage] = useState('Loading…')
   const [pinning, setPinning] = useState(false)
-  const [publish, setPublish] = useState<Publish>({ state: 'idle' })
+  const [publish, setPublish] = useState<PublishStatus>(IDLE)
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)
@@ -114,6 +116,28 @@ export function Admin() {
       })
       .catch((error: unknown) => setMessage(String(error)))
   }, [])
+
+  // Picks up a Publish already running (e.g. after a reload), then follows it.
+  const active = isActive(publish)
+  useEffect(() => {
+    let stop = false
+    const poll = async () => {
+      try {
+        const response = await fetch(PUBLISH_API)
+        const parsed = publishStatusSchema.safeParse(await response.json())
+        if (!stop && parsed.success) setPublish(parsed.data)
+      } catch {
+        // Retried on the next tick.
+      }
+    }
+    void poll()
+    if (!active) return
+    const timer = window.setInterval(() => void poll(), 2000)
+    return () => {
+      stop = true
+      window.clearInterval(timer)
+    }
+  }, [active])
 
   const venues = useMemo(
     () =>
@@ -291,30 +315,22 @@ export function Admin() {
     else if (selectedId && pinning) {
       change({ kind: 'terrace', at })
       setPinning(false)
-    }
+    } else select(null)
   }
 
   const runPublish = async () => {
-    setPublish({ state: 'running' })
     try {
       const response = await fetch(PUBLISH_API, { method: 'POST' })
-      const body: unknown = await response.json()
-      const result =
-        typeof body === 'object' && body !== null
-          ? body
-          : { error: 'bad reply' }
-      const text =
-        'message' in result && typeof result.message === 'string'
-          ? result.message
-          : 'error' in result
-            ? String(result.error)
-            : 'Unknown reply'
-      if (!response.ok) return setPublish({ state: 'failed', text })
-      const url =
-        'url' in result && typeof result.url === 'string' ? result.url : null
-      setPublish({ state: 'done', text, url })
+      const parsed = publishStatusSchema.safeParse(await response.json())
+      if (parsed.success) setPublish(parsed.data)
+      else
+        setPublish({
+          ...IDLE,
+          step: 'failed',
+          error: 'a Publish is still building',
+        })
     } catch (error) {
-      setPublish({ state: 'failed', text: String(error) })
+      setPublish({ ...IDLE, step: 'failed', error: String(error) })
     }
   }
 
@@ -335,31 +351,28 @@ export function Admin() {
             {reviewed} of {venues.length} reviewed
             {message && <span className="admin-message"> · {message}</span>}
           </p>
-          <div className="admin-publish">
+          <div className="admin-publish" aria-live="polite">
             <button
               type="button"
-              disabled={publish.state === 'running'}
+              disabled={isBusy(publish)}
               onClick={() => void runPublish()}
             >
-              {publish.state === 'running' ? 'Publishing…' : 'Publish'}
+              {isBusy(publish) ? 'Publishing…' : 'Publish'}
             </button>
-            <p>
-              {publish.state === 'idle' &&
-                'Rebuilds the data and opens a PR that deploys itself when CI passes.'}
-              {publish.state === 'running' &&
-                'Building the data and opening the PR (about a minute)…'}
-              {publish.state === 'failed' && `Failed: ${publish.text}`}
-              {publish.state === 'done' && (
-                <>
-                  {publish.text}{' '}
-                  {publish.url && (
-                    <a href={publish.url} target="_blank" rel="noreferrer">
-                      Open PR
-                    </a>
-                  )}
-                </>
+            <p className={`admin-publish-${publish.step}`}>
+              {isActive(publish) && <span className="admin-spinner" />}
+              {describe(publish)}{' '}
+              {publish.url && (
+                <a href={publish.url} target="_blank" rel="noreferrer">
+                  {publish.pr ? 'Open PR' : 'GitHub'}
+                </a>
               )}
             </p>
+            {isActive(publish) && (
+              <p>
+                You can keep editing: new changes go out with the next Publish.
+              </p>
+            )}
           </div>
           <input
             type="search"
