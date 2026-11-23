@@ -1,11 +1,12 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
-import { useRef, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
 import { CATEGORY_LABELS } from '../ui/categoryStyle.ts'
 import {
   ChevronDownIcon,
   CloseIcon,
+  CompassIcon,
   InfoIcon,
   LocateIcon,
   MinusIcon,
@@ -26,8 +27,23 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
   const [infoOpen, setInfoOpen] = useState(false)
   const [locateError, setLocateError] = useState<string | null>(null)
   const userMarker = useRef<Marker | null>(null)
+  const [bearing, setBearing] = useState(0)
 
   const map = () => (ready ? mapRef.current : null)
+
+  // The compass needle follows the map's rotation.
+  useEffect(() => {
+    const m = ready ? mapRef.current : null
+    if (!m) return
+    const update = () => setBearing(m.getBearing())
+    update()
+    m.on('rotate', update)
+    return () => {
+      m.off('rotate', update)
+    }
+  }, [mapRef, ready])
+
+  const faceNorth = () => map()?.easeTo({ bearing: 0, duration: 400 })
 
   // Zoom with the matching tilt, so the camera moves in one smooth step.
   const zoomBy = (delta: number) => {
@@ -110,6 +126,19 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
           onClick={locate}
         >
           <LocateIcon size={20} />
+        </button>
+        <button
+          type="button"
+          className="map-round"
+          aria-label="Orientar al norte"
+          title="Orientar al norte"
+          onClick={faceNorth}
+        >
+          <CompassIcon
+            size={22}
+            className="compass-needle"
+            style={{ rotate: `${-bearing}deg` }}
+          />
         </button>
         <div className="map-zoom">
           <button type="button" aria-label="Acercar" onClick={() => zoomBy(1)}>

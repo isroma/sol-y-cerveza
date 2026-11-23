@@ -169,9 +169,10 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 
 ### Phones (under 900 px)
 
-- A slim brand bar on top (32 px mark, 20 px title), the map in the middle and a **bottom sheet** below it.
-- The sheet's first block is the **time bar**, pinned while search, filters and the list scroll under it, so the time is always one thumb away. It shows about a third of the screen; its handle grows it to 60 %, and picking a venue from the list shrinks it back so the map card shows.
-- The sheet's 24 px rounded top overlaps the map by 16 px (`--sheet-overlap`); the legend and the attribution sit 12 px above it, side by side.
+- A slim brand bar on top (32 px mark, 20 px title) with a **menu button** (44 px) on the right.
+- The map fills the middle and the **time bar is the footer**, always in view.
+- The menu opens over the map, between the brand bar and the footer, with search, filters and the list. The button turns into a close icon; Escape or picking a venue closes it, so the venue's map card shows.
+- The attribution button sits left of the legend, both 12 px above the footer.
 
 ### Map overlays
 

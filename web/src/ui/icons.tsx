@@ -221,3 +221,17 @@ export const CloseIcon = (p: IconProps) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </Icon>
 )
+
+export const MenuIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Icon>
+)
+
+/** Compass needle: the filled half points north. */
+export const CompassIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5 15.5 12h-7z" fill="currentColor" />
+    <path d="M12 20.5 8.5 12h7z" />
+  </Icon>
+)
