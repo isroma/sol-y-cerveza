@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { FLAT_ZOOM, TILTED_PITCH, TILTED_ZOOM, pitchForZoom } from './camera.ts'
+import {
+  FLAT_ZOOM,
+  TILTED_PITCH,
+  TILTED_ZOOM,
+  pitchForZoom,
+  SHADOW_OPACITY,
+} from './camera.ts'
+
+describe('SHADOW_OPACITY', () => {
+  it('is faint in the top view and clear once tilted', () => {
+    expect(SHADOW_OPACITY).toEqual([
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      FLAT_ZOOM,
+      0.1,
+      TILTED_ZOOM,
+      0.5,
+    ])
+  })
+})
 
 describe('pitchForZoom', () => {
   it('is a flat top view when zoomed out', () => {

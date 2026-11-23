@@ -54,6 +54,21 @@ describe('sunlitStyle', () => {
     })
   })
 
+  it('keeps the top view flat: buildings rise only as the view tilts', () => {
+    const building = style.layers.find((l) => l.id === 'building-3d')
+    expect(building && 'paint' in building && building.paint).toMatchObject({
+      'fill-extrusion-opacity': [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        14.5,
+        0,
+        15.3,
+        1,
+      ],
+    })
+  })
+
   it('keeps landmark labels as text only', () => {
     const poi = style.layers.find((l) => l.id === 'poi_r1')
     expect(poi && 'layout' in poi && poi.layout).toEqual({
