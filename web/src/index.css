@@ -841,8 +841,12 @@ button {
   gap: 7px;
   padding: 4px 13px 4px 4px;
   border-radius: 999px;
+  /* The selected ring takes the state colour, like the card's border. */
+  --pin-ring: #d1d5db;
+  --pin-shadow: 0 4px 12px rgba(31, 35, 40, 0.2);
+  isolation: isolate;
   background: #fff;
-  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.2);
+  box-shadow: var(--pin-shadow);
   color: #1f2328;
   font-size: 15px;
   font-weight: 800;
@@ -852,15 +856,21 @@ button {
   transition: scale 0.15s;
 }
 
-/* The pointer hangs under the beer badge, like a map pin. */
+/* The badge and its pointer are one teardrop, like a map pin: a square with
+   three round corners, turned 45° so the sharp one points down. Its sides
+   leave the circle on tangents, so the join is smooth, and it carries the
+   shadow (and the selected ring) around the whole shape. */
 .pin::after {
   position: absolute;
-  bottom: -8px;
-  left: 19px;
-  translate: -50% 0;
-  border: 8px solid transparent;
-  border-bottom: 0;
-  border-top-color: #fff;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 38px;
+  height: 38px;
+  border-radius: 50% 50% 4px 50%;
+  background: #fff;
+  box-shadow: var(--pin-shadow);
+  rotate: 45deg;
   content: '';
 }
 
@@ -875,9 +885,19 @@ button {
   color: #fff;
 }
 
-/* Badge only until there is a price to show. */
+/* Badge only until there is a price to show; the teardrop casts the shadow. */
 .pin:has(.pin-price:empty) {
   padding: 4px;
+  box-shadow: none;
+}
+
+.pin--sun,
+.pin--soon {
+  --pin-ring: #ffc53d;
+}
+
+.pin--unknown {
+  --pin-ring: #c2a88e;
 }
 
 .pin--sun .pin-icon {
@@ -908,18 +928,8 @@ button {
 }
 
 .pin--selected {
+  --pin-shadow: 0 0 0 3px var(--pin-ring), 0 6px 16px rgba(31, 35, 40, 0.28);
   scale: 1.28;
-  box-shadow:
-    0 0 0 3px #ffc53d,
-    0 6px 16px rgba(31, 35, 40, 0.28);
-}
-
-/* The pointer takes the ring's colour and starts under the ring, so ring and
-   pointer read as one shape instead of a white wedge on a yellow circle. */
-.pin--selected::after {
-  bottom: -11px;
-  border-width: 11px 9px 0;
-  border-top-color: #ffc53d;
 }
 
 .pin-marker:hover .pin--selected {
@@ -1019,14 +1029,12 @@ button {
 }
 
 .map-wrap.is-night .pin {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --pin-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 }
 
 /* The selected ring stays at night, too. */
 .map-wrap.is-night .pin--selected {
-  box-shadow:
-    0 0 0 3px #ffc53d,
-    0 6px 16px rgba(0, 0, 0, 0.55);
+  --pin-shadow: 0 0 0 3px var(--pin-ring), 0 6px 16px rgba(0, 0, 0, 0.55);
 }
 
 /* Night: the whole app goes dark while the sun is down (the map via night.ts),
