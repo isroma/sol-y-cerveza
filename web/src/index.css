@@ -743,20 +743,20 @@ button {
 
 @media (max-width: 899px) {
   /* The attribution button sits left of the legend, both at the bottom. */
-  /* The legend sits bottom-right, as wide as its rows; the map's attribution
-     button sits bottom-left on the same line and opens upwards. */
+  /* The map's attribution button sits bottom-left and the legend, as wide as
+     its rows, right next to it; the attribution opens upwards. */
   .map-wrap {
     --legend-height: 56px;
   }
 
   .map-legend {
-    right: var(--space-3);
+    right: auto;
     bottom: var(--space-3);
-    left: auto;
+    /* Just right of the attribution button, 8 px from it. */
+    left: calc(var(--space-3) + 24px + var(--space-2));
     align-items: center;
     width: max-content;
-    /* Leaves the bottom-left corner to the attribution button. */
-    max-width: calc(100% - 3 * var(--space-3) - 24px);
+    max-width: calc(100% - 2 * var(--space-3) - 24px - var(--space-2));
     height: var(--legend-height);
     /* Room on the right for the info button. */
     padding: var(--space-2) 40px var(--space-2) var(--space-3);
@@ -915,6 +915,25 @@ button {
 
 .maplibregl-ctrl-attrib {
   font-size: 11px;
+}
+
+/* The attribution follows the app's theme, dark at night. */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.maplibregl-ctrl-attrib.maplibregl-compact a {
+  color: var(--muted);
+}
+
+.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+}
+
+/* MapLibre draws the "i" as a black image: flip it to light at night. */
+.app.is-night .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }
 
 .pin-price:empty {
@@ -1338,11 +1357,12 @@ button {
     position: absolute;
     bottom: calc((var(--legend-height) + 24px) / 2 + var(--space-2));
     left: 0;
+    /* A narrow, upright card: the credits stack line by line. */
     width: max-content;
-    max-width: 220px;
+    max-width: 140px;
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-m);
-    background: #fff;
+    background: var(--bg);
     box-shadow: var(--shadow);
     font-size: 12px;
     line-height: 1.5;
