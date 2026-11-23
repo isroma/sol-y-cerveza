@@ -492,11 +492,11 @@ button {
 }
 
 .venue-row-name {
-  overflow: hidden;
   font-size: 15px;
   font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  /* Long names wrap instead of being cut. */
+  overflow-wrap: anywhere;
 }
 
 .venue-row-sun {
@@ -1321,13 +1321,13 @@ button {
 }
 
 .pin-card-title strong {
-  overflow: hidden;
   max-width: 100%;
   font-size: 19px;
   font-weight: 800;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* The whole name, on as many even lines as it needs. */
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .pin-card-title span {
