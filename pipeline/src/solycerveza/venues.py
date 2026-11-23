@@ -139,14 +139,19 @@ def fetch_overpass(
 
 
 def cached_overpass(
-    query: str, cache_dir: Path, *, refresh: bool = False, client: httpx.Client
+    query: str,
+    cache_dir: Path,
+    *,
+    refresh: bool = False,
+    client: httpx.Client,
+    prefix: str = "overpass_venues",
 ) -> dict[str, Any]:
     """Return the Overpass JSON for `query`, downloading it only if it is not cached yet.
 
     The file name holds a hash of the query, so editing the query never reuses a stale download.
     """
     digest = hashlib.sha256(query.encode()).hexdigest()[:12]
-    path = cache_dir / f"overpass_venues_{digest}.json"
+    path = cache_dir / f"{prefix}_{digest}.json"
     if refresh or not path.exists():
         text = fetch_overpass(query, client=client)
         cache_dir.mkdir(parents=True, exist_ok=True)

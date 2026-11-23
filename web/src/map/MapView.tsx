@@ -82,6 +82,8 @@ type Props = {
   /** Today's sunset, for the card's sun bar. */
   sunset: number | null
   attribution: readonly string[]
+  /** The data has leaf-off horizons (ADR-0007). */
+  leafOffTrees?: boolean
 }
 
 /**
@@ -127,6 +129,7 @@ export function MapView({
   minutes,
   sunset,
   attribution,
+  leafOffTrees = false,
 }: Props) {
   // The selected badge opens into a card below it, as its own marker.
   const cardEl = useMemo(() => {
@@ -489,6 +492,7 @@ export function MapView({
         mapRef={mapRef}
         ready={ready}
         attribution={attribution}
+        leafOffTrees={leafOffTrees}
         attributionSlot={attributionSlotRef}
       />
       {selectedStatus &&

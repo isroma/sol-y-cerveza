@@ -26,6 +26,7 @@ type Terrace = {
   sources: string[] // e.g. ["curated", "osm"], ["overture"], ["junta"] or ["osm", "review"], sorted
   verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
   horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
+  horizon_winter?: number[] | null // the same with deciduous trees bare (ADR-0007); null or absent = same as horizon
   prices: Price[] // beer prices seen at the venue, caña first, then tercios by brand; [] if none
 }
 
@@ -38,6 +39,8 @@ type Price = {
 
 type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 ```
+
+`horizon_winter` (added 2026-11-23, not a breaking change) is the horizon of the *leaf-off surface model*: the surface with deciduous tree crowns lowered to the ground ([ADR-0007](adr/0007-seasonal-trees.md)). Same encoding as `horizon`. The pipeline writes it only where it differs from `horizon`, and `null` everywhere else, including every terrace when the leaf-off model wasn't built. It must be `null` when `horizon` is `null`. Files without the key are valid.
 
 `prices` (added 2026-11-23, not a breaking change) holds prices a curator confirmed in the admin view (`pipeline/data/venue_prices.csv`). Prices users suggest are not in this file: the app reads them at runtime from the suggestions API.
 
@@ -55,6 +58,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
 5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
+6. **Leaf-off period** (1 December to 15 March, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 
@@ -64,7 +68,7 @@ Times are entered and shown in `Europe/Madrid`.
 
 - Keys appear in the order above, and `terraces` is sorted by `id`.
 - Coordinates are rounded to 6 decimals.
-- UTF-8, 2-space indent, each `horizon` array on a single line, trailing newline.
+- UTF-8, 2-space indent, each `horizon` and `horizon_winter` array on a single line, trailing newline.
 
 These rules keep data refresh PRs reviewable.
 

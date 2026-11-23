@@ -265,6 +265,7 @@ def test_written_file_follows_the_contract_and_is_deterministic(tmp_path: Path) 
         "sources",
         "verified",
         "horizon",
+        "horizon_winter",
         "prices",
     ]
     assert records[4]["verified"] == "2026-11-01"

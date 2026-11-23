@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Terrace } from '../data/terraces.ts'
 import {
   calleMenacho,
+  horizonFromRuns,
   paseoSanFrancisco,
   plazaAlta,
   withoutHorizon,
@@ -92,6 +93,37 @@ describe('venueStatus', () => {
       'nosun',
       'unknown',
     ])
+  })
+})
+
+describe('leaf-off horizon (ADR-0007)', () => {
+  // Paseo de San Francisco: 31° of crowns all around, 8.3° once they are bare.
+  const bareInWinter = {
+    ...paseoSanFrancisco,
+    horizon_winter: horizonFromRuns([[0, 359, 83]]),
+  }
+  const april = dayTrack('2027-04-10')
+
+  it('gives sun through bare trees inside the leaf-off period', () => {
+    expect(at(paseoSanFrancisco, winter, '13:00').state).toBe('shade')
+    const status = at(bareInWinter, winter, '13:00')
+    expect(status.state).toBe('sun')
+    // The same day as Plaza Alta, which has the same 8.3° horizon.
+    expect(status.sunUntil).toBe(at(plazaAlta, winter, '13:00').sunUntil)
+    expect(status.minutesLeft).toBe(at(plazaAlta, winter, '13:00').minutesLeft)
+  })
+
+  it('uses the full horizon outside the period', () => {
+    expect(venueDay(bareInWinter, april).timeline).toEqual(
+      venueDay(paseoSanFrancisco, april).timeline,
+    )
+  })
+
+  it('behaves as before without a leaf-off horizon', () => {
+    for (const venue of [plazaAlta, calleMenacho, paseoSanFrancisco]) {
+      const day = venueDay({ ...venue, horizon_winter: null }, winter)
+      expect(day.timeline).toEqual(venueDay(venue, winter).timeline)
+    }
   })
 })
 

@@ -2,7 +2,8 @@
 
 1. Base terrace records: OSM venues plus the curated list (`solycerveza.terraces`).
 2. Surface and terrain rasters: run `python -m solycerveza.obstacles` once beforehand.
-3. One horizon profile per terrace (`solycerveza.horizon`).
+3. One horizon profile per terrace (`solycerveza.horizon`), plus a leaf-off one
+   (`horizon_winter`, ADR-0007) when `python -m solycerveza.leafoff` has written its surface model.
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
 venues from Overpass instead of using the cache.
@@ -14,6 +15,7 @@ import logging
 import re
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Literal
 
@@ -22,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
+from solycerveza.leafoff import LEAFOFF_DSM_PATH
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.sources import load_all_venues
@@ -66,20 +69,36 @@ class TerracesFile(BaseModel):
         return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def add_horizons(terraces: Sequence[Terrace], horizon_for: HorizonFn) -> list[Terrace]:
+def add_horizons(
+    terraces: Sequence[Terrace],
+    horizon_for: HorizonFn,
+    winter_for: HorizonFn | None = None,
+) -> list[Terrace]:
     """Return copies of `terraces` with `horizon` computed at each terrace position.
+
+    With `winter_for`, also sets `horizon_winter` (ADR-0007), but only where it differs from
+    `horizon`: null means "same as horizon", which keeps the file small.
 
     Venues without a terrace are returned unchanged. Re-validates every record, so a malformed
     profile fails here rather than in the app.
     """
-    return [
-        t
-        if t.terrace is None
-        else Terrace.model_validate(
-            {**t.model_dump(), "horizon": horizon_for(t.terrace.lat, t.terrace.lon)}
+    result: list[Terrace] = []
+    for t in terraces:
+        if t.terrace is None:
+            result.append(t)
+            continue
+        horizon = horizon_for(t.terrace.lat, t.terrace.lon)
+        winter = None if winter_for is None else winter_for(t.terrace.lat, t.terrace.lon)
+        result.append(
+            Terrace.model_validate(
+                {
+                    **t.model_dump(),
+                    "horizon": horizon,
+                    "horizon_winter": None if winter == horizon else winter,
+                }
+            )
         )
-        for t in terraces
-    ]
+    return result
 
 
 def raster_attribution(path: Path) -> str:
@@ -123,9 +142,16 @@ def position_warnings(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Pat
     return warnings
 
 
-def attribution_lines(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Path) -> list[str]:
+def attribution_lines(
+    terraces: Sequence[Terrace],
+    dsm_path: Path,
+    dtm_path: Path,
+    leafoff_path: Path | None = None,
+) -> list[str]:
     """Credits for every source the file is derived from."""
     lines = [OSM_ATTRIBUTION, raster_attribution(dsm_path), raster_attribution(dtm_path)]
+    if leafoff_path is not None and any(t.horizon_winter is not None for t in terraces):
+        lines.append(raster_attribution(leafoff_path))
     if any("curated" in t.sources for t in terraces):
         lines.append(PNOA_ATTRIBUTION)
     if any("overture" in t.sources for t in terraces):
@@ -139,8 +165,8 @@ def render(file: TerracesFile) -> str:
     """Serialize per the contract: 2-space indent, each horizon on one line, trailing newline."""
     text = json.dumps(file.model_dump(mode="json"), ensure_ascii=False, indent=2)
     text = re.sub(
-        r'"horizon": \[([^\]]*)\]',
-        lambda m: '"horizon": [' + re.sub(r"\s+", "", m.group(1)) + "]",
+        r'"(horizon|horizon_winter)": \[([^\]]*)\]',
+        lambda m: f'"{m.group(1)}": [' + re.sub(r"\s+", "", m.group(2)) + "]",
         text,
     )
     return text + "\n"
@@ -151,9 +177,14 @@ def build(
     refresh: bool = False,
     dsm_path: Path = DSM_PATH,
     dtm_path: Path = DTM_PATH,
+    leafoff_path: Path | None = LEAFOFF_DSM_PATH,
     generated: datetime | None = None,
 ) -> TerracesFile:
-    """Run every stage and return the file contents."""
+    """Run every stage and return the file contents.
+
+    `horizon_winter` is computed only if `leafoff_path` exists (ADR-0007); otherwise it is null
+    everywhere and the app uses `horizon` all year.
+    """
     reviews = read_review()
     dropped = dropped_ids(reviews)
     terraces = build_terraces(
@@ -173,11 +204,24 @@ def build(
     def horizon_for(lat: float, lon: float) -> list[int]:
         return terrace_horizon(lat, lon, dsm_path, dtm_path=dtm_path)
 
+    leafoff = leafoff_path if leafoff_path is not None and leafoff_path.exists() else None
+    winter_for: HorizonFn | None = None
+    if leafoff is not None:
+        winter_for = partial(terrace_horizon, dsm_path=leafoff, dtm_path=dtm_path)
+    else:
+        logger.info("no leaf-off surface model: horizon_winter stays null (ADR-0007)")
+
+    terraces = add_horizons(terraces, horizon_for, winter_for)
+    if leafoff is not None:
+        logger.info(
+            "%d terraces get a winter horizon (bare deciduous trees)",
+            sum(t.horizon_winter is not None for t in terraces),
+        )
     return TerracesFile(
         generated=generated or datetime.now(UTC),
         sample=False,
-        attribution=attribution_lines(terraces, dsm_path, dtm_path),
-        terraces=add_horizons(terraces, horizon_for),
+        attribution=attribution_lines(terraces, dsm_path, dtm_path, leafoff),
+        terraces=terraces,
     )
 
 

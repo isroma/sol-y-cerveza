@@ -1,6 +1,7 @@
 import type { Terrace } from '../data/terraces.ts'
 import { MINUTES_PER_DAY } from '../time/madrid.ts'
 import { stepIndex, type DayTrack } from './dayTrack.ts'
+import { horizonFor } from './leafOff.ts'
 import { STEP_MINUTES, sunState, type SunState } from './sunState.ts'
 
 /** How a venue is drawn: sunny now, sunny within SOON_MINUTES, no sun, or unknown. */
@@ -8,7 +9,10 @@ export type SunCategory = 'sun' | 'soon' | 'nosun' | 'unknown'
 
 export const SOON_MINUTES = 60
 
-/** A venue's sun/shade state per step of the day, or null without a horizon. */
+/**
+ * A venue's sun/shade state per step of the day, or null without a horizon.
+ * In the leaf-off period it follows the leaf-off horizon (ADR-0007).
+ */
 export type VenueDay = { venue: Terrace; timeline: SunState[] | null }
 
 export type VenueStatus = {
@@ -28,7 +32,7 @@ export type VenueStatus = {
 }
 
 export function venueDay(venue: Terrace, track: DayTrack): VenueDay {
-  const { horizon } = venue
+  const horizon = horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
     return { venue, timeline: null }
   return {

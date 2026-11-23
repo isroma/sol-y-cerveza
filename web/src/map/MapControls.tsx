@@ -2,7 +2,7 @@ import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
-import { CATEGORY_LABELS } from '../ui/categoryStyle.ts'
+import { CATEGORY_LABELS, LEAF_OFF_INFO } from '../ui/categoryStyle.ts'
 import {
   ChevronDownIcon,
   CloseIcon,
@@ -20,6 +20,8 @@ type Props = {
   mapRef: RefObject<MapLibreMap | null>
   ready: boolean
   attribution: readonly string[]
+  /** The data has leaf-off horizons (ADR-0007): explain the winter rule. */
+  leafOffTrees: boolean
   /** Where MapView mounts the map's attribution control, next to the legend. */
   attributionSlot: RefObject<HTMLDivElement | null>
 }
@@ -28,6 +30,7 @@ export function MapControls({
   mapRef,
   ready,
   attribution,
+  leafOffTrees,
   attributionSlot,
 }: Props) {
   const [cityOpen, setCityOpen] = useState(false)
@@ -208,6 +211,7 @@ export function MapControls({
                 relieve de edificios y árboles (LiDAR del PNOA). Las terrazas
                 aún no están verificadas sobre el terreno.
               </p>
+              {leafOffTrees && <p>{LEAF_OFF_INFO}</p>}
               <ul className="map-info-sources">
                 {attribution.map((line) => (
                   <li key={line}>{line}</li>
