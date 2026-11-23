@@ -61,9 +61,9 @@ describe('sunlitStyle', () => {
         'interpolate',
         ['linear'],
         ['zoom'],
-        14.5,
-        0,
         15.3,
+        0,
+        15.6,
         1,
       ],
     })

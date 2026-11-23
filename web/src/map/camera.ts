@@ -7,29 +7,34 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 export const FLAT_ZOOM = 14.5
 export const TILTED_ZOOM = 16
 export const TILTED_PITCH = 55
+/** From here the view is tilted enough for 3D buildings and their shadows. */
+export const RELIEF_ZOOM = 15.3
 
 /**
- * Building shadows fade with the tilt: barely there in the top view (they
- * clutter the city overview), clear once tilted in to read the streets.
+ * Building shadows come in with the 3D buildings, once the view tilts: in the
+ * flat and half-tilted views they only add grey noise.
  */
 export const SHADOW_OPACITY: ExpressionSpecification = [
   'interpolate',
   ['linear'],
   ['zoom'],
-  FLAT_ZOOM,
-  0.1,
+  RELIEF_ZOOM,
+  0,
   TILTED_ZOOM,
   0.6,
 ]
 
-/** 3D buildings appear as the view tilts, so the top view stays flat. */
+/**
+ * 3D buildings rise quickly once the view tilts, so they never linger as
+ * half-transparent ghosts in the flat or mid-zoom views.
+ */
 export const EXTRUSION_OPACITY: ExpressionSpecification = [
   'interpolate',
   ['linear'],
   ['zoom'],
-  FLAT_ZOOM,
+  RELIEF_ZOOM,
   0,
-  FLAT_ZOOM + 0.8,
+  15.6, // RELIEF_ZOOM + 0.3, written out to avoid float noise
   1,
 ]
 

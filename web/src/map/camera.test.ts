@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   FLAT_ZOOM,
+  RELIEF_ZOOM,
   TILTED_PITCH,
   TILTED_ZOOM,
   pitchForZoom,
@@ -13,8 +14,8 @@ describe('SHADOW_OPACITY', () => {
       'interpolate',
       ['linear'],
       ['zoom'],
-      FLAT_ZOOM,
-      0.1,
+      RELIEF_ZOOM,
+      0,
       TILTED_ZOOM,
       0.6,
     ])

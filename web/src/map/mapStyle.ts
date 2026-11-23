@@ -58,6 +58,12 @@ const ROAD = /^(road|bridge|tunnel)_/
 function roadPaint(layer: LayerSpecification): Record<string, unknown> | null {
   if (layer.type !== 'line' || !ROAD.test(layer.id)) return null
   if (layer.id.includes('rail')) return { 'line-color': '#D9CDBC' }
+  // Dotted footpaths clutter the overview: show them only up close.
+  if (layer.id.includes('path_pedestrian'))
+    return {
+      'line-color': '#FFFFFF',
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], 15.5, 0, 16.5, 1],
+    }
   if (layer.id.endsWith('_casing')) {
     const major = /motorway|trunk|primary|secondary|link/.test(layer.id)
     return { 'line-color': major ? '#E6CFA8' : '#E4D6C3' }
