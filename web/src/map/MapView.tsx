@@ -15,11 +15,9 @@ import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
   cardFolded,
-  cardLevel,
   cardScale,
   pitchForZoom,
   SHADOW_OPACITY,
-  type CardLevel,
 } from './camera.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
@@ -146,7 +144,6 @@ export function MapView({
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
-  const [level, setLevel] = useState<CardLevel>(cardLevel(INITIAL_ZOOM))
   const [folded, setFolded] = useState(cardFolded(INITIAL_ZOOM))
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
@@ -195,7 +192,6 @@ export function MapView({
           if (!map) return
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
           const zoom = map.getZoom()
-          setLevel(cardLevel(zoom))
           setFolded(cardFolded(zoom))
           // Every frame of a pinch: size and fade the card straight from the
           // zoom, without waiting for React.
@@ -466,12 +462,7 @@ export function MapView({
       <MapControls mapRef={mapRef} ready={ready} attribution={attribution} />
       {selectedStatus &&
         createPortal(
-          <PinCard
-            status={selectedStatus}
-            minutes={minutes}
-            sunset={sunset}
-            compact={level === 'compact'}
-          />,
+          <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,
           cardEl,
         )}
     </div>

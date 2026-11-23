@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   CARD_FOLD_BELOW,
-  CARD_FULL_FROM,
   CARD_MIN_SCALE,
   cardFolded,
-  cardLevel,
   cardScale,
   FLAT_ZOOM,
   RELIEF_ZOOM,
@@ -52,12 +50,6 @@ describe('pitchForZoom', () => {
 })
 
 describe('the venue card and the zoom', () => {
-  it('shows the full card up close and a compact one in between', () => {
-    expect(cardLevel(CARD_FULL_FROM)).toBe('full')
-    expect(cardLevel(18)).toBe('full')
-    expect(cardLevel(15.5)).toBe('compact')
-  })
-
   it('folds the card into its badge in the overview', () => {
     expect(cardFolded(13.8)).toBe(true)
     expect(cardFolded(CARD_FOLD_BELOW)).toBe(false)
@@ -65,8 +57,8 @@ describe('the venue card and the zoom', () => {
 
   it('shrinks the card smoothly, never below its minimum size', () => {
     expect(cardScale(17)).toBe(1)
-    expect(cardScale(16)).toBe(1)
-    expect(cardScale(15.5)).toBe(0.875)
+    expect(cardScale(16.5)).toBe(1)
+    expect(cardScale(15.75)).toBe(0.8)
     expect(cardScale(CARD_FOLD_BELOW)).toBe(CARD_MIN_SCALE)
     expect(cardScale(13)).toBe(CARD_MIN_SCALE)
   })
