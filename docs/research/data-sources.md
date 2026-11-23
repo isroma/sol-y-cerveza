@@ -49,7 +49,7 @@ Overture places, release `2026-11-18.0` (latest on 2026-11-22), read with DuckDB
   - Art. 24.2: while the terrace is set up, a document with the authorization and that plan must be **visible from the street**. On-site curators can photograph it.
   - Art. 8: authorizations run from 1 January to 31 December and renew automatically unless the holder renounces.
   - So the register gives which venues have a terrace, where (street segment, not coordinates) and how big it is.
-- **Precedent**: in RA CTBG 2023-0153 (expediente 914-2023), the Consejo de Transparencia upheld (*estimó*) a request for a Badajoz velador authorization file. The [PDF link](https://www.consejodetransparencia.es/ct_Home/dam/jcr:124cf368-4059-41c7-93c6-f8d232a12bc3/RA%20CTBG%202023-0153%20%5BExpediente%20914-2023%5D_Censurado.pdf) now redirects to a 404 after a site move. Search the CTBG site for the expediente number. Complaints against Extremadura councils go to the CTBG.
+- **Precedent**: in RA CTBG 2023-0153 (expediente 914-2023), the Consejo de Transparencia upheld (*estimó*) a request for a Badajoz velador authorization file. The official link now returns 404; [archived copy](https://web.archive.org/web/20230421031929/https://www.consejodetransparencia.es/ct_Home/dam/jcr:124cf368-4059-41c7-93c6-f8d232a12bc3/RA%20CTBG%202023-0153%20%5BExpediente%20914-2023%5D_Censurado.pdf). A second precedent, [RA CTBG 2024-0298](https://web.archive.org/web/20240516025109/https://www.consejodetransparencia.es/ct_Home/dam/jcr:70f1ad4f-9861-437c-b754-6e7f2c37e66c/RA%20CTBG%202024-0298%20%5BExpediente%202382_2023%5D_Censurado.pdf), upheld access to Badajoz activity licences. In both, Badajoz did not answer. Complaints against Extremadura councils go to the CTBG.
 - Draft request: [`transparency-request.md`](transparency-request.md). It does not ask for the tax roll (*padrón de la tasa*), because tax data is confidential (Ley General Tributaria art. 95).
 
 ## Finding: Google Places `outdoorSeating` cannot go in a public dataset
@@ -151,3 +151,26 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
   - Mapillary covers the old town densely (mostly 2–4 years old). Its terms (§13) allow using it to contribute to OSM, but not to extract data straight into our dataset.
   - The best scalable route is our own summer street-level capture with a COCO detector (chair, dining table and umbrella), linked to façades.
 - **Linking clusters to venues:** nearest façade on the same street side, cost-based with an ambiguity flag. 94% correct within 6 m of the façade; venues missing from the list are the main source of error.
+
+### Public sector (2026-11-24)
+
+- **Ayuntamiento de Badajoz:** holds the only terrace data (velador licences: which venues, where, m², tables) and publishes none of it. There is no open data portal or IDE, `mapas.aytobadajoz.es` answers 503, and the new tourism site's "Dónde comer" has only test entries. The Oficina Auxiliar de Vías y Obras handles velador licences. The terrace tax roll exists but is confidential. Terraces on private plots fall under activity licences instead.
+- **Junta de Extremadura, [Establecimientos de restauración](https://datos.gob.es/es/catalogo/a11002926-establecimientos-de-restauracion-en-extremadura):**
+  - CC BY 4.0, last updated 2025-03-10.
+  - 1,100 rows in the municipality (737 café-bars, 211 restaurants, 63 pubs, 48 cafeterías…).
+  - Has addresses, but **no coordinates and no terrace field**. Seat counts are only given for restaurants and cafeterías.
+  - Likely stale: venues leave only when the owner files a closure, and 270 city rows opened before 2000.
+  - Geocoded with CartoCiudad (CC BY 4.0 ign.es), 849 of 998 city rows place, 458 at an exact portal.
+  - Not imported yet: it adds no terrace signal, and its staleness would add closed venues. It is a candidate for venue confirmation or curator to-do lists (follow-up issue).
+- **Diputación, IDEEX, INE:** nothing on hospitality or terraces.
+- **Catastro:** a parcel's use code is not a hospitality flag. Only 4 of 60 OSM venues' parcels have an "Ocio y Hostelería" unit.
+- **Other cities that publish terrace data** (models for the request):
+
+  | City | Dataset | Content |
+  | --- | --- | --- |
+  | Madrid | datos.madrid.es 200085 | Venue, terrace location, m², tables and chairs, sunshades |
+  | Barcelona | Terrasses ordinàries | Coordinates, area, tables and chairs (CC BY 4.0) |
+  | Málaga | datosabiertos.malaga.eu | 1,665 points with m² and a **PDF plan per terrace** (CC BY 4.0) |
+  | Zaragoza | WFS `movilidad:MU2_veladores` | Roadway terraces |
+  | Gijón | Licencias de terrazas | 2002–2017 only |
+
