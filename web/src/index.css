@@ -1055,7 +1055,7 @@ button {
   position: relative;
   z-index: 1;
   margin-bottom: -3px;
-  padding: 8px 10px 4px;
+  padding: 8px 10px 0;
   border: 3px solid var(--card-accent);
   border-bottom: 0;
   border-radius: 999px 999px 0 0;
@@ -1078,7 +1078,7 @@ button {
 
 .pin-card-body {
   align-self: stretch;
-  padding: 16px 16px 14px;
+  padding: 26px 16px 16px;
   border: 3px solid var(--card-accent);
   border-radius: 26px;
   background: var(--bg);
@@ -1089,6 +1089,9 @@ button {
   place-items: center;
   width: 52px;
   height: 52px;
+  /* Its lower third hangs into the card, so the badge sits across the join. */
+  margin-bottom: -18px;
+  position: relative;
   border-radius: 50%;
   background: linear-gradient(160deg, #c6cbd3, #8b919c);
   color: #fff;
@@ -1196,14 +1199,6 @@ button {
 
 .pin-card-ticks strong {
   color: var(--ink);
-}
-
-.pin-card-note {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-style: italic;
-  text-align: center;
 }
 
 /* The badge has become the card's tab: hide the pin underneath. */
