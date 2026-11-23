@@ -4,7 +4,7 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 
 ## Architecture (see `docs/adr/0001-architecture.md`)
 
-- `pipeline/` (Python 3.14, uv): runs offline. Builds the terrace dataset and, for each terrace, a 360° horizon profile from a LiDAR surface model. Output goes to `web/public/data/terraces.json`, which follows [`docs/data-contract.md`](docs/data-contract.md). `python -m solycerveza.build` regenerates it; it holds sample data until curated terrace positions exist (#12).
+- `pipeline/` (Python 3.14, uv): runs offline. Builds the terrace dataset and, for each terrace, a 360° horizon profile from a LiDAR surface model. Output goes to `web/public/data/terraces.json`, which follows [`docs/data-contract.md`](docs/data-contract.md). `python -m solycerveza.build` regenerates it. It lists every named venue from OSM plus Overture ([ADR-0003](docs/adr/0003-venue-base-osm-plus-overture.md)); terraces come only from OSM `outdoor_seating=yes` and `pipeline/data/curated_terraces.csv`.
 - `web/` (Vite, React, TypeScript, MapLibre GL JS): a static client. It computes the sun position for any date and time and compares it with each terrace's horizon. There is no backend.
 - Mobile: Capacitor wraps `web/` (`web/ios`, `web/android`). **Paused**: don't work on mobile unless asked; the Mobile workflow only runs manually.
 - Hosting: GitHub Pages, deployed on every push to `main`.

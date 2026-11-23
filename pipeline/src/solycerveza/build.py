@@ -22,8 +22,9 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
+from solycerveza.overture import load_all_venues
 from solycerveza.terraces import Terrace, build_terraces, read_curated
-from solycerveza.venues import CACHE_DIR, load_venues
+from solycerveza.venues import CACHE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,9 @@ DSM_PATH = CACHE_DIR / "badajoz_dsm.tif"
 DTM_PATH = CACHE_DIR / "badajoz_dtm.tif"
 OSM_ATTRIBUTION = "© OpenStreetMap contributors (ODbL)"
 PNOA_ATTRIBUTION = "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
+OVERTURE_ATTRIBUTION = (
+    "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)"
+)
 # A terrace point higher than this above the terrain is on a roof or under a canopy: the
 # horizon from there is meaningless (roof) or all shade (canopy), so a curator should check it.
 MAX_HEIGHT_ABOVE_GROUND_M = 2.0
@@ -117,6 +121,8 @@ def attribution_lines(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Pat
     lines = [OSM_ATTRIBUTION, raster_attribution(dsm_path), raster_attribution(dtm_path)]
     if any("curated" in t.sources for t in terraces):
         lines.append(PNOA_ATTRIBUTION)
+    if any("overture" in t.sources for t in terraces):
+        lines.append(OVERTURE_ATTRIBUTION)
     return lines
 
 
@@ -139,7 +145,7 @@ def build(
     generated: datetime | None = None,
 ) -> TerracesFile:
     """Run every stage and return the file contents."""
-    terraces = build_terraces(load_venues(refresh=refresh), read_curated())
+    terraces = build_terraces(load_all_venues(refresh=refresh), read_curated())
 
     for warning in position_warnings(terraces, dsm_path, dtm_path):
         logger.warning(warning)

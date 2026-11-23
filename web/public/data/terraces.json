@@ -1,12 +1,13 @@
 {
   "version": 2,
-  "generated": "2026-11-23T03:03:25Z",
+  "generated": "2026-11-23T03:22:31Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
     "Obra derivada de MDS05 2008-2015 CC-BY 4.0 scne.es",
     "Obra derivada de MDT05-cob1 2008-2015 CC-BY 4.0 scne.es",
-    "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
+    "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)",
+    "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)"
   ],
   "terraces": [
     {
@@ -2065,6 +2066,7161 @@
       "terrace": null,
       "sources": [
         "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:006dab79-d374-41d9-8b42-b63df2be5f15",
+      "name": "Vips",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885565,
+        "lon": -7.02043
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:006e0d23-95ea-468b-927a-2add19d86c12",
+      "name": "Cerveceria Iberikos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87351,
+        "lon": -6.968956
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:018b8f65-fb12-4d8c-9e85-c21f0cc7c6aa",
+      "name": "Cervecería Luna Calle Jacinta García Hernández Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.864632,
+        "lon": -6.99099
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:01a0447e-65c4-4c8c-b013-e1a41c1fdbc2",
+      "name": "Pollos Asados El Extremeño",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878733,
+        "lon": -6.953939
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:01de8a4a-8b55-4a07-bdf1-31dc7caa45b2",
+      "name": "Venta el alma",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.865549,
+        "lon": -6.97289
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:01eb0498-f3e2-4b05-8068-a9398339a6a4",
+      "name": "Almirez Machaco",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884501,
+        "lon": -6.98776
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:01fffbeb-045e-4aa4-82ea-4821af3212ac",
+      "name": "Ferri's Bistrot",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869761,
+        "lon": -6.988672
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:03918700-0dd5-4bf1-acbc-461c402c9577",
+      "name": "Café-Bar Orellana",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869022,
+        "lon": -6.984074
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:04653bd9-e78b-468a-adca-1b431155a837",
+      "name": "restauranteelrincondepaula",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877495,
+        "lon": -6.945928
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:06c118a8-5193-4e04-95e7-e45730e4cd6a",
+      "name": "cafeteria rectorado",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878902,
+        "lon": -6.9669
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:074a3908-e466-454e-af7d-aded58b2643e",
+      "name": "Complejo Sancha Brava",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.864641,
+        "lon": -6.97255
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:077a6f95-1915-4767-a06a-12ca6189ffab",
+      "name": "Regalos Con Amor Personalizados",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879011,
+        "lon": -6.943953
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:07e28660-d24f-4486-a7f5-70f5970c40ec",
+      "name": "Capricho En Calle Menacho",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.87636,
+        "lon": -6.975028
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0890043d-e07b-406a-b2ef-15eabddc4d45",
+      "name": "Taberna de Juancho",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.863544,
+        "lon": -6.967631
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:08aba409-6516-4858-8c15-d5d38316bbf8",
+      "name": "Cafetería Los Arrayanes",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.864182,
+        "lon": -6.969837
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:090cd6b3-530b-4782-81e3-39c5c21d5333",
+      "name": "Azud De Guadiana En Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867302,
+        "lon": -6.968481
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:093e8c59-00d7-4dfe-9516-e37be98020c3",
+      "name": "Lalola COPAS Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870771,
+        "lon": -6.976108
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:09768f20-f5b7-4acf-8946-8f6cacefcc14",
+      "name": "Samarkanda",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.879234,
+        "lon": -6.970107
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:09bfe761-ef23-4efe-88f8-97a37bc2505f",
+      "name": "Venta el Caballo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.864582,
+        "lon": -6.97292
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:09ed3bc3-b124-4126-873c-b87ac67e5d64",
+      "name": "La Doña Gastrobar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878557,
+        "lon": -6.971539
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0a0ce46c-b2fa-475e-b99d-c50919db927a",
+      "name": "La Bacana",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866634,
+        "lon": -6.986176
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0a4e8fe9-4ddd-4073-82d2-ca625a38d397",
+      "name": "Pizzería-Rte La Cosa Nostra",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865612,
+        "lon": -6.976966
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0a6ffe0b-aabb-4984-a44f-00041fdd0bd3",
+      "name": "Bar Primos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.88562,
+        "lon": -6.984885
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0baf7e28-1065-4aa1-b52b-ee063a5c41da",
+      "name": "Bar Ricomiendo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866344,
+        "lon": -6.982524
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0bc321ae-5bf2-4ed8-a875-b18924362d9c",
+      "name": "Café bar Ricomiendo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869621,
+        "lon": -6.979528
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0d1cdcb0-1e2b-4f9e-b1a9-caced86a524b",
+      "name": "Gaho Lounge",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869621,
+        "lon": -6.98852
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0d3ab247-630c-4af0-b4a4-3e8355dace33",
+      "name": "Bar Restaurante Agustin",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.919336,
+        "lon": -6.946491
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0d43d005-7804-49c6-a62c-0f1add77ea25",
+      "name": "Restaurante Marchivirito.",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885784,
+        "lon": -6.975824
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0dabcd6c-2a6d-4f33-903f-87cc197ff3e3",
+      "name": "Antolín Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875496,
+        "lon": -6.955197
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0de25719-970d-4021-bcda-0223f419ceae",
+      "name": "User4572838",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.883484,
+        "lon": -6.993353
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0eef2381-b523-4606-b4df-249dedd3dfbf",
+      "name": "Ristorante Boccaccio",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869669,
+        "lon": -6.985731
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0f256970-6676-43e5-892e-bba33aa6fbbc",
+      "name": "Pizza Pope",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867117,
+        "lon": -6.968117
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:0f2ae816-4200-47ca-b54a-c5dfbaed96b1",
+      "name": "Taperia Cerveceria Tos por Igual",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87146,
+        "lon": -6.98758
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:101752cc-b621-499c-9537-d932f9ad8476",
+      "name": "Taberna La Giralda",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880987,
+        "lon": -6.970209
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:104ef360-092e-45b0-b2ac-d86419bf8b08",
+      "name": "Restaurante Terrier",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882549,
+        "lon": -6.998395
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:11a28cc8-1075-4023-b1bc-0639a8cf7c82",
+      "name": "Asador Parrilla el BOCAO",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883638,
+        "lon": -6.99293
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:11b203e5-786b-45dc-8068-c58b074861e8",
+      "name": "Bar El Umbral",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869522,
+        "lon": -6.989393
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1223ff55-0cb9-493e-8bdb-b6d1b19e3beb",
+      "name": "La Cacharreria Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881384,
+        "lon": -6.968531
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:12527255-eebd-467a-89ee-e3714f133dfe",
+      "name": "Bar AAVV Pardaleras",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872692,
+        "lon": -6.96575
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:13972461-000b-4967-8706-241a19147848",
+      "name": "Club Taurino Extremeño de Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878202,
+        "lon": -6.967901
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:149a5356-967b-49d6-8dcf-96c4e2711775",
+      "name": "La Casona Baja",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880508,
+        "lon": -6.970614
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:14a42b10-0efc-428a-81d5-e2eda70a5337",
+      "name": "Café Bar Dindi",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.88719,
+        "lon": -6.981843
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:15b4734c-8056-4a1a-9fc5-f77a9eb5d33c",
+      "name": "BraserÍA Acro TaperÍA",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:162dd680-8dac-4ac5-b3fc-584401526cb9",
+      "name": "Churrería La Lola",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.865427,
+        "lon": -6.987829
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1725aded-c931-4778-8b36-3a17f7acca62",
+      "name": "La Rana Loca",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880941,
+        "lon": -6.986022
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:18a1c014-68fb-450b-a79a-5b431ad5f20b",
+      "name": "Boca2",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868731,
+        "lon": -6.988302
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:19c201e1-c378-4f8f-94d1-4069431883d5",
+      "name": "Family Pandy",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870455,
+        "lon": -6.990033
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:19dd4487-d08d-42f6-b9b9-6c07d7334d55",
+      "name": "Restaurante Casa Azcona",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884003,
+        "lon": -6.986336
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1a67ad97-dd46-4242-a0c8-08c396827cd2",
+      "name": "Calle XIII",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880331,
+        "lon": -6.959373
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1aab36ae-2f47-482f-a0dc-02d6c16cb1f1",
+      "name": "Jony's Bar, Bar/restaurante",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869068,
+        "lon": -6.970682
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1ad43d0e-b993-4f53-b97f-2b184c25455c",
+      "name": "Foster's Hollywood",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885342,
+        "lon": -7.020504
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1c8a4352-8482-44dd-b7dc-93b96ba50542",
+      "name": "Barmacia de Guardia",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877371,
+        "lon": -6.96835
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1c9be166-c612-4604-8dea-7ff862db5008",
+      "name": "Cafetería de Angelito",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.881786,
+        "lon": -6.967664
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1d289685-ebd2-43f5-ba56-d5987ec4130d",
+      "name": "Braseria sabbor",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867027,
+        "lon": -6.95928
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1d7e7329-ab95-4733-b325-36fb728929f7",
+      "name": "El Bizarro",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.863899,
+        "lon": -6.969931
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1dc95138-d3e6-47cc-b14e-53e4f25e598a",
+      "name": "Cervecería La Calmá",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87266,
+        "lon": -6.977186
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1e3956fc-c794-48d7-b58c-fb41b4858663",
+      "name": "Café Bar DANI",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.870993,
+        "lon": -6.975968
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1fa996a4-d11b-4846-a373-4086186f0d9d",
+      "name": "El Corte Chino",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873281,
+        "lon": -6.97504
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:1fbbe911-0625-4518-a5df-777fc5595a06",
+      "name": "The Irish Eif",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872576,
+        "lon": -6.974228
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:20be750b-efbd-4477-be95-07b9db8afc6f",
+      "name": "China Town Restaurante",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875849,
+        "lon": -6.974823
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2176e7f3-0304-40ed-b031-22aab53bc667",
+      "name": "Bar El Querido",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887749,
+        "lon": -6.983834
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:218245c3-d378-477f-b9ba-8a69d21d83db",
+      "name": "Caseta El Cruce",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:21f5d7ae-4016-4528-a359-e48f7e2c340b",
+      "name": "Restaurante Terrier",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883375,
+        "lon": -6.990187
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:22755705-253a-488f-b6a0-c1518932bf6e",
+      "name": "Tapas Badajoz Plaza de los Alfereces",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872828,
+        "lon": -6.97732
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:22a669fc-cc89-4db2-94c8-d136e99524d7",
+      "name": "Bar Fredi",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887165,
+        "lon": -6.979352
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:22b69902-9d1a-4b1e-b2d4-9fc41caf8ba4",
+      "name": "Alma",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870049,
+        "lon": -6.976488
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2308e667-aaaf-4561-9297-0246dc618489",
+      "name": "Cafe-Bar  Tikitaka",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873793,
+        "lon": -6.977085
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2345c5e6-93b4-41a3-b8bd-2d6cbbfaf827",
+      "name": "Restaurante Chino Gran Mundo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885609,
+        "lon": -6.984909
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:236908aa-4c0e-4ee6-9153-3b930782b5ef",
+      "name": "Sabor a Granel",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874041,
+        "lon": -6.964959
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:23ca490e-9ddc-493b-8798-5330426d816a",
+      "name": "Tavinos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866201,
+        "lon": -6.984364
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:243c9871-4cf0-4a65-85eb-0e8d2a552c23",
+      "name": "Laranaloca Terraza",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.884138,
+        "lon": -6.984
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:24b62eb0-339d-4b10-a193-b276491232a7",
+      "name": "Los Arroces del Papa Buey",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882963,
+        "lon": -6.993212
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:24e4e191-7833-4d41-a597-ea41f4ae74ac",
+      "name": "Cafe Con Alma",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.886541,
+        "lon": -6.984362
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:24e54d71-673d-4e31-a41b-850161d9bb37",
+      "name": "Dorado Lounge",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883022,
+        "lon": -7.02315
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2615ace2-299f-4d9a-b422-ba6e4efb4add",
+      "name": "Pizzeria Pope Mini",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877296,
+        "lon": -6.980044
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:262a70fc-ff0b-4e23-8c42-126552fac0a0",
+      "name": "Lgorda",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866474,
+        "lon": -6.982832
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2678930a-772a-4ff4-8911-1cdbd3d35e27",
+      "name": "Golf Guadiana Restauracion",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872948,
+        "lon": -6.959324
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:26f26ba0-367c-47a4-b9e0-1d0b7edef9e6",
+      "name": "Cisneros Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.888399,
+        "lon": -6.976834
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:281e3d04-c7bf-4de6-b0cc-e395c154537c",
+      "name": "Cafetería facultad Economicas Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.883583,
+        "lon": -7.007367
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:28826269-c6d7-4438-811c-f1d3071700fd",
+      "name": "Bodega San José",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881641,
+        "lon": -6.96904
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:28b9aa32-3720-47a9-b0c1-6323dc39253d",
+      "name": "Teate",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.869839,
+        "lon": -6.985848
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2a51299a-d1d7-48d7-8669-5fd8a12e5638",
+      "name": "Cerveceria Anemoi",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.865782,
+        "lon": -6.978805
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2a9578a4-aca0-4ccf-9c98-59cc9881086d",
+      "name": "A La Parrilla",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878336,
+        "lon": -6.970786
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2a9b4b57-5660-4a2d-bd69-13f3d14c54fb",
+      "name": "Nuevo Chicago ( Desde 1932 )",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.890263,
+        "lon": -6.982807
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2b419a05-cbd4-47d2-9b49-68ee606fb6a9",
+      "name": "Café Casablanca",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.870184,
+        "lon": -6.985948
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2b85a90e-7f6f-4d7d-a2e6-94056dbb7a70",
+      "name": "Big-Ben bar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873074,
+        "lon": -6.971931
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2be8b919-9b1b-4527-98e2-d43b4aa77234",
+      "name": "Bar Sabor Cubano",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870085,
+        "lon": -6.984202
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2d57f235-e267-4bbd-8afb-ddedfcaf2fa9",
+      "name": "La Serena, taberna extremeña",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872023,
+        "lon": -6.976993
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2d646a93-6aa8-4102-8fee-1a41934c4932",
+      "name": "La Cerveceria",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872162,
+        "lon": -6.982314
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2d769d87-b46b-474a-b95e-355d69a39c26",
+      "name": "Meson la Espuela",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875378,
+        "lon": -6.95494
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2daa9572-9120-4a93-8ec2-d1a8063ebf5f",
+      "name": "Artesian Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878485,
+        "lon": -6.970406
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2e03f0c0-aff0-4ae8-ace9-5a07a5bb0ea8",
+      "name": "Velvet Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878622,
+        "lon": -6.972525
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2ec89338-c15e-4dda-ac3a-0bd796a123ef",
+      "name": "La tapika Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878284,
+        "lon": -6.970956
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2edf99bd-ed00-47d7-bd68-b0aa6eca4bca",
+      "name": "Domino's Pizza",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876585,
+        "lon": -6.976393
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2f1ec322-cf5d-415b-a5e8-1e98555da416",
+      "name": "Bar Rivero",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875986,
+        "lon": -6.967987
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:2f899b72-7ab4-4058-b1bf-25ea2b83db0e",
+      "name": "Cervecería Bar Cádiz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.886499,
+        "lon": -6.985392
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3067c73c-ff83-4032-864e-b17c98e5798f",
+      "name": "Casa Domingo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875097,
+        "lon": -7.018136
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:30cca475-62ed-44af-a0f0-96124d2b33a3",
+      "name": "La Cerveceria",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870359,
+        "lon": -6.986615
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:31662782-7e78-4609-a991-54d03b843e25",
+      "name": "Sala River Live",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879494,
+        "lon": -6.979687
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:31ddbcc5-3da4-4eee-8a44-ba2a5fc6736a",
+      "name": "Restaurante Las Dos Palomas.5",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869925,
+        "lon": -6.968368
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:31e12de7-54bb-4b8d-b077-d67e423ea86a",
+      "name": "Super Doner Kebab",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872665,
+        "lon": -6.988855
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:32a6396a-74d2-4079-8d8c-b641ecfd9890",
+      "name": "Moma Experiencia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873871,
+        "lon": -6.99061
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:32d3fe84-cf0c-4cf7-a00a-f34cc4e21f88",
+      "name": "Bar La Nueva Parada",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878481,
+        "lon": -6.95229
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:356d6102-9b38-4df6-a376-8e6965a376cc",
+      "name": "Calambuco",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878902,
+        "lon": -6.9669
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:35e33cbc-372f-44c9-8b8e-5ceeb6c86067",
+      "name": "Bar O Furancho",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.865992,
+        "lon": -6.986429
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3665c56e-2230-418d-a647-274b8ad71d73",
+      "name": "Casa Antoña",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872828,
+        "lon": -6.977793
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3683e6b3-174b-4f22-9ced-c08ad466b77c",
+      "name": "La Medina Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870567,
+        "lon": -6.987397
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:36b8a82b-5909-477f-a31e-81b173e990e7",
+      "name": "Café La Galería",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877871,
+        "lon": -6.960391
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3737835b-e3ee-488d-9ffb-3ae451428e83",
+      "name": "Asador Zafra Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872919,
+        "lon": -6.965783
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3895feaa-80a1-4124-b803-6ebded3c2c01",
+      "name": "Bar La Bomba",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874548,
+        "lon": -6.971921
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:38beba12-355d-4444-b942-da915dbe864d",
+      "name": "ROYAL Tandoori Indian Restaurant",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.863329,
+        "lon": -6.97244
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:38fc984a-1211-4423-a1f1-a4763b626674",
+      "name": "Cafe Bar La Apuesta De Pilo",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.883587,
+        "lon": -6.992793
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3a2c3113-28b1-4a95-999c-7c9cdb5d0cbf",
+      "name": "La Nueva Encina",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887732,
+        "lon": -6.982154
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3a3b15fe-bf3e-4e13-a273-f67097d81c8e",
+      "name": "Perro Flaco",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878813,
+        "lon": -6.970911
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3ac157e2-fa67-4a06-926b-e1cfdd1e3811",
+      "name": "La Taberna De Rosa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.863384,
+        "lon": -6.969878
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3b9af4b9-6ab8-4c71-a70d-8dc0206b6a24",
+      "name": "Café & Té",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884233,
+        "lon": -7.022499
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3c0bee7e-a775-4377-89da-c4da257b0874",
+      "name": "Casa Restaurante Bartó",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865992,
+        "lon": -6.985965
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3c256af2-29d4-44ba-9b02-3178b8b8bad7",
+      "name": "Campañón",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887268,
+        "lon": -6.989168
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3cc0ed2a-ceb3-44b9-9cce-3547b90982e3",
+      "name": "Barrio San Fernando Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.904438,
+        "lon": -7.01625
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3cd5eb8d-50f4-430f-ae2c-74c0c5747b1a",
+      "name": "Cocina Portuguesa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878517,
+        "lon": -6.97124
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3ee1495e-4bf0-4331-aed2-9154f61e8d36",
+      "name": "Raíces tapería/cafetería",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.871468,
+        "lon": -6.98918
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:3f0244ae-91c6-4932-9b18-75cd86419442",
+      "name": "Los Baldíos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881838,
+        "lon": -6.993154
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:402bf738-d819-4395-99cf-a84e9f7e7599",
+      "name": "Taperia&cafeteria tu barrio",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.876677,
+        "lon": -6.955845
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:40b6bd50-6ece-4ea1-b677-24704610932e",
+      "name": "Pollería La Portuguesa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867594,
+        "lon": -6.978237
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:40f8efbb-93b1-4009-b801-6d48e383dd98",
+      "name": "La Dolores",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875547,
+        "lon": -6.971889
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:41c27b2d-2683-4d4d-8df2-77ca34e371dc",
+      "name": "Restaurante La Candela",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.863819,
+        "lon": -6.969327
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:42add1b6-a2e9-4095-9fcf-97d7624451e6",
+      "name": "Bar El Oliventino",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.864111,
+        "lon": -6.969576
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:42bd0a1c-aa8f-4bfc-9e2c-55e672b0e76b",
+      "name": "Pans & Company",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.88434,
+        "lon": -7.020729
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:43b18b8e-2d1c-4c8e-ad46-ee2545764da1",
+      "name": "Aldaba",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871634,
+        "lon": -6.976421
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:43b59be8-db16-4b01-928b-328de9d0db5e",
+      "name": "Panificadora la Real",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.89567,
+        "lon": -6.993406
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:43df65d9-2a75-4a59-a426-4dd987f149bd",
+      "name": "Cocedero De Mariscos La Mar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.891018,
+        "lon": -6.995594
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:455836ab-210e-42d3-aade-eab57b8023a5",
+      "name": "The Cereal Café",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.872492,
+        "lon": -6.973246
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:45ec9977-2e7c-4173-bdff-e295f1df1f0b",
+      "name": "Asador Portugues Nazaret",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.888229,
+        "lon": -6.977219
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4709bd5d-4e3b-4c1b-83b4-adabb7aa8d11",
+      "name": "Casa romy",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869942,
+        "lon": -6.971052
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:47d619f4-6b47-49f7-91cc-4e9725b7070d",
+      "name": "NutryZona Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880201,
+        "lon": -6.948953
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4814ddab-3ab4-4ab4-b504-ae33867ef103",
+      "name": "CAFE BAR LAS Palmeras",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.869635,
+        "lon": -6.965955
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4954a2ac-4eec-48e6-ac5d-5e6484af58a4",
+      "name": "Santo Grial Restaurante",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867092,
+        "lon": -6.99102
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4ae98dae-6f9d-45ac-b493-be0f57d7e822",
+      "name": "Sport Cronicass",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870142,
+        "lon": -6.98604
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4bd955a0-ff47-490b-a65f-b72a055b7f59",
+      "name": "O Sole Mio",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880266,
+        "lon": -6.975506
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4c4b6c7e-5bb5-4c36-9029-fa0e286640d8",
+      "name": "Café bar Mandíbula",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876337,
+        "lon": -6.957782
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4c910a2e-402d-47d0-b8cf-e62dce09fe17",
+      "name": "Marisquería Bar Venus",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870628,
+        "lon": -6.971548
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4d41cbce-967a-4cef-8b32-d76b9356a2d4",
+      "name": "Cervecería Luna - Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866909,
+        "lon": -6.982884
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:4dfceed3-a35e-443e-b5f2-064dcf562f49",
+      "name": "La Terrazita",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.895216,
+        "lon": -6.996262
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:50782dde-eca4-4b5d-80b8-1166ddd2e693",
+      "name": "La guinda del pastel",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.864025,
+        "lon": -6.969216
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:50c29ac8-475b-4914-af32-2e5d6b01ca40",
+      "name": "Taberna Terrón",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87561,
+        "lon": -6.970806
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:50c79438-db46-4b07-ae1e-ed7bd9565207",
+      "name": "Azabache Cafe & Bar",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.875675,
+        "lon": -6.972141
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:50f6047c-04fc-4302-bb69-69d6baa2d4c3",
+      "name": "Bar Pachito",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871813,
+        "lon": -6.9764
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:538f2a4c-c4e7-4685-97bb-fcc95e9dcd4e",
+      "name": "Bar El Rincón Tapas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879156,
+        "lon": -6.957911
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:53cef773-c620-46c6-9fea-2196247fb483",
+      "name": "Cafe del Moral",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.882101,
+        "lon": -6.947752
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5421c0bc-eaba-4055-ac7e-70dcfee6043e",
+      "name": "Tienda Gourmet El Silencio",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880693,
+        "lon": -6.968533
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:54c73400-f007-43e1-a09b-1449f7fd69ec",
+      "name": "Patio San Eloy",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.889395,
+        "lon": -6.983252
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:557f27b4-56b8-4292-bcd2-74e85cbb8b21",
+      "name": "Braseria JJ",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868761,
+        "lon": -6.973356
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:558a0031-652b-406d-86da-b453e611c6bd",
+      "name": "Bar Guille",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871784,
+        "lon": -6.98732
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:55a12fc9-0695-47e0-a3d3-a58dac29af4c",
+      "name": "Restaurante Nuevas Redes",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872162,
+        "lon": -6.982314
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:56e351e6-193a-4bfb-aac6-c6687f1cd4b8",
+      "name": "Mesón De Manolo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867123,
+        "lon": -6.962519
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:581ccf3f-2f94-410f-a66a-244dcd00d14d",
+      "name": "Wok Buffet",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882105,
+        "lon": -7.002336
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:581d3021-3048-4976-be6e-a190f2959ce4",
+      "name": "Café Bar Luis",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867672,
+        "lon": -6.970735
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:58f4e359-e8e3-4c4b-860c-2a8a300ea7d1",
+      "name": "Bar los amigos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878565,
+        "lon": -6.954648
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5932ff50-dc7f-4c8d-8ea1-7df8dc21e055",
+      "name": "Bar Ven Acá Pacá",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879198,
+        "lon": -6.957506
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5990a15f-2e7e-401b-96b7-eb48ff139a0c",
+      "name": "Mirador del Guadiana",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883535,
+        "lon": -6.983524
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:59e4a0aa-9dfd-4125-82d1-a49decbfae52",
+      "name": "El boquerón de plata 2.0",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871206,
+        "lon": -6.98756
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5c315405-9dd3-4c53-90f8-f32150f1056a",
+      "name": "La Bellota Extremeña",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868299,
+        "lon": -6.987558
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5c8d97e9-6933-4fec-99c4-3732ebda93cc",
+      "name": "Black Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875704,
+        "lon": -6.970591
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5cf90657-8a12-47d9-b428-2d2872f0a932",
+      "name": "Paso Del Agua",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880142,
+        "lon": -6.972909
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5db3fc99-7779-48a8-be93-a85690fa58c1",
+      "name": "Cafeteria UEX ILM - Rectorado Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.862967,
+        "lon": -6.990788
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5deed198-37dd-43e6-9739-54d4c12c96ef",
+      "name": "Churrasqueria La Parrilla SF",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887726,
+        "lon": -6.982076
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:5e475430-b882-4b3e-afa2-3c452e2915d5",
+      "name": "Tanuki San",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876188,
+        "lon": -6.967352
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:60f61c09-b694-4a64-ba16-39abbc7127a6",
+      "name": "Mellow Shisha Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883509,
+        "lon": -6.99423
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6155830b-646b-4f8c-9570-30c5e654304c",
+      "name": "Cerveceria con Jota",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879795,
+        "lon": -6.970302
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:626c6e85-8977-4d0b-92e6-23fee33d861d",
+      "name": "Jony's Bar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870548,
+        "lon": -6.990081
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:645058a5-c6a1-45bf-b1f3-ab9c34e554aa",
+      "name": "El Chozo Extremeño",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867527,
+        "lon": -6.984313
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:65dd75d9-bdd1-4fb8-85a1-1f4e3b9731ab",
+      "name": "Cervecería Sabbor",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882019,
+        "lon": -7.002462
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6659f85f-2ebe-4c98-9690-09482b78819d",
+      "name": "Restaurante Dosca Ii",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.874189,
+        "lon": -6.974396
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:673b8174-49a7-4f19-86ad-8c7d25d2739f",
+      "name": "PUB Robinson",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.883463,
+        "lon": -6.993262
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:683d1a59-c122-4f9c-977f-81687ad01d39",
+      "name": "Bar Arlequín",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878607,
+        "lon": -6.976092
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6872dfb7-0697-472e-84b4-8adae6d8ebbe",
+      "name": "Spanish Tavern",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875082,
+        "lon": -6.973404
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:69a9ff9f-2669-4ee3-bffa-658307b2cb13",
+      "name": "Restaurante Nuevas Redes",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871614,
+        "lon": -6.987529
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6afc0af6-1f8e-4dff-9c71-f0dfc0b8cf11",
+      "name": "Don Manolo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876232,
+        "lon": -6.960295
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6b16f6d6-9bc0-4494-8899-335b69211a6e",
+      "name": "Ohana Restaurante",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875334,
+        "lon": -6.971627
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6c7715b9-b43f-4008-a9d9-3b658446e768",
+      "name": "Mesón Tremeño",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873825,
+        "lon": -6.949646
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6d5719ab-43c8-4eae-94f8-81f45270a489",
+      "name": "Churrería Maruja",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880453,
+        "lon": -6.959647
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6d869e8e-c740-4417-97dd-77fb232bbdae",
+      "name": "Restaurante El Alma del Genio",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876072,
+        "lon": -6.974618
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6dab71e5-1918-4a45-aad2-360408b6f0d5",
+      "name": "Viejo Continente",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878902,
+        "lon": -6.9669
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6de44fac-6764-4d98-970f-71c5f82d2cdf",
+      "name": "Café Bar Sana Tentación",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.866297,
+        "lon": -6.98289
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6e3f1c8c-a916-4350-95ab-c7e5d5272cd6",
+      "name": "Sibuya Urban Sushi Bar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877775,
+        "lon": -6.970893
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6e4f3e71-b39a-4f30-ab3d-c36c02337475",
+      "name": "DeDulce Cafeteria Heladería",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.871597,
+        "lon": -6.98704
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6eb92f05-7fa1-4fa9-8bda-9113c9b524fb",
+      "name": "Bar restaurante fricando",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.919308,
+        "lon": -6.94357
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:6f40bccd-e9cc-4f4a-bd49-cbf3b1c5938c",
+      "name": "Cafe Bar Lory's",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866207,
+        "lon": -6.97373
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:70b06c5e-0814-49d1-ba0e-0adb6fe38441",
+      "name": "The Irish Tavern Badajoz",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.867655,
+        "lon": -6.986547
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:72400986-bc45-4cdc-9aaf-685b33d0df2e",
+      "name": "La Taberna Ks",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872852,
+        "lon": -6.977463
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:73c75a4e-b887-441d-bf50-2aa8491de24b",
+      "name": "Extretapas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872011,
+        "lon": -6.975296
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:73e83614-3c4b-409e-af90-4ff082359db0",
+      "name": "Bar Kashmir Doner Kebab",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.889137,
+        "lon": -6.980302
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:740df22a-2e0c-4cf9-a475-674d0e1279da",
+      "name": "Restaurante-sam Vicente",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879637,
+        "lon": -6.973212
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:747b34dc-6e23-49fa-bbb3-431abd4c1a22",
+      "name": "El Puerto de Huelva",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.890697,
+        "lon": -6.986655
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:74d4c8d6-4199-4b27-ae0e-6347bd0ec320",
+      "name": "Tocata Retro Copas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877588,
+        "lon": -6.970393
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:74d7299e-b477-4ce3-885f-eaafe5947c94",
+      "name": "Restaurante el Candil",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.864202,
+        "lon": -6.972861
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7500dd06-bb1a-4695-bb0d-cc38a5b8323f",
+      "name": "Skakeo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873926,
+        "lon": -6.980172
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:753902ba-c86d-4b8c-b0b8-715d36e39fb4",
+      "name": "Bar El Punto",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870712,
+        "lon": -6.96808
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:753dbd20-0289-4af4-b7b6-f3e56b5ea6c9",
+      "name": "McCafé",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873196,
+        "lon": -6.974143
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:76085eeb-91d3-4568-85c2-78f1a84c366e",
+      "name": "Bar Feria",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.886148,
+        "lon": -6.980667
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:764e1fda-5f62-4737-8f09-b3586c542270",
+      "name": "Los Arroces Del Papa Buey",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87759,
+        "lon": -6.967356
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:76e9fa75-22f2-4e55-9175-75ae92117e35",
+      "name": "Bar Rincón Avecilla",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872116,
+        "lon": -6.976514
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7797696c-265f-4c4b-9414-2a75d9e5fbb0",
+      "name": "Mesón de Manolo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.863365,
+        "lon": -6.967671
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7855c9fa-bd64-432d-9bc0-b7dfa4892450",
+      "name": "Cronicass Carnivoras Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868437,
+        "lon": -6.990731
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:79ede585-642c-40c0-ab66-69c634ed7bce",
+      "name": "El Surtidor Copas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875614,
+        "lon": -6.970712
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7a622289-92e1-43a5-b6d7-c2dea67007de",
+      "name": "AriTxo Bar Tapería",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867348,
+        "lon": -6.98203
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7bc9a356-f4cd-4046-8826-0b505fb10fec",
+      "name": "Café Bar El Tablon",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878971,
+        "lon": -6.955588
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7bd6b9df-dff9-4782-9e4d-4dc081ef7ea4",
+      "name": "Restaurante Quotidiano",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866404,
+        "lon": -6.990323
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7d15128d-1c78-4688-a480-087e90896614",
+      "name": "Touareg Lounge Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.868826,
+        "lon": -6.98632
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7d2381ff-ab02-4dcb-b429-e2240774e993",
+      "name": "Pepetacofaro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884718,
+        "lon": -7.020221
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7d483640-2a6e-4e60-bd8f-759bedebb4af",
+      "name": "Bar Tapería Ajonegro",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877729,
+        "lon": -6.96711
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7d732d3f-27be-411b-bcd3-cee263020220",
+      "name": "Restaurante Chino Pekin",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870394,
+        "lon": -6.974007
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7d8851ba-05bf-452c-a007-3ef4a55b6b10",
+      "name": "Brasa e Lenha",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876612,
+        "lon": -6.98012
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7dcb8bf4-616e-433b-b0f4-405b8d25d162",
+      "name": "Restaurante Japones Japon Tokyo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.88327,
+        "lon": -6.997422
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7e02682e-97e2-48d0-8bfa-31bb4de75347",
+      "name": "Restaurante Bella Italia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881983,
+        "lon": -7.002612
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7e109f86-3836-418e-92c9-dc22a9894650",
+      "name": "Nomadic Jungle",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877548,
+        "lon": -6.980113
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:7fe3be93-6fbf-4a4e-80a2-a579351ab198",
+      "name": "Santagloria Coffee & Bakery",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.883623,
+        "lon": -7.021414
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:80ec1416-72ca-4bb7-8712-88c7fcbefbf4",
+      "name": "Four Cats",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.877743,
+        "lon": -6.970333
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:821e2ef0-8f24-48b5-be6a-98071e8d4d22",
+      "name": "Cafeteria El Albero de Marchi",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.865532,
+        "lon": -6.97196
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:824aa84a-36d4-4e71-a94b-a24941ee500a",
+      "name": "Bar Galisteo Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.86735,
+        "lon": -6.982029
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8268b3e9-e57e-4efa-9f35-55684fdb45b5",
+      "name": "Gastrobar El jardin",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.841072,
+        "lon": -6.96723
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:830452e7-b3ac-4ede-9398-94a3135fe756",
+      "name": "Kiosco Castelar Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877462,
+        "lon": -6.976574
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8354846a-cc82-44af-a698-ec253aaaedf4",
+      "name": "Café Bar La Marina",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876337,
+        "lon": -6.972684
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:841f962d-7eb5-4603-8c78-eb6e00e5c2e1",
+      "name": "Café bar la nueva viña",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.857679,
+        "lon": -6.988239
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:848eee3c-721c-49d7-99f5-b7307279950b",
+      "name": "Makitake Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880136,
+        "lon": -6.974729
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8566b340-7b00-45ab-ac6a-38c55f10dc16",
+      "name": "Bar Corazon De Jesus",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.86182,
+        "lon": -6.986085
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8692b5d0-c722-4051-bcf7-236723ac45a8",
+      "name": "Placeres Orellana Maria del Carmen",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887781,
+        "lon": -6.97946
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:86e47090-966b-4211-81f1-01324f9c4cbb",
+      "name": "Ristorante Boccaccio",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.86801,
+        "lon": -6.991085
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:87bbb7c3-1039-4a03-b6fa-6c616108f2a1",
+      "name": "Estanco 30",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869484,
+        "lon": -6.970232
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:87ccc4ae-6bbb-43e5-9f6a-c9d67bc677ff",
+      "name": "Bar San Pedro",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873299,
+        "lon": -6.96941
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:881bfb8f-57c7-456b-972d-ba4600d9b20c",
+      "name": "A La Turka Gyros Kebab",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872663,
+        "lon": -6.965754
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8875cf8c-c0e2-4471-93de-0a570fc52408",
+      "name": "Brasería Acro Tapería",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883516,
+        "lon": -6.994256
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:88e7f450-48e8-47ec-a421-bff8ea6f3876",
+      "name": "Kebab Rock And Roll Pizzería",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870327,
+        "lon": -6.977852
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8949fc0f-db72-45ce-8701-83a0ca937281",
+      "name": "Cafe Latino Badajoz 1997",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.870123,
+        "lon": -6.984543
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:89abed9b-1cb5-463f-a85a-368530d0c156",
+      "name": "Bar Méndez",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877192,
+        "lon": -6.961007
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:89c934f7-7bc6-4923-9f84-0a0a705c6919",
+      "name": "Xare-Lo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865944,
+        "lon": -6.983071
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8a284d98-3adb-496c-a470-6824db4daaf8",
+      "name": "Restaurante-Venta El Horno",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867472,
+        "lon": -6.953805
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8bc5240e-97de-47b2-a23c-3b59e8d1870c",
+      "name": "Tapería Lega",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.86664,
+        "lon": -6.982017
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8c7dcd29-37ef-4345-865f-8e0f5d9318a7",
+      "name": "Badabronx",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.877651,
+        "lon": -6.969265
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8ea066e4-0728-4002-84e1-761a322f8ea3",
+      "name": "Cafeteria UEX ILM - Rectorado Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.865528,
+        "lon": -6.979449
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8eabb7fa-1874-4a17-b9dc-a0778e80b3e2",
+      "name": "Muerde La Pasta",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:8f0c960c-a9b3-4239-9179-b2de80f24946",
+      "name": "El Mesoncito",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.886158,
+        "lon": -6.982617
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9015c9df-1771-45a3-81d0-d8af951b89c2",
+      "name": "El Tejaillo C.B",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.886656,
+        "lon": -6.98149
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:929ebbde-1f7b-476e-b78e-cff64ee28aff",
+      "name": "Café Bar El Campeón",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.868679,
+        "lon": -6.977119
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:92ce8813-d432-4bad-9e06-8392e6459627",
+      "name": "Cafeteria PCTExtremadura",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:92ece9d8-23f2-42b9-ad0c-b9af54cf8493",
+      "name": "Rainha Da Fronteira",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870541,
+        "lon": -6.990076
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:93a96bd9-8302-47dd-8144-90085ff304eb",
+      "name": "Bar Top 51",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869967,
+        "lon": -6.970551
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:93e44508-d814-4cac-a765-74e2d7b29a13",
+      "name": "Café y Tartas La Galería",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.872297,
+        "lon": -6.976915
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:94838183-8d82-4981-bd32-34765d66cd4b",
+      "name": "Italian Outlet",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878641,
+        "lon": -6.953045
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:94c2b969-5732-4cbe-baf1-51d847561785",
+      "name": "Blackqueenshisha - Estanco 34",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870802,
+        "lon": -6.966544
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:96e26a1b-1a28-44e5-a1ae-ec18818d0d55",
+      "name": "Bokatines Badajoz.",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.866995,
+        "lon": -6.986582
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:96e91636-58d1-443e-bf55-fe0bcf50b7b5",
+      "name": "Freiduria la Mar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869967,
+        "lon": -6.985074
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9835351c-81e3-4046-b4c0-36a42d679376",
+      "name": "Restaurante Morgado",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882444,
+        "lon": -6.991203
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:988418af-d090-4818-97b0-d1bdd46f7a9c",
+      "name": "London Café Don Benito",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878708,
+        "lon": -6.97019
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:98b21647-f320-4bf3-9a50-67bbddd8476d",
+      "name": "Mesón Los Cotos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875593,
+        "lon": -6.95841
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:98bb1896-838d-4270-914f-7b6f2ab8ebd9",
+      "name": "McCafé",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.866701,
+        "lon": -6.98176
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:993d0ebc-ff4c-46e6-877f-ccf73e390231",
+      "name": "Con 2 Huevos. Lo que quieras.",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.844252,
+        "lon": -6.96819
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:99fb9fbf-341c-4481-bd88-e387fc7c9809",
+      "name": "Bar-Taperia El Antiguo Farol",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878874,
+        "lon": -6.971879
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9a71d724-d0d6-4cc2-ba0a-fb2abebc6073",
+      "name": "Cervecerías La Sureña y 100 Montaditos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883429,
+        "lon": -6.994655
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9a95b624-71be-49d9-b18e-33ce3890e262",
+      "name": "La Nave Airsoft Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.897884,
+        "lon": -6.987992
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9b03a33e-6bf7-4fd5-99b1-09b1e9eac9eb",
+      "name": "Gastrotapa Dorai",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875971,
+        "lon": -6.97458
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9bd36e20-1946-4922-be5f-86c66dbb55b1",
+      "name": "Telepizza Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.891958,
+        "lon": -6.986255
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9bd48ff8-fa02-4cbc-916d-40fee1143558",
+      "name": "Voodoo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880966,
+        "lon": -6.970224
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9c033053-d2c7-47d5-98cc-c6ca6dabd1d5",
+      "name": "Cerveceria-Restaurante Sanxenxo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872065,
+        "lon": -6.976141
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9c3b0f9a-20a9-427f-bd70-bfef3b2e79d3",
+      "name": "Tapería Ascarza",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887987,
+        "lon": -6.996454
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9d1760b8-a21d-4d2f-af78-5dc364936503",
+      "name": "Mesón San Vicente, Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876869,
+        "lon": -6.975332
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9d625eaf-c787-4efe-9e59-02317d47eac1",
+      "name": "Restaurante Banderas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870474,
+        "lon": -6.99127
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9d97913c-8349-45e4-beb9-ecdc7318c69f",
+      "name": "Restaurante Fonso",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868101,
+        "lon": -6.985731
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9d9c428d-ea1c-479d-862d-1308f3eab05a",
+      "name": "Floco Original Coffee",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.872759,
+        "lon": -6.977072
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9dd11435-64a0-4cba-80e3-4dee1ebb838d",
+      "name": "Domino's Pizza",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8671,
+        "lon": -6.986514
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9e00b1e7-337b-42a4-9967-ed6637dd9d68",
+      "name": "Mesón Restaurante la Cepa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882704,
+        "lon": -6.996094
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9e494325-2b36-46fb-9e66-f6db02dd430a",
+      "name": "The blue parrot",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869244,
+        "lon": -6.988456
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9e4f7d31-f5bb-4a69-8d19-554afbe09d5b",
+      "name": "Cafe-Bar El Chinchorro",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.869652,
+        "lon": -6.969748
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9e8c4b05-4b21-40bc-8cec-146f652b682f",
+      "name": "Terraza EOS",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883278,
+        "lon": -6.983524
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:9f40c0ee-ad0d-4e7d-b06a-e0ba188affe2",
+      "name": "Churrería Cafetería Inma",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873718,
+        "lon": -6.978791
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a04747f3-da93-4e77-8812-14dbc7a024e6",
+      "name": "Bar King Doner Kebab",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870068,
+        "lon": -6.98925
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a11312eb-2d84-4673-bb31-34980d7e64a4",
+      "name": "El Farol",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880201,
+        "lon": -6.94162
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a14a2040-4d42-4430-b0cd-729a5552c7fb",
+      "name": "Las Nubes Café",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872601,
+        "lon": -6.974981
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a15d000d-d66f-417a-ab08-b0d763efd1c7",
+      "name": "Comecon II",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.89469,
+        "lon": -6.997883
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a280de64-ad97-423a-b9ac-ee36de7acd85",
+      "name": "Wok Asador",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884506,
+        "lon": -7.019985
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a2a38b43-ded9-4e18-b7e3-d6930d3308e3",
+      "name": "Cervecería, Chin Chin",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a33250c4-bfda-46ab-9a5f-edb5114e937c",
+      "name": "Restaurante Carnívora",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884592,
+        "lon": -6.986953
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a3a17896-3abb-4cb6-82df-bb56b43b1407",
+      "name": "Vertice by Quitapenas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870567,
+        "lon": -6.987397
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a4b85fbe-a701-4a7e-acb1-185f0d5dc2ca",
+      "name": "BAR SEIJAS",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.862118,
+        "lon": -6.95319
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a4da7111-3c6d-4606-904b-7b4228c1e7a3",
+      "name": "Discoteca Jaima",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883688,
+        "lon": -6.992565
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a5f9ba3e-97df-4578-b501-f996aff12771",
+      "name": "Bar \"El Mesoncito\"",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.864674,
+        "lon": -6.995759
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a6708896-c15c-4eec-a8c1-9ed193c074d2",
+      "name": "Restaurante Casa Julia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.856953,
+        "lon": -7.03843
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a70ee666-d199-43ee-89ac-653d7aa6b765",
+      "name": "El Asador",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878359,
+        "lon": -6.952205
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a710bbab-fc6e-4f80-b05f-7e5064c8f357",
+      "name": "Mesón San Miguel",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873106,
+        "lon": -6.947347
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a75dd8e0-505e-452f-aca7-ebda53ed41ea",
+      "name": "Bar Vicente y Tetin",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871458,
+        "lon": -6.989269
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a7c68e8d-d92f-48c0-b32f-703af28b28fb",
+      "name": "Bocaditos y tapas centro comercial conquistadores",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a7f4d1ac-83f8-4098-9d70-8732a2d95e0d",
+      "name": "Cerveceria El Pilar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866919,
+        "lon": -6.983584
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a8a3c572-f514-4c6f-8a33-158ce523e950",
+      "name": "Café Bar A Tu Gusto",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887062,
+        "lon": -6.98318
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a8d23e3a-bc41-49f7-900a-f99f8bada1d1",
+      "name": "Bidaia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878561,
+        "lon": -6.97046
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a930cea4-f2fe-44e3-87b8-e852930e1969",
+      "name": "Cafe bar custom tino",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.871889,
+        "lon": -6.96823
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a93b0a40-afde-46fd-87ba-7169856b3e01",
+      "name": "La Cascada",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878428,
+        "lon": -6.971
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a93c02bd-73ad-4a08-b8c9-02464a666b98",
+      "name": "La Gastroventana Sake Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.882126,
+        "lon": -6.972875
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a9a12a41-2470-4255-81d2-bf5a45ba0d51",
+      "name": "Wok Buffet",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883352,
+        "lon": -6.996916
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a9d0c171-cb42-499d-88af-505a8e97c833",
+      "name": "Mogambo",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.869104,
+        "lon": -6.986298
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:a9d1f6c9-649d-4ea9-937d-f8a5c8d371e5",
+      "name": "Bar de Felipe",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879627,
+        "lon": -6.957715
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:aa335a3a-75df-4f41-b64e-84fc4abc1b3a",
+      "name": "La Mafia se sienta a la mesa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880136,
+        "lon": -6.975044
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:aab4ff94-070b-4dc3-a5ce-87181f2da26e",
+      "name": "100 Montaditos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871958,
+        "lon": -6.976653
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ab95d7c6-eb55-4b97-b646-69ba6f0d5c4e",
+      "name": "Café-Bar El Viejo Verano",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.867472,
+        "lon": -6.98402
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:abbed501-3ad2-45ec-a655-690f22f60e80",
+      "name": "El Malecón Mojitos Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871778,
+        "lon": -6.98722
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ad354f87-f471-45fd-a2fc-dfcbe4a4665d",
+      "name": "Cafe Bar Elite",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.898409,
+        "lon": -6.99771
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ad3f7b6d-2835-47e9-96b7-382c41e37665",
+      "name": "Jungla Magic",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.899258,
+        "lon": -7.000918
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ad42fd1a-b905-40a0-b53b-48ca9522524a",
+      "name": "Cafetería de Angelito",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.861898,
+        "lon": -6.973486
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:aedeaf30-ff3a-4909-a4b1-7cc2de14a267",
+      "name": "Cafetería Bombón",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.886354,
+        "lon": -6.984895
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:af0fe782-5fb6-41ae-8923-6aa79258639b",
+      "name": "Pizza Star Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885916,
+        "lon": -6.983172
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:af778761-13da-4993-afbe-0d51c8f1d195",
+      "name": "El Chiringuito Del Parra",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879013,
+        "lon": -6.975782
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:af893a01-a9a9-44de-9abd-b334334f1af6",
+      "name": "Telepizza Badajoz Almendro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879396,
+        "lon": -6.951384
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:afa1bf58-cd46-4d54-baba-f3b9145a687f",
+      "name": "Bar Los Pozos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887556,
+        "lon": -6.978382
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b09921a5-e703-40a2-94ce-65bb0695b656",
+      "name": "Churrasqueira Calipole",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865482,
+        "lon": -6.989882
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b0f710bb-fb8e-4435-8d2c-49532bdbdb2c",
+      "name": "Restaurante La Taskita de Luz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870157,
+        "lon": -6.984759
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b12dc840-5759-44ca-acf8-4bec3c8e44c3",
+      "name": "Cantillana café, copas & más",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.919291,
+        "lon": -6.943546
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b169951b-3e73-4ffa-9570-d1e526a08f3c",
+      "name": "Restaurante-Asador \"El Rocio\"",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878902,
+        "lon": -6.9669
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b171a30c-e539-40f9-ae71-6743b1751fea",
+      "name": "Café Bar El Lago",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.885271,
+        "lon": -6.977511
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b19d2093-9b66-4356-8f03-dc9b5c070fc5",
+      "name": "Casa Domingo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885368,
+        "lon": -6.990901
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b1aafaab-18c1-4550-894e-4bb164e55aec",
+      "name": "La Apuesta De Pilo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882019,
+        "lon": -7.002462
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b252e80e-02b6-4f99-b0c6-0a1a49d230cf",
+      "name": "Kiosko_silva",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878988,
+        "lon": -6.9672
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b29753a1-ab27-45d1-b45c-fd50a9f43d44",
+      "name": "BotanicBadajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87818,
+        "lon": -6.968592
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b4a87e20-d6f0-4bd3-9bbd-f6b541575901",
+      "name": "Puertatrece",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880817,
+        "lon": -6.976574
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b4fa126f-8607-4d8b-90b3-e997f2320abd",
+      "name": "Bar El Nuevo Lazo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874035,
+        "lon": -6.950931
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b54742a4-3239-4459-bc37-1ec86cf07448",
+      "name": "Tifanys & Café Terraza Bar",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.880178,
+        "lon": -6.97568
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b54f2d88-81df-4bbc-bd69-518b8cf9d819",
+      "name": "Cronicass Carnivoras Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869793,
+        "lon": -6.985444
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b56611bd-a6fe-486a-8dbd-2bf9d6bfeb08",
+      "name": "Ginos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885082,
+        "lon": -7.01989
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b688163e-48ea-4de4-b6c6-e56350a37fa4",
+      "name": "Rebai carrefour la granadilla",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871807,
+        "lon": -6.982185
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b6e2b559-5edb-479e-9b45-9192227b9cda",
+      "name": "Tiempos Modernos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870502,
+        "lon": -6.976039
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b75d5d1d-1369-45e4-9a66-146d9d7c6ce1",
+      "name": "Dorado Lounge",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.8804,
+        "lon": -7.031446
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b7ba16ee-583e-49ed-aeeb-d51add685624",
+      "name": "La Plazuela Café Bar",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878277,
+        "lon": -6.953805
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b837abd5-f5df-4768-bf2d-0a363af08971",
+      "name": "Foster's Hollywood",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868404,
+        "lon": -6.987657
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:b9bb9443-c4a7-4250-b070-008e064d07f6",
+      "name": "Mesón La Piedra",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.871571,
+        "lon": -6.991854
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ba0f363e-b872-4c36-88b9-1fd83dce0d2a",
+      "name": "LaPerraGorda",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878178,
+        "lon": -6.97082
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ba5d48b6-de96-47a0-bb1f-c30ea1c6bd0d",
+      "name": "Floco Original Coffee",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.86816,
+        "lon": -6.987532
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:baabb7a6-3541-4f63-83ea-02987a77d0cc",
+      "name": "Monal Tandoori Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.86982,
+        "lon": -6.98807
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bb11c181-766d-4bac-9509-abb41ec13f37",
+      "name": "Cerveceria Gambrinus",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870678,
+        "lon": -6.97102
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bb26e7a4-4c4f-485c-bce8-c1748ab9aa65",
+      "name": "Pollería El buen gusto",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.874392,
+        "lon": -6.97762
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bd465a77-00e9-4347-970e-8ed3036d0db7",
+      "name": "Bar Churrería Luz María",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.890337,
+        "lon": -6.983411
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bd47c571-7658-43b3-855b-af9cda1444f7",
+      "name": "Cafetería churreria Leitón",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.887989,
+        "lon": -6.985411
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bd74db63-8d75-41d9-be0a-f83e15ff5556",
+      "name": "LisbonB - Restaurant - Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883631,
+        "lon": -6.992902
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:be6399b9-84cd-402e-90e5-04dd58b9ea37",
+      "name": "Chatnoir Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879883,
+        "lon": -6.971535
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bf4c8f86-fe29-43e3-9d9c-5cf9a8e620c1",
+      "name": "Sevilla",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874735,
+        "lon": -6.986372
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bf55b167-668d-46fd-bd7b-9ee5643c7d75",
+      "name": "Guiñol Café - Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870457,
+        "lon": -6.976199
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bf6db9ac-969a-4332-829b-d16f491cb6a0",
+      "name": "Cafetería Vaquerizo",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.872925,
+        "lon": -6.959858
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:bfd1dc41-acca-4946-8f97-7e57f9a5246f",
+      "name": "Bar Nuevo Lisboa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878771,
+        "lon": -6.969428
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c023c47c-d95e-451c-abae-0271af065f46",
+      "name": "100 Montaditos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.884348,
+        "lon": -7.02051
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c0a5ddb4-3467-4469-bd5d-9f875cb148ce",
+      "name": "Ku Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875471,
+        "lon": -6.97077
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c2f1a0b0-743d-430a-aea5-fe8d673c89e2",
+      "name": "Mercería Yolanda",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867197,
+        "lon": -6.977425
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c40d67f7-c903-44b2-a3ed-cca9c434eaaf",
+      "name": "Restaurante La Tagliatella",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884701,
+        "lon": -7.022156
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c417d204-2ae6-4445-ad54-d99ee655b15d",
+      "name": "28 Lunas Del Jarama",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.874832,
+        "lon": -6.97272
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c4be8c3b-0a3b-4eed-ad9f-3d0cb721aa73",
+      "name": "Cafe bar alfonso",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.887239,
+        "lon": -6.979218
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c4cea847-f5bd-4cc1-a88f-6f016e80b76e",
+      "name": "Cervecería El Mercado",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873518,
+        "lon": -6.976873
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c6353ce5-3cc7-4c31-b1d8-6176f4e58abf",
+      "name": "Restaurante Tesoros Piratas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883034,
+        "lon": -6.934052
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c63d72c1-cb55-4a64-a72a-784fd7a8c0dc",
+      "name": "Braseria Casa Domingo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.894196,
+        "lon": -6.994642
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c7033b23-1e23-40d6-85dd-7631244365ff",
+      "name": "El Laurel Comidas Vino's",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865921,
+        "lon": -6.985474
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c742ea85-a62a-4215-96d1-4e3877760044",
+      "name": "Crisol Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870108,
+        "lon": -6.987151
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c7712308-d68f-4cf9-aa1f-6ee0f4fb2dcb",
+      "name": "Ohh Cielo Badajoz",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.883589,
+        "lon": -6.994736
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c7cb50e7-2c81-4ec0-9318-6af8db75e927",
+      "name": "Luzia Cocina Bar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880136,
+        "lon": -6.973055
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c8826a40-37ea-4c73-acca-b62c0c5592f5",
+      "name": "La Fenêtre",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87009,
+        "lon": -6.973054
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:c8efd5b3-4678-4f81-afad-d655f31d7148",
+      "name": "Bar Polideportivo Pardaleras",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871941,
+        "lon": -6.965233
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cab0c51a-9ebf-4821-b2b2-fb5adc6b7733",
+      "name": "Wyco Restaurants Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872746,
+        "lon": -6.989822
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cb191dcd-30e2-4771-9528-d4d7e06f1685",
+      "name": "Restaurante Badamar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872597,
+        "lon": -6.977348
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cb7825f6-9ba4-4af9-95d0-1737c563a99f",
+      "name": "Cervecería Cruz Blanca",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883392,
+        "lon": -6.994831
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cb93d9bc-5087-4cd3-bc05-575306bdc1b0",
+      "name": "POMODORO Pizza Pasta Burritos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885115,
+        "lon": -7.019653
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cbf37630-f8d1-4d02-b652-cb984afad8ff",
+      "name": "El boquerón de plata 2.0",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.864149,
+        "lon": -6.94262
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cc2cd3d3-2f51-4a5d-afbb-86ef5d1085eb",
+      "name": "McCafé",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878677,
+        "lon": -6.945783
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cc896da5-691b-4dce-85af-968dde5ac1a1",
+      "name": "Lizarran",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.884043,
+        "lon": -7.020476
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ccef1a5b-5a7a-43e8-b0a7-0495cc73a23a",
+      "name": "Patio San Eloy",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872982,
+        "lon": -6.97522
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ce58073a-0140-4ac0-91ce-cfa12675f425",
+      "name": "El Cano Bar Moran II",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.868298,
+        "lon": -6.96034
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:cf1d4620-8869-4794-bc53-a342e6dba3a8",
+      "name": "CAFE BAR Bucheta",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.886753,
+        "lon": -6.987373
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d133585a-2eb7-4716-bb1b-06a6c1ee94ed",
+      "name": "Cervecería Sabbor",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883543,
+        "lon": -6.993188
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d18bebf2-74a0-46d6-985c-26b9df104760",
+      "name": "O Sole Mio",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876743,
+        "lon": -6.976829
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d2c3d18a-9d90-4744-aba9-b58dad4bd409",
+      "name": "Bar Carlos",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.878416,
+        "lon": -6.971611
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d3808f51-f054-46d4-8760-540caf2e4308",
+      "name": "Restaurante Los Palacitos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.913767,
+        "lon": -6.948749
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d3b1167f-1b90-4fd8-a8b1-0df951ea9aa0",
+      "name": "Toma Pan Y Moja",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878902,
+        "lon": -6.9669
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d3c6db51-4506-4025-9d46-fa3255f778d8",
+      "name": "Olha A Bica",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.882818,
+        "lon": -6.99181
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d46de67e-4e6b-4d51-928f-bf389114a9bb",
+      "name": "Flidais",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.886183,
+        "lon": -6.994591
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d47b788c-fff3-4dc6-8a4b-00bd8993150f",
+      "name": "Cafetería Churreria Principe",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871468,
+        "lon": -6.98918
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d52fc5e8-5c34-4682-8879-e4649de8eed1",
+      "name": "Bar Doypa",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879198,
+        "lon": -6.955608
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d56a90a6-5d65-4a4e-b711-090b4d304952",
+      "name": "Babilonia",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.869595,
+        "lon": -6.988546
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d59c5445-116d-4bce-baf8-bb781dce2fd5",
+      "name": "Braseria Sabbor",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.864632,
+        "lon": -6.99099
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d5a3c950-9eb4-4573-81d6-3fa6a5f2d292",
+      "name": "Bar Miguel",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87084,
+        "lon": -6.977204
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d61d1b37-9a2a-4afa-9a81-f64bee784090",
+      "name": "Muxu café y copas",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877745,
+        "lon": -6.966756
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d7437f86-7017-4c3a-a33e-5714fe62852c",
+      "name": "Restaurante La Candela",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.86664,
+        "lon": -6.982017
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d874c6c6-a9a3-4d8d-8ca8-11f9907091a0",
+      "name": "Restaurante Palomo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866465,
+        "lon": -6.983752
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d9714e90-47a4-465c-9ac2-2447b286c88a",
+      "name": "El asador del tio fran",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87122,
+        "lon": -6.967955
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:d9c7ab9d-8b11-4941-a600-469a117dd467",
+      "name": "Caesura Gastro-sala",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879864,
+        "lon": -6.971461
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:da9187e9-828c-4384-98d8-ca2f6b76f37a",
+      "name": "Cafe Bar Canarias",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.8878,
+        "lon": -6.980695
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:dabb49a0-d8a6-4ed0-8c54-cc89b8a8c8fb",
+      "name": "Bar Restaurante la Granadilla",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871664,
+        "lon": -6.991686
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:db226b35-912f-40eb-ba0f-f33da303aaef",
+      "name": "La Boheme",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.872385,
+        "lon": -6.98711
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:db535f56-a068-4325-8d1f-d0301f5c5af0",
+      "name": "Muerde La Pasta",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.884436,
+        "lon": -7.020704
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:db53d97b-6ca7-4f61-8a99-d182a398e132",
+      "name": "Terra Celta",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.862743,
+        "lon": -6.96312
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:db69fa99-f172-43a0-b1a5-71bdcbcfaee3",
+      "name": "Moloko",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.877417,
+        "lon": -6.969708
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:db92793f-a9df-4b44-aca2-438c9e913a51",
+      "name": "Restaurante Tucán Wild Food",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868187,
+        "lon": -6.985
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:dc0e63ab-a461-4d46-8b31-72232791587d",
+      "name": "Restaurante-bar Salto Ángel",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874832,
+        "lon": -6.97272
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:dcac3c49-4c87-44c1-8e83-311694a70116",
+      "name": "Diverxus",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869997,
+        "lon": -6.970507
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:dcbdb76c-17da-482b-9b8d-7af54ebd1467",
+      "name": "AquÍ Se Puede",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877274,
+        "lon": -6.971566
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:df48e915-d44a-41c0-bd7c-73b6a12086e6",
+      "name": "Restaurante Ka'Maty",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871122,
+        "lon": -6.991302
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:df66a507-316b-4b65-95a8-c3f7aedcdda0",
+      "name": "Bar La Corchuela",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878887,
+        "lon": -6.970975
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:dfd7cc3d-5ce8-4d24-8778-3d38775b03d8",
+      "name": "Taberna La Casona Alta",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.881077,
+        "lon": -6.968153
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e0145bd6-c7af-475d-86f6-12dccc358369",
+      "name": "Restaurante Drómo Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866407,
+        "lon": -6.985881
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e09338c5-c75f-40cc-89a1-a6d2da693896",
+      "name": "Cerveceria Campañon",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883392,
+        "lon": -6.99024
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e0a3e197-01e0-4c8c-8c84-0caa3c45fe37",
+      "name": "Cafetería-churrería Cafechu",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876152,
+        "lon": -6.974524
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e0bc9b88-fb7a-435a-b830-7ad5442eb039",
+      "name": "Flidais",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.883621,
+        "lon": -6.993805
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e1ab33cd-57ea-440f-bebd-91b1afd09d57",
+      "name": "Churrería Cafetería Santamarina , Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.868546,
+        "lon": -6.968088
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e2d67ef1-0e60-4e8e-bc3e-e415cadb0383",
+      "name": "McCafé",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.882399,
+        "lon": -6.99611
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e309a970-00cc-4ea3-aecb-dff1c3d543f7",
+      "name": "Clovers S.L",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.882538,
+        "lon": -6.99469
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e342ba03-032b-4ef0-a638-50d95f82e740",
+      "name": "Freiduria La Mariquina Restaurante",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882019,
+        "lon": -7.002462
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e35aca0c-8822-48e8-b7c2-199da50a5511",
+      "name": "Cafeteria bar puente real",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.871889,
+        "lon": -6.96823
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e3f2a52c-5dc5-4352-94c2-c922526497a6",
+      "name": "Chuches Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8654,
+        "lon": -6.986455
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e3f47da1-8e49-41e0-a7c4-9e36515dda14",
+      "name": "Tierra Nuestra",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.86709,
+        "lon": -6.991009
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e46a11d9-270d-47e7-aa29-9fcdcdfeaaea",
+      "name": "Restaurante Juanillo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882658,
+        "lon": -6.995141
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e544e8f7-6e69-4856-a7c7-62b39832a159",
+      "name": "Origen Bouquets House",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865923,
+        "lon": -6.980027
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e59c7186-0ca7-44e3-8a8b-44109fae37e8",
+      "name": "Taberna El Albero",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887613,
+        "lon": -6.983566
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e5adc731-8b66-4c73-980e-17d38edbe7d3",
+      "name": "El Horno De Crisol",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.864632,
+        "lon": -6.99099
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e66ceb82-22d0-4ef2-ac77-4d136fa4d556",
+      "name": "CAFE BAR El Leñador",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.85881,
+        "lon": -6.97424
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e67bbd1e-401d-4a4c-a4e3-ea5d45e229c7",
+      "name": "Kenia Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.879164,
+        "lon": -6.970781
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e68dc5b0-35ff-4ac9-be27-bdf25292f165",
+      "name": "Restaurante El Boquerón De Plata",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872541,
+        "lon": -6.977344
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e6e4fdf6-9c8d-4b43-ab0f-5a0bbec7bfb2",
+      "name": "Durán Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870609,
+        "lon": -6.953183
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e786b5ca-077c-42dc-bb69-6fbef70f99e0",
+      "name": "Mesón Los Gemelos Mundi",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878531,
+        "lon": -6.951684
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e7a6542c-efed-4811-864f-bc6cb8909810",
+      "name": "San Fernando Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.882544,
+        "lon": -6.987043
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e8316ff0-1d93-42e4-9d89-e4cbfb71792a",
+      "name": "Cerveceria freiduria la caleta",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878531,
+        "lon": -6.950704
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e8585058-4195-4bb0-a4d6-1e2ffb58b122",
+      "name": "Taperia-Bar RIACE",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887356,
+        "lon": -6.981379
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e8a6a75a-389c-4c19-8289-98f7a8a56499",
+      "name": "Restaurante La Clásica",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87855,
+        "lon": -6.971328
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e90c37a6-4b12-4669-b572-f114f383af00",
+      "name": "Cervecería Restaurante Almadraba",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867651,
+        "lon": -6.984273
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:e93427f5-5736-4fd8-8efe-3d55e1e168b4",
+      "name": "Pub La Buhardilla",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871691,
+        "lon": -6.976584
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:eaa57b07-7c78-41c0-b93c-697b8526bd05",
+      "name": "Mesón El Chozo Extremeño. Carnes a la brasa.Comida extremeña",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887102,
+        "lon": -6.979261
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:eab832c8-ec9f-4489-926e-dbaf1e768b49",
+      "name": "Bar El Viejo Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873013,
+        "lon": -6.976894
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ead3a5e4-a94d-42cd-a71f-1e99c3ce37e9",
+      "name": "Sí, Cariño - Social Club",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.879322,
+        "lon": -6.97015
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ec658520-d96c-4d3d-a52e-e8777993672a",
+      "name": "Sotoca",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876568,
+        "lon": -6.975475
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ed2055ab-72e4-48b3-9353-97d3703f0e43",
+      "name": "Pizzeria Restaurante El Padrino",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883535,
+        "lon": -6.994627
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ed54d18f-5335-4d71-86ba-10840f7aacad",
+      "name": "Restaurante Simbo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869287,
+        "lon": -6.987288
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:edeb8fde-4e87-4d1d-8895-85b4c7ae584f",
+      "name": "Restaurante A Casa do João",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865259,
+        "lon": -6.985934
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:eded8f7e-4e98-4928-8d2c-48840815e396",
+      "name": "Cafetería Churreria Principe",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865479,
+        "lon": -6.984242
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ee2e9340-bf25-4a09-ab92-aed32c731ecc",
+      "name": "Restaurante la Marmita",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866806,
+        "lon": -6.983297
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ee9eae41-ae5d-46cf-9657-4685bf0cfb98",
+      "name": "MESON Los Monteros plaza de santo domingo.8",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880936,
+        "lon": -6.955066
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ef5c20bc-2655-4d46-91cb-5baca9a9d195",
+      "name": "La Bistrológica",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867571,
+        "lon": -6.984184
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ef7495f3-e7d8-4f0a-9c8f-eb9c896150ef",
+      "name": "Chef Cordeiro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868189,
+        "lon": -6.985751
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:efbc9b58-4071-4d53-9783-c0a0b0f24802",
+      "name": "Caile Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871944,
+        "lon": -6.976346
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:efe5e8a0-b1e9-4819-b82c-12a4a343323f",
+      "name": "Cafetería Bar la clave",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869558,
+        "lon": -6.97885
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f057685c-6076-4780-b529-2ebbf7bf9b53",
+      "name": "El Capitan",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871534,
+        "lon": -6.95867
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f0a81ab1-0cc9-498c-8a8d-9cee053c2f0c",
+      "name": "Altiviri Bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877859,
+        "lon": -6.96828
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f176ac60-f9b6-455c-80e3-4b1e4177ebe5",
+      "name": "Restaurante Hora 25",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869198,
+        "lon": -6.977736
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f1be6fb0-27b0-4bce-9f63-932b6c4db5f3",
+      "name": "Vuelve La Moska",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873764,
+        "lon": -6.978799
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f2305565-b0be-4f51-9c68-ce9fc4f9ff4b",
+      "name": "Mesón El Abuelo, Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878094,
+        "lon": -6.970225
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f30fd619-ad74-4665-b720-78413e89b77f",
+      "name": "Bar Cafeteria Calzones",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875299,
+        "lon": -6.985225
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f3118744-7749-45da-85d6-48e0e49a77af",
+      "name": "Eliminar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.888083,
+        "lon": -6.981885
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f370b1e3-8a82-4682-b2f8-50441fe392e8",
+      "name": "Bar Los Candiles",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.88122,
+        "lon": -6.991264
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f3acb5e6-a4d1-4da4-9e55-2d9e1fe59dd0",
+      "name": "Bar Media Caña",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870523,
+        "lon": -6.983407
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f468f8d3-896c-4a04-8ea9-c8b91d9923fa",
+      "name": "Quimera",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87826,
+        "lon": -6.970865
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f4824177-4671-4df7-8a33-eaaa8cc10dca",
+      "name": "Abuela Justa Casa de Comidas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.874157,
+        "lon": -6.972792
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f51a8e25-a583-466d-8251-d0e563f08159",
+      "name": "Casa Dolores",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878162,
+        "lon": -6.9599
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f5409e43-da02-48a4-99db-ae4c5da87d93",
+      "name": "Renfe Cafeteria Restaurante",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.890053,
+        "lon": -6.982255
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f595f5f9-a91d-40b7-8513-788d102e7d1d",
+      "name": "Sal Pimienta Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867662,
+        "lon": -6.97394
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f5d67fd1-7e3d-4ebd-af64-b3b0c72e0f57",
+      "name": "La “Gastroventana” Luis M. Romero Durán",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873018,
+        "lon": -6.97191
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f61e6e94-1d46-458a-b694-11c01da7cce3",
+      "name": "MALAFAMA surfer bar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877962,
+        "lon": -6.968637
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f65a00fe-de90-4a40-8b9e-40880a29553d",
+      "name": "47gastrobar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875191,
+        "lon": -6.988577
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f7712fde-8379-4150-8196-62fbd7a0686c",
+      "name": "La Toscana Badajoz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878103,
+        "lon": -6.9727
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f7bddc68-d135-4e79-ab44-db67eb94a032",
+      "name": "Boca2",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870518,
+        "lon": -6.98512
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f80bbd1d-01ed-4a0c-8137-40824d08ff6d",
+      "name": "Popina",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872944,
+        "lon": -6.977714
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f83fa722-3712-4026-bcd7-1fde3c8621b0",
+      "name": "Healthy food",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868952,
+        "lon": -6.98745
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:f9300ad2-e07a-464b-8978-1b382fcf85dd",
+      "name": "Av sinforiano Madronero",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868258,
+        "lon": -6.987706
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fa3eee14-8ad5-4d76-ada7-6626f2988a39",
+      "name": "Mariquino",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883625,
+        "lon": -6.993248
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:faf86fa9-b653-4214-93bd-e4dd02518a18",
+      "name": "Pizza Pope",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866386,
+        "lon": -6.982769
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fb49f3e0-60ec-402a-b73b-477eca353e34",
+      "name": "Café-Bar Puntodencuentro",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.880108,
+        "lon": -6.97582
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fb9686e6-9b5f-483d-913f-5ddc3c5d711e",
+      "name": "BRASERÍA ACRO TAPERÍA",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.881725,
+        "lon": -7.007766
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fc2e6d91-b5c3-47f3-955f-9b754ca819c3",
+      "name": "TheBluesBrothers",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870684,
+        "lon": -6.976764
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fc300367-6e5f-40cf-9a02-89f9ee592e76",
+      "name": "Cafetería ITA",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.887608,
+        "lon": -6.97205
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fc660feb-9019-4d7f-a42f-fdd8f44f068a",
+      "name": "Complejo Sancha Brava",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.849562,
+        "lon": -6.966802
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fc93c2d3-79fa-45bb-a03e-b1070019bdcc",
+      "name": "Pollería El Buen Gusto",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877777,
+        "lon": -6.980131
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fcb72d4c-a3fb-4cc5-b751-b5aab70dfd45",
+      "name": "Restaurante Matahambre",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881935,
+        "lon": -6.993131
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fd2c857c-dd59-4c30-bd14-7ddb00cfdb2f",
+      "name": "珍寶飯店",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869257,
+        "lon": -6.987273
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fd3e47d8-910c-4bfb-81c6-415c4059380d",
+      "name": "Cafe-Bar-David",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877092,
+        "lon": -6.953697
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fdb7e960-c186-4258-80d5-134d8146c809",
+      "name": "Bar Restaurante Venta Don José",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.887802,
+        "lon": -6.920833
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fdc4d9e6-6fea-482f-8664-774bebc2e2ac",
+      "name": "City Poke",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870047,
+        "lon": -6.988282
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:fe45ef75-09b0-4491-8880-de8298fbf440",
+      "name": "Cerveza La Espuma Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87969,
+        "lon": -6.970809
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "overture:ffdf223d-6c3d-49f6-95f7-301d127d65fd",
+      "name": "Bar Yocano",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870455,
+        "lon": -6.984322
+      },
+      "terrace": null,
+      "sources": [
+        "overture"
       ],
       "verified": null,
       "horizon": null

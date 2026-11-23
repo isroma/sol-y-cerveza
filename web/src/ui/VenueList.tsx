@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { demoValues, formatPrice } from '../demo/demo.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from './CategoryIcon.tsx'
@@ -11,6 +12,9 @@ type Props = {
   onSelect: (id: string) => void
 }
 
+/** Rows shown at first and added per "Ver más": the full list is hundreds long. */
+const PAGE = 40
+
 export function VenueList({
   statuses,
   total,
@@ -18,7 +22,9 @@ export function VenueList({
   selectedId,
   onSelect,
 }: Props) {
+  const [limit, setLimit] = useState(PAGE)
   const sunny = statuses.filter((s) => s.category === 'sun').length
+  const shown = statuses.slice(0, limit)
   return (
     <section className="results" aria-labelledby="results-title">
       <h2 id="results-title" className="results-title">
@@ -31,7 +37,7 @@ export function VenueList({
         <p className="empty">Ningún bar cumple los filtros.</p>
       ) : (
         <ol className="venue-list">
-          {statuses.map((status) => (
+          {shown.map((status) => (
             <li key={status.venue.id}>
               <button
                 type="button"
@@ -55,6 +61,15 @@ export function VenueList({
             </li>
           ))}
         </ol>
+      )}
+      {statuses.length > shown.length && (
+        <button
+          type="button"
+          className="more-button"
+          onClick={() => setLimit(limit + PAGE)}
+        >
+          Ver más ({statuses.length - shown.length})
+        </button>
       )}
     </section>
   )
