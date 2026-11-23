@@ -439,6 +439,18 @@ button {
   inset: 0;
 }
 
+/* The map and its pins form one layer, so every overlay after it in the DOM
+   (city, locate and zoom, toast, legend, error) stays above the pins. */
+.terrace-map {
+  z-index: 0;
+}
+
+/* Pins and the pin card live in the canvas container: keep them below the
+   map's attribution, too. */
+.maplibregl-canvas-container {
+  isolation: isolate;
+}
+
 .map-error {
   position: absolute;
   top: 50%;
@@ -557,8 +569,6 @@ button {
   position: absolute;
   right: var(--map-inset);
   bottom: var(--map-inset);
-  /* Above the venue pins, which are positioned in the map below. */
-  z-index: 10;
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
