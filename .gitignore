@@ -30,3 +30,7 @@ pipeline/.cache/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Cloudflare Worker local state and secrets
+api/.wrangler/
+api/.dev.vars
