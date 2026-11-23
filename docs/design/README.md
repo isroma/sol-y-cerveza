@@ -208,7 +208,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 
 ## 8. Map behaviour
 
-- **Opens** on the city overview (flat top view, zoom 13.8) at the current time.
+- **Opens** on the city overview (flat top view, zoom 13.8, north up) at the current time.
 - **Zoom drives the view:** flat top view up to zoom 14.5, easing into a 55° tilt by zoom 16. 3D buildings (drawn 1.4× taller) and their shadows only appear once tilted; the flat and mid-zoom views stay clean.
 - **Zoomed out**, only the 8 terraces in sun now with the most sun today are enlarged; everything else shrinks.
 - Footpaths and venue names appear only up close. The map never leaves Badajoz.

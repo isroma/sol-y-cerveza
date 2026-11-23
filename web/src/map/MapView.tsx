@@ -39,7 +39,7 @@ const INITIAL_VIEW = {
   center: [-6.978, 38.8725] as [number, number],
   zoom: INITIAL_ZOOM,
   pitch: pitchForZoom(INITIAL_ZOOM),
-  bearing: -18,
+  bearing: 0,
 }
 
 const MAP_LOCALE = {
