@@ -72,6 +72,18 @@ describe('App', () => {
     expect(screen.getByTestId('map')).toBeInTheDocument()
   })
 
+  it('lets the phone sheet grow and shrink', () => {
+    stubFetch(Response.json(sampleFile))
+    render(<App />)
+
+    const handle = screen.getByRole('button', { name: 'Mostrar más lista' })
+    expect(handle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(handle)
+    expect(
+      screen.getByRole('button', { name: 'Mostrar más mapa' }),
+    ).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('loads the venues from a relative URL', () => {
     const fetchMock = stubFetch(Response.json(sampleFile))
     render(<App />)

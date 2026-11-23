@@ -32,6 +32,8 @@ export function App() {
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Phones only: the bottom sheet under the map can grow to show more of the list.
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -102,13 +104,26 @@ export function App() {
     setMinutes(current.minutes)
   }, [])
 
+  // Picking a venue from the list shrinks the sheet so its map card shows.
+  const selectFromList = useCallback((id: string | null) => {
+    setSelectedId(id)
+    setSheetOpen(false)
+  }, [])
+
   return (
     <div className={night ? 'app is-night' : 'app'}>
-      <aside className="sidebar">
-        <header className="brand">
-          <Logo />
-          <h1>Sol y Cerveza</h1>
-        </header>
+      <header className="brand">
+        <Logo />
+        <h1>Sol y Cerveza</h1>
+      </header>
+      <aside className={sheetOpen ? 'sidebar is-open' : 'sidebar'}>
+        <button
+          type="button"
+          className="sheet-handle"
+          aria-expanded={sheetOpen}
+          aria-label={sheetOpen ? 'Mostrar más mapa' : 'Mostrar más lista'}
+          onClick={() => setSheetOpen(!sheetOpen)}
+        />
         <SearchBox value={query} onChange={setQuery} />
         <TimeSlider
           minutes={minutes}
@@ -138,7 +153,7 @@ export function App() {
             total={statuses.length}
             minutes={minutes}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectFromList}
           />
         )}
       </aside>

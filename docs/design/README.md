@@ -9,16 +9,16 @@ The reference for how Sol y Cerveza looks, sounds and behaves. Use it before add
 
 ## 1. Brand
 
-**Idea:** the terrace that still has sun. A friendly local guide that answers one question in one glance: *where can I sit in the sun with a beer right now, and for how long?*
+**Idea:** the terrace that still has sun. A friendly local guide that answers one question in one glance: _where can I sit in the sun with a beer right now, and for how long?_
 
 **Personality:** sunny, relaxed, local, precise. Warm like a Badajoz afternoon, but honest about the numbers: we show minutes of sun, not vague promises.
 
-| We are | We are not |
-| --- | --- |
-| Warm and light-hearted | Childish or jokey |
-| Local (Badajoz first) | Generic "city guide" |
+| We are                           | We are not                        |
+| -------------------------------- | --------------------------------- |
+| Warm and light-hearted           | Childish or jokey                 |
+| Local (Badajoz first)            | Generic "city guide"              |
 | Precise (real sun, real minutes) | Technical or data-heavy in the UI |
-| Calm, map-first | Loud, ad-like, cluttered |
+| Calm, map-first                  | Loud, ad-like, cluttered          |
 
 ### Name and logo
 
@@ -43,16 +43,16 @@ The app speaks **Spanish (Spain)**; the repo is English.
 
 **Glossary** (always these words):
 
-| Concept | UI copy |
-| --- | --- |
-| In sun now | Con sol ahora |
-| Sun within the hour | Sol pronto |
-| No more sun today | Sin sol / Sin más sol hoy |
-| Venue without a known terrace | Terraza sin confirmar |
-| Sun left | "2 h 5 min de sol" |
-| Sun until | "Hasta las 17:40" |
-| Sun coming | "Sol en 25 min" / "Desde las 14:57" |
-| Night | De noche |
+| Concept                       | UI copy                             |
+| ----------------------------- | ----------------------------------- |
+| In sun now                    | Con sol ahora                       |
+| Sun within the hour           | Sol pronto                          |
+| No more sun today             | Sin sol / Sin más sol hoy           |
+| Venue without a known terrace | Terraza sin confirmar               |
+| Sun left                      | "2 h 5 min de sol"                  |
+| Sun until                     | "Hasta las 17:40"                   |
+| Sun coming                    | "Sol en 25 min" / "Desde las 14:57" |
+| Night                         | De noche                            |
 
 ## 3. Colour
 
@@ -60,52 +60,52 @@ Colour carries meaning here: **yellow means sun**. Keep it for sun and for the o
 
 ### Brand and sun
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `sun` | `#F59E0B` | Sunny state, icons, gradients' deep end. **Never as text on white** (2.2:1). |
-| `sun-soft` | `#FFC53D` | Primary accents: slider fill, toggles on, selected chips, card border. |
-| `sun-dark` | `#B45309` | Sun-coloured **text** and small icons on light backgrounds (5.0:1). |
-| `chip` | `#FFC83D` | Selected chips and pills. Text on it is `ink` (10:1). |
-| `highlight` | `#FFF6E0` | Soft sunny surfaces: selected list row, sun box in the map card. |
+| Token       | Hex       | Use                                                                          |
+| ----------- | --------- | ---------------------------------------------------------------------------- |
+| `sun`       | `#F59E0B` | Sunny state, icons, gradients' deep end. **Never as text on white** (2.2:1). |
+| `sun-soft`  | `#FFC53D` | Primary accents: slider fill, toggles on, selected chips, card border.       |
+| `sun-dark`  | `#B45309` | Sun-coloured **text** and small icons on light backgrounds (5.0:1).          |
+| `chip`      | `#FFC83D` | Selected chips and pills. Text on it is `ink` (10:1).                        |
+| `highlight` | `#FFF6E0` | Soft sunny surfaces: selected list row, sun box in the map card.             |
 
 ### Sun states (map badges, legend, list icons)
 
 Every badge is a 160° gradient, light to deep, with a 2 px white ring.
 
-| State | Copy | Solid | Badge gradient | Size |
-| --- | --- | --- | --- | --- |
-| `sun` | Con sol ahora | `#F59E0B` | `#FFC53D → #F59E0B` | 100 % (highlighted when zoomed out: 112 %) |
-| `soon` | Sol pronto | `#F7C948` | `#FFF1B8 → #F7C948`, icon `#A16207` | 100 % |
-| `nosun` | Sin sol | `#9CA3AF` | `#C6CBD3 → #8B919C` | 78 % (56 % zoomed out) |
-| `unknown` | Terraza sin confirmar | `#B59A80` | `#DCC8B4 → #A88D73` | 78 % (56 % zoomed out) |
+| State     | Copy                  | Solid     | Badge gradient                      | Size                                       |
+| --------- | --------------------- | --------- | ----------------------------------- | ------------------------------------------ |
+| `sun`     | Con sol ahora         | `#F59E0B` | `#FFC53D → #F59E0B`                 | 100 % (highlighted when zoomed out: 112 %) |
+| `soon`    | Sol pronto            | `#F7C948` | `#FFF1B8 → #F7C948`, icon `#A16207` | 100 %                                      |
+| `nosun`   | Sin sol               | `#9CA3AF` | `#C6CBD3 → #8B919C`                 | 78 % (56 % zoomed out)                     |
+| `unknown` | Terraza sin confirmar | `#B59A80` | `#DCC8B4 → #A88D73`                 | 78 % (56 % zoomed out)                     |
 
 Rules: sunny badges always sit above grey ones; only sunny terraces are ever enlarged; taupe is reserved for "unconfirmed" so it never reads as "no sun".
 
 ### Neutrals (day)
 
-| Token | Hex | Use |
-| --- | --- | --- |
-| `ink` | `#1F2328` | Primary text (15.8:1 on white) |
-| `text-soft` | `#4B5563` | Secondary icons and controls |
-| `muted` | `#6B7280` | Secondary text, captions (4.8:1) |
-| `placeholder` | `#8A8F98` | Input placeholders only |
-| `line` | `#ECE7DF` | Dividers, borders |
-| `field` | `#F3F2EF` | Input and search fields |
-| `toggle-off` | `#E5E7EB` | Off toggles, empty tracks |
-| `surface-hover` | `#FAF8F4` | Hover on rows and buttons |
-| `bg` | `#FFFFFF` | App and card surfaces |
+| Token           | Hex       | Use                              |
+| --------------- | --------- | -------------------------------- |
+| `ink`           | `#1F2328` | Primary text (15.8:1 on white)   |
+| `text-soft`     | `#4B5563` | Secondary icons and controls     |
+| `muted`         | `#6B7280` | Secondary text, captions (4.8:1) |
+| `placeholder`   | `#8A8F98` | Input placeholders only          |
+| `line`          | `#ECE7DF` | Dividers, borders                |
+| `field`         | `#F3F2EF` | Input and search fields          |
+| `toggle-off`    | `#E5E7EB` | Off toggles, empty tracks        |
+| `surface-hover` | `#FAF8F4` | Hover on rows and buttons        |
+| `bg`            | `#FFFFFF` | App and card surfaces            |
 
 ### Night
 
 The whole app goes dark while the sun is down, graded by how deep the night is: **dusk** (sun just set) is a soft blue hour, **deep night** (sun 18° below the horizon) is the darkest. Values in between are mixed (`nightDepth`, `color-mix`).
 
-| Token | Dusk | Deep night |
-| --- | --- | --- |
-| `bg` | `#2D3348` | `#141826` |
-| `field` | `#383F56` | `#1D2231` |
-| `line` | `#434A62` | `#2A3043` |
-| `ink` | `#E8EAF0` | `#E8EAF0` (14.7:1) |
-| `muted` | `#9AA3B5` | `#9AA3B5` (7:1) |
+| Token   | Dusk      | Deep night         |
+| ------- | --------- | ------------------ |
+| `bg`    | `#2D3348` | `#141826`          |
+| `field` | `#383F56` | `#1D2231`          |
+| `line`  | `#434A62` | `#2A3043`          |
+| `ink`   | `#E8EAF0` | `#E8EAF0` (14.7:1) |
+| `muted` | `#9AA3B5` | `#9AA3B5` (7:1)    |
 
 Sun colours don't change at night; they glow on the dark map. Pins and slider knobs stay white.
 
@@ -113,17 +113,17 @@ Sun colours don't change at night; they glow on the dark map. Pins and slider kn
 
 Apple Maps-like and warm. The map is the stage, not the star: low contrast, so the badges pop.
 
-| Layer | Hex |
-| --- | --- |
-| Land | `#F6EEE2` |
-| Residential | `#F1E5D2` |
-| Buildings (flat) | `#F0E4D3`, outline `#E5D5BF` |
-| Buildings (3D) | `#F4E6D0` |
-| Parks | `#CDE5AE` |
-| Water | `#9ACBEF` |
-| Streets | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`) |
-| Shadows | `#6B5848`, 0 → 0.6 opacity as the view tilts |
-| Labels | `#7A6B55` / `#8A7B66`, water `#4D8BC4` |
+| Layer            | Hex                                           |
+| ---------------- | --------------------------------------------- |
+| Land             | `#F6EEE2`                                     |
+| Residential      | `#F1E5D2`                                     |
+| Buildings (flat) | `#F0E4D3`, outline `#E5D5BF`                  |
+| Buildings (3D)   | `#F4E6D0`                                     |
+| Parks            | `#CDE5AE`                                     |
+| Water            | `#9ACBEF`                                     |
+| Streets          | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`) |
+| Shadows          | `#6B5848`, 0 → 0.6 opacity as the view tilts  |
+| Labels           | `#7A6B55` / `#8A7B66`, water `#4D8BC4`        |
 
 Night map palettes: see `DUSK` and `NIGHT` in `web/src/map/night.ts` and [`tokens.json`](tokens.json).
 
@@ -131,15 +131,15 @@ Night map palettes: see `DUSK` and `NIGHT` in `web/src/map/night.ts` and [`token
 
 One family: the **system UI font** (SF Pro on Apple, Segoe UI on Windows, Roboto on Android), with Inter as the web fallback. Map labels use the basemap's Noto Sans.
 
-| Style | Size / weight | Use |
-| --- | --- | --- |
-| Display | 30 px / 800 | App title "Sol y Cerveza" |
-| Clock | 24 px / 700, tabular numbers | Chosen time in the sidebar |
-| Title | 17–20 px / 800 | Card titles, sun box headline |
-| Body strong | 15–16 px / 600 | List names, legend, filters |
-| Body | 15–16 px / 400 | Default text (line height 1.4) |
-| Caption | 13 px / 400, `muted` | Secondary lines ("Hasta las 17:40") |
-| Small | 11–12 px | Slider ticks, notes, attribution |
+| Style       | Size / weight                | Use                                 |
+| ----------- | ---------------------------- | ----------------------------------- |
+| Display     | 30 px / 800                  | App title "Sol y Cerveza"           |
+| Clock       | 24 px / 700, tabular numbers | Chosen time in the sidebar          |
+| Title       | 17–20 px / 800               | Card titles, sun box headline       |
+| Body strong | 15–16 px / 600               | List names, legend, filters         |
+| Body        | 15–16 px / 400               | Default text (line height 1.4)      |
+| Caption     | 13 px / 400, `muted`         | Secondary lines ("Hasta las 17:40") |
+| Small       | 11–12 px                     | Slider ticks, notes, attribution    |
 
 Numbers that change (times, durations, prices) use `font-variant-numeric: tabular-nums` so they don't jump.
 
@@ -147,15 +147,15 @@ Numbers that change (times, durations, prices) use `font-variant-numeric: tabula
 
 Spacing follows a **4-point grid**, and every value comes from the tokens in `web/src/index.css` (`--space-*`, `--radius-*`, `--control`, `--map-inset`). If a value isn't on the scale, it's wrong.
 
-| Token | Value | Typical use |
-| --- | --- | --- |
-| `--space-1` | 4 px | Tight inner gaps, menu padding |
-| `--space-2` | 8 px | Label to control, list title to list, small paddings |
-| `--space-3` | 12 px | Icon to text in rows, legend rows, map button gap |
-| `--space-4` | 16 px | Panel and card padding, map overlay inset |
-| `--space-5` | 20 px | Above a sidebar section (filters, results) |
-| `--space-6` | 24 px | Sidebar padding and the gap between sidebar blocks |
-| `--space-8` | 32 px | Reserved for large separations |
+| Token       | Value | Typical use                                          |
+| ----------- | ----- | ---------------------------------------------------- |
+| `--space-1` | 4 px  | Tight inner gaps, menu padding                       |
+| `--space-2` | 8 px  | Label to control, list title to list, small paddings |
+| `--space-3` | 12 px | Icon to text in rows, legend rows, map button gap    |
+| `--space-4` | 16 px | Panel and card padding, map overlay inset            |
+| `--space-5` | 20 px | Above a sidebar section (filters, results)           |
+| `--space-6` | 24 px | Sidebar padding and the gap between sidebar blocks   |
+| `--space-8` | 32 px | Reserved for large separations                       |
 
 **Radius:** `--radius-s` 8 px (small buttons), `--radius-m` 12 px (fields, rows, notices), `--radius-l` 16 px (floating panels, menus, legend), `--radius-xl` 24 px (cards); 999 px for pills, toggles and tracks; 50 % for round buttons and badges.
 
@@ -166,6 +166,12 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - Search field: at least **48 px** tall, 12 px radius, icon 16 px from the left edge, text starting at 44 px.
 - List rows: 10 px × 12 px padding, 12 px icon-to-text gap. The list bleeds 12 px past the sidebar padding, so **row content lines up with every other element's left edge** and the selected row's highlight extends past it, as in iOS grouped lists.
 - Filter rows: 8 px vertical padding, 12 px gap, toggle aligned to the right edge.
+
+### Phones (under 900 px)
+
+- A slim brand bar on top (32 px mark, 20 px title), the map in the middle and a **bottom sheet** below it.
+- The sheet's first block is the **time bar**, pinned while search, filters and the list scroll under it, so the time is always one thumb away. It shows about a third of the screen; its handle grows it to 60 %, and picking a venue from the list shrinks it back so the map card shows.
+- The sheet's 24 px rounded top overlaps the map by 16 px (`--sheet-overlap`); the legend and the attribution sit 12 px above it, side by side.
 
 ### Map overlays
 
@@ -189,15 +195,15 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 
 ## 7. Components
 
-| Component | Standard |
-| --- | --- |
-| **Map badge** | Round gradient badge with the beer mug and a pointer under it; white ring and soft shadow. Shows only the badge until real prices exist; the price slot then sits to its right in bold `ink`. |
-| **Map card** | The selected badge grows into a tab that sits on the card below it: name + "Tipo · Terraza", a `highlight` sun box (12 × 16 px padding) with the headline and "Hasta las …", and a sun bar 16 px below it, from now through "until" to sunset. 280 px wide, 3 px border in the state colour. |
-| **Time bar** | 8 px track, `sun-soft` fill, white knob with a 4 px `sun-soft` ring. Sunrise and sunset sit on the track as small icons in a ring; "now" is a blue dot (`#2563EB`) when the knob is elsewhere. |
-| **List row** | State icon, bold name, caption with the sun summary; selected row on `highlight`. |
-| **Toggle** | Pill, `toggle-off` when off, `sun-soft` when on, white knob. |
-| **Legend** | Floating panel bottom-right with the four states and an info button centred on the last row; always above the badges. |
-| **Map controls** | White round buttons (city pill, locate, zoom) with `--shadow`; dark at night. |
+| Component        | Standard                                                                                                                                                                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Map badge**    | Round gradient badge with the beer mug and a pointer under it; white ring and soft shadow. Shows only the badge until real prices exist; the price slot then sits to its right in bold `ink`.                                                                                                |
+| **Map card**     | The selected badge grows into a tab that sits on the card below it: name + "Tipo · Terraza", a `highlight` sun box (12 × 16 px padding) with the headline and "Hasta las …", and a sun bar 16 px below it, from now through "until" to sunset. 280 px wide, 3 px border in the state colour. |
+| **Time bar**     | 8 px track, `sun-soft` fill, white knob with a 4 px `sun-soft` ring. Sunrise and sunset sit on the track as small icons in a ring; "now" is a blue dot (`#2563EB`) when the knob is elsewhere.                                                                                               |
+| **List row**     | State icon, bold name, caption with the sun summary; selected row on `highlight`.                                                                                                                                                                                                            |
+| **Toggle**       | Pill, `toggle-off` when off, `sun-soft` when on, white knob.                                                                                                                                                                                                                                 |
+| **Legend**       | Floating panel bottom-right with the four states and an info button centred on the last row; always above the badges.                                                                                                                                                                        |
+| **Map controls** | White round buttons (city pill, locate, zoom) with `--shadow`; dark at night.                                                                                                                                                                                                                |
 
 ## 8. Map behaviour
 
