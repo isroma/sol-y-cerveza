@@ -1,5 +1,7 @@
+import { spawn } from 'node:child_process'
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
 import { publishStatus, startPublish } from './publish.ts'
@@ -11,6 +13,12 @@ import {
   upsertReview,
   type Review,
 } from './src/admin/review.ts'
+import {
+  parseProbeOutput,
+  parseProbeQuery,
+  type Position,
+  type ProbeOutput,
+} from './src/admin/probe.ts'
 import {
   formatPricesCsv,
   parsePricesCsv,
@@ -60,6 +68,73 @@ async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
   await rename(partial, PRICES_CSV)
 }
 
+const PIPELINE = fileURLToPath(new URL('../pipeline/', import.meta.url))
+const PROBE_TIMEOUT_MS = 60_000
+
+/** Optional raster paths for the probe (absolute, or relative to web/). */
+type Rasters = { dsm: string; dtm: string }
+
+/**
+ * Runs `python -m solycerveza.probe` for one position, without a shell.
+ * Resolves with the HTTP status and body for the admin; never rejects.
+ */
+function runProbe(
+  at: Position,
+  rasters: Rasters,
+  signal: AbortSignal,
+): Promise<{ status: number; body: ProbeOutput }> {
+  const args = ['run', '--quiet', 'python', '-m', 'solycerveza.probe']
+  args.push('--lat', at.lat.toFixed(5), '--lon', at.lon.toFixed(5))
+  if (rasters.dsm) args.push('--dsm', resolve(rasters.dsm))
+  if (rasters.dtm) args.push('--dtm', resolve(rasters.dtm))
+  return new Promise((done) => {
+    const child = spawn('uv', args, {
+      cwd: PIPELINE,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: PROBE_TIMEOUT_MS,
+      signal,
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.setEncoding('utf-8').on('data', (chunk: string) => {
+      stdout += chunk
+    })
+    child.stderr.setEncoding('utf-8').on('data', (chunk: string) => {
+      stderr += chunk
+    })
+    child.on('error', (error: NodeJS.ErrnoException) => {
+      const message =
+        error.code === 'ENOENT'
+          ? 'uv not found: install it (https://docs.astral.sh/uv/) to preview the sun'
+          : `the probe could not run: ${error.message}`
+      done({ status: 500, body: { error: message } })
+    })
+    child.on('close', (code, killedBy) => {
+      if (killedBy && !signal.aborted) {
+        const seconds = PROBE_TIMEOUT_MS / 1000
+        return done({
+          status: 504,
+          body: { error: `the probe took longer than ${seconds} s` },
+        })
+      }
+      const output = parseProbeOutput(stdout)
+      if (output === null) {
+        const last = stderr.trim().split('\n').at(-1) ?? ''
+        return done({
+          status: 500,
+          body: { error: `the probe failed (exit ${code}): ${last}` },
+        })
+      }
+      if ('error' in output)
+        return done({
+          status: output.missing_rasters ? 503 : 422,
+          body: output,
+        })
+      done({ status: 200, body: output })
+    })
+  })
+}
+
 async function body(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
   for await (const chunk of req) chunks.push(Buffer.from(chunk))
@@ -74,7 +149,8 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
- * pipeline/data/venue_review.csv and venue_prices.csv. Never part of the built site.
+ * pipeline/data/venue_review.csv and venue_prices.csv, and probe the sun at
+ * a pin (`python -m solycerveza.probe`). Never part of the built site.
  */
 export function reviewServer(): Plugin {
   // Writes run one after another so two quick clicks never lose a row.
@@ -142,6 +218,30 @@ export function reviewServer(): Plugin {
         }
         forward().catch((error: unknown) =>
           send(res, 502, { error: String(error) }),
+        )
+      })
+      // Sun preview: the horizon and height above ground at a pin, from the
+      // LiDAR rasters. PROBE_DSM and PROBE_DTM (e.g. in web/.env.local)
+      // override the rasters in pipeline/.cache/.
+      const rasters = {
+        dsm: env['PROBE_DSM'] ?? '',
+        dtm: env['PROBE_DTM'] ?? '',
+      }
+      server.middlewares.use('/__admin/probe', (req, res) => {
+        if (req.method !== 'GET')
+          return send(res, 405, { error: 'method not allowed' })
+        const url = new URL(req.url ?? '/', 'http://localhost')
+        const query = parseProbeQuery(url.searchParams)
+        if (!query.ok) return send(res, 400, { error: query.error })
+        // A newer position supersedes this one: the admin aborts the request.
+        const abort = new AbortController()
+        res.on('close', () => {
+          if (!res.writableFinished) abort.abort()
+        })
+        void runProbe(query.at, rasters, abort.signal).then(
+          ({ status, body }) => {
+            if (!abort.signal.aborted) send(res, status, body)
+          },
         )
       })
       server.middlewares.use('/__admin/prices', (req, res) => {
