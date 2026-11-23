@@ -31,6 +31,7 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 ## Quality gates
 
 - web: `cd web && npm ci && npm run check` (prettier, oxlint, vitest, tsc, vite build)
+- web e2e: `cd web && npm run e2e` (Playwright smoke tests in `web/e2e/` on a real map in Chromium, phone and desktop; stubbed basemap and data, no network). Not part of `npm run check`; CI runs it as the `e2e` job. Run it when a change touches the map, the layout or the venue card. Selectors are Spanish roles and labels; it uses the dev-only `window.__map`.
 - pipeline: `cd pipeline && uv sync && uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest`
 
 ## Conventions
