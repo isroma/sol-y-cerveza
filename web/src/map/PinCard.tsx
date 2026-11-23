@@ -1,18 +1,16 @@
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { formatClock } from '../time/madrid.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
+import { SunCountdown } from './SunCountdown.tsx'
 
 type Props = {
   status: VenueStatus
   /** The chosen minute of the day. */
   minutes: number
-  /** Today's sunset, for the end of the sun bar. */
+  /** Today's sunset (kept for callers; the countdown uses the sun spell). */
   sunset: number | null
 }
-
-const clock = (m: number) => formatClock(m % (24 * 60))
 
 /** Shoulder radius where the badge tab flares into the card body. */
 const R = 18
@@ -51,16 +49,11 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
 /**
  * The card a selected badge opens into on the map: the badge becomes a tab
  * joined to a card below it with the name, how much sun is left and a bar
- * from now to sunset with the moment the sun goes.
+ * counting down the current sun spell.
  */
-export function PinCard({ status, minutes, sunset }: Props) {
+export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
-  const showBar =
-    status.sunUntil !== null && sunset !== null && sunset > minutes
-  const end = Math.max(sunset ?? 0, status.sunUntil ?? 0)
-  const until = status.sunUntil ?? minutes
-  const percent = showBar ? ((until - minutes) / (end - minutes)) * 100 : 0
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
@@ -86,21 +79,8 @@ export function PinCard({ status, minutes, sunset }: Props) {
             {box.detail && <span>{box.detail}</span>}
           </div>
         </div>
-        {showBar && (
-          <div className="pin-card-bar">
-            <div className="pin-card-track">
-              <span
-                className="pin-card-fill"
-                style={{ width: `${percent}%` }}
-              />
-              <span className="pin-card-knob" style={{ left: `${percent}%` }} />
-            </div>
-            <div className="pin-card-ticks">
-              <span>{clock(minutes)}</span>
-              <strong>{clock(until)}</strong>
-              <span>{clock(end)}</span>
-            </div>
-          </div>
+        {status.timeline && (
+          <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
       </div>
     </div>
