@@ -5,7 +5,7 @@ import { buildingShadow, type LonLat } from './shadows.ts'
 
 type ShadowFeature = {
   type: 'Feature'
-  geometry: { type: 'Polygon'; coordinates: LonLat[][] }
+  geometry: { type: 'MultiPolygon'; coordinates: LonLat[][][] }
   properties: Record<string, never>
 }
 
@@ -14,18 +14,11 @@ const EMPTY = {
   features: [] as ShadowFeature[],
 }
 
-function outerRings(geometry: MapGeoJSONFeature['geometry']): LonLat[][] {
-  if (geometry.type === 'Polygon') {
-    const ring = geometry.coordinates[0]
-    return ring ? [ring as LonLat[]] : []
-  }
-  if (geometry.type === 'MultiPolygon') {
-    const polygons: readonly (readonly (readonly number[])[])[][] =
-      geometry.coordinates
-    return polygons.flatMap((polygon) =>
-      polygon[0] ? [polygon[0] as LonLat[]] : [],
-    )
-  }
+/** Each footprint polygon with all its rings (outer first, then courtyards). */
+function polygons(geometry: MapGeoJSONFeature['geometry']): LonLat[][][] {
+  if (geometry.type === 'Polygon') return [geometry.coordinates as LonLat[][]]
+  if (geometry.type === 'MultiPolygon')
+    return geometry.coordinates as LonLat[][][]
   return []
 }
 
@@ -43,12 +36,15 @@ export function shadowCollection(map: MapLibreMap, sun: SunPosition) {
     const height =
       Number(feature.properties['render_height'] ?? 0) * BUILDING_HEIGHT_SCALE
     if (!(height > 0)) continue
-    for (const ring of outerRings(feature.geometry)) {
-      const shadow = buildingShadow(ring, height, sun)
-      if (shadow && shadow.length >= 4) {
+    for (const polygon of polygons(feature.geometry)) {
+      const quads = buildingShadow(polygon, height, sun)
+      if (quads && quads.length > 0) {
         features.push({
           type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [shadow] },
+          geometry: {
+            type: 'MultiPolygon',
+            coordinates: quads.map((quad) => [quad]),
+          },
           properties: {},
         })
       }
