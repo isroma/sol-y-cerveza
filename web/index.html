@@ -17,6 +17,37 @@
       content="Terrazas de Badajoz al sol o a la sombra, para cualquier día y hora."
     />
     <title>Sol y Cerveza · Terrazas de Badajoz al sol</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- First paint: start the venue data and the basemap connection early. -->
+    <link
+      rel="preload"
+      href="./data/terraces.json"
+      as="fetch"
+      type="application/json"
+      crossorigin
+    />
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+    <!-- Link previews (docs/design/README.md §11). URLs must be absolute. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sol y Cerveza" />
+    <meta property="og:title" content="Sol y Cerveza" />
+    <meta
+      property="og:description"
+      content="Terrazas de Badajoz al sol o a la sombra, para cualquier día y hora."
+    />
+    <meta property="og:url" content="https://isroma.github.io/sol-y-cerveza/" />
+    <meta
+      property="og:image"
+      content="https://isroma.github.io/sol-y-cerveza/og.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Sol y Cerveza: terrazas de Badajoz al sol"
+    />
+    <meta property="og:locale" content="es_ES" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

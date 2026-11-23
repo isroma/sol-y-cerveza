@@ -5,7 +5,7 @@ import {
   DEFAULT_FILTERS,
   type Filters,
 } from './filters/filters.ts'
-import { MapView } from './map/MapView.tsx'
+import { MapView } from './map/LazyMapView.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
