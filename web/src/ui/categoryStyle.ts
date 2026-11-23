@@ -11,7 +11,7 @@ export const CATEGORY_COLORS: Record<SunCategory, string> = {
 
 export const CATEGORY_LABELS: Record<SunCategory, string> = {
   sun: 'Con sol ahora',
-  soon: 'Sol en breve (≤ 1 h)',
+  soon: 'Le llega el sol en menos de 1 h',
   nosun: 'Sin sol',
   unknown: 'Terraza sin confirmar',
 }
@@ -20,7 +20,7 @@ export const CATEGORY_LABELS: Record<SunCategory, string> = {
 export function categoryLabel(status: VenueStatus): string {
   if (status.category === 'unknown' && status.hasTerrace)
     return 'Sin datos de sol'
-  if (status.category === 'soon') return 'Sol en breve'
+  if (status.category === 'soon') return 'Sol en menos de 1 h'
   return CATEGORY_LABELS[status.category]
 }
 

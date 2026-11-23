@@ -7,6 +7,7 @@ function status(
   id: string,
   hasTerrace: boolean,
   sunSteps: number | null,
+  category: VenueStatus['category'] = 'sun',
 ): VenueStatus {
   const timeline: SunState[] | null =
     sunSteps === null
@@ -24,8 +25,8 @@ function status(
       horizon: null,
     },
     hasTerrace,
-    state: 'shade',
-    category: 'nosun',
+    state: category === 'sun' ? 'sun' : 'shade',
+    category,
     timeline,
     sunUntil: null,
     nextSun: null,
@@ -41,19 +42,23 @@ describe('sunMinutesToday', () => {
 })
 
 describe('highlightedIds', () => {
-  it('keeps venues with a terrace, the sunniest first', () => {
+  it('keeps sunny terraces only, the sunniest first', () => {
     const statuses = [
       status('osm:node/1', true, 10),
       status('osm:node/2', false, null),
       status('osm:node/3', true, 50),
       status('osm:node/4', true, 30),
-      status('osm:node/5', true, null),
+      status('osm:node/5', true, 80, 'nosun'),
+      status('osm:node/6', true, 70, 'soon'),
     ]
     expect([...highlightedIds(statuses, 2)]).toEqual([
       'osm:node/3',
       'osm:node/4',
     ])
-    expect(highlightedIds(statuses).has('osm:node/2')).toBe(false)
-    expect(highlightedIds(statuses).size).toBe(4)
+    expect([...highlightedIds(statuses)]).toEqual([
+      'osm:node/3',
+      'osm:node/4',
+      'osm:node/1',
+    ])
   })
 })

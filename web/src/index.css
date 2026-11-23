@@ -754,10 +754,12 @@ button {
   position: absolute;
   right: 20px;
   bottom: 28px;
+  /* Above the venue pins, which are positioned in the map below. */
+  z-index: 10;
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  padding: 14px 14px 14px 18px;
+  padding: 14px 52px 14px 18px;
   border-radius: 18px;
   background: var(--legend-bg);
   box-shadow: var(--shadow);
@@ -791,6 +793,15 @@ button {
 }
 
 .legend-info {
+  /* Centred on the last legend row, in the bottom-right corner. */
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   color: var(--ink);
 }
 
@@ -924,16 +935,16 @@ button {
 }
 
 .pin--soon .pin-icon {
-  background: #fde68a;
+  background: linear-gradient(160deg, #fff1b8, #f7c948);
   color: #a16207;
 }
 
 .pin--nosun .pin-icon {
-  background: #a3a9b3;
+  background: linear-gradient(160deg, #c6cbd3, #8b919c);
 }
 
 .pin--unknown .pin-icon {
-  background: #cfd3d9;
+  background: linear-gradient(160deg, #e4e7eb, #b6bbc3);
 }
 
 .pin-marker:hover .pin {
