@@ -165,10 +165,6 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
               relieve de edificios y árboles (LiDAR del PNOA). Las terrazas aún
               no están verificadas sobre el terreno.
             </p>
-            <p>
-              <strong>Precios, valoraciones e imágenes son de ejemplo</strong>:
-              todavía no hay datos abiertos de ellos.
-            </p>
             <ul className="map-info-sources">
               {attribution.map((line) => (
                 <li key={line}>{line}</li>

@@ -14,8 +14,9 @@ export function sunMinutesToday(status: VenueStatus): number {
 }
 
 /**
- * The places that stand out when zoomed out: venues with a terrace, the
- * sunniest first. Beer price joins the score once real prices exist (#8).
+ * The places that stand out when zoomed out: terraces in sun right now, the
+ * sunniest over the day first. Beer price joins the score once real prices
+ * exist (#8).
  */
 export function highlightedIds(
   statuses: readonly VenueStatus[],
@@ -23,7 +24,7 @@ export function highlightedIds(
 ): Set<string> {
   return new Set(
     statuses
-      .filter((status) => status.hasTerrace)
+      .filter((status) => status.hasTerrace && status.category === 'sun')
       .map((status) => ({ id: status.venue.id, sun: sunMinutesToday(status) }))
       .sort((a, b) => b.sun - a.sun || a.id.localeCompare(b.id))
       .slice(0, count)
