@@ -211,7 +211,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - **Opens** on the city overview (flat top view, zoom 13.8, north up) at the current time.
 - **Zoom drives the view:** flat top view up to zoom 14.5, easing into a 55° tilt by zoom 16. 3D buildings (drawn 1.4× taller) and their shadows only appear once tilted; the flat and mid-zoom views stay clean.
 - **Zoomed out**, only the 8 terraces in sun now with the most sun today are enlarged; everything else shrinks.
-- **The card follows the zoom, live while pinching:** it shrinks smoothly from full size at zoom 16 to 60 % at 14.5, swaps to a compact card (name and sun line only) below 15.75, and fades out between 15 and 14.5 over the selected badge (yellow ring), which then stands in for it. Tapping that badge zooms in to open the card again.
+- **The card follows the zoom, live while pinching:** it stays solid (never see-through) and shrinks smoothly from full size at zoom 16 to 75 % at 15, swapping to a compact card (name and sun line only) below 15.75. Below 15 it pops back into the selected badge (yellow ring) in 0.2 s; tapping that badge zooms in to open it again.
 - Footpaths and venue names appear only up close. The map never leaves Badajoz.
 
 ## 9. Motion
