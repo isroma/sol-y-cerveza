@@ -3,6 +3,7 @@ import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
+import { PriceSection } from '../prices/PriceSection.tsx'
 
 type Props = {
   status: VenueStatus
@@ -82,6 +83,7 @@ export function PinCard({ status, minutes }: Props) {
         {status.timeline && (
           <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
+        <PriceSection venue={venue} />
       </div>
     </div>
   )

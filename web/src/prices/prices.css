@@ -1,0 +1,84 @@
+.price-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  font-size: 13px;
+}
+
+.price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.price-empty,
+.price-result {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.price-suggest {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.price-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.price-form-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.price-form-row select,
+.price-form-row input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid rgb(0 0 0 / 15%);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.price-form-row input {
+  width: 64px;
+  text-align: right;
+}
+
+.price-form button[type='submit'] {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #e8a000;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.price-form button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

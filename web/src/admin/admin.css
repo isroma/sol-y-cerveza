@@ -366,3 +366,48 @@ body {
   font-size: 16px;
   cursor: pointer;
 }
+
+.admin-title-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  margin: 10px 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: 13px;
+}
+
+.admin-queue li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-queue-venue {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-queue .admin-actions {
+  margin-top: 4px;
+}
+
+.admin-title-actions button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+}

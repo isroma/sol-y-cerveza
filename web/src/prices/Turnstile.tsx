@@ -1,0 +1,83 @@
+import { useEffect, useRef } from 'react'
+
+type TurnstileApi = {
+  render: (
+    element: HTMLElement,
+    options: {
+      sitekey: string
+      callback: (token: string) => void
+      'expired-callback': () => void
+      appearance: 'always' | 'execute' | 'interaction-only'
+      language: string
+    },
+  ) => string
+  remove: (widgetId: string) => void
+}
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi
+  }
+}
+
+const SCRIPT =
+  'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+
+let loading: Promise<TurnstileApi> | null = null
+
+function loadTurnstile(): Promise<TurnstileApi> {
+  loading ??= new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = SCRIPT
+    script.async = true
+    script.onload = () =>
+      window.turnstile
+        ? resolve(window.turnstile)
+        : reject(new Error('Turnstile did not load'))
+    script.onerror = () => reject(new Error('Turnstile did not load'))
+    document.head.append(script)
+  })
+  return loading
+}
+
+type Props = {
+  siteKey: string
+  /** A fresh token, or null when it expired. */
+  onToken: (token: string | null) => void
+}
+
+/** Cloudflare's bot check; invisible unless Cloudflare wants an interaction. */
+export function Turnstile({ siteKey, onToken }: Props) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onTokenRef = useRef(onToken)
+  useEffect(() => {
+    onTokenRef.current = onToken
+  })
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    let widget: string | null = null
+    let api: TurnstileApi | null = null
+    let cancelled = false
+    loadTurnstile()
+      .then((loaded) => {
+        if (cancelled) return
+        api = loaded
+        widget = loaded.render(element, {
+          sitekey: siteKey,
+          callback: (token) => onTokenRef.current(token),
+          'expired-callback': () => onTokenRef.current(null),
+          appearance: 'interaction-only',
+          language: 'es',
+        })
+      })
+      .catch(() => onTokenRef.current(null))
+    return () => {
+      cancelled = true
+      if (api && widget) api.remove(widget)
+    }
+  }, [siteKey])
+
+  return <div ref={ref} className="price-turnstile" />
+}
