@@ -743,20 +743,23 @@ button {
 
 @media (max-width: 899px) {
   /* The attribution button sits left of the legend, both at the bottom. */
-  /* The legend spans the bottom of the map, its rows centred; the map's
-     attribution button sits centred just above it. */
+  /* The legend sits centred at the bottom of the map, as wide as its rows;
+     the map's attribution button sits at the left, just above it. */
   .map-wrap {
     --legend-height: 56px;
   }
 
   .map-legend {
-    right: var(--space-3);
+    right: auto;
     bottom: var(--space-3);
-    left: var(--space-3);
+    left: 50%;
+    translate: -50% 0;
     align-items: center;
+    width: max-content;
+    max-width: calc(100% - 2 * var(--space-3));
     height: var(--legend-height);
     /* Room on the right for the info button. */
-    padding: var(--space-2) 40px;
+    padding: var(--space-2) 40px var(--space-2) var(--space-3);
     border-radius: 14px;
   }
 
@@ -1316,8 +1319,7 @@ button {
 @media (max-width: 899px) {
   .maplibregl-ctrl-bottom-left {
     bottom: calc(var(--space-3) + var(--legend-height) + var(--space-2));
-    left: 50%;
-    translate: -50% 0;
+    left: var(--space-3);
     max-width: calc(100% - 2 * var(--space-3));
   }
 

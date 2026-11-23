@@ -187,6 +187,14 @@ export function MapView({
         })
         sizeCard(cardEl, map.getZoom())
         map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
+        // MapLibre opens the compact attribution when its text first arrives
+        // and only closes it on a drag: start with just the "i" button.
+        const collapseAttribution = () =>
+          container
+            .querySelector('.maplibregl-ctrl-attrib')
+            ?.classList.remove('maplibregl-compact-show')
+        map.once('load', collapseAttribution)
+        map.once('idle', collapseAttribution)
         map.touchPitch.disable()
         map.on('zoom', (event) => {
           if (!map) return
