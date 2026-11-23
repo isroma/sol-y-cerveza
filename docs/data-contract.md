@@ -2,7 +2,7 @@
 
 The pipeline writes **`web/public/data/terraces.json`**. The web app fetches it at `./data/terraces.json` and validates it with zod. Until the build command lands (#12), the file holds sample data (`"sample": true`).
 
-Version 2 (2026-11-24) lists **every named venue**, not only those with a terrace: `terrace` is null when no terrace is known ("terraza sin confirmar"), and then `verified` and `horizon` are null too. Version 1 only listed venues with a terrace.
+Version 2 (2026-11-24) lists **every named venue**, not only those with a terrace: `terrace` is null when no terrace is known (the app shows "terraza sin confirmar", unconfirmed terrace), and then `verified` and `horizon` are null too. Version 1 only listed venues with a terrace.
 
 A breaking change bumps `version` and updates, in the same PR: this document, the web zod schema and the pipeline pydantic model.
 
@@ -44,7 +44,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 2. If `alt <= 0`, the result is **night**.
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
-5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out as "terraza sin confirmar".
+5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 

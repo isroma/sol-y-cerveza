@@ -14,7 +14,7 @@ Each terrace record needs a venue (identity, name, kind) and the **position of t
 | OSM | 157 | 2 (`outdoor_seating=yes`) | 2 bare `leisure=outdoor_seating` nodes | ODbL |
 | Overture places `2026-11-18.0` | 859 (822 not closed) | no attribute | no | CDLA-Permissive-2.0, Apache-2.0, CC0 (by source) |
 | Junta de Extremadura register | 1,100 in the municipality | no | no (addresses only) | CC BY 4.0 (verify) |
-| Ayuntamiento velador authorizations | every authorized terrace | yes, authoritative | street and nearest number, m², 1:100 plan in the file | not published |
+| Ayuntamiento terrace (*velador*) authorizations | every authorized terrace | yes, authoritative | street and nearest number, m², 1:100 plan in the file | not published |
 | Google Places `outdoorSeating` | n/a | yes | no | proprietary, terms forbid our use |
 
 OSM and Overture barely overlap: about 61 of the 157 OSM venues match an Overture place, and about 754 Overture venues are missing from OSM. Neither source says where the tables are.
@@ -35,7 +35,7 @@ OSM and Overture barely overlap: about 61 of the 157 OSM venues match an Overtur
 | OSM | ODbL 1.0 | `terraces.json` contains OSM names and positions, so it is a derivative database: publish it under ODbL and keep "© OpenStreetMap contributors" in the app and in `attribution`. |
 | Curated CSV | Our own survey data | Publish it with `terraces.json` under ODbL. Never fill it from Google, Street View or (under option A) Overture. |
 | Ayuntamiento register | Reuse under Ley 37/2007 | Cite "Ayuntamiento de Badajoz" and the data date, do not distort it, and do not imply endorsement. Publish business names only; no data on individual holders (we do not ask for it). Not importable into OSM without explicit permission. |
-| PNOA orthophoto (desk placement) | CC BY 4.0, IGN | "PNOA cedido por © Instituto Geográfico Nacional". The same IGN credit is already required for LiDAR (#4). |
+| PNOA orthophoto (desk placement) | CC BY 4.0, IGN | Credit IGN's required wording, "PNOA cedido por © Instituto Geográfico Nacional". The same IGN credit is already required for LiDAR (#4). |
 | Overture places (option B only) | CDLA-Permissive-2.0; Apache-2.0 (Foursquare); CC0 (AllThePlaces) | Ship the CDLA-Permissive-2.0 text with the data (§2.1). Skip Foursquare-only records, or ship the Apache-2.0 licence and NOTICE. Credit "Overture Maps Foundation". Under option A nothing is redistributed, so there are no duties. |
 | Junta register | CC BY 4.0 (verify) | Credit the Junta de Extremadura if it is ever used. Not planned. |
 | Google Places | Proprietary | Not used. |

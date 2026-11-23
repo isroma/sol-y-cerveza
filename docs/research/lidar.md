@@ -53,7 +53,7 @@ Notes:
 ## CRS
 
 - CNIG files use the UTM zone of each sheet. All of `BADAJOZ_BBOX` (6.92–7.04° W) is in zone 29, so the sheets are EPSG:25829.
-- The WCS services serve the whole country in ETRS89 / UTM 30N (EPSG:25830, "huso 30 extendido"). The pipeline reprojects that to EPSG:25829. At Badajoz the two UTM grids are rotated about 3.8° from each other, so the request covers the envelope of the whole target grid.
+- The WCS services serve the whole country in ETRS89 / UTM 30N (EPSG:25830, "huso 30 extendido", extended zone 30). The pipeline reprojects that to EPSG:25829. At Badajoz the two UTM grids are rotated about 3.8° from each other, so the request covers the envelope of the whole target grid.
 
 ## Licence and attribution
 

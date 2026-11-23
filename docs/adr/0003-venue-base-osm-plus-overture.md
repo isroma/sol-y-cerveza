@@ -23,7 +23,7 @@ No open dataset or API we may use says which venues have a terrace. Every API th
    - Ids are `overture:<GERS id>`, and `sources` is `["overture"]`.
 2. Overture records with a **Foursquare** source are left out. Apache-2.0 would oblige us to ship its NOTICE file, and there are only a handful.
 3. The rest is CDLA-Permissive-2.0 (Meta, Microsoft, BrightQuery) or CC0. CDLA only requires shipping its text with the data, so `web/public/data/licenses/CDLA-Permissive-2.0.txt` ships next to `terraces.json`, and the attribution line points to it. Our output stays ODbL because it contains OSM data.
-4. **Terraces still come only from OSM `outdoor_seating=yes` and curated rows** (ADR-0002 decision 1). Overture venues show as "terraza sin confirmar" until a curator adds their terrace.
+4. **Terraces still come only from OSM `outdoor_seating=yes` and curated rows** (ADR-0002 decision 1). Overture venues show as unconfirmed terraces ("terraza sin confirmar" in the app) until a curator adds their terrace.
 
 ## Consequences
 

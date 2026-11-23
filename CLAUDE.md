@@ -32,6 +32,12 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 
 ## Conventions
 
+### Language
+
+- Repo text is in English: code, comments, docs, commit messages, PRs and issues.
+- The app UI is in Spanish (i18n later). That covers UI strings, the `attribution` lines in `terraces.json` and tests that assert them.
+- The name stays "Sol y Cerveza". Proper nouns, official names, legal citations and licence attribution wording stay in their original language; explain them in English where useful.
+
 ### TypeScript (`web/`)
 
 - `strict` and `noUncheckedIndexedAccess` are on. No `any`, and avoid `as`.
@@ -39,7 +45,6 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 - Use named exports. Tests sit next to the code as `*.test.ts(x)`.
 - Mock at module boundaries. MapLibre needs WebGL, so mock the map component in jsdom tests.
 - No `console.log` in committed code.
-- UI text is in Spanish for now (i18n later).
 
 ### Python (`pipeline/`)
 
