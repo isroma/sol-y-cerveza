@@ -475,6 +475,109 @@ body {
   font-size: 10px;
 }
 
+/* Website price candidates (PriceCandidates.tsx) */
+.admin-candidates h2 {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.admin-candidate-snippet {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.admin-candidate-source {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-candidate-leads {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  overflow-wrap: anywhere;
+}
+
+/* Read prices from a photo (PricePhoto.tsx). */
+.admin-photo {
+  margin-top: 4px;
+}
+
+.admin-photo-pick {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-photo-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-photo-pick:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.admin-photo-off {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.admin-photo-error {
+  margin: 6px 0 0;
+  color: #c0392b;
+  font-size: 12px;
+}
+
+.admin-photo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-photo-list .admin-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-photo-low {
+  color: #c0392b;
+  font-size: 11px;
+}
+
+.admin-photo-accept {
+  padding: 2px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-photo-notes {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* "Where am I", the offline queue and the phone layout. */
 
 .admin-map-buttons {
