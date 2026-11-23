@@ -15,6 +15,7 @@ import type { VenueStatus } from '../sun/venueStatus.ts'
 import { MapControls } from './MapControls.tsx'
 import { sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
+import { demoValues, formatPrice } from '../demo/demo.ts'
 import { shadowCollection } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
@@ -24,6 +25,9 @@ setWorkerUrl(workerUrl)
 const SHADOWS = 'building-shadows'
 const DOTS_SOURCE = 'venues-unconfirmed'
 const DOTS_LAYER = 'venues-unconfirmed'
+const LABELS_LAYER = 'venues-unconfirmed-labels'
+/** From this zoom, unconfirmed venues show their (demo) price instead of a dot. */
+const LABELS_ZOOM = 16.5
 
 /** Old town, tilted like the design: Plaza de España in front, river behind. */
 const INITIAL_VIEW = {
@@ -60,9 +64,30 @@ function dotsData(statuses: readonly VenueStatus[], selectedId: string | null) {
           type: 'Point' as const,
           coordinates: [s.venue.venue.lon, s.venue.venue.lat],
         },
-        properties: { id: s.venue.id, selected: s.venue.id === selectedId },
+        properties: {
+          id: s.venue.id,
+          selected: s.venue.id === selectedId,
+          price: formatPrice(demoValues(s.venue.id).priceCents),
+        },
       })),
   }
+}
+
+/** A white rounded pill, stretched by MapLibre around each price label. */
+function pricePill(): ImageData {
+  const canvas = document.createElement('canvas')
+  canvas.width = 48
+  canvas.height = 32
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return new ImageData(48, 32)
+  ctx.fillStyle = '#FFFFFF'
+  ctx.strokeStyle = '#D9DCE1'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.roundRect(1, 1, 46, 30, 15)
+  ctx.fill()
+  ctx.stroke()
+  return ctx.getImageData(0, 0, 48, 32)
 }
 
 export function MapView({
@@ -163,24 +188,67 @@ export function MapView({
               ],
               'circle-stroke-width': ['case', ['get', 'selected'], 3, 1.5],
               'circle-stroke-color': '#FFFFFF',
+              // Fade to price labels when zoomed in (the selected dot stays).
+              'circle-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                LABELS_ZOOM - 0.3,
+                1,
+                LABELS_ZOOM,
+                ['case', ['get', 'selected'], 1, 0],
+              ],
+              'circle-stroke-opacity': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                LABELS_ZOOM - 0.3,
+                1,
+                LABELS_ZOOM,
+                ['case', ['get', 'selected'], 1, 0],
+              ],
             },
           })
-          map.on('click', DOTS_LAYER, (event) => {
-            const id: unknown = event.features?.[0]?.properties['id']
-            if (typeof id === 'string') onSelectRef.current(id)
+          map.addImage('price-pill', pricePill(), {
+            pixelRatio: 2,
+            stretchX: [[16, 32]],
+            stretchY: [[15, 17]],
+            content: [12, 6, 36, 26],
           })
+          map.addLayer({
+            id: LABELS_LAYER,
+            type: 'symbol',
+            source: DOTS_SOURCE,
+            minzoom: LABELS_ZOOM,
+            layout: {
+              'text-field': ['get', 'price'],
+              'text-font': ['Noto Sans Bold'],
+              'text-size': 12,
+              'icon-image': 'price-pill',
+              'icon-text-fit': 'both',
+              'icon-text-fit-padding': [3, 8, 3, 8],
+              'symbol-sort-key': ['case', ['get', 'selected'], 0, 1],
+            },
+            paint: { 'text-color': '#6B7280' },
+          })
+          for (const layer of [DOTS_LAYER, LABELS_LAYER]) {
+            map.on('click', layer, (event) => {
+              const id: unknown = event.features?.[0]?.properties['id']
+              if (typeof id === 'string') onSelectRef.current(id)
+            })
+            map.on('mouseenter', layer, () => {
+              if (map) map.getCanvas().style.cursor = 'pointer'
+            })
+            map.on('mouseleave', layer, () => {
+              if (map) map.getCanvas().style.cursor = ''
+            })
+          }
           map.on('click', (event) => {
             if (!map) return
             const hit = map.queryRenderedFeatures(event.point, {
-              layers: [DOTS_LAYER],
+              layers: [DOTS_LAYER, LABELS_LAYER],
             })
             if (hit.length === 0) onSelectRef.current(null)
-          })
-          map.on('mouseenter', DOTS_LAYER, () => {
-            if (map) map.getCanvas().style.cursor = 'pointer'
-          })
-          map.on('mouseleave', DOTS_LAYER, () => {
-            if (map) map.getCanvas().style.cursor = ''
           })
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.

@@ -873,12 +873,30 @@ button {
 
 @media (max-width: 899px) {
   .map-legend {
-    right: 12px;
-    bottom: 12px;
-    padding: 10px 12px;
+    right: 10px;
+    bottom: 34px;
+    left: 10px;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+  .map-legend ul {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
   }
   .map-legend li {
-    font-size: 13px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .map-legend li svg {
+    width: 16px;
+    height: 16px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    margin: 0 3px;
   }
   .map-city {
     top: 12px;
