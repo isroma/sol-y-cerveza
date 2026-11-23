@@ -43,6 +43,7 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 ### Design (`web/`)
 
 - Follow [`docs/design/README.md`](docs/design/README.md) for colours, type, components, copy and map behaviour. Use its tokens; don't invent new colours. Update the standards in the same PR when the look changes.
+- Desktop and phone move together. Every web UI change covers both widths (desktop ≥ 900 px, phone below) in the same PR: shared map behaviour works on both, and layout differences are deliberate and written down in the design standards (§5 Phones). Check both widths before pushing.
 
 ### TypeScript (`web/`)
 
