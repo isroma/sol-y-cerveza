@@ -158,6 +158,8 @@ GENERIC = frozenset(
         "meson",
         "pub",
         "tapas",
+        "terraza",
+        "terrazas",
         "el",
         "la",
         "los",

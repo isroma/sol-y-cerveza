@@ -16,7 +16,7 @@ from solycerveza.terraces import (
     read_curated,
     write_terraces,
 )
-from solycerveza.venues import LatLon, Venue, parse_venues
+from solycerveza.venues import LatLon, SeatingArea, Venue, parse_seating, parse_venues
 
 # Recorded from overpass-api.de on 2026-11-22 and trimmed by hand. © OpenStreetMap contributors.
 FIXTURE = Path(__file__).parent / "fixtures" / "overpass_venues.json"
@@ -302,3 +302,73 @@ def test_a_venue_without_terrace_cannot_have_terrace_data() -> None:
         Terrace.model_validate({**base, "horizon": [0] * 360})
     with pytest.raises(ValidationError, match="must be null when terrace is null"):
         Terrace.model_validate({**base, "verified": "2026-11-01"})
+
+
+def _venue(venue_id: str, name: str, lat: float, lon: float) -> Venue:
+    return Venue(
+        id=venue_id,
+        name=name,
+        kind="bar",
+        location=LatLon(lat=lat, lon=lon),
+        outdoor_seating=None,
+    )
+
+
+def _seating(seating_id: str, lat: float, lon: float, name: str | None = None) -> SeatingArea:
+    return SeatingArea(id=seating_id, name=name, location=LatLon(lat=lat, lon=lon))
+
+
+def test_osm_seating_area_places_the_terrace_of_the_nearest_venue() -> None:
+    venues = [
+        _venue("osm:node/1", "Bar Uno", 38.88, -6.97),
+        _venue("osm:node/2", "Bar Dos", 38.8803, -6.97),  # ~33 m north
+    ]
+    seating = [_seating("osm:node/10", 38.8801, -6.97)]  # ~11 m from Bar Uno
+    by_id = {t.id: t for t in build_terraces(venues, [], seating)}
+    assert by_id["osm:node/1"].terrace == LatLon(lat=38.8801, lon=-6.97)
+    assert by_id["osm:node/2"].terrace is None
+
+
+def test_osm_seating_area_prefers_a_venue_with_the_same_name() -> None:
+    venues = [
+        _venue("osm:node/1", "Bar Uno", 38.88, -6.97),
+        _venue("osm:node/2", "Bar Dos", 38.8803, -6.97),
+    ]
+    seating = [_seating("osm:node/10", 38.8801, -6.97, name="Terraza Bar Dos")]
+    by_id = {t.id: t for t in build_terraces(venues, [], seating)}
+    assert by_id["osm:node/2"].terrace == LatLon(lat=38.8801, lon=-6.97)
+    assert by_id["osm:node/1"].terrace is None
+
+
+def test_osm_seating_area_too_far_or_curated_venue_is_ignored() -> None:
+    venues = [_venue("osm:node/1", "Bar Uno", 38.88, -6.97)]
+    far = [_seating("osm:node/10", 38.8806, -6.97)]  # ~66 m
+    assert build_terraces(venues, [], far)[0].terrace is None
+    near = [_seating("osm:node/11", 38.8801, -6.97)]
+    row = curated(venue_id="osm:node/1", terrace_lat=38.8799, terrace_lon=-6.9701)
+    assert build_terraces(venues, [row], near)[0].terrace == LatLon(lat=38.8799, lon=-6.9701)
+
+
+def test_parse_seating_reads_outdoor_seating_nodes_and_ways() -> None:
+    data = {
+        "elements": [
+            {
+                "type": "node",
+                "id": 5,
+                "lat": 38.88,
+                "lon": -6.97,
+                "tags": {"leisure": "outdoor_seating"},
+            },
+            {
+                "type": "way",
+                "id": 6,
+                "center": {"lat": 38.881, "lon": -6.971},
+                "tags": {"leisure": "outdoor_seating", "name": "Terraza"},
+            },
+            {"type": "node", "id": 7, "lat": 38.88, "lon": -6.97, "tags": {"amenity": "bar"}},
+        ]
+    }
+    assert parse_seating(data) == [
+        SeatingArea(id="osm:node/5", name=None, location=LatLon(lat=38.88, lon=-6.97)),
+        SeatingArea(id="osm:way/6", name="Terraza", location=LatLon(lat=38.881, lon=-6.971)),
+    ]

@@ -74,13 +74,16 @@ class OverpassError(RuntimeError):
 
 
 def build_query(bbox: BoundingBox) -> str:
-    """Overpass QL for every venue node and way in `bbox`, with tags and way centres."""
+    """Overpass QL for every venue and outdoor-seating area in `bbox`, with tags and centres."""
     amenity = f'["amenity"~"^({"|".join(KINDS)})$"]'
+    seating = '["leisure"="outdoor_seating"]'
     return (
         "[out:json][timeout:90];\n"
         "(\n"
         f"  node{amenity}({bbox.overpass});\n"
         f"  way{amenity}({bbox.overpass});\n"
+        f"  node{seating}({bbox.overpass});\n"
+        f"  way{seating}({bbox.overpass});\n"
         ");\n"
         "out tags center;\n"
     )
@@ -170,6 +173,42 @@ class _Element(BaseModel):
     tags: dict[str, str] = Field(default_factory=dict)
 
 
+class SeatingArea(BaseModel):
+    """An OSM `leisure=outdoor_seating` point or area: where a terrace's tables are."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: Annotated[str, Field(pattern=r"^osm:(node|way)/\d+$")]
+    name: str | None
+    location: LatLon
+
+
+def _position(element: _Element) -> LatLon | None:
+    if element.center is not None:
+        return LatLon(lat=element.center.lat, lon=element.center.lon)
+    if element.lat is not None and element.lon is not None:
+        return LatLon(lat=element.lat, lon=element.lon)
+    return None
+
+
+def parse_seating(data: dict[str, Any]) -> list[SeatingArea]:
+    """The `leisure=outdoor_seating` elements of an Overpass response, sorted by id."""
+    areas: list[SeatingArea] = []
+    for raw in data.get("elements", []):
+        element = _Element.model_validate(raw)
+        position = _position(element)
+        if element.tags.get("leisure") != "outdoor_seating" or position is None:
+            continue
+        areas.append(
+            SeatingArea(
+                id=f"osm:{element.type}/{element.id}",
+                name=element.tags.get("name"),
+                location=position,
+            )
+        )
+    return sorted(areas, key=lambda area: area.id)
+
+
 def parse_venues(data: dict[str, Any]) -> list[Venue]:
     """Normalize an Overpass JSON response into venues sorted by id."""
     venues: list[Venue] = []
@@ -210,3 +249,15 @@ def load_venues(
         return parse_venues(cached_overpass(query, cache_dir, refresh=refresh, client=client))
     with httpx.Client(timeout=httpx.Timeout(120.0, connect=15.0)) as own_client:
         return parse_venues(cached_overpass(query, cache_dir, refresh=refresh, client=own_client))
+
+
+def load_seating(
+    bbox: BoundingBox = BADAJOZ_BBOX,
+    cache_dir: Path = CACHE_DIR,
+    *,
+    refresh: bool = False,
+) -> list[SeatingArea]:
+    """Outdoor-seating areas in `bbox`, from the same cached Overpass response as the venues."""
+    query = build_query(bbox)
+    with httpx.Client(timeout=httpx.Timeout(120.0, connect=15.0)) as client:
+        return parse_seating(cached_overpass(query, cache_dir, refresh=refresh, client=client))
