@@ -953,20 +953,20 @@ button {
   border-radius: 50%;
 }
 
-/* Weather-app colours: warm orange dawn, rose-violet dusk. */
+/* Gold dawn, terracotta dusk. */
 .time-marker--sunrise {
-  border-color: #fb923c;
-  background: #fff1e6;
-  color: #c2410c;
+  border-color: #eab308;
+  background: #fff8db;
+  color: #a16207;
 }
 
 .time-marker--sunset {
-  border-color: #e879f9;
-  background: #fdf0ff;
-  color: #a21caf;
+  border-color: #d9734e;
+  background: #fbeae2;
+  color: #9a3b1c;
 }
 
-/* "Now" on the bar: a sunny dot with a generous tap area. */
+/* "Now": a dark "Ahora" bubble over a dot on the bar; tap it to come back. */
 .time-now-layer {
   position: absolute;
   top: 18px;
@@ -979,32 +979,39 @@ button {
 
 .time-now {
   position: absolute;
-  top: 50%;
-  translate: -50% -50%;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  bottom: -10px;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px 10px;
   border: 0;
-  border-radius: 50%;
   background: transparent;
   pointer-events: auto;
 }
 
-.time-now-dot {
-  width: 14px;
-  height: 14px;
-  border: 3px solid var(--bg);
-  border-radius: 50%;
-  background: var(--sun-dark);
-  box-shadow: 0 0 0 1.5px var(--sun-dark);
+.time-now-bubble {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
   transition: scale 0.15s;
 }
 
-.time-now:hover .time-now-dot,
-.time-now:focus-visible .time-now-dot {
-  scale: 1.25;
+.time-now-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.time-now:hover .time-now-bubble,
+.time-now:focus-visible .time-now-bubble {
+  scale: 1.08;
 }
 
 .visually-hidden {
