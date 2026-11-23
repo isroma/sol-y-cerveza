@@ -966,7 +966,7 @@ button {
   color: #9a3b1c;
 }
 
-/* "Now": a dark "Ahora" bubble over a dot on the bar; tap it to come back. */
+/* "Now": a deep amber "Ahora" bubble over a dot on the bar; tap it to come back. */
 .time-now-layer {
   position: absolute;
   top: 18px;
@@ -994,8 +994,8 @@ button {
 .time-now-bubble {
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--sun-dark);
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -1006,7 +1006,7 @@ button {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--sun-dark);
 }
 
 .time-now:hover .time-now-bubble,
