@@ -2,6 +2,7 @@ import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { reviewServer } from './reviewServer.ts'
+import { serviceWorker } from './serviceWorker.ts'
 
 /**
  * The map is a lazy chunk (src/map/LazyMapView.tsx), so the browser would only
@@ -53,7 +54,8 @@ export default defineConfig({
   // Relative asset paths work both on GitHub Pages (/sol-y-cerveza/) and inside Capacitor.
   base: './',
   // reviewServer: dev-only API for the admin page (admin.html, `npm run admin`).
-  plugins: [react(), reviewServer(), preloadMapChunk()],
+  // serviceWorker: emits dist/sw.js, the offline cache (sw/sw.ts).
+  plugins: [react(), reviewServer(), preloadMapChunk(), serviceWorker()],
   // MapLibre's worker is an ES module.
   worker: { format: 'es' },
   test: {
