@@ -1,6 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { useRef, useState, type RefObject } from 'react'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
+import { pitchForZoom } from './camera.ts'
 import { CATEGORY_LABELS } from '../ui/categoryStyle.ts'
 import {
   ChevronDownIcon,
@@ -23,20 +24,17 @@ type Props = {
 export function MapControls({ mapRef, ready, attribution }: Props) {
   const [cityOpen, setCityOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
-  const [is3D, setIs3D] = useState(true)
   const [locateError, setLocateError] = useState<string | null>(null)
   const userMarker = useRef<Marker | null>(null)
 
   const map = () => (ready ? mapRef.current : null)
 
-  const toggle3D = () => {
-    const next = !is3D
-    setIs3D(next)
-    map()?.easeTo({
-      pitch: next ? 55 : 0,
-      bearing: next ? -18 : 0,
-      duration: 700,
-    })
+  // Zoom with the matching tilt, so the camera moves in one smooth step.
+  const zoomBy = (delta: number) => {
+    const m = map()
+    if (!m) return
+    const zoom = m.getZoom() + delta
+    m.easeTo({ zoom, pitch: pitchForZoom(zoom), duration: 400 })
   }
 
   const locate = () => {
@@ -61,7 +59,13 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
           lat < BADAJOZ_BOUNDS.north &&
           lon > BADAJOZ_BOUNDS.west &&
           lon < BADAJOZ_BOUNDS.east
-        if (inside) m.flyTo({ center: [lon, lat], zoom: 17, duration: 1200 })
+        if (inside)
+          m.flyTo({
+            center: [lon, lat],
+            zoom: 17,
+            pitch: pitchForZoom(17),
+            duration: 1200,
+          })
         else
           setLocateError(
             'Estás fuera de Badajoz: de momento solo cubrimos Badajoz.',
@@ -108,30 +112,13 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
           <LocateIcon size={20} />
         </button>
         <div className="map-zoom">
-          <button
-            type="button"
-            aria-label="Acercar"
-            onClick={() => map()?.zoomIn()}
-          >
+          <button type="button" aria-label="Acercar" onClick={() => zoomBy(1)}>
             <PlusIcon size={20} />
           </button>
-          <button
-            type="button"
-            aria-label="Alejar"
-            onClick={() => map()?.zoomOut()}
-          >
+          <button type="button" aria-label="Alejar" onClick={() => zoomBy(-1)}>
             <MinusIcon size={20} />
           </button>
         </div>
-        <button
-          type="button"
-          className="map-round map-3d"
-          aria-pressed={is3D}
-          aria-label={is3D ? 'Ver en 2D' : 'Ver en 3D'}
-          onClick={toggle3D}
-        >
-          {is3D ? '2D' : '3D'}
-        </button>
       </div>
 
       {locateError && (

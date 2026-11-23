@@ -8,11 +8,14 @@ import {
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
+import { pitchForZoom } from './camera.ts'
+import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
+import { createNightSwitch } from './night.ts'
 import { sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { shadowCollection } from './shadowLayer.ts'
@@ -29,10 +32,11 @@ const LABELS_LAYER = 'venues-unconfirmed-labels'
 const LABELS_ZOOM = 16.5
 
 /** Old town, tilted like the design: Plaza de España in front, river behind. */
+const INITIAL_ZOOM = 15.9
 const INITIAL_VIEW = {
   center: [-6.9712, 38.8792] as [number, number],
-  zoom: 15.9,
-  pitch: 55,
+  zoom: INITIAL_ZOOM,
+  pitch: pitchForZoom(INITIAL_ZOOM),
   bearing: -18,
 }
 
@@ -84,8 +88,12 @@ export function MapView({
   const pinsRef = useRef(new Map<string, PinEntry>())
   const onSelectRef = useRef(onSelect)
   const sunRef = useRef(sun)
+  const nightSwitchRef = useRef<((night: boolean) => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
+  const night = sun.altitude <= 0
+  const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
 
   useEffect(() => {
     onSelectRef.current = onSelect
@@ -107,10 +115,25 @@ export function MapView({
           style: sunlitStyle(base),
           ...INITIAL_VIEW,
           maxPitch: 70,
+          // The tilt follows the zoom (see camera.ts), so no manual pitching.
+          pitchWithRotate: false,
           locale: MAP_LOCALE,
           attributionControl: false,
         })
         map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
+        map.touchPitch.disable()
+        map.on('zoom', (event) => {
+          if (!map) return
+          setOverview(map.getZoom() < OVERVIEW_ZOOM)
+          // Follow user gestures live; camera animations pass their own pitch.
+          if (event.originalEvent) map.setPitch(pitchForZoom(map.getZoom()))
+        })
+        map.on('zoomend', () => {
+          if (!map) return
+          const pitch = pitchForZoom(map.getZoom())
+          if (Math.abs(map.getPitch() - pitch) > 0.5)
+            map.easeTo({ pitch, duration: 300 })
+        })
         map.on('load', () => {
           if (!map) return
           // Ground shadows of the buildings, under the 3D extrusions.
@@ -125,8 +148,8 @@ export function MapView({
               source: SHADOWS,
               minzoom: 14,
               paint: {
-                'fill-color': '#3F4560',
-                'fill-opacity': 0.22,
+                'fill-color': '#2B3048',
+                'fill-opacity': 0.42,
                 'fill-antialias': false,
               },
             },
@@ -211,6 +234,7 @@ export function MapView({
             })
             if (hit.length === 0) onSelectRef.current(null)
           })
+          nightSwitchRef.current = createNightSwitch(map, new Set([SHADOWS]))
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.
           if (import.meta.env.DEV) {
@@ -225,6 +249,7 @@ export function MapView({
 
     return () => {
       cancelled = true
+      nightSwitchRef.current = null
       for (const { marker } of pins.values()) marker.remove()
       pins.clear()
       mapRef.current = null
@@ -243,7 +268,12 @@ export function MapView({
       ?.setData(shadowCollection(map, sun))
   }, [ready, sun])
 
-  // Price pins for terraces (and the selected venue), grey dots for the rest.
+  // A dark map at night.
+  useEffect(() => {
+    if (ready) nightSwitchRef.current?.(night)
+  }, [ready, night])
+
+  // Pins for terraces, grey dots for the rest.
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map) return
@@ -273,10 +303,18 @@ export function MapView({
         pins.set(id, entry)
       }
       updatePin(entry.el, status, id === selectedId)
+      const top = highlighted.has(id)
+      entry.el.classList.toggle('pin-marker--top', top)
       entry.el.style.zIndex =
-        id === selectedId ? '3' : status.category === 'sun' ? '2' : '1'
+        id === selectedId
+          ? '4'
+          : top
+            ? '3'
+            : status.category === 'sun'
+              ? '2'
+              : '1'
     }
-  }, [ready, statuses, selectedId])
+  }, [ready, statuses, selectedId, highlighted])
 
   // Bring the selected venue into view when the selection changes.
   const lastSelected = useRef<string | null>(null)
@@ -287,15 +325,19 @@ export function MapView({
     const status = statuses.find((s) => s.venue.id === selectedId)
     if (!status) return
     const position = status.venue.terrace ?? status.venue.venue
+    const zoom = Math.max(map.getZoom(), 16.5)
     map.easeTo({
       center: [position.lon, position.lat],
-      zoom: Math.max(map.getZoom(), 16.5),
+      zoom,
+      pitch: pitchForZoom(zoom),
       duration: 900,
     })
   }, [ready, selectedId, statuses])
 
   return (
-    <div className="map-wrap">
+    <div
+      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}`}
+    >
       <div
         ref={containerRef}
         className="terrace-map"
