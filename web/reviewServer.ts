@@ -11,6 +11,14 @@ import {
   upsertReview,
   type Review,
 } from './src/admin/review.ts'
+import {
+  formatPricesCsv,
+  parsePricesCsv,
+  removePrice,
+  upsertPrice,
+  venuePriceSchema,
+  type VenuePrice,
+} from './src/admin/pricesCsv.ts'
 
 const CSV = fileURLToPath(
   new URL('../pipeline/data/venue_review.csv', import.meta.url),
@@ -32,6 +40,26 @@ async function writeReviews(reviews: readonly Review[]): Promise<void> {
   await rename(partial, CSV)
 }
 
+const PRICES_CSV = fileURLToPath(
+  new URL('../pipeline/data/venue_prices.csv', import.meta.url),
+)
+
+async function readPrices(): Promise<VenuePrice[]> {
+  try {
+    return parsePricesCsv(await readFile(PRICES_CSV, 'utf-8'))
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+      return []
+    throw error
+  }
+}
+
+async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
+  const partial = `${PRICES_CSV}.part`
+  await writeFile(partial, formatPricesCsv(prices), 'utf-8')
+  await rename(partial, PRICES_CSV)
+}
+
 async function body(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
   for await (const chunk of req) chunks.push(Buffer.from(chunk))
@@ -46,7 +74,7 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
- * pipeline/data/venue_review.csv. Never part of the built site.
+ * pipeline/data/venue_review.csv and venue_prices.csv. Never part of the built site.
  */
 export function reviewServer(): Plugin {
   // Writes run one after another so two quick clicks never lose a row.
@@ -80,6 +108,26 @@ export function reviewServer(): Plugin {
             ? send(res, 202, publishStatus())
             : send(res, 409, { error: 'a Publish is still building' }),
         )
+      })
+      server.middlewares.use('/__admin/prices', (req, res) => {
+        const run = queue.then(async () => {
+          const url = new URL(req.url ?? '/', 'http://localhost')
+          if (req.method === 'GET') return send(res, 200, await readPrices())
+          if (req.method === 'PUT') {
+            const price = venuePriceSchema.parse(await body(req))
+            await writePrices(upsertPrice(await readPrices(), price))
+            return send(res, 200, price)
+          }
+          if (req.method === 'DELETE') {
+            const key = url.searchParams.get('key') ?? ''
+            await writePrices(removePrice(await readPrices(), key))
+            return send(res, 200, { key })
+          }
+          send(res, 405, { error: 'method not allowed' })
+        })
+        queue = run.catch((error: unknown) => {
+          send(res, 400, { error: String(error) })
+        })
       })
       server.middlewares.use('/__admin/review', (req, res) => {
         const run = queue.then(() => handle(req, res))

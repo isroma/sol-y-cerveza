@@ -26,10 +26,20 @@ type Terrace = {
   sources: string[] // e.g. ["curated", "osm"], ["overture"], ["junta"] or ["osm", "review"], sorted
   verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
   horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
+  prices: Price[] // beer prices seen at the venue, caña first, then tercios by brand; [] if none
+}
+
+type Price = {
+  item: 'cana' | 'tercio' // a draught caña, or a 33 cl bottle
+  brand: string | null // tercio only: cruzcampo, mahou-5-estrellas, estrella-galicia, amstel, heineken, alhambra-especial, san-miguel, estrella-damm, super-bock, sagres; null for a caña
+  cents: number // integer euro cents (money is never a float)
+  seen: string // YYYY-MM-DD the price was seen
 }
 
 type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 ```
+
+`prices` (added 2026-11-23, not a breaking change) holds prices a curator confirmed in the admin view (`pipeline/data/venue_prices.csv`). Prices users suggest are not in this file: the app reads them at runtime from the suggestions API.
 
 ## Horizon
 

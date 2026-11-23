@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
+from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.sources import load_all_venues
 from solycerveza.terraces import Terrace, build_terraces, read_curated
@@ -161,6 +162,10 @@ def build(
         load_seating(refresh=False),
     )
     terraces = review_terraces(terraces, reviews)
+    prices = prices_by_venue(read_prices(), {t.id for t in terraces})
+    terraces = [
+        t.model_copy(update={"prices": prices[t.id]}) if t.id in prices else t for t in terraces
+    ]
 
     for warning in position_warnings(terraces, dsm_path, dtm_path):
         logger.warning(warning)

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadTerraces, type LatLon, type Terrace } from '../data/terraces.ts'
 import { AdminMap } from './AdminMap.tsx'
+import { PricesEditor } from './PricesEditor.tsx'
+import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
 import {
   ADDED_PREFIX,
@@ -24,6 +26,7 @@ import {
 
 const API = '/__admin/review'
 const PUBLISH_API = '/__admin/publish'
+const PRICES_API = '/__admin/prices'
 
 type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all'
 
@@ -84,6 +87,14 @@ function addedVenue(review: Review): Terrace | null {
   }
 }
 
+async function fetchPrices(): Promise<Map<string, VenuePrice>> {
+  const response = await fetch(PRICES_API)
+  if (!response.ok)
+    throw new Error(`GET ${PRICES_API}: HTTP ${response.status}`)
+  const rows = venuePriceSchema.array().parse(await response.json())
+  return new Map(rows.map((p) => [priceKey(p), p]))
+}
+
 async function fetchReviews(): Promise<Map<string, Review>> {
   const response = await fetch(API)
   if (!response.ok) throw new Error(`GET ${API}: HTTP ${response.status}`)
@@ -95,6 +106,7 @@ export function Admin() {
   const [dataVenues, setVenues] = useState<Terrace[]>([])
   const [adding, setAdding] = useState<Adding | null>(null)
   const [reviews, setReviews] = useState(new Map<string, Review>())
+  const [prices, setPrices] = useState(new Map<string, VenuePrice>())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('todo')
@@ -108,10 +120,11 @@ export function Admin() {
   }, [])
 
   useEffect(() => {
-    Promise.all([loadTerraces(), fetchReviews()])
-      .then(([file, rows]) => {
+    Promise.all([loadTerraces(), fetchReviews(), fetchPrices()])
+      .then(([file, rows, priceRows]) => {
         setVenues(file.terraces)
         setReviews(rows)
+        setPrices(priceRows)
         setMessage('')
       })
       .catch((error: unknown) => setMessage(String(error)))
@@ -218,6 +231,34 @@ export function Admin() {
       setReviews(await fetchReviews())
     }
   }, [])
+
+  const savePrice = useCallback(
+    async (key: string, next: VenuePrice | null) => {
+      setPrices((current) => {
+        const copy = new Map(current)
+        if (next) copy.set(key, next)
+        else copy.delete(key)
+        return copy
+      })
+      try {
+        const response = next
+          ? await fetch(PRICES_API, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(next),
+            })
+          : await fetch(`${PRICES_API}?key=${encodeURIComponent(key)}`, {
+              method: 'DELETE',
+            })
+        if (!response.ok) throw new Error(await response.text())
+        setMessage('Saved')
+      } catch (error) {
+        setMessage(`Not saved: ${String(error)}`)
+        setPrices(await fetchPrices())
+      }
+    },
+    [],
+  )
 
   const change = useCallback(
     (
@@ -549,6 +590,17 @@ export function Admin() {
                 position.
               </p>
             )}
+            <h3 className="admin-subhead">Beer prices</h3>
+            <PricesEditor
+              key={selectedVenue.id}
+              venueId={selectedVenue.id}
+              prices={[...prices.values()].filter(
+                (p) => p.venueId === selectedVenue.id,
+              )}
+              today={today()}
+              onSave={(p) => void savePrice(priceKey(p), p)}
+              onRemove={(key) => void savePrice(key, null)}
+            />
             <div className="admin-actions">
               <button type="button" onClick={nextToReview}>
                 Next to review <kbd>J</kbd>

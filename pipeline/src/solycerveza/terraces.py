@@ -40,6 +40,7 @@ from typing import Annotated, Self
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from solycerveza.overture import distance_m, name_similarity
+from solycerveza.prices import Price
 from solycerveza.venues import (
     CACHE_DIR,
     VENUE_ID_PATTERN,
@@ -116,6 +117,7 @@ class Terrace(BaseModel):
     sources: Annotated[list[str], Field(min_length=1)]
     verified: date | None
     horizon: Horizon | None = None
+    prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _no_terrace_means_no_terrace_data(self) -> Self:

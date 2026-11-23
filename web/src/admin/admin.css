@@ -313,3 +313,56 @@ body {
 .admin-publish-failed {
   color: #c0392b;
 }
+
+.admin-subhead {
+  margin: 14px 0 4px;
+  font-size: 13px;
+}
+
+.admin-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-price-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.admin-price-row > span:first-child {
+  flex: 1;
+}
+
+.admin-price-row select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-price {
+  width: 64px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  text-align: right;
+}
+
+.admin-price-bad {
+  border-color: #c0392b;
+}
+
+.admin-price-remove {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+}
