@@ -9,13 +9,22 @@ import {
 } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { BADAJOZ_CENTER, BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
 import { sunlitStyle } from '../map/mapStyle.ts'
 import { STATE_COLORS, type MapVenue } from './mapState.ts'
 
 setWorkerUrl(workerUrl)
+
+/** What the admin can ask of the map from outside. */
+export type AdminMapControl = {
+  centerOn: (at: LatLon) => void
+  /** Keeps the map's centre above a bottom sheet this tall (phones). */
+  setBottomInset: (px: number) => void
+  /** The map position under a point of the page (e.g. a crosshair). */
+  latLonAt: (clientX: number, clientY: number) => LatLon
+}
 
 type Props = {
   venues: readonly MapVenue[]
@@ -31,6 +40,9 @@ type Props = {
   /** The terrace pin's position while it is dragged, before onPinTerrace. */
   onDragTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
+  /** The device's position ("Where am I"), with its accuracy in metres. */
+  me?: { at: LatLon; accuracy: number } | null
+  control?: RefObject<AdminMapControl | null>
 }
 
 const SOURCE = 'venues'
@@ -90,11 +102,16 @@ export function AdminMap({
   onPinTerrace,
   onDragTerrace,
   onMoveVenue,
+  me = null,
+  control,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
+  const meMarker = useRef<Marker | null>(null)
+  // Applied on the next move only, so resizing the sheet never jumps the map.
+  const bottomInset = useRef(0)
   const callbacks = useRef({
     onSelect,
     onMapClick,
@@ -212,7 +229,27 @@ export function AdminMap({
           const target = event.originalEvent.target
           if (target instanceof Element && target.closest('.maplibregl-marker'))
             return
-          const [hit] = m.queryRenderedFeatures(event.point, { layers: [DOTS] })
+          // Fingers are wide: on touch screens, take the nearest dot within reach.
+          const reach = window.matchMedia('(pointer: coarse)').matches ? 18 : 0
+          const { x, y } = event.point
+          const hits = m.queryRenderedFeatures(
+            [
+              [x - reach, y - reach],
+              [x + reach, y + reach],
+            ],
+            { layers: [DOTS] },
+          )
+          const [hit] = hits
+            .map((feature) => {
+              const [lon, lat] =
+                feature.geometry.type === 'Point'
+                  ? feature.geometry.coordinates
+                  : []
+              const p = m.project([lon ?? 0, lat ?? 0])
+              return { feature, d: Math.hypot(p.x - x, p.y - y) }
+            })
+            .sort((a, b) => a.d - b.d)
+            .map((h) => h.feature)
           const id = hit?.properties['id']
           if (typeof id === 'string') {
             callbacks.current.onSelect(id)
@@ -224,13 +261,79 @@ export function AdminMap({
           }
         })
         mapRef.current = m
+        if (control)
+          control.current = {
+            centerOn: (at) =>
+              m.easeTo({
+                center: [at.lon, at.lat],
+                zoom: Math.max(m.getZoom(), 18),
+                padding: {
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: bottomInset.current,
+                },
+                duration: 600,
+              }),
+            setBottomInset: (px) => {
+              bottomInset.current = px
+            },
+            latLonAt: (clientX, clientY) => {
+              const box = container.getBoundingClientRect()
+              const { lat, lng } = m.unproject([
+                clientX - box.left,
+                clientY - box.top,
+              ])
+              return { lat, lon: lng }
+            },
+          }
       })
     return () => {
       cancelled = true
       map?.remove()
       mapRef.current = null
+      if (control) control.current = null
     }
-  }, [])
+  }, [control])
+
+  // "Where am I": a dot with an accuracy ring, not interactive.
+  const meLat = me?.at.lat
+  const meLon = me?.at.lon
+  const meAccuracy = me?.accuracy
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !ready || meLat === undefined || meLon === undefined) {
+      meMarker.current?.remove()
+      meMarker.current = null
+      return
+    }
+    if (!meMarker.current) {
+      const el = pinElement('admin-me', 'You are here')
+      el.append(document.createElement('span'))
+      meMarker.current = new Marker({ element: el })
+        .setLngLat([meLon, meLat])
+        .addTo(map)
+    }
+    meMarker.current.setLngLat([meLon, meLat])
+    // The accuracy ring's diameter in pixels at the current zoom, capped.
+    const ring = meMarker.current.getElement().firstElementChild
+    const fit = () => {
+      if (!(ring instanceof HTMLElement) || meAccuracy === undefined) return
+      const metresPerPixel =
+        (40_075_016 * Math.cos((meLat * Math.PI) / 180)) /
+        (512 * 2 ** map.getZoom())
+      const size = Math.max(
+        16,
+        Math.min(400, (2 * meAccuracy) / metresPerPixel),
+      )
+      ring.style.width = ring.style.height = `${size}px`
+    }
+    fit()
+    map.on('zoom', fit)
+    return () => {
+      map.off('zoom', fit)
+    }
+  }, [ready, meLat, meLon, meAccuracy])
 
   // Venue dots (the selected one is a draggable marker instead).
   const selectedId = selected?.id ?? null
@@ -248,6 +351,7 @@ export function AdminMap({
     map.easeTo({
       center: [at.lon, at.lat],
       zoom: Math.max(map.getZoom(), 19),
+      padding: { top: 0, left: 0, right: 0, bottom: bottomInset.current },
       duration: 600,
     })
   }, [ready, selectedId])
