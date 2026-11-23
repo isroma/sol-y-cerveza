@@ -4,6 +4,13 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
+import {
+  answerPhoto,
+  claudeReader,
+  PHOTO_MAX_BODY,
+  photoStatus,
+  readJsonCapped,
+} from './pricePhotoServer.ts'
 import { publishStatus, startPublish } from './publish.ts'
 import {
   formatReviewCsv,
@@ -13,6 +20,13 @@ import {
   upsertReview,
   type Review,
 } from './src/admin/review.ts'
+import {
+  isLoopbackHost,
+  newToken,
+  tokenAccepted,
+  TOKEN_HEADER,
+  TOKEN_PARAM,
+} from './src/admin/lanToken.ts'
 import {
   parseProbeOutput,
   parseProbeQuery,
@@ -27,6 +41,15 @@ import {
   venuePriceSchema,
   type VenuePrice,
 } from './src/admin/pricesCsv.ts'
+import {
+  decide,
+  decisionSchema,
+  formatCandidatesCsv,
+  parseCandidatesCsv,
+  parseLeadsCsv,
+  type Candidate,
+  type Lead,
+} from './src/admin/priceCandidates.ts'
 
 const CSV = fileURLToPath(
   new URL('../pipeline/data/venue_review.csv', import.meta.url),
@@ -66,6 +89,40 @@ async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
   const partial = `${PRICES_CSV}.part`
   await writeFile(partial, formatPricesCsv(prices), 'utf-8')
   await rename(partial, PRICES_CSV)
+}
+
+// Written by `python -m solycerveza.price_candidates` (ADR-0006).
+const CANDIDATES_CSV = fileURLToPath(
+  new URL('../pipeline/data/price_candidates.csv', import.meta.url),
+)
+const LEADS_CSV = fileURLToPath(
+  new URL('../pipeline/.cache/menu_leads.csv', import.meta.url),
+)
+
+async function readOptional(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf-8')
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+      return null
+    throw error
+  }
+}
+
+async function readCandidates(): Promise<Candidate[]> {
+  const text = await readOptional(CANDIDATES_CSV)
+  return text === null ? [] : parseCandidatesCsv(text)
+}
+
+async function readLeads(): Promise<Lead[]> {
+  const text = await readOptional(LEADS_CSV)
+  return text === null ? [] : parseLeadsCsv(text)
+}
+
+async function writeCandidates(candidates: readonly Candidate[]) {
+  const partial = `${CANDIDATES_CSV}.part`
+  await writeFile(partial, formatCandidatesCsv(candidates), 'utf-8')
+  await rename(partial, CANDIDATES_CSV)
 }
 
 const PIPELINE = fileURLToPath(new URL('../pipeline/', import.meta.url))
@@ -149,8 +206,10 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
- * pipeline/data/venue_review.csv and venue_prices.csv, and probe the sun at
- * a pin (`python -m solycerveza.probe`). Never part of the built site.
+ * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
+ * price candidates (price_candidates.csv), probe the sun at a pin
+ * (`python -m solycerveza.probe`) and read prices from a photo
+ * (pricePhotoServer.ts). Never part of the built site.
  */
 export function reviewServer(): Plugin {
   // Writes run one after another so two quick clicks never lose a row.
@@ -174,6 +233,44 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
+      // LAN mode (`npm run admin:lan`, i.e. --host): the write and publish
+      // endpoints are reachable from the network, so every /__admin request
+      // needs this run's token. Localhost mode needs none.
+      const lan = !isLoopbackHost(server.config.server.host)
+      const token = lan ? newToken() : null
+      server.middlewares.use('/__admin', (req, res, next) => {
+        if (tokenAccepted(token, req.headers[TOKEN_HEADER])) return next()
+        send(res, 401, {
+          error:
+            'LAN mode: open the admin URL with the token printed by npm run admin:lan',
+        })
+      })
+      if (token) {
+        const printUrls = server.printUrls.bind(server)
+        server.printUrls = () => {
+          printUrls()
+          const urls = [
+            ...(server.resolvedUrls?.network ?? []),
+            ...(server.resolvedUrls?.local ?? []),
+          ]
+          const links = urls.map(
+            (url) => `    ${url}admin.html?${TOKEN_PARAM}=${token}`,
+          )
+          server.config.logger.info(
+            [
+              '',
+              '  Admin on your phone (same Wi-Fi), token for this run only:',
+              ...links,
+              ...(server.config.server.https
+                ? [
+                    '  The certificate is self-signed: accept the browser warning on the phone.',
+                  ]
+                : []),
+              '',
+            ].join('\n'),
+          )
+        }
+      }
       server.middlewares.use('/__admin/publish', (req, res) => {
         if (req.method === 'GET') return send(res, 200, publishStatus())
         if (req.method !== 'POST')
@@ -193,9 +290,9 @@ export function reviewServer(): Plugin {
         '',
       )
       const api = env['VITE_PRICES_API'] ?? ''
-      const token = env['PRICES_ADMIN_TOKEN'] ?? ''
+      const apiToken = env['PRICES_ADMIN_TOKEN'] ?? ''
       server.middlewares.use('/__admin/suggestions', (req, res) => {
-        if (!api || !token)
+        if (!api || !apiToken)
           return send(res, 503, {
             error:
               'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
@@ -208,7 +305,7 @@ export function reviewServer(): Plugin {
           const init: RequestInit = {
             method: req.method === 'POST' ? 'POST' : 'GET',
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${apiToken}`,
               'Content-Type': 'application/json',
             },
           }
@@ -244,6 +341,31 @@ export function reviewServer(): Plugin {
           },
         )
       })
+      // Prices from a photo of the price board, read by the Claude API with
+      // ANTHROPIC_API_KEY (web/.env.local). Before /__admin/prices, which
+      // would otherwise match this path too.
+      const anthropicKey = env['ANTHROPIC_API_KEY'] ?? ''
+      server.middlewares.use('/__admin/prices/photo', (req, res) => {
+        if (req.method === 'GET')
+          return send(res, 200, photoStatus(anthropicKey))
+        if (req.method !== 'POST')
+          return send(res, 405, { error: 'method not allowed' })
+        void readJsonCapped(req, PHOTO_MAX_BODY).then(async (read) => {
+          if (!read.ok)
+            return send(res, read.status, {
+              error:
+                read.status === 413
+                  ? 'the photo is larger than 5 MB'
+                  : 'not JSON',
+            })
+          const answer = await answerPhoto(
+            read.json,
+            anthropicKey,
+            claudeReader(anthropicKey),
+          )
+          send(res, answer.status, answer.body)
+        })
+      })
       server.middlewares.use('/__admin/prices', (req, res) => {
         const run = queue.then(async () => {
           const url = new URL(req.url ?? '/', 'http://localhost')
@@ -257,6 +379,25 @@ export function reviewServer(): Plugin {
             const key = url.searchParams.get('key') ?? ''
             await writePrices(removePrice(await readPrices(), key))
             return send(res, 200, { key })
+          }
+          send(res, 405, { error: 'method not allowed' })
+        })
+        queue = run.catch((error: unknown) => {
+          send(res, 400, { error: String(error) })
+        })
+      })
+      // Website price candidates: read them, and record accept or dismiss.
+      server.middlewares.use('/__admin/price-candidates', (req, res) => {
+        const run = queue.then(async () => {
+          if (req.method === 'GET')
+            return send(res, 200, {
+              candidates: await readCandidates(),
+              leads: await readLeads(),
+            })
+          if (req.method === 'POST') {
+            const decision = decisionSchema.parse(await body(req))
+            await writeCandidates(decide(await readCandidates(), decision))
+            return send(res, 200, decision)
           }
           send(res, 405, { error: 'method not allowed' })
         })

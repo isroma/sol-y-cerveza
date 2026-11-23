@@ -12,8 +12,8 @@ TERRACES_URL = "https://isroma.github.io/sol-y-cerveza/data/terraces.json"
 [[d1_databases]]
 binding = "DB"
 database_name = "sol-y-cerveza"
-# Filled in by `wrangler d1 create sol-y-cerveza` on first setup.
-database_id = "00000000-0000-0000-0000-000000000000"
+# Created by `wrangler d1 create sol-y-cerveza` (WEUR). An id, not a secret.
+database_id = "0a0de20d-6c0d-4bc1-ba40-1145861c02c5"
 
 # Secrets (`wrangler secret put <NAME>`; locally in .dev.vars):
 # TURNSTILE_SECRET, ADMIN_TOKEN, IP_SALT

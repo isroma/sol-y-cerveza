@@ -23,6 +23,8 @@
     "vite.config.ts",
     "capacitor.config.ts",
     "reviewServer.ts",
+    "pricePhotoServer.ts",
+    "pricePhotoServer.test.ts",
     "publish.ts",
     "serviceWorker.ts",
     "serviceWorker.test.ts"
