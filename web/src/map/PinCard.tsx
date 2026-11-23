@@ -15,9 +15,41 @@ type Props = {
 
 const clock = (m: number) => formatClock(m % (24 * 60))
 
+/** Shoulder radius where the badge tab flares into the card body. */
+const R = 18
+const r = R + 1.5
+
 /**
- * The card that opens above a selected badge on the map: name, how much sun
- * is left and a bar from now to sunset with the moment the sun goes.
+ * A concave corner joining the tab's side to the card's top edge: white fill
+ * plus the border-coloured curve. The right one is the mirror image.
+ */
+function Shoulder({ side }: { side: 'left' | 'right' }) {
+  return (
+    <svg
+      className={`pin-card-shoulder pin-card-shoulder--${side}`}
+      width={R + 3}
+      height={R + 3}
+      viewBox={`0 0 ${R + 3} ${R + 3}`}
+      aria-hidden="true"
+    >
+      <path
+        d={`M0 ${r} A${r} ${r} 0 0 0 ${r} 0 L${r} ${r} Z`}
+        fill="var(--bg)"
+      />
+      <path
+        d={`M0 ${r} A${r} ${r} 0 0 0 ${r} 0`}
+        fill="none"
+        stroke="var(--card-accent)"
+        strokeWidth="3"
+      />
+    </svg>
+  )
+}
+
+/**
+ * The card a selected badge opens into on the map: the badge becomes a tab
+ * joined to a card below it with the name, how much sun is left and a bar
+ * from now to sunset with the moment the sun goes.
  */
 export function PinCard({ status, minutes, sunset }: Props) {
   const { venue } = status
@@ -30,10 +62,14 @@ export function PinCard({ status, minutes, sunset }: Props) {
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
-      <div className="pin-card-head">
+      <div className="pin-card-tab">
+        <Shoulder side="left" />
         <span className="pin-card-badge" aria-hidden="true">
-          <BeerIcon size={22} />
+          <BeerIcon size={26} />
         </span>
+        <Shoulder side="right" />
+      </div>
+      <div className="pin-card-body">
         <div className="pin-card-title">
           <strong>{venue.name}</strong>
           <span>
@@ -41,30 +77,33 @@ export function PinCard({ status, minutes, sunset }: Props) {
             {status.hasTerrace && ' · Terraza'}
           </span>
         </div>
-      </div>
-      <div className="pin-card-sun">
-        <CategoryIcon category={status.category} size={30} />
-        <div>
-          <strong>{box.title}</strong>
-          {box.detail && <span>{box.detail}</span>}
-        </div>
-      </div>
-      {showBar && (
-        <div className="pin-card-bar">
-          <div className="pin-card-track">
-            <span className="pin-card-fill" style={{ width: `${percent}%` }} />
-            <span className="pin-card-knob" style={{ left: `${percent}%` }} />
-          </div>
-          <div className="pin-card-ticks">
-            <span>{clock(minutes)}</span>
-            <strong>{clock(until)}</strong>
-            <span>{clock(end)}</span>
+        <div className="pin-card-sun">
+          <CategoryIcon category={status.category} size={30} />
+          <div>
+            <strong>{box.title}</strong>
+            {box.detail && <span>{box.detail}</span>}
           </div>
         </div>
-      )}
-      {status.hasTerrace && (
-        <p className="pin-card-note">{verificationLabel(venue.verified)}</p>
-      )}
+        {showBar && (
+          <div className="pin-card-bar">
+            <div className="pin-card-track">
+              <span
+                className="pin-card-fill"
+                style={{ width: `${percent}%` }}
+              />
+              <span className="pin-card-knob" style={{ left: `${percent}%` }} />
+            </div>
+            <div className="pin-card-ticks">
+              <span>{clock(minutes)}</span>
+              <strong>{clock(until)}</strong>
+              <span>{clock(end)}</span>
+            </div>
+          </div>
+        )}
+        {status.hasTerrace && (
+          <p className="pin-card-note">{verificationLabel(venue.verified)}</p>
+        )}
+      </div>
     </div>
   )
 }
