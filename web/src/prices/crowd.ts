@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react'
 import { z } from 'zod'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
 import type { Price } from '../data/terraces.ts'
@@ -16,6 +17,8 @@ const crowdSchema = z.object({
       cents: z.number().int(),
       voters: z.number().int(),
       last: z.string(),
+      // Saved by the owner (owner mode): shown as confirmed, no "~".
+      confirmed: z.boolean().default(false),
     }),
   ),
 })
@@ -31,20 +34,55 @@ export type ShownPrice = {
 }
 
 let crowd: Promise<CrowdPrice[]> | null = null
+let latest: CrowdPrice[] = []
+const listeners = new Set<() => void>()
 
-/** Prices visitors agree on, fetched once per page load; [] on any failure. */
-export function loadCrowdPrices(): Promise<CrowdPrice[]> {
+let requests = 0
+
+function fetchPrices(fresh: boolean): Promise<CrowdPrice[]> {
   if (!PRICES_API) return Promise.resolve([])
-  crowd ??= fetch(`${PRICES_API}/v1/prices`)
+  const mine = ++requests
+  return fetch(`${PRICES_API}/v1/prices`, fresh ? { cache: 'no-store' } : {})
     .then((response) => response.json())
     .then((body) => crowdSchema.parse(body).prices)
-    .catch(() => [])
+    .catch(() => latest)
+    .then((prices) => {
+      // An older, slower answer never replaces a newer one.
+      if (mine !== requests) return latest
+      latest = prices
+      for (const listener of listeners) listener()
+      return prices
+    })
+}
+
+/** Prices from the API (visitors' consensus and the owner's), fetched once per page load; [] on any failure. */
+export function loadCrowdPrices(): Promise<CrowdPrice[]> {
+  crowd ??= fetchPrices(false)
   return crowd
 }
 
+/** Fetches again, e.g. right after the owner saved a price. */
+export function refreshCrowdPrices(): Promise<CrowdPrice[]> {
+  crowd = fetchPrices(true)
+  return crowd
+}
+
+/** The latest API prices; re-renders when they change. */
+export function useCrowdPrices(): CrowdPrice[] {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener)
+      void loadCrowdPrices()
+      return () => listeners.delete(listener)
+    },
+    () => latest,
+  )
+}
+
 /**
- * What the card shows for a venue: curator prices win over visitor ones for
- * the same item and brand. Caña first, then tercios by brand order.
+ * What the card shows for a venue, per item and brand: the owner's price
+ * (owner mode) wins, then the curator's, then visitors' consensus (~).
+ * Caña first, then tercios by brand order.
  */
 export function shownPrices(
   venueId: string,
@@ -54,10 +92,12 @@ export function shownPrices(
   const key = (p: { item: Item; brand: Brand | null }) =>
     `${p.item}|${p.brand ?? ''}`
   const shown = new Map<string, ShownPrice>()
-  for (const p of visitors)
-    if (p.venueId === venueId)
-      shown.set(key(p), { ...pick(p), approximate: true })
+  const here = visitors.filter((p) => p.venueId === venueId)
+  for (const p of here)
+    if (!p.confirmed) shown.set(key(p), { ...pick(p), approximate: true })
   for (const p of curated) shown.set(key(p), { ...pick(p), approximate: false })
+  for (const p of here)
+    if (p.confirmed) shown.set(key(p), { ...pick(p), approximate: false })
   const rank = (p: ShownPrice) =>
     p.item === 'cana' ? -1 : BRANDS.indexOf(p.brand ?? 'cruzcampo')
   return [...shown.values()].sort((a, b) => rank(a) - rank(b))
