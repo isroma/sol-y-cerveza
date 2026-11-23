@@ -1367,7 +1367,7 @@ button {
 .sun-countdown-track {
   position: relative;
   height: 8px;
-  margin: 0 var(--space-2);
+  /* Full width: its ends line up with the times below and the sun box above. */
   border-radius: 999px;
   background: var(--toggle-off);
 }
