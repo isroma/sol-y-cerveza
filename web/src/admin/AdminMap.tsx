@@ -28,6 +28,8 @@ type Props = {
   /** A click on the map away from any venue dot. */
   onMapClick: (at: LatLon) => void
   onPinTerrace: (at: LatLon) => void
+  /** The terrace pin's position while it is dragged, before onPinTerrace. */
+  onDragTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
 }
 
@@ -86,6 +88,7 @@ export function AdminMap({
   onSelect,
   onMapClick,
   onPinTerrace,
+  onDragTerrace,
   onMoveVenue,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -96,6 +99,7 @@ export function AdminMap({
     onSelect,
     onMapClick,
     onPinTerrace,
+    onDragTerrace,
     onMoveVenue,
     selected,
   })
@@ -106,6 +110,7 @@ export function AdminMap({
       onSelect,
       onMapClick,
       onPinTerrace,
+      onDragTerrace,
       onMoveVenue,
       selected,
     }
@@ -283,6 +288,10 @@ export function AdminMap({
     })
       .setLngLat([terrace.lon, terrace.lat])
       .addTo(map)
+    marker.on('drag', () => {
+      const { lat, lng } = marker.getLngLat()
+      callbacks.current.onDragTerrace({ lat, lon: lng })
+    })
     marker.on('dragend', () => {
       const { lat, lng } = marker.getLngLat()
       callbacks.current.onPinTerrace({ lat, lon: lng })

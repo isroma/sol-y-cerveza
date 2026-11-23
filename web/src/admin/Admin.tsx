@@ -6,6 +6,15 @@ import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
 import { BRANDS } from '../data/prices.ts'
 import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
+import { dayTrack } from '../sun/dayTrack.ts'
+import { toMadridLocal } from '../time/madrid.ts'
+import {
+  LOOK_REASONS,
+  needsALook,
+  referenceDates,
+  type LookReason,
+} from './needsLook.ts'
+import { SunPreview } from './SunPreview.tsx'
 import {
   ADDED_PREFIX,
   addedId,
@@ -30,7 +39,7 @@ const API = '/__admin/review'
 const PUBLISH_API = '/__admin/publish'
 const PRICES_API = '/__admin/prices'
 
-type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all'
+type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all' | 'look'
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'todo', label: 'To review' },
@@ -38,6 +47,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'no_terrace', label: 'No terrace' },
   { id: 'not_venue', label: 'Not a venue' },
   { id: 'all', label: 'All' },
+  { id: 'look', label: 'Needs a look' },
 ]
 
 const STATE_LABELS: Record<MapState, string> = {
@@ -61,7 +71,7 @@ function stateOf(venue: Terrace, review: Review | undefined): MapState {
 }
 
 function matches(filter: Filter, review: Review | undefined): boolean {
-  if (filter === 'all') return true
+  if (filter === 'all' || filter === 'look') return true
   if (filter === 'todo') return !review?.status
   return review?.status === filter
 }
@@ -114,13 +124,32 @@ export function Admin() {
   const [filter, setFilter] = useState<Filter>('todo')
   const [message, setMessage] = useState('Loading…')
   const [pinning, setPinning] = useState(false)
+  // The terrace pin while it is being dragged, for a live sun preview.
+  const [dragging, setDragging] = useState<LatLon | null>(null)
   const [queueOpen, setQueueOpen] = useState(false)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)
     setPinning(false)
+    setDragging(null)
   }, [])
+
+  // Sun checks on the horizons in terraces.json, for the "Needs a look" filter.
+  // Terraces reviewed away are left out; moved pins keep their stale horizon
+  // until the next build, so the list says so.
+  const [tracks] = useState(() =>
+    referenceDates(toMadridLocal(new Date()).date).map(dayTrack),
+  )
+  const looks = useMemo(() => {
+    const out = new Map<string, LookReason[]>()
+    for (const item of needsALook(dataVenues, tracks)) {
+      const status = reviews.get(item.venue.id)?.status
+      if (status === 'no_terrace' || status === 'not_venue') continue
+      out.set(item.venue.id, item.reasons)
+    }
+    return out
+  }, [dataVenues, tracks, reviews])
 
   useEffect(() => {
     Promise.all([loadTerraces(), fetchReviews(), fetchPrices()])
@@ -183,9 +212,10 @@ export function Admin() {
     return venues.filter(
       (v) =>
         matches(filter, reviews.get(v.id)) &&
+        (filter !== 'look' || looks.has(v.id)) &&
         (!q || v.name.toLocaleLowerCase('es').includes(q)),
     )
-  }, [venues, reviews, filter, query])
+  }, [venues, reviews, filter, query, looks])
 
   const mapShown = useMemo(() => {
     const ids = new Set(listed.map((v) => v.id))
@@ -209,6 +239,14 @@ export function Admin() {
         ? (review.terrace ?? selectedVenue.terrace)
         : null
       : selectedVenue.terrace
+  const preview = dragging ?? terrace
+
+  // Moving the pin changes the terrace; the dataset horizon no longer applies.
+  const pinMoved = (id: string): boolean => {
+    const pinned = reviews.get(id)?.terrace
+    const data = venues.find((v) => v.id === id)?.terrace
+    return !!pinned && (pinned.lat !== data?.lat || pinned.lon !== data.lon)
+  }
 
   const save = useCallback(async (venueId: string, next: Review | null) => {
     setReviews((current) => {
@@ -462,6 +500,7 @@ export function Admin() {
                 onClick={() => setFilter(f.id)}
               >
                 {f.label}
+                {f.id === 'look' && ` (${looks.size})`}
               </button>
             ))}
           </div>
@@ -481,7 +520,17 @@ export function Admin() {
                     style={{ background: STATE_COLORS[state] }}
                     title={STATE_LABELS[state]}
                   />
-                  <span className="admin-name">{v.name}</span>
+                  <span className="admin-name">
+                    {v.name}
+                    {filter === 'look' && (
+                      <span className="admin-look">
+                        {(looks.get(v.id) ?? [])
+                          .map((r) => LOOK_REASONS[r])
+                          .join(' · ')}
+                        {pinMoved(v.id) && ' · pin moved since the build'}
+                      </span>
+                    )}
+                  </span>
                   <span className="admin-kind">{v.kind}</span>
                 </button>
               </li>
@@ -502,7 +551,9 @@ export function Admin() {
           onPinTerrace={(at) => {
             change({ kind: 'terrace', at })
             setPinning(false)
+            setDragging(null)
           }}
+          onDragTerrace={setDragging}
           onMoveVenue={(at) =>
             adding
               ? setAdding({ ...adding, at })
@@ -621,6 +672,7 @@ export function Admin() {
                 position.
               </p>
             )}
+            {preview && <SunPreview at={preview} />}
             <h3 className="admin-subhead">Beer prices</h3>
             <PricesEditor
               key={selectedVenue.id}
