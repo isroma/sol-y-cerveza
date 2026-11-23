@@ -7,11 +7,12 @@ null ("terraza sin confirmar"). `horizon` stays null here; a later stage compute
 Curated list (`pipeline/data/curated_terraces.csv`, UTF-8, one row per terrace, header required):
 
 - `id`: stable slug (`[a-z0-9]` words joined by `-`), e.g. `plaza-alta-la-terraza`.
-- `osm_id`: optional link to an OSM venue, e.g. `osm:node/123` or `osm:way/456`. A linked record
-  uses the OSM id; an unlinked one becomes `curated:<id>`. A link to a venue missing from the
-  Overpass download is an error, so ids never change silently.
-- `name`, `kind`: optional when `osm_id` is set (the OSM values are used), required otherwise.
-  When given they override OSM. `kind` is one of bar, pub, cafe, restaurant, biergarten.
+- `venue_id`: optional link to a venue: OSM (`osm:node/123`, `osm:way/456`) or Overture
+  (`overture:<GERS id>`). A linked record keeps that id; an unlinked one becomes `curated:<id>`.
+  A link to a venue missing from the downloads is an error, so ids never change silently.
+- `name`, `kind`: optional when `venue_id` is set (the venue's values are used), required
+  otherwise. When given they override the venue's. `kind` is one of bar, pub, cafe,
+  restaurant, biergarten.
 - `terrace_lat`, `terrace_lon`: WGS84 position of the tables (required). It always wins over the
   venue position, because the horizon is computed from here.
 - `verified`: optional YYYY-MM-DD of the last on-site check of the terrace position.
@@ -37,14 +38,23 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from solycerveza.venues import CACHE_DIR, Kind, Lat, LatLon, Lon, Venue, load_venues
+from solycerveza.venues import (
+    CACHE_DIR,
+    VENUE_ID_PATTERN,
+    Kind,
+    Lat,
+    LatLon,
+    Lon,
+    Venue,
+    load_venues,
+)
 
 logger = logging.getLogger(__name__)
 
 CURATED_CSV = Path(__file__).resolve().parents[2] / "data" / "curated_terraces.csv"
 CURATED_COLUMNS = (
     "id",
-    "osm_id",
+    "venue_id",
     "name",
     "kind",
     "terrace_lat",
@@ -54,7 +64,6 @@ CURATED_COLUMNS = (
     "notes",
 )
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
-OSM_ID_PATTERN = r"^osm:(node|way)/\d+$"
 TERRACE_ID_PATTERN = (
     r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+|(curated|sample):[a-z0-9]+(-[a-z0-9]+)*)$"
 )
@@ -70,7 +79,7 @@ class CuratedTerrace(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: Annotated[str, Field(pattern=SLUG_PATTERN)]
-    osm_id: Annotated[str, Field(pattern=OSM_ID_PATTERN)] | None = None
+    venue_id: Annotated[str, Field(pattern=VENUE_ID_PATTERN)] | None = None
     name: str | None = None
     kind: Kind | None = None
     terrace_lat: Lat
@@ -81,8 +90,8 @@ class CuratedTerrace(BaseModel):
 
     @model_validator(mode="after")
     def _unlinked_rows_need_name_and_kind(self) -> Self:
-        if self.osm_id is None and (self.name is None or self.kind is None):
-            raise ValueError("name and kind are required when osm_id is empty")
+        if self.venue_id is None and (self.name is None or self.kind is None):
+            raise ValueError("name and kind are required when venue_id is empty")
         return self
 
     @property
@@ -129,7 +138,7 @@ def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
 
     for column, values in (
         ("id", [row.id for row in rows]),
-        ("osm_id", [row.osm_id for row in rows if row.osm_id is not None]),
+        ("venue_id", [row.venue_id for row in rows if row.venue_id is not None]),
         ("ayto_ref", [row.ayto_ref for row in rows if row.ayto_ref is not None]),
     ):
         duplicates = sorted(value for value, count in Counter(values).items() if count > 1)
@@ -142,10 +151,12 @@ def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -
     """Merge venues and curated rows into records sorted by id, one per named venue."""
     venues_by_id = {venue.id: venue for venue in venues}
     rows = list(curated)
-    linked = {row.osm_id: row for row in rows if row.osm_id is not None}
-    unknown = sorted(osm_id for osm_id in linked if osm_id not in venues_by_id)
+    linked = {row.venue_id: row for row in rows if row.venue_id is not None}
+    unknown = sorted(venue_id for venue_id in linked if venue_id not in venues_by_id)
     if unknown:
-        raise ValueError(f"curated rows link venues missing from OSM: {', '.join(unknown)}")
+        raise ValueError(
+            f"curated rows link venues missing from the downloads: {', '.join(unknown)}"
+        )
 
     terraces: list[Terrace] = []
     for venue in venues_by_id.values():
@@ -157,7 +168,7 @@ def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -
                 logger.warning("skipping %s: outdoor_seating=yes but no name", venue.id)
         else:
             terraces.append(_osm_only(venue, venue.name))
-    terraces.extend(_curated_only(row) for row in rows if row.osm_id is None)
+    terraces.extend(_curated_only(row) for row in rows if row.venue_id is None)
     return sorted(terraces, key=lambda terrace: terrace.id)
 
 
