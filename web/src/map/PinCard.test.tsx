@@ -53,20 +53,24 @@ describe('sunBox', () => {
 })
 
 describe('PinCard', () => {
-  it('shows the name, the sun left and a bar from now to sunset', () => {
+  it('shows the name, the sun left and a countdown of the sun spell', () => {
+    // Sun from 12:00 to 17:26 (5-minute steps), shade before and after.
+    const timeline = Array.from({ length: 288 }, (_, i) =>
+      i >= 144 && i * 5 < 17 * 60 + 26 ? ('sun' as const) : ('shade' as const),
+    )
     render(
       <PinCard
-        status={status({ category: 'sun', sunUntil: 17 * 60 + 26 })}
+        status={status({ category: 'sun', sunUntil: 17 * 60 + 30, timeline })}
         minutes={at}
         sunset={18 * 60 + 4}
       />,
     )
     expect(screen.getByText('Café La Plaza')).toBeInTheDocument()
     expect(screen.getByText('Café · Terraza')).toBeInTheDocument()
-    expect(screen.getByText('2 h 54 min de sol')).toBeInTheDocument()
-    expect(screen.getByText('14:32')).toBeInTheDocument()
-    expect(screen.getByText('17:26')).toBeInTheDocument()
-    expect(screen.getByText('18:04')).toBeInTheDocument()
+    expect(screen.getByText('2 h 58 min de sol')).toBeInTheDocument()
+    expect(screen.getByText('12:00')).toBeInTheDocument()
+    expect(screen.getByText('17:30')).toBeInTheDocument()
+    expect(screen.getByRole('meter')).toHaveAttribute('aria-valuenow', '178')
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
   })
 
@@ -74,6 +78,6 @@ describe('PinCard', () => {
     const { container } = render(
       <PinCard status={status({})} minutes={at} sunset={18 * 60} />,
     )
-    expect(container.querySelector('.pin-card-bar')).toBeNull()
+    expect(container.querySelector('.sun-countdown')).toBeNull()
   })
 })
