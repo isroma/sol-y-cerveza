@@ -172,7 +172,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - A slim brand bar on top (32 px mark, 20 px title) with a **menu button** (44 px) on the right.
 - The map fills the middle and the **time bar is the footer**, always in view.
 - The menu opens over the map, between the brand bar and the footer, with search, filters and the list. The button turns into a close icon; Escape or picking a venue closes it, so the venue's map card shows.
-- The attribution button sits left of the legend, both 12 px above the footer.
+- The legend spans the bottom of the map (12 px inset, 56 px tall) with its rows centred; the map attribution button sits centred 8 px above it, and both can be open at once.
 
 ### Map overlays
 

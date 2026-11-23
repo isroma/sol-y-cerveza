@@ -194,10 +194,6 @@ export function MapControls({ mapRef, ready, attribution }: Props) {
               relieve de edificios y árboles (LiDAR del PNOA). Las terrazas aún
               no están verificadas sobre el terreno.
             </p>
-            <p>
-              Al alejar el mapa, las insignias grandes son las terrazas con sol
-              ahora que más horas de sol tienen hoy.
-            </p>
             <ul className="map-info-sources">
               {attribution.map((line) => (
                 <li key={line}>{line}</li>
