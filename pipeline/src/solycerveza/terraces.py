@@ -39,6 +39,7 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from solycerveza.overture import distance_m, name_similarity
 from solycerveza.venues import (
     CACHE_DIR,
     VENUE_ID_PATTERN,
@@ -46,6 +47,7 @@ from solycerveza.venues import (
     Lat,
     LatLon,
     Lon,
+    SeatingArea,
     Venue,
     load_venues,
 )
@@ -149,7 +151,35 @@ def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
     return rows
 
 
-def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -> list[Terrace]:
+#: An outdoor-seating area belongs to the nearest venue within this distance.
+SEATING_LINK_M = 40.0
+
+
+def _seating_positions(
+    terraces: Sequence[Terrace], seating: Iterable[SeatingArea]
+) -> dict[str, LatLon]:
+    """Venue id -> position of its outdoor-seating area (nearest venue, matching name first)."""
+    positions: dict[str, tuple[float, LatLon]] = {}
+    for area in seating:
+        near = [
+            (distance_m(area.location, t.venue), t)
+            for t in terraces
+            if distance_m(area.location, t.venue) <= SEATING_LINK_M
+        ]
+        if not near:
+            continue
+        named = [(d, t) for d, t in near if area.name and name_similarity(area.name, t.name) >= 80]
+        d, owner = min(named or near, key=lambda pair: (pair[0], pair[1].id))
+        if owner.id not in positions or d < positions[owner.id][0]:
+            positions[owner.id] = (d, area.location)
+    return {venue_id: location for venue_id, (_, location) in positions.items()}
+
+
+def build_terraces(
+    venues: Iterable[Venue],
+    curated: Iterable[CuratedTerrace],
+    seating: Iterable[SeatingArea] = (),
+) -> list[Terrace]:
     """Merge venues and curated rows into records sorted by id, one per named venue."""
     venues_by_id = {venue.id: venue for venue in venues}
     rows = list(curated)
@@ -171,6 +201,16 @@ def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -
         else:
             terraces.append(_osm_only(venue, venue.name))
     terraces.extend(_curated_only(row) for row in rows if row.venue_id is None)
+
+    # OSM outdoor-seating areas place the terrace where the tables are, unless curated.
+    curated_ids = set(linked) | {f"curated:{row.id}" for row in rows if row.venue_id is None}
+    positions = _seating_positions(terraces, seating)
+    terraces = [
+        t.model_copy(update={"terrace": positions[t.id]})
+        if t.id in positions and t.id not in curated_ids
+        else t
+        for t in terraces
+    ]
     return sorted(terraces, key=lambda terrace: terrace.id)
 
 

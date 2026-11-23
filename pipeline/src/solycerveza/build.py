@@ -24,7 +24,7 @@ from pyproj import Transformer
 from solycerveza.horizon import terrace_horizon
 from solycerveza.sources import load_all_venues
 from solycerveza.terraces import Terrace, build_terraces, read_curated
-from solycerveza.venues import CACHE_DIR
+from solycerveza.venues import CACHE_DIR, load_seating
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,9 @@ def build(
     generated: datetime | None = None,
 ) -> TerracesFile:
     """Run every stage and return the file contents."""
-    terraces = build_terraces(load_all_venues(refresh=refresh), read_curated())
+    terraces = build_terraces(
+        load_all_venues(refresh=refresh), read_curated(), load_seating(refresh=False)
+    )
 
     for warning in position_warnings(terraces, dsm_path, dtm_path):
         logger.warning(warning)
