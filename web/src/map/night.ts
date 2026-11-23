@@ -9,7 +9,23 @@ export type PaintPatch = {
   value: string | number
 }
 
-const NIGHT = {
+/** Just after sunset: blue hour, dark but still soft. */
+const DUSK = {
+  background: '#343A52',
+  land: '#3A4058',
+  green: '#344640',
+  water: '#2E4A72',
+  building: '#454B62',
+  buildingTop: '#525870',
+  road: '#535A72',
+  text: '#D9DEEA',
+  halo: '#343A52',
+}
+
+type Palette = Record<keyof typeof DUSK, string>
+
+/** Deep night. */
+const NIGHT: Palette = {
   background: '#10131D',
   land: '#161A26',
   green: '#152019',
@@ -21,17 +37,55 @@ const NIGHT = {
   halo: '#10131D',
 }
 
+/** Mixes two #RRGGBB colours: t = 0 gives `from`, t = 1 gives `to`. */
+export function mixHex(from: string, to: string, t: number): string {
+  const channel = (hex: string, i: number) =>
+    Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)
+  return (
+    '#' +
+    [0, 1, 2]
+      .map((i) =>
+        Math.round(channel(from, i) + (channel(to, i) - channel(from, i)) * t)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')
+      .toUpperCase()
+  )
+}
+
+/**
+ * How deep into the night it is: null while the sun is up, 0 right at sunset,
+ * easing to 1 once the sun is 18° below the horizon (true night, about an hour
+ * and a half after sunset in Badajoz). Rounded to 0.1 so the map is repainted
+ * only when the change is visible.
+ */
+export function nightDepth(altitude: number): number | null {
+  if (altitude > 0) return null
+  const t = Math.min(1, -altitude / 18)
+  return Math.round(t * t * (3 - 2 * t) * 10) / 10
+}
+
+function palette(depth: number): Palette {
+  const keys = Object.keys(DUSK) as (keyof Palette)[]
+  return Object.fromEntries(
+    keys.map((key) => [key, mixHex(DUSK[key], NIGHT[key], depth)]),
+  ) as Palette
+}
+
 const isWater = (id: string) => id.startsWith('water')
 const isGreen = (id: string) =>
   /park|wood|grass|landcover|garden|pitch/.test(id)
 
 /**
- * A dark map for the night, so it reads as night at a glance. Pure: returns
- * the paint changes for the given style layers.
+ * A dark map for the night, softer at dusk and darkest overnight (`depth`
+ * from 0 to 1). Pure: returns the paint changes for the given style layers.
  */
 export function nightPaint(
   layers: readonly LayerSpecification[],
+  depth = 1,
 ): PaintPatch[] {
+  const NIGHT = palette(depth)
   const patches: PaintPatch[] = []
   const set = (
     layer: string,
@@ -53,7 +107,7 @@ export function nightPaint(
       set(id, 'fill-outline-color', color)
       // Patterns (wetland, pedestrian areas) ignore fill-color: fade them.
       if (layer.paint && 'fill-pattern' in layer.paint)
-        set(id, 'fill-opacity', 0.12)
+        set(id, 'fill-opacity', Math.round((0.35 - 0.23 * depth) * 100) / 100)
     } else if (type === 'fill-extrusion')
       set(id, 'fill-extrusion-color', NIGHT.buildingTop)
     else if (type === 'line')
@@ -75,22 +129,23 @@ export function nightPaint(
  * the style the first time, so switching back restores them exactly.
  */
 export function createNightSwitch(map: MapLibreMap, skip: ReadonlySet<string>) {
-  const patches = nightPaint(map.getStyle().layers).filter(
-    (patch) => !skip.has(patch.layer),
-  )
+  const layers = map.getStyle().layers.filter((layer) => !skip.has(layer.id))
+  const patches = nightPaint(layers)
   const day = patches.map((patch): [PaintPatch, PaintValue] => [
     patch,
     // getPaintProperty is typed `unknown`, but it returns exactly what
     // setPaintProperty accepts for the same property.
     map.getPaintProperty(patch.layer, patch.property) as PaintValue,
   ])
-  return (night: boolean) => {
-    for (const [patch, dayValue] of day) {
+  /** `depth` from nightDepth: null for day, 0–1 for dusk to deep night. */
+  return (depth: number | null) => {
+    const night = depth === null ? null : nightPaint(layers, depth)
+    day.forEach(([patch, dayValue], i) => {
       map.setPaintProperty(
         patch.layer,
         patch.property,
-        night ? patch.value : dayValue,
+        night ? (night[i]?.value ?? dayValue) : dayValue,
       )
-    }
+    })
   }
 }

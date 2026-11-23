@@ -6,6 +6,7 @@ import {
   type Filters,
 } from './filters/filters.ts'
 import { MapView } from './map/MapView.tsx'
+import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
 import { formatClock, toMadridLocal } from './time/madrid.ts'
@@ -91,14 +92,23 @@ export function App() {
     azimuth: 0,
   }
 
-  const night = sun.altitude <= 0
+  const depth = nightDepth(sun.altitude)
+  const night = depth !== null
 
   // The browser chrome (address bar on phones) follows the theme too.
   useEffect(() => {
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', night ? '#141826' : '#FFC53D')
-  }, [night])
+      ?.setAttribute(
+        'content',
+        depth === null ? '#FFC53D' : mixHex('#2D3348', '#141826', depth),
+      )
+    // Dusk is softer than deep night (see .app.is-night in index.css).
+    document.documentElement.style.setProperty(
+      '--night-depth',
+      String(depth ?? 1),
+    )
+  }, [depth])
 
   const goToNow = useCallback(() => {
     const now = toMadridLocal(new Date())

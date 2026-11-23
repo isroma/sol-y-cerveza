@@ -1,6 +1,6 @@
 import type { LayerSpecification } from 'maplibre-gl'
 import { describe, expect, it } from 'vitest'
-import { nightPaint } from './night.ts'
+import { mixHex, nightDepth, nightPaint } from './night.ts'
 
 const layers = [
   { id: 'background', type: 'background' },
@@ -57,5 +57,39 @@ describe('nightPaint', () => {
       'text-halo-color': '#10131D',
     })
     expect(byLayer('shade')).toEqual({})
+  })
+})
+
+describe('nightDepth', () => {
+  it('is null by day and 0 right at sunset', () => {
+    expect(nightDepth(12)).toBeNull()
+    expect(nightDepth(0)).toBe(0)
+  })
+
+  it('deepens with the sun below the horizon, full night at 18°', () => {
+    expect(nightDepth(-9)).toBe(0.5)
+    expect(nightDepth(-18)).toBe(1)
+    expect(nightDepth(-50)).toBe(1)
+    expect(nightDepth(-3)).toBeLessThan(nightDepth(-12) ?? 0)
+  })
+})
+
+describe('graded night', () => {
+  const background = (depth: number) =>
+    nightPaint(layers, depth).find((patch) => patch.layer === 'background')
+      ?.value
+
+  it('is softer at dusk than overnight', () => {
+    expect(background(0)).toBe('#343A52')
+    expect(background(1)).toBe('#10131D')
+    expect(background(0.5)).toBe(mixHex('#343A52', '#10131D', 0.5))
+  })
+})
+
+describe('mixHex', () => {
+  it('blends two colours', () => {
+    expect(mixHex('#000000', '#FFFFFF', 0)).toBe('#000000')
+    expect(mixHex('#000000', '#FFFFFF', 1)).toBe('#FFFFFF')
+    expect(mixHex('#000000', '#FFFFFF', 0.5)).toBe('#808080')
   })
 })
