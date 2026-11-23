@@ -16,9 +16,17 @@ import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
   cardFolded,
   cardScale,
+  EXTRUSION_OPACITY,
   pitchForZoom,
   SHADOW_OPACITY,
 } from './camera.ts'
+import {
+  treeFeatures,
+  umbrellaFeatures,
+  WALL_IMAGES,
+  wallTexture,
+} from './cityDetail.ts'
+import { loadTrees } from '../data/trees.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
@@ -32,6 +40,8 @@ import { shadowCollection } from './shadowLayer.ts'
 setWorkerUrl(workerUrl)
 
 const SHADOWS = 'building-shadows'
+const UMBRELLAS = 'terrace-umbrellas'
+const TREES = 'lidar-trees'
 const DOTS_SOURCE = 'venues-unconfirmed'
 const DOTS_LAYER = 'venues-unconfirmed'
 const LABELS_LAYER = 'venues-unconfirmed-labels'
@@ -148,6 +158,7 @@ export function MapView({
   const [folded, setFolded] = useState(cardFolded(INITIAL_ZOOM))
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
+  const nightRef = useRef(night)
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
 
   const selectedIdRef = useRef(selectedId)
@@ -190,6 +201,12 @@ export function MapView({
           attributionControl: false,
         })
         sizeCard(cardEl, map.getZoom())
+        // Window textures for the walls, made on demand (cityDetail.ts).
+        map.on('styleimagemissing', ({ id }) => {
+          const tint = WALL_IMAGES.indexOf(id)
+          if (!map || tint < 0 || map.hasImage(id)) return
+          map.addImage(id, wallTexture(tint, nightRef.current))
+        })
         // The attribution sits in our own layout, next to the legend
         // (MapControls), rather than in a corner of the map.
         const slot = attributionSlotRef.current
@@ -256,6 +273,24 @@ export function MapView({
             if (event.sourceId === 'openmaptiles' && event.isSourceLoaded)
               refreshShadows()
           })
+          // Terrace umbrellas and LiDAR trees, as small extrusions.
+          for (const id of [UMBRELLAS, TREES]) {
+            map.addSource(id, {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] },
+            })
+            map.addLayer({
+              id,
+              type: 'fill-extrusion',
+              source: id,
+              paint: {
+                'fill-extrusion-color': ['get', 'color'],
+                'fill-extrusion-base': ['get', 'base'],
+                'fill-extrusion-height': ['get', 'top'],
+                'fill-extrusion-opacity': EXTRUSION_OPACITY,
+              },
+            })
+          }
           map.addSource(DOTS_SOURCE, {
             type: 'geojson',
             data: dotsData([], null),
@@ -370,10 +405,59 @@ export function MapView({
       ?.setData(shadowCollection(map, sun))
   }, [ready, sun])
 
-  // A dark map at night.
+  // A dark map at night, with lit windows.
   useEffect(() => {
     if (ready) nightSwitchRef.current?.(depth)
   }, [ready, depth])
+
+  useEffect(() => {
+    nightRef.current = night
+    const map = mapRef.current
+    if (!ready || !map) return
+    WALL_IMAGES.forEach((id, tint) => {
+      if (map.hasImage(id)) map.updateImage(id, wallTexture(tint, night))
+    })
+  }, [ready, night])
+
+  // Umbrellas at every terrace position.
+  const terraceKey = statuses
+    .flatMap((s) =>
+      s.hasTerrace && s.venue.terrace
+        ? [`${s.venue.terrace.lon},${s.venue.terrace.lat}`]
+        : [],
+    )
+    .sort()
+    .join(';')
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const positions = terraceKey
+      ? terraceKey.split(';').map((pair) => {
+          const [lon = 0, lat = 0] = pair.split(',').map(Number)
+          return { lon, lat }
+        })
+      : []
+    map
+      .getSource<GeoJSONSource>(UMBRELLAS)
+      ?.setData(umbrellaFeatures(positions))
+  }, [ready, terraceKey])
+
+  // Trees, once the pipeline has built them.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    let cancelled = false
+    loadTrees().then(
+      (trees) => {
+        if (!cancelled)
+          map.getSource<GeoJSONSource>(TREES)?.setData(treeFeatures(trees))
+      },
+      () => undefined,
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [ready])
 
   // Pins for terraces, grey dots for the rest.
   useEffect(() => {
