@@ -67,7 +67,7 @@ describe('PinCard', () => {
     expect(screen.getByText('14:32')).toBeInTheDocument()
     expect(screen.getByText('17:26')).toBeInTheDocument()
     expect(screen.getByText('18:04')).toBeInTheDocument()
-    expect(screen.getByText('Posición sin verificar')).toBeInTheDocument()
+    expect(screen.queryByText('Posición sin verificar')).toBeNull()
   })
 
   it('has no bar without sun', () => {
