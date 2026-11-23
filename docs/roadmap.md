@@ -19,6 +19,13 @@ A review of the whole project after the phone layout work, and what to do next. 
 | Honesty            | "Sun" ignores clouds. Deciduous trees shade all year (LiDAR flown with leaves on).                                         | Cloud cover; seasonal trees (below)                         |
 | Shadows on the map | Drawn from basemap building heights (×1.4), while the answer comes from LiDAR, so the picture and the answer can disagree. | Accept for now; say so in "Sobre los datos" if users notice |
 
+## Decided: not doing
+
+- **Other days.** The app shows today only: no date or day picker.
+- **Weather.** No clouds or forecasts: "sun" means the sun is up and unobstructed.
+
+Both are owner decisions (2026-11-23), recorded in `CLAUDE.md`.
+
 ## Next, in order
 
 1. **Prices.** Seed them without scraping third-party platforms (their terms forbid it, and the data contract forbids storing it):
@@ -26,16 +33,15 @@ A review of the whole project after the phone layout work, and what to do next. 
    - photo of the price board → the admin pre-fills caña and tercios, the owner confirms;
    - visitor suggestions (ADR-0005) once `PRICES_API` and Turnstile are configured.
 2. **Verified terraces.** Use the admin on a phone, on site: mark terrace / no terrace, drag the pin, set `verified`. Send batches to OSM with `solycerveza.osm_export`.
-3. **Clouds.** Hourly cloud cover for Badajoz (AEMET open data or Open-Meteo, both need attribution) shown next to the sun answer: "Sol, pero nublado". It is the first third-party request from visitors' browsers, so it needs an ADR (privacy, attribution, failure mode: say nothing).
-4. **Seasonal trees.** Classify vegetation in the LiDAR point cloud and treat deciduous crowns as open from December to March. Needs the classified tiles and a check against a few known terraces.
-5. **Accessibility pass.** Keyboard path through the map (pins are buttons already), focus management in the phone menu, contrast at night, reduced motion for the card.
-6. **Offline and install.** A service worker only once deploys slow down: stale caches are worse than no cache while the app changes daily.
-7. **More cities.** The city pill already says "Más ciudades, próximamente". The pipeline is Badajoz-specific in `geo.py` and the LiDAR sheets; generalise only when a second city is real.
-8. **Mobile apps.** Still paused. The web app is installable; revisit when prices and verified terraces give people a reason to return.
+3. **Seasonal trees.** Classify vegetation in the LiDAR point cloud and treat deciduous crowns as open from December to March. Needs the classified tiles and a check against a few known terraces.
+4. **Accessibility pass.** Keyboard path through the map (pins are buttons already), focus management in the phone menu, contrast at night, reduced motion for the card.
+5. **Offline and install.** A service worker only once deploys slow down: stale caches are worse than no cache while the app changes daily.
+6. **More cities.** The city pill already says "Más ciudades, próximamente". The pipeline is Badajoz-specific in `geo.py` and the LiDAR sheets; generalise only when a second city is real.
+7. **Mobile apps.** Still paused. The web app is installable; revisit when prices and verified terraces give people a reason to return.
 
 ## How to iterate
 
 - One issue, one small PR, auto-merge on green: keep it.
 - Every UI change is checked at desktop and phone width (CLAUDE.md), and by the smoke tests once they land.
-- Product choices that change what the app claims (clouds, trees, price trust rules) get an ADR first.
+- Product choices that change what the app claims (trees, price trust rules) get an ADR first.
 - Measure before optimising: record bundle sizes in the PR that changes them.

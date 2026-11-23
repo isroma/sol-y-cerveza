@@ -1,6 +1,6 @@
 # Sol y Cerveza: agent guide
 
-Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz get sun or shade at a chosen date and time. Second iteration: median price of a standard beer per venue. All changes arrive as agent-authored PRs, gated by CI and auto-merged when green.
+Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz get sun or shade today, at a chosen time. Second iteration: median price of a standard beer per venue. All changes arrive as agent-authored PRs, gated by CI and auto-merged when green.
 
 ## Architecture (see `docs/adr/0001-architecture.md`)
 
@@ -11,6 +11,13 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 - `web/` (Vite, React, TypeScript, MapLibre GL JS): a static client. It computes the sun position for any date and time and compares it with each terrace's horizon. There is no backend.
 - Mobile: Capacitor wraps `web/` (`web/ios`, `web/android`). **Paused**: don't work on mobile unless asked; the Mobile workflow only runs manually.
 - Hosting: GitHub Pages, deployed on every push to `main`.
+
+## Product decisions (owner, 2026-11-23)
+
+Settled; don't propose or build these again unless the owner asks:
+
+- **Today only.** The app shows today, at any time of day. No date or day picker, and no date in the URL.
+- **No weather.** "Sun" means the sun is up and nothing blocks it. No clouds, forecasts or weather data.
 
 ## Workflow (every change)
 

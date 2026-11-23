@@ -1,6 +1,6 @@
 # Sol y Cerveza ☀️🍺
 
-Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
+Which bar and restaurant terraces in Badajoz get sun or shade today, at any time of day.
 
 - **Web:** <https://isroma.github.io/sol-y-cerveza/>
 - **iOS / Android:** Capacitor shells exist, paused until the web version is polished
@@ -18,7 +18,7 @@ Shade is precomputed as each terrace's horizon: how high the surrounding buildin
 
 ## Roadmap
 
-The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, clouds, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
+The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
 
 ## Design
 
