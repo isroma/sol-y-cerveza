@@ -4,10 +4,11 @@ Ready-to-file request under Ley 19/2013 for the Ayuntamiento's register of terra
 
 ## How to file (the user does this)
 
-- **Where**: the [sede electrónica](https://sede.aytobadajoz.es) (the access-to-information procedure, or a general *instancia*, signed with Cl@ve or a digital certificate), or in person at the Registro General.
+- **Where**: the [sede electrónica](https://sede.aytobadajoz.es). It has no specific access-to-information procedure, so use the **Solicitud Genérica**, signed with Cl@ve or a digital certificate, addressed to the **Oficina Auxiliar de Vías y Obras** (it handles velador licences: viasyobras@aytobadajoz.es, 924 21 00 10). Alternatively, file in person at the Registro General.
 - **Fill in** the `[…]` fields. Leave everything else as it is: every item asks for data the ordinance already requires in each authorization (art. 28.3), so the answer should not count as *reelaboración* (CTBG [Criterio Interpretativo 4/2026](https://consejodetransparencia.es/content/dam/ctransparencia/portal-ctbg/publicaciones/criterios-interpretativos/2026/4_CI-18-1-c_Reelaboracion.pdf), §4.3.c: a direct extraction from a database is not reelaboración).
 - **Deadline**: one month from receipt, extendable by one more (art. 20.1). No answer by then means refusal (art. 20.4).
-- **If refused or unanswered**: complain to the Consejo de Transparencia y Buen Gobierno within one month (art. 24), quoting RA CTBG 2023-0153, in which the CTBG upheld access to a Badajoz velador file.
+- **If refused or unanswered**: complain to the Consejo de Transparencia y Buen Gobierno within one month (art. 24). Quote [RA CTBG 2023-0153](https://web.archive.org/web/20230421031929/https://www.consejodetransparencia.es/ct_Home/dam/jcr:124cf368-4059-41c7-93c6-f8d232a12bc3/RA%20CTBG%202023-0153%20%5BExpediente%20914-2023%5D_Censurado.pdf) (access to a Badajoz velador file upheld) and [RA CTBG 2024-0298](https://web.archive.org/web/20240516025109/https://www.consejodetransparencia.es/ct_Home/dam/jcr:70f1ad4f-9861-437c-b754-6e7f2c37e66c/RA%20CTBG%202024-0298%20%5BExpediente%202382_2023%5D_Censurado.pdf) (access to Badajoz activity licences upheld). **Expect silence**: in both cases Badajoz answered neither the requester nor the CTBG, so set a reminder to complain on day 31.
+- **Known gap**: terraces on the venue's own private plot (patios, gardens, rooftops) fall under the activity licence, not the velador licence (2024 acoustic ordinance), so this list will miss them.
 - **Once it arrives**: keep the original out of the repo. Record the file date and reuse conditions in the research notes, and seed the curated CSV from it (ADR-0002).
 
 ## Request text
@@ -39,14 +40,14 @@ Ready-to-file request under Ley 19/2013 for the Ayuntamiento's register of terra
 >    5. número de mesas, sillas o sillones y sombrillas autorizados;
 >    6. si la instalación tiene cerramiento estable y permanente;
 >    7. fecha de concesión o de la última renovación, y referencia o número de expediente.
-> 2. Si el Ayuntamiento dispone de ella, **copia de la capa georreferenciada** (SIG) de las terrazas autorizadas, en cualquier formato estándar (GeoJSON, Shapefile, KML, GeoPackage o CSV con coordenadas).
+> 2. Si el Ayuntamiento dispone de ella, **copia de la capa georreferenciada** (SIG) de las terrazas autorizadas, en cualquier formato estándar (GeoJSON, Shapefile, KML, GeoPackage o CSV con coordenadas), y, cuando existan en formato digital, los **planos de ocupación** que acompañan a cada autorización (como publica el Ayuntamiento de Málaga en su portal de datos abiertos).
 > 3. Las **condiciones de reutilización** aplicables a la información facilitada, conforme a la Ley 37/2007, de 16 de noviembre, sobre reutilización de la información del sector público.
 >
 > **Formato**: se solicita la entrega por vía electrónica (art. 22.1 de la Ley 19/2013) en un formato reutilizable (CSV o XLSX), tal como se pueda exportar de las aplicaciones de gestión municipales. No se pide que se elabore ningún documento nuevo. Según el Criterio Interpretativo 4/2026, de 17 de junio, del Consejo de Transparencia y Buen Gobierno (apartado 4.3.c), extraer directamente la información de las bases de datos o aplicaciones informáticas que gestiona el órgano requerido no es reelaboración.
 >
 > **Datos personales**: no se solicitan datos de personas físicas. Si el titular de alguna autorización es persona física, basta con el nombre comercial del establecimiento, omitiendo su nombre y NIF (art. 15 de la Ley 19/2013). Tampoco se solicitan datos tributarios (padrón o liquidaciones de la tasa).
 >
-> **Finalidad** (no es obligatorio indicarla, art. 17.3): elaborar un mapa abierto y sin ánimo de lucro que muestra qué terrazas de Badajoz tienen sol o sombra a cada hora. Los datos resultantes se publicarán con licencia abierta, citando al Ayuntamiento de Badajoz como fuente. Asimismo, se sugiere al Ayuntamiento que publique esta relación en formato abierto, como ya hacen Madrid, Barcelona o Zaragoza.
+> **Finalidad** (no es obligatorio indicarla, art. 17.3): elaborar un mapa abierto y sin ánimo de lucro que muestra qué terrazas de Badajoz tienen sol o sombra a cada hora. Los datos resultantes se publicarán con licencia abierta, citando al Ayuntamiento de Badajoz como fuente. Asimismo, se sugiere al Ayuntamiento que publique esta relación en formato abierto, como ya hacen Madrid, Barcelona, Málaga o Zaragoza.
 >
 > En Badajoz, a [FECHA].
 >
