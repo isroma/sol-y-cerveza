@@ -34,6 +34,15 @@ import {
   venuePriceSchema,
   type VenuePrice,
 } from './src/admin/pricesCsv.ts'
+import {
+  decide,
+  decisionSchema,
+  formatCandidatesCsv,
+  parseCandidatesCsv,
+  parseLeadsCsv,
+  type Candidate,
+  type Lead,
+} from './src/admin/priceCandidates.ts'
 
 const CSV = fileURLToPath(
   new URL('../pipeline/data/venue_review.csv', import.meta.url),
@@ -73,6 +82,40 @@ async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
   const partial = `${PRICES_CSV}.part`
   await writeFile(partial, formatPricesCsv(prices), 'utf-8')
   await rename(partial, PRICES_CSV)
+}
+
+// Written by `python -m solycerveza.price_candidates` (ADR-0006).
+const CANDIDATES_CSV = fileURLToPath(
+  new URL('../pipeline/data/price_candidates.csv', import.meta.url),
+)
+const LEADS_CSV = fileURLToPath(
+  new URL('../pipeline/.cache/menu_leads.csv', import.meta.url),
+)
+
+async function readOptional(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf-8')
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+      return null
+    throw error
+  }
+}
+
+async function readCandidates(): Promise<Candidate[]> {
+  const text = await readOptional(CANDIDATES_CSV)
+  return text === null ? [] : parseCandidatesCsv(text)
+}
+
+async function readLeads(): Promise<Lead[]> {
+  const text = await readOptional(LEADS_CSV)
+  return text === null ? [] : parseLeadsCsv(text)
+}
+
+async function writeCandidates(candidates: readonly Candidate[]) {
+  const partial = `${CANDIDATES_CSV}.part`
+  await writeFile(partial, formatCandidatesCsv(candidates), 'utf-8')
+  await rename(partial, CANDIDATES_CSV)
 }
 
 const PIPELINE = fileURLToPath(new URL('../pipeline/', import.meta.url))
@@ -156,8 +199,9 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
- * pipeline/data/venue_review.csv and venue_prices.csv, probe the sun at
- * a pin (`python -m solycerveza.probe`) and read prices from a photo
+ * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
+ * price candidates (price_candidates.csv), probe the sun at a pin
+ * (`python -m solycerveza.probe`) and read prices from a photo
  * (pricePhotoServer.ts). Never part of the built site.
  */
 export function reviewServer(): Plugin {
@@ -290,6 +334,25 @@ export function reviewServer(): Plugin {
             const key = url.searchParams.get('key') ?? ''
             await writePrices(removePrice(await readPrices(), key))
             return send(res, 200, { key })
+          }
+          send(res, 405, { error: 'method not allowed' })
+        })
+        queue = run.catch((error: unknown) => {
+          send(res, 400, { error: String(error) })
+        })
+      })
+      // Website price candidates: read them, and record accept or dismiss.
+      server.middlewares.use('/__admin/price-candidates', (req, res) => {
+        const run = queue.then(async () => {
+          if (req.method === 'GET')
+            return send(res, 200, {
+              candidates: await readCandidates(),
+              leads: await readLeads(),
+            })
+          if (req.method === 'POST') {
+            const decision = decisionSchema.parse(await body(req))
+            await writeCandidates(decide(await readCandidates(), decision))
+            return send(res, 200, decision)
           }
           send(res, 405, { error: 'method not allowed' })
         })

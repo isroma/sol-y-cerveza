@@ -471,6 +471,30 @@ body {
   font-size: 10px;
 }
 
+/* Website price candidates (PriceCandidates.tsx) */
+.admin-candidates h2 {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.admin-candidate-snippet {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.admin-candidate-source {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-candidate-leads {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  overflow-wrap: anywhere;
+}
+
 /* Read prices from a photo (PricePhoto.tsx). */
 .admin-photo {
   margin-top: 4px;
