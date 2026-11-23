@@ -19,9 +19,7 @@ describe('SunCountdown', () => {
     expect(fillWidth(container)).toBe('0%')
     rerender(<SunCountdown timeline={timeline} minutes={720} />)
     expect(fillWidth(container)).toBe('50%')
-    expect(
-      container.querySelector<HTMLElement>('.sun-countdown-knob')?.style.left,
-    ).toBe('50%')
+    expect(container.querySelector('.sun-countdown-knob')).toBeNull()
     rerender(<SunCountdown timeline={timeline} minutes={810} />)
     expect(fillWidth(container)).toBe('87.5%')
     expect(container.querySelector('.is-low')).not.toBeNull()

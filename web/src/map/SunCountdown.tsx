@@ -13,7 +13,8 @@ const clock = (m: number) => formatClock(m % (24 * 60))
 
 /**
  * Progress through the current sun spell: the bar fills from when the sun
- * arrived and is full when it goes, with a round knob at the chosen time.
+ * arrived and is full when it goes. A plain progress bar with no knob, so it
+ * doesn't look draggable.
  * Shows nothing outside a sun spell.
  */
 export function SunCountdown({ timeline, minutes }: Props) {
@@ -40,7 +41,6 @@ export function SunCountdown({ timeline, minutes }: Props) {
           className={`sun-countdown-fill${percent > 80 ? ' is-low' : ''}`}
           style={{ width: `${percent}%` }}
         />
-        <span className="sun-countdown-knob" style={{ left: `${percent}%` }} />
       </div>
       <div className="sun-countdown-ticks">
         <span>{clock(start)}</span>
