@@ -102,6 +102,20 @@ export const SunSoonIcon = (p: IconProps) => (
   </Icon>
 )
 
+/** Half sun on the horizon with an arrow up. */
+export const SunriseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 18a5 5 0 0 1 10 0M3 18h18M12 3v6M9 6l3-3 3 3" />
+  </Icon>
+)
+
+/** Half sun on the horizon with an arrow down. */
+export const SunsetIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 18a5 5 0 0 1 10 0M3 18h18M12 3v6M9 6l3 3 3-3" />
+  </Icon>
+)
+
 export const SunOffIcon = (p: IconProps) => (
   <Icon {...p} strokeDasharray="0">
     <circle cx="12" cy="12" r="4" />

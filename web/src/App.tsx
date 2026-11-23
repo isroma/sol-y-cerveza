@@ -7,41 +7,29 @@ import {
 } from './filters/filters.ts'
 import { MapView } from './map/MapView.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
-import { dayTrack, stepIndex } from './sun/dayTrack.ts'
+import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
-import { formatClock, toMadridLocal } from './time/madrid.ts'
-import { DaySelector } from './ui/DaySelector.tsx'
+import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
 import { Logo } from './ui/icons.tsx'
 import { SearchBox } from './ui/SearchBox.tsx'
-import { SLIDER_END, SLIDER_START, TimeSlider } from './ui/TimeSlider.tsx'
+import { TimeSlider } from './ui/TimeSlider.tsx'
 import { VenueCard } from './ui/VenueCard.tsx'
 import { VenueList } from './ui/VenueList.tsx'
-import { readUrlState, writeUrlState } from './urlState.ts'
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; file: TerracesFile }
 
-/** Now in Madrid nudged into the slider's terrace hours, unless the URL says otherwise. */
-function initialTime() {
-  const now = toMadridLocal(new Date())
-  const url = readUrlState(window.location.search)
-  return {
-    today: now.date,
-    date: url.date ?? now.date,
-    minutes:
-      url.minutes ?? Math.min(SLIDER_END, Math.max(SLIDER_START, now.minutes)),
-  }
-}
+/** The app always shows today in Madrid, starting at the current time. */
+const madridNow = () => toMadridLocal(new Date())
 
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
-  const [{ today, date: startDate, minutes: startMinutes }] =
-    useState(initialTime)
-  const [date, setDate] = useState(startDate)
-  const [minutes, setMinutes] = useState(startMinutes)
+  const [now, setNow] = useState(madridNow)
+  const [minutes, setMinutes] = useState(now.minutes)
+  const date = now.date
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -61,13 +49,11 @@ export function App() {
     }
   }, [])
 
+  // Keep "now" current (the marker on the bar, and the date after midnight).
   useEffect(() => {
-    window.history.replaceState(
-      null,
-      '',
-      writeUrlState(date, formatClock(minutes)),
-    )
-  }, [date, minutes])
+    const timer = window.setInterval(() => setNow(madridNow()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const track = useMemo(() => dayTrack(date), [date])
   // Sun/shade per venue for the whole day: recomputed only when the day changes.
@@ -110,10 +96,12 @@ export function App() {
     )
   }, [depth])
 
+  const times = useMemo(() => sunTimes(track), [track])
+
   const goToNow = useCallback(() => {
-    const now = toMadridLocal(new Date())
-    setDate(now.date)
-    setMinutes(now.minutes)
+    const current = madridNow()
+    setNow(current)
+    setMinutes(current.minutes)
   }, [])
 
   return (
@@ -124,8 +112,14 @@ export function App() {
           <h1>Sol y Cerveza</h1>
         </header>
         <SearchBox value={query} onChange={setQuery} />
-        <DaySelector date={date} today={today} onChange={setDate} />
-        <TimeSlider minutes={minutes} onChange={setMinutes} onNow={goToNow} />
+        <TimeSlider
+          minutes={minutes}
+          onChange={setMinutes}
+          onNow={goToNow}
+          now={now.minutes}
+          sunrise={times?.sunrise ?? null}
+          sunset={times?.sunset ?? null}
+        />
         <FiltersPanel filters={filters} onChange={setFilters} />
         {load.status === 'ready' && load.file.sample && (
           <p className="sample-notice" role="note">

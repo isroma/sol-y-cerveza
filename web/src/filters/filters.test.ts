@@ -32,19 +32,28 @@ describe('search', () => {
 })
 
 describe('applyFilters', () => {
-  it('keeps everything by default', () => {
-    expect(applyFilters(statuses, DEFAULT_FILTERS, '')).toHaveLength(3)
+  it('shows only venues with a terrace by default', () => {
+    expect(DEFAULT_FILTERS.onlyTerrace).toBe(true)
+    expect(applyFilters(statuses, DEFAULT_FILTERS, '')).toHaveLength(2)
+    expect(
+      applyFilters(statuses, { ...DEFAULT_FILTERS, onlyTerrace: false }, ''),
+    ).toHaveLength(3)
   })
 
   it('filters by sun, terrace and search', () => {
     expect(
-      names(applyFilters(statuses, { ...DEFAULT_FILTERS, sunNow: true }, '')),
+      names(
+        applyFilters(
+          statuses,
+          { ...DEFAULT_FILTERS, onlyTerrace: false, sunNow: true },
+          '',
+        ),
+      ),
     ).toEqual([plazaAlta.name])
     expect(
       applyFilters(statuses, { ...DEFAULT_FILTERS, onlyTerrace: true }, ''),
     ).toHaveLength(2)
-    expect(names(applyFilters(statuses, DEFAULT_FILTERS, 'ñandu'))).toEqual([
-      'Café Ñandú',
-    ])
+    const all = { ...DEFAULT_FILTERS, onlyTerrace: false }
+    expect(names(applyFilters(statuses, all, 'ñandu'))).toEqual(['Café Ñandú'])
   })
 })

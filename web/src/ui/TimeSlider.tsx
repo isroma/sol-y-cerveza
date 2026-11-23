@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { STEP_MINUTES } from '../sun/sunState.ts'
 import { formatClock } from '../time/madrid.ts'
-import { ClockIcon } from './icons.tsx'
+import { ClockIcon, SunriseIcon, SunsetIcon } from './icons.tsx'
 
 /** Terrace hours shown on the slider. */
 export const SLIDER_START = 8 * 60
@@ -12,11 +12,29 @@ type Props = {
   minutes: number
   onChange: (minutes: number) => void
   onNow: () => void
+  /** The current time, marked on the bar once the thumb is dragged away. */
+  now: number
+  sunrise: number | null
+  sunset: number | null
 }
 
-export function TimeSlider({ minutes, onChange, onNow }: Props) {
+const inRange = (m: number | null): m is number =>
+  m !== null && m >= SLIDER_START && m <= SLIDER_END
+const percentOf = (m: number) =>
+  ((m - SLIDER_START) / (SLIDER_END - SLIDER_START)) * 100
+
+export function TimeSlider({
+  minutes,
+  onChange,
+  onNow,
+  now,
+  sunrise,
+  sunset,
+}: Props) {
   const clamped = Math.min(SLIDER_END, Math.max(SLIDER_START, minutes))
-  const percent = ((clamped - SLIDER_START) / (SLIDER_END - SLIDER_START)) * 100
+  const percent = percentOf(clamped)
+  const showNow = inRange(now) && Math.abs(now - minutes) >= STEP_MINUTES
+  const at = (m: number) => ({ left: `${percentOf(m)}%` })
   return (
     <section className="time" aria-label="Hora">
       <div className="time-header">
@@ -28,18 +46,55 @@ export function TimeSlider({ minutes, onChange, onNow }: Props) {
           Ahora
         </button>
       </div>
-      <input
-        type="range"
-        className="time-slider"
-        aria-label="Hora del día"
-        aria-valuetext={formatClock(minutes)}
-        min={SLIDER_START}
-        max={SLIDER_END}
-        step={STEP_MINUTES}
-        value={clamped}
-        style={{ '--fill': `${percent}%` } as CSSProperties}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
+      <p className="visually-hidden">
+        {[
+          sunrise !== null && `Amanecer a las ${formatClock(sunrise)}`,
+          sunset !== null && `atardecer a las ${formatClock(sunset)}`,
+        ]
+          .filter(Boolean)
+          .join(', ')}
+      </p>
+      <div className="time-track">
+        <div className="time-markers" aria-hidden="true">
+          {inRange(sunrise) && (
+            <span
+              className="time-marker time-marker--sun"
+              style={at(sunrise)}
+              title={`Amanecer · ${formatClock(sunrise)}`}
+            >
+              <SunriseIcon size={15} />
+            </span>
+          )}
+          {inRange(sunset) && (
+            <span
+              className="time-marker time-marker--sun"
+              style={at(sunset)}
+              title={`Atardecer · ${formatClock(sunset)}`}
+            >
+              <SunsetIcon size={15} />
+            </span>
+          )}
+          {showNow && (
+            <span
+              className="time-marker time-marker--now"
+              style={at(now)}
+              title={`Ahora · ${formatClock(now)}`}
+            />
+          )}
+        </div>
+        <input
+          type="range"
+          className="time-slider"
+          aria-label="Hora del día"
+          aria-valuetext={formatClock(minutes)}
+          min={SLIDER_START}
+          max={SLIDER_END}
+          step={STEP_MINUTES}
+          value={clamped}
+          style={{ '--fill': `${percent}%` } as CSSProperties}
+          onChange={(event) => onChange(Number(event.target.value))}
+        />
+      </div>
       <div className="time-ticks" aria-hidden="true">
         {TICKS.map((tick) => (
           <span key={tick}>{formatClock(tick)}</span>

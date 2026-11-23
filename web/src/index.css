@@ -1038,3 +1038,48 @@ button {
     background-color 0.4s,
     color 0.4s;
 }
+
+/* Sunrise, sunset and "now" marks above the time bar. */
+.time-track {
+  position: relative;
+  padding-top: 20px;
+}
+
+.time-markers {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 18px;
+  /* Same inset as the thumb travel, so marks line up with the slider values. */
+  margin: 0 12px;
+}
+
+.time-marker {
+  position: absolute;
+  top: 0;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+}
+
+.time-marker--sun {
+  color: var(--sun-dark);
+}
+
+.time-marker--now {
+  top: 10px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

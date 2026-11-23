@@ -9,7 +9,7 @@ export type Filters = {
 
 export const DEFAULT_FILTERS: Filters = {
   sunNow: false,
-  onlyTerrace: false,
+  onlyTerrace: true,
 }
 
 /** Lower case without accents, so "cafe" finds "Café". */
