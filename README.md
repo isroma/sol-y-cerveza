@@ -26,6 +26,12 @@ Shade is precomputed as each terrace's horizon: how high the surrounding buildin
 6. [iOS and Android apps](https://github.com/isroma/sol-y-cerveza/issues/7) (shells built, paused until the web version is polished)
 7. [Median beer price per venue (v2)](https://github.com/isroma/sol-y-cerveza/issues/8)
 
+## Design
+
+Brand, colours, typography, components, copy and templates: [design standards](docs/design/README.md).
+
+![Sol y Cerveza palette](docs/design/palette.svg)
+
 ## Development
 
 You need Node 26 and [uv](https://docs.astral.sh/uv/).
