@@ -35,12 +35,21 @@ cd web && npm ci && npm run dev        # web app on http://localhost:5173
 cd pipeline && uv sync && uv run pytest
 ```
 
+Browser smoke tests (Playwright, `web/e2e/`) drive the real app and map in Chromium, with a stubbed basemap and a small fixed data set, so they need no network. Install the browser once, then run them:
+
+```bash
+cd web && npx playwright install --with-deps chromium
+npm run e2e                            # phone and desktop, against the Vite dev server
+```
+
 To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
 
 ```bash
 uv run python -m solycerveza.obstacles --source wcs   # surface + terrain rasters, once (see docs/research/lidar.md for the 2 m data)
 uv run python -m solycerveza.build                     # venues + curated list + horizons -> terraces.json
 ```
+
+The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && node scripts/brand-images.mjs` (needs Playwright's Chromium).
 
 ### Fixing a terrace
 

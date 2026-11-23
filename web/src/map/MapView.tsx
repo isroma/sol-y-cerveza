@@ -6,7 +6,7 @@ import {
   type GeoJSONSource,
   type StyleSpecification,
 } from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import './maplibre.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'

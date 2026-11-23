@@ -211,6 +211,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 
 ## 8. Map behaviour
 
+- **Loads after the app shell:** while the map's code downloads, the map area shows the land colour (`#F6EEE2`, `bg` at night) with "Cargando mapa…" in `text-soft`; no spinner.
 - **Opens** on the city overview (flat top view, zoom 13.8, north up) at the current time.
 - **The address is a link to the view:** it carries the chosen time (`t=HH:MM`, left out while the time follows the clock) and the selected venue (`v=<venue id>`). A shared link opens at that time today with the venue's card open, flying to it; bad or unknown values are ignored. A shared venue without a terrace turns "Solo con terraza" off so it shows.
 - **Zoom drives the view:** flat top view up to zoom 14.5, easing into a 55° tilt by zoom 16. 3D buildings (drawn 1.4× taller) and their shadows only appear once tilted; the flat and mid-zoom views stay clean.
@@ -245,6 +246,13 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 ### Link preview (Open Graph)
 
 - **1200 × 630**, `highlight` background, mark at 160 px left, "Sol y Cerveza" Display in `ink`, tagline "Terrazas de Badajoz al sol" in `muted`, a strip of the four state badges bottom-right.
+- It lives at `web/public/og.png` and is generated, with the manifest's app icons, by `web/scripts/brand-images.mjs`. Change the script, not the PNGs.
+
+### App icons (web manifest)
+
+- 192 and 512 px: the mark alone on a transparent background.
+- Maskable 512 px: the mark at 60 % on a full-bleed `highlight` background, so it stays inside the safe circle whatever shape the launcher cuts.
+- `theme_color` is `sun-soft` (`#FFC53D`), like the browser bar by day; `background_color` is `bg` (white).
 
 ### App store screenshots (when mobile resumes)
 
