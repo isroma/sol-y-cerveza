@@ -14,7 +14,6 @@ import { FiltersPanel } from './ui/FiltersPanel.tsx'
 import { Logo } from './ui/icons.tsx'
 import { SearchBox } from './ui/SearchBox.tsx'
 import { TimeSlider } from './ui/TimeSlider.tsx'
-import { VenueCard } from './ui/VenueCard.tsx'
 import { VenueList } from './ui/VenueList.tsx'
 
 type LoadState =
@@ -72,7 +71,6 @@ export function App() {
     () => applyFilters(statuses, filters, query),
     [statuses, filters, query],
   )
-  const selected = statuses.find((s) => s.venue.id === selectedId) ?? null
   const sun = track.positions[stepIndex(minutes)] ?? {
     altitude: -1,
     azimuth: 0,
@@ -141,14 +139,6 @@ export function App() {
             minutes={minutes}
             selectedId={selectedId}
             onSelect={setSelectedId}
-          />
-        )}
-        {selected && (
-          <VenueCard
-            key={selected.venue.id}
-            status={selected}
-            minutes={minutes}
-            onClose={() => setSelectedId(null)}
           />
         )}
       </aside>

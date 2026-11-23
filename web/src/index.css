@@ -85,10 +85,12 @@ button {
     grid-template-columns: 1fr;
     height: auto;
   }
+
   .map-area {
     order: -1;
     height: 62vh;
   }
+
   .sidebar {
     overflow: visible;
     border-right: 0;
@@ -481,154 +483,6 @@ button {
   background: var(--surface-hover);
 }
 
-/* Card */
-
-.venue-card {
-  position: sticky;
-  bottom: 0;
-  flex-shrink: 0;
-  margin-top: auto;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--bg);
-  box-shadow: 0 10px 30px rgba(31, 35, 40, 0.14);
-}
-
-.card-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
-}
-
-.card-main {
-  padding: 14px;
-}
-
-.card-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.card-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding-right: 26px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.card-info h2 {
-  margin: 0;
-  font-size: 21px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 5px;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 14px;
-}
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 14px;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: var(--bg);
-  font-size: 15px;
-  text-align: left;
-}
-
-.card-footer:hover {
-  background: var(--surface-hover);
-}
-
-.card-footer-sun {
-  flex-shrink: 0;
-  color: var(--sun);
-}
-
-.card-footer .chevron {
-  margin-left: auto;
-}
-
-.card-footer[aria-expanded='true'] .chevron {
-  rotate: 90deg;
-}
-
-.card-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 14px 14px;
-  font-size: 14px;
-}
-
-.card-details p {
-  margin: 0;
-}
-
-/* Timeline */
-
-.timeline-bar {
-  position: relative;
-  height: 14px;
-  overflow: hidden;
-  border-radius: 7px;
-  background: var(--field);
-}
-
-.timeline-bar span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-}
-
-.timeline-now {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  margin-left: -1px;
-  border-radius: 2px;
-  background: var(--ink);
-}
-
-.timeline-labels {
-  position: relative;
-  height: 16px;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.timeline-labels span {
-  position: absolute;
-  translate: -50% 0;
-}
-
-.timeline-labels span:first-child {
-  translate: 0 0;
-}
-
-.timeline-labels span:last-child {
-  translate: -100% 0;
-}
-
 /* Map */
 
 .map-wrap,
@@ -841,34 +695,41 @@ button {
     padding: 8px 10px;
     border-radius: 14px;
   }
+
   .map-legend ul {
     display: grid;
     flex: 1;
     grid-template-columns: 1fr 1fr;
     gap: 4px 10px;
   }
+
   .map-legend li {
     gap: 6px;
     font-size: 12px;
   }
+
   .map-legend li svg {
     width: 16px;
     height: 16px;
   }
+
   .legend-dot {
     width: 10px;
     height: 10px;
     margin: 0 3px;
   }
+
   .map-city {
     top: 12px;
     left: 12px;
   }
+
   .map-buttons {
     top: 12px;
     right: 12px;
     gap: 10px;
   }
+
   .map-round,
   .map-zoom button {
     width: 44px;
@@ -1310,4 +1171,12 @@ button {
 
 .pin-card-ticks strong {
   color: var(--ink);
+}
+
+.pin-card-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
 }

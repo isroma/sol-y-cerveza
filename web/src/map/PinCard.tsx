@@ -3,6 +3,7 @@ import { formatClock } from '../time/madrid.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
+import { verificationLabel } from '../ui/verification.ts'
 
 type Props = {
   status: VenueStatus
@@ -60,6 +61,9 @@ export function PinCard({ status, minutes, sunset }: Props) {
             <span>{clock(end)}</span>
           </div>
         </div>
+      )}
+      {status.hasTerrace && (
+        <p className="pin-card-note">{verificationLabel(venue.verified)}</p>
       )}
     </div>
   )
