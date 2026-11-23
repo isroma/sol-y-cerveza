@@ -252,13 +252,6 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
   3. "Mueve la hora y mira la sombra" (tilted 3D view with shadows)
   4. "También de noche" (dusk theme)
 
-### 3D city (demo)
-
-- Walls carry a window texture (`cityDetail.ts`) in three stucco tints (`#F2E6D6`, `#F6EFE4`, `#EFDCC2`), picked per building and stable; at night the walls go dark (`#2A3044`) with some windows lit (`#FFD58A`).
-- Trees come from the LiDAR (pipeline `solycerveza.trees`): trunk `#8C7257`, two-tier crown `#9DC47E` / `#B3D394`.
-- Each terrace gets five cream umbrellas (`#FBF6EC`) just south of its point.
-- Windows, tints and umbrellas are decorative and "Sobre los datos" says so; tree and terrace positions are real.
-
 ### Do and don't
 
 - **Do** let the map breathe: one card at a time, badges over a quiet basemap.
