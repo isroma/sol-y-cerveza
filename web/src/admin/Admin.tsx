@@ -15,6 +15,13 @@ import {
 } from './review.ts'
 
 const API = '/__admin/review'
+const PUBLISH_API = '/__admin/publish'
+
+type Publish =
+  | { state: 'idle' }
+  | { state: 'running' }
+  | { state: 'done'; text: string; url: string | null }
+  | { state: 'failed'; text: string }
 
 type Filter = 'todo' | 'terrace' | 'no_terrace' | 'not_venue' | 'all'
 
@@ -90,6 +97,13 @@ export function Admin() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('todo')
   const [message, setMessage] = useState('Loading…')
+  const [pinning, setPinning] = useState(false)
+  const [publish, setPublish] = useState<Publish>({ state: 'idle' })
+
+  const select = useCallback((id: string | null) => {
+    setSelectedId(id)
+    setPinning(false)
+  }, [])
 
   useEffect(() => {
     Promise.all([loadTerraces(), fetchReviews()])
@@ -132,6 +146,11 @@ export function Admin() {
         (!q || v.name.toLocaleLowerCase('es').includes(q)),
     )
   }, [venues, reviews, filter, query])
+
+  const mapShown = useMemo(() => {
+    const ids = new Set(listed.map((v) => v.id))
+    return mapVenues.filter((v) => ids.has(v.id))
+  }, [listed, mapVenues])
 
   const selectedVenue = venues.find((v) => v.id === selectedId) ?? null
   const selectedMap: MapVenue | null = adding
@@ -198,12 +217,21 @@ export function Admin() {
     [save, selectedId, reviews],
   )
 
+  const startPinning = useCallback(() => {
+    if (!selectedId) return
+    if (pinning) return setPinning(false)
+    if (reviews.get(selectedId)?.status !== 'terrace') {
+      change({ kind: 'status', status: 'terrace' })
+    }
+    setPinning(true)
+  }, [selectedId, pinning, reviews, change])
+
   const nextToReview = useCallback(() => {
     const start = venues.findIndex((v) => v.id === selectedId)
     const order = [...venues.slice(start + 1), ...venues.slice(0, start + 1)]
     const next = order.find((v) => !reviews.get(v.id)?.status)
-    if (next) setSelectedId(next.id)
-  }, [venues, reviews, selectedId])
+    if (next) select(next.id)
+  }, [venues, reviews, selectedId, select])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -218,20 +246,26 @@ export function Admin() {
       }
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const key = event.key.toLowerCase()
-      if (key === 'escape') setSelectedId(null)
-      else if (key === 'j') nextToReview()
-      else if (key === 't') change({ kind: 'status', status: 'terrace' })
-      else if (key === 'n') change({ kind: 'status', status: 'no_terrace' })
-      else if (key === 'x') change({ kind: 'status', status: 'not_venue' })
-      else return
+      if (key === 'escape') {
+        if (pinning) setPinning(false)
+        else select(null)
+      } else if (key === 'j') nextToReview()
+      else if (key === 't') startPinning()
+      else if (key === 'n') {
+        setPinning(false)
+        change({ kind: 'status', status: 'no_terrace' })
+      } else if (key === 'x') {
+        setPinning(false)
+        change({ kind: 'status', status: 'not_venue' })
+      } else return
       event.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [change, nextToReview, adding])
+  }, [change, nextToReview, adding, pinning, select, startPinning])
 
   const startAdding = () => {
-    setSelectedId(null)
+    select(null)
     setAdding({ name: '', kind: 'bar', at: null })
   }
 
@@ -249,12 +283,39 @@ export function Admin() {
       reviewed: today(),
     })
     setAdding(null)
-    setSelectedId(venueId)
+    select(venueId)
   }
 
   const onMapClick = (at: LatLon) => {
     if (adding) setAdding({ ...adding, at })
-    else if (selectedId) change({ kind: 'terrace', at })
+    else if (selectedId && pinning) {
+      change({ kind: 'terrace', at })
+      setPinning(false)
+    }
+  }
+
+  const runPublish = async () => {
+    setPublish({ state: 'running' })
+    try {
+      const response = await fetch(PUBLISH_API, { method: 'POST' })
+      const body: unknown = await response.json()
+      const result =
+        typeof body === 'object' && body !== null
+          ? body
+          : { error: 'bad reply' }
+      const text =
+        'message' in result && typeof result.message === 'string'
+          ? result.message
+          : 'error' in result
+            ? String(result.error)
+            : 'Unknown reply'
+      if (!response.ok) return setPublish({ state: 'failed', text })
+      const url =
+        'url' in result && typeof result.url === 'string' ? result.url : null
+      setPublish({ state: 'done', text, url })
+    } catch (error) {
+      setPublish({ state: 'failed', text: String(error) })
+    }
   }
 
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
@@ -274,6 +335,32 @@ export function Admin() {
             {reviewed} of {venues.length} reviewed
             {message && <span className="admin-message"> · {message}</span>}
           </p>
+          <div className="admin-publish">
+            <button
+              type="button"
+              disabled={publish.state === 'running'}
+              onClick={() => void runPublish()}
+            >
+              {publish.state === 'running' ? 'Publishing…' : 'Publish'}
+            </button>
+            <p>
+              {publish.state === 'idle' &&
+                'Rebuilds the data and opens a PR that deploys itself when CI passes.'}
+              {publish.state === 'running' &&
+                'Building the data and opening the PR (about a minute)…'}
+              {publish.state === 'failed' && `Failed: ${publish.text}`}
+              {publish.state === 'done' && (
+                <>
+                  {publish.text}{' '}
+                  {publish.url && (
+                    <a href={publish.url} target="_blank" rel="noreferrer">
+                      Open PR
+                    </a>
+                  )}
+                </>
+              )}
+            </p>
+          </div>
           <input
             type="search"
             placeholder="Search by name"
@@ -302,7 +389,7 @@ export function Admin() {
                 <button
                   type="button"
                   aria-current={v.id === selectedId ? 'true' : undefined}
-                  onClick={() => setSelectedId(v.id)}
+                  onClick={() => select(v.id)}
                 >
                   <span
                     className="admin-dot"
@@ -319,14 +406,18 @@ export function Admin() {
       </aside>
       <main className="admin-main">
         <AdminMap
-          venues={mapVenues}
+          venues={mapShown}
           selected={selectedMap}
           terrace={terrace}
+          pinning={pinning}
           onSelect={(id) => {
-            if (!adding) setSelectedId(id)
+            if (!adding) select(id)
           }}
           onMapClick={onMapClick}
-          onPinTerrace={(at) => change({ kind: 'terrace', at })}
+          onPinTerrace={(at) => {
+            change({ kind: 'terrace', at })
+            setPinning(false)
+          }}
           onMoveVenue={(at) =>
             adding
               ? setAdding({ ...adding, at })
@@ -408,14 +499,17 @@ export function Admin() {
               <button
                 type="button"
                 aria-pressed={review?.status === 'terrace'}
-                onClick={() => change({ kind: 'status', status: 'terrace' })}
+                onClick={startPinning}
               >
                 Terrace <kbd>T</kbd>
               </button>
               <button
                 type="button"
                 aria-pressed={review?.status === 'no_terrace'}
-                onClick={() => change({ kind: 'status', status: 'no_terrace' })}
+                onClick={() => {
+                  setPinning(false)
+                  change({ kind: 'status', status: 'no_terrace' })
+                }}
               >
                 No terrace <kbd>N</kbd>
               </button>
@@ -431,10 +525,17 @@ export function Admin() {
                 </button>
               )}
             </div>
-            <p className="admin-help">
-              Click the map where the tables are to pin the terrace (marks it as
-              a terrace). Drag the dark pin to fix the venue position.
-            </p>
+            {pinning ? (
+              <p className="admin-pin-mode">
+                Click the map where the tables are. Esc cancels.
+              </p>
+            ) : (
+              <p className="admin-help">
+                T marks a terrace and lets you place its pin with one click;
+                press T again to move it. Drag the dark pin to fix the venue
+                position.
+              </p>
+            )}
             <div className="admin-actions">
               <button type="button" onClick={nextToReview}>
                 Next to review <kbd>J</kbd>
