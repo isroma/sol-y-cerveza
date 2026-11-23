@@ -6,7 +6,7 @@ export const CATEGORY_COLORS: Record<SunCategory, string> = {
   sun: '#F59E0B',
   soon: '#F7C948',
   nosun: '#9CA3AF',
-  unknown: '#C9CDD3',
+  unknown: '#B59A80',
 }
 
 export const CATEGORY_LABELS: Record<SunCategory, string> = {
@@ -22,6 +22,16 @@ export function categoryLabel(status: VenueStatus): string {
     return 'Sin datos de sol'
   if (status.category === 'soon') return 'Sol pronto'
   return CATEGORY_LABELS[status.category]
+}
+
+/** Short text in a selected map badge: how much sun is left, or when it comes. */
+export function pinSunText(status: VenueStatus, minutes: number): string {
+  if (status.sunUntil !== null)
+    return `${formatDuration(status.sunUntil - minutes)} de sol`
+  if (status.nextSun !== null)
+    return `Sol en ${formatDuration(status.nextSun - minutes)}`
+  if (status.category === 'unknown') return 'Sin datos de sol'
+  return status.state === 'night' ? 'De noche' : 'Sin más sol hoy'
 }
 
 /** "Sol hasta las 17:25 (2 h 53 min)", "Sol desde las 12:10 (en 40 min)", … */
