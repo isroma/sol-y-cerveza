@@ -1,6 +1,6 @@
 # Sol y Cerveza ☀️🍺
 
-Which bar and restaurant terraces in Badajoz get sun or shade, for any date and time.
+Which bar and restaurant terraces in Badajoz get sun or shade today, at any time of day.
 
 - **Web:** <https://isroma.github.io/sol-y-cerveza/>
 - **iOS / Android:** Capacitor shells exist, paused until the web version is polished
@@ -14,11 +14,11 @@ LiDAR surface model ────────┴─► horizon profile ──► 
                                  per terrace (360°)   terraces.json       date/time vs. horizon → sun / shade
 ```
 
-Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device for any date. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Roadmap
 
-The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, clouds, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
+The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
 
 ## Design
 
