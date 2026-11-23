@@ -22,6 +22,17 @@ export function dayTrack(date: string): DayTrack {
   return { date, positions }
 }
 
+/** Sunrise and sunset as minutes of the day, or null if the sun never rises. */
+export function sunTimes(
+  track: DayTrack,
+): { sunrise: number; sunset: number } | null {
+  const up = track.positions.map((position) => position.altitude > 0)
+  const first = up.indexOf(true)
+  if (first === -1) return null
+  const last = up.lastIndexOf(true)
+  return { sunrise: first * STEP_MINUTES, sunset: (last + 1) * STEP_MINUTES }
+}
+
 /** Index into `positions` for a minute of the day. */
 export function stepIndex(minutes: number): number {
   const last = MINUTES_PER_DAY / STEP_MINUTES - 1

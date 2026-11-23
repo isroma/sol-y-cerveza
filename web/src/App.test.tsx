@@ -83,10 +83,7 @@ describe('App', () => {
     stubFetch(Response.json(sampleFile))
     render(<App />)
 
-    expect(screen.getByRole('button', { name: 'Hoy' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(screen.queryByRole('button', { name: 'Mañana' })).toBeNull()
     expect(screen.getByLabelText('Hora del día')).toHaveValue('840')
     expect(await listedNames()).toEqual([
       'Terraza de ejemplo · Plaza Alta',
@@ -112,30 +109,6 @@ describe('App', () => {
       screen.getByText('· 0 con sol ahora', { exact: false }),
     ).toBeInTheDocument()
     expect(screen.getAllByText(/sin más sol hoy/i).length).toBeGreaterThan(0)
-  })
-
-  it('starts at the date and time in the URL and keeps the URL in sync', async () => {
-    window.history.replaceState(null, '', '/?fecha=2026-06-21&hora=21:30')
-    stubFetch(Response.json(sampleFile))
-    render(<App />)
-
-    expect(screen.getByLabelText('Fecha')).toHaveValue('2026-06-21')
-    expect(screen.getByText('21:30')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Mañana' }))
-    expect(window.location.search).toBe('?fecha=2026-12-22&hora=21%3A30')
-  })
-
-  it('switches to tomorrow', async () => {
-    stubFetch(Response.json(sampleFile))
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Mañana' }))
-
-    expect(screen.getByRole('button', { name: 'Mañana' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    expect(screen.getByLabelText('Fecha')).toHaveValue('2026-12-22')
   })
 
   it('filters by sun now and by search, on the list and the map', async () => {
@@ -226,6 +199,25 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('marks sunrise, sunset and now on the time bar', async () => {
+    stubFetch(Response.json(sampleFile))
+    const { container } = render(<App />)
+    await listedNames()
+
+    expect(
+      screen.getByText(/Amanecer a las 08:\d\d, atardecer a las 18:\d\d/),
+    ).toBeInTheDocument()
+    expect(container.querySelector('.time-marker--now')).toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Hora del día'), {
+      target: { value: '1080' },
+    })
+    expect(container.querySelector('.time-marker--now')).toHaveAttribute(
+      'title',
+      'Ahora · 14:00',
+    )
+  })
+
   it('turns the whole app dark at night', async () => {
     const meta = document.createElement('meta')
     meta.name = 'theme-color'
@@ -237,7 +229,7 @@ describe('App', () => {
     expect(app).not.toHaveClass('is-night')
 
     // 22:00 in Madrid, well after sunset on 21 December.
-    window.history.replaceState(null, '', '/?fecha=2026-12-21&hora=22:00')
+    vi.setSystemTime(new Date('2026-12-21T21:00:00Z'))
     const { container: night } = render(<App />)
     await waitFor(() =>
       expect(night.querySelector('.app')).toHaveClass('is-night'),
