@@ -8,6 +8,7 @@ const visitor = (p: Partial<CrowdPrice>): CrowdPrice => ({
   cents: 150,
   voters: 5,
   last: '2026-11-23T10:00:00Z',
+  confirmed: false,
   ...p,
 })
 
@@ -43,5 +44,16 @@ describe('shownPrices', () => {
       ],
     )
     expect(shown.map((p) => p.brand)).toEqual(['cruzcampo', 'sagres'])
+  })
+
+  it("lets the owner's price win over the curator's", () => {
+    const shown = shownPrices(
+      'osm:node/1',
+      [{ item: 'cana', brand: null, cents: 150, seen: '2026-11-01' }],
+      [visitor({ cents: 170, confirmed: true, voters: 0 })],
+    )
+    expect(shown).toEqual([
+      { item: 'cana', brand: null, cents: 170, approximate: false },
+    ])
   })
 })

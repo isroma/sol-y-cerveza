@@ -6,6 +6,7 @@ import {
   type Filters,
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
+import { OwnerBar } from './prices/OwnerBar.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
@@ -221,6 +222,9 @@ export function App() {
           attribution={load.status === 'ready' ? load.file.attribution : []}
           leafOffTrees={leafOffTrees}
         />
+        {load.status === 'ready' && (
+          <OwnerBar venues={load.file.terraces} onSelect={setSelectedId} />
+        )}
       </main>
       {phone && <footer className="time-footer">{timeSlider}</footer>}
     </div>

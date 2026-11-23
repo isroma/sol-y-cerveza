@@ -82,3 +82,183 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Owner mode (ADR-0005): the owner's own editor in the card, and a bar on the map. */
+.owner-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.owner-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.owner-row > span:first-child {
+  flex: 1;
+}
+
+.owner-row select {
+  flex: 1;
+}
+
+.owner-row select,
+.owner-price {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* iOS doesn't zoom into 16 px fields */
+}
+
+.owner-price {
+  width: 72px;
+  text-align: right;
+}
+
+.owner-price--bad {
+  border-color: #c0392b;
+}
+
+.owner-waiting {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px;
+  border-radius: var(--radius-s);
+  background: var(--sun-soft);
+  /* Dark text on the amber, by day and by night. */
+  color: #2b2112;
+  list-style: none;
+}
+
+.owner-waiting li button {
+  border-color: rgb(43 33 18 / 35%);
+  background: rgb(255 255 255 / 55%);
+  color: #2b2112;
+}
+
+.owner-waiting li {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.owner-waiting li > span {
+  flex: 1;
+}
+
+.owner-waiting small {
+  display: block;
+  opacity: 0.7;
+}
+
+.owner-waiting button,
+.owner-photo,
+.owner-actions button,
+.owner-choice button,
+.owner-message button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--control);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.owner-photo {
+  align-self: flex-start;
+  border-color: var(--sun-dark);
+  background: var(--sun);
+  color: #fff;
+  font-weight: 600;
+}
+
+.owner-photo:disabled,
+.owner-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.owner-bar {
+  position: absolute;
+  /* Below the place picker and the map buttons, clear of the legend. */
+  top: calc(var(--map-inset, 16px) + 52px);
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  width: min(92%, 420px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.owner-bar > * {
+  pointer-events: auto;
+}
+
+.owner-actions,
+.owner-message,
+.owner-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.owner-actions span {
+  font-weight: 600;
+}
+
+.owner-message {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.owner-message button {
+  min-height: 28px;
+  padding: 2px 10px;
+}
+
+.owner-choice {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.owner-choice p {
+  margin: 0;
+}
+
+/* Phones: keep clear of the map buttons on the right. */
+@media (max-width: 899px) {
+  .owner-bar {
+    right: calc(var(--map-inset, 16px) + 60px);
+    left: var(--map-inset, 16px);
+    align-items: flex-start;
+    width: auto;
+    transform: none;
+  }
+
+  /* One row: the buttons say what they do; the label doesn't fit. */
+  .owner-actions span {
+    display: none;
+  }
+}
