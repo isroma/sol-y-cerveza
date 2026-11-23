@@ -207,15 +207,16 @@ describe('App', () => {
     expect(
       screen.getByText(/Amanecer a las 08:\d\d, atardecer a las 18:\d\d/),
     ).toBeInTheDocument()
-    expect(container.querySelector('.time-marker--now')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Volver a ahora/ })).toBeNull()
 
     fireEvent.change(screen.getByLabelText('Hora del día'), {
       target: { value: '1080' },
     })
-    expect(container.querySelector('.time-marker--now')).toHaveAttribute(
-      'title',
-      'Ahora · 14:00',
-    )
+    const now = screen.getByRole('button', { name: 'Volver a ahora (14:00)' })
+    fireEvent.click(now)
+    expect(screen.getByLabelText('Hora del día')).toHaveValue('840')
+    expect(screen.queryByRole('button', { name: /Volver a ahora/ })).toBeNull()
+    expect(container.querySelector('.time-marker--sunrise')).not.toBeNull()
   })
 
   it('turns the whole app dark at night', async () => {

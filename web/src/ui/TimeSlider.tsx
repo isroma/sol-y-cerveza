@@ -42,9 +42,6 @@ export function TimeSlider({
         <output className="time-value" aria-live="polite">
           {formatClock(minutes)}
         </output>
-        <button type="button" className="link-button" onClick={onNow}>
-          Ahora
-        </button>
       </div>
       <p className="visually-hidden">
         {[
@@ -58,7 +55,7 @@ export function TimeSlider({
         <div className="time-markers" aria-hidden="true">
           {inRange(sunrise) && (
             <span
-              className="time-marker time-marker--sun"
+              className="time-marker time-marker--sunrise"
               style={at(sunrise)}
               title={`Amanecer · ${formatClock(sunrise)}`}
             >
@@ -67,19 +64,12 @@ export function TimeSlider({
           )}
           {inRange(sunset) && (
             <span
-              className="time-marker time-marker--sun"
+              className="time-marker time-marker--sunset"
               style={at(sunset)}
               title={`Atardecer · ${formatClock(sunset)}`}
             >
               <SunsetIcon size={12} />
             </span>
-          )}
-          {showNow && (
-            <span
-              className="time-marker time-marker--now"
-              style={at(now)}
-              title={`Ahora · ${formatClock(now)}`}
-            />
           )}
         </div>
         <input
@@ -94,6 +84,21 @@ export function TimeSlider({
           style={{ '--fill': `${percent}%` } as CSSProperties}
           onChange={(event) => onChange(Number(event.target.value))}
         />
+        {showNow && (
+          <div className="time-now-layer">
+            {/* The current time: tap anywhere around it to come back to now. */}
+            <button
+              type="button"
+              className="time-now"
+              style={at(now)}
+              aria-label={`Volver a ahora (${formatClock(now)})`}
+              title={`Volver a ahora · ${formatClock(now)}`}
+              onClick={onNow}
+            >
+              <span className="time-now-dot" />
+            </button>
+          </div>
+        )}
       </div>
       <div className="time-ticks" aria-hidden="true">
         {TICKS.map((tick) => (

@@ -1084,22 +1084,66 @@ button {
   place-items: center;
 }
 
-.time-marker--sun {
+.time-marker--sunrise,
+.time-marker--sunset {
   width: 20px;
   height: 20px;
-  border: 1.5px solid var(--sun-soft);
+  border: 1.5px solid;
   border-radius: 50%;
-  background: var(--bg);
-  color: var(--sun-dark);
 }
 
-.time-marker--now {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--bg);
+/* Weather-app colours: warm orange dawn, rose-violet dusk. */
+.time-marker--sunrise {
+  border-color: #fb923c;
+  background: #fff1e6;
+  color: #c2410c;
+}
+
+.time-marker--sunset {
+  border-color: #e879f9;
+  background: #fdf0ff;
+  color: #a21caf;
+}
+
+/* "Now" on the bar: a sunny dot with a generous tap area. */
+.time-now-layer {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  left: 0;
+  height: 8px;
+  margin: 0 12px;
+  pointer-events: none;
+}
+
+.time-now {
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: #2563eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+  background: transparent;
+  pointer-events: auto;
+}
+
+.time-now-dot {
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  background: var(--sun-dark);
+  box-shadow: 0 0 0 1.5px var(--sun-dark);
+  transition: scale 0.15s;
+}
+
+.time-now:hover .time-now-dot,
+.time-now:focus-visible .time-now-dot {
+  scale: 1.25;
 }
 
 .visually-hidden {
