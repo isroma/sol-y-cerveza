@@ -33,7 +33,7 @@ export function Logo({ size = 44 }: { size?: number }) {
       focusable="false"
     >
       <g stroke="#F5A623" strokeWidth="2.6" strokeLinecap="round">
-        <path d="M17 4v5M6.5 8.5l3.4 3.4M3 19h5M27.5 8.5l-3.4 3.4" />
+        <path d="M17 4v5M6.5 8.5l3.4 3.4M3 19h5M6.5 29.5l3.4-3.4M27.5 8.5l-3.4 3.4" />
       </g>
       <circle cx="17" cy="19" r="8.5" fill="#FFC53D" />
       <rect x="17" y="17" width="20" height="25" rx="4" fill="#FFB020" />
