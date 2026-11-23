@@ -914,6 +914,14 @@ button {
     0 6px 16px rgba(31, 35, 40, 0.28);
 }
 
+/* The pointer takes the ring's colour and starts under the ring, so ring and
+   pointer read as one shape instead of a white wedge on a yellow circle. */
+.pin--selected::after {
+  bottom: -11px;
+  border-width: 11px 9px 0;
+  border-top-color: #ffc53d;
+}
+
 .pin-marker:hover .pin--selected {
   scale: 1.32;
 }
@@ -1012,6 +1020,13 @@ button {
 
 .map-wrap.is-night .pin {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* The selected ring stays at night, too. */
+.map-wrap.is-night .pin--selected {
+  box-shadow:
+    0 0 0 3px #ffc53d,
+    0 6px 16px rgba(0, 0, 0, 0.55);
 }
 
 /* Night: the whole app goes dark while the sun is down (the map via night.ts),
