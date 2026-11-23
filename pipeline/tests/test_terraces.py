@@ -64,7 +64,7 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
 
     assert linked == CuratedTerrace(
         id="terraza-linked",
-        osm_id=LUGARIS,
+        venue_id=LUGARIS,
         terrace_lat=38.88385,
         terrace_lon=-6.9877,
         verified=date(2026, 11, 1),
@@ -73,7 +73,7 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
     )
     assert alone.name == "Terraza de prueba"
     assert alone.kind == "bar"
-    assert alone.osm_id is None
+    assert alone.venue_id is None
     assert alone.verified is None
 
 
@@ -83,7 +83,7 @@ def test_read_curated_parses_rows_and_treats_empty_cells_as_unset(tmp_path: Path
         ("sin-osm,,,bar,38.88,-6.97,,,", "name and kind are required"),
         ("sin-osm,,Terraza,,38.88,-6.97,,,", "name and kind are required"),
         ("Mal Slug,,Terraza,bar,38.88,-6.97,,,", "\nid\n"),
-        ("x,node/1,,,38.88,-6.97,,,", "\nosm_id\n"),
+        ("x,node/1,,,38.88,-6.97,,,", "\nvenue_id\n"),
         ("x,,Terraza,disco,38.88,-6.97,,,", "\nkind\n"),
         ("x,,Terraza,bar,,-6.97,,", "\nterrace_lat\n"),
         ("x,,Terraza,bar,91,-6.97,,", "\nterrace_lat\n"),
@@ -110,7 +110,7 @@ def test_read_curated_rejects_an_unexpected_header(tmp_path: Path) -> None:
     ("rows", "message"),
     [
         (("a,,T,bar,38.88,-6.97,,,", "a,,U,bar,38.87,-6.96,,,"), "duplicate id: a"),
-        ((f"a,{JUEVES},,,38.88,-6.97,,,", f"b,{JUEVES},,,38.87,-6.96,,,"), "duplicate osm_id"),
+        ((f"a,{JUEVES},,,38.88,-6.97,,,", f"b,{JUEVES},,,38.87,-6.96,,,"), "duplicate venue_id"),
         (("a,,T,bar,38.88,-6.97,,R1,", "b,,U,bar,38.87,-6.96,,R1,"), "duplicate ayto_ref: R1"),
     ],
 )
@@ -142,7 +142,9 @@ def test_every_named_venue_gets_a_record_and_outdoor_seating_a_terrace() -> None
 
 
 def test_curated_row_links_a_venue_and_its_position_wins() -> None:
-    row = curated(osm_id=LUGARIS, terrace_lat=38.88385, terrace_lon=-6.9877, verified="2026-11-01")
+    row = curated(
+        venue_id=LUGARIS, terrace_lat=38.88385, terrace_lon=-6.9877, verified="2026-11-01"
+    )
 
     (record,) = [r for r in build_terraces(fixture_venues(), [row]) if r.id == LUGARIS]
 
@@ -158,7 +160,7 @@ def test_curated_row_links_a_venue_and_its_position_wins() -> None:
 
 
 def test_curated_name_and_kind_override_osm() -> None:
-    row = curated(osm_id=VELADOR, name="El Velador", kind="bar")
+    row = curated(venue_id=VELADOR, name="El Velador", kind="bar")
 
     (record,) = [r for r in build_terraces(fixture_venues(), [row]) if r.id == VELADOR]
 
@@ -166,7 +168,7 @@ def test_curated_name_and_kind_override_osm() -> None:
 
 
 def test_curated_row_wins_over_outdoor_seating_no() -> None:
-    ids = [record.id for record in build_terraces(fixture_venues(), [curated(osm_id=JUEVES)])]
+    ids = [record.id for record in build_terraces(fixture_venues(), [curated(venue_id=JUEVES)])]
     assert JUEVES in ids
 
 
@@ -193,16 +195,16 @@ def test_unlinked_curated_row_gets_a_curated_id_and_no_osm_source() -> None:
     )
 
 
-def test_link_to_a_venue_missing_from_osm_is_an_error() -> None:
-    with pytest.raises(ValueError, match=r"missing from OSM: osm:node/1$"):
-        build_terraces(fixture_venues(), [curated(osm_id="osm:node/1")])
+def test_link_to_a_venue_missing_from_the_downloads_is_an_error() -> None:
+    with pytest.raises(ValueError, match=r"missing from the downloads: osm:node/1$"):
+        build_terraces(fixture_venues(), [curated(venue_id="osm:node/1")])
 
 
 def test_linked_venue_without_a_name_needs_a_curated_name() -> None:
     with pytest.raises(ValueError, match="has no name"):
-        build_terraces(fixture_venues(), [curated(osm_id=UNNAMED_WAY)])
+        build_terraces(fixture_venues(), [curated(venue_id=UNNAMED_WAY)])
 
-    named = curated(osm_id=UNNAMED_WAY, name="Terraza de prueba")
+    named = curated(venue_id=UNNAMED_WAY, name="Terraza de prueba")
     assert UNNAMED_WAY in [record.id for record in build_terraces(fixture_venues(), [named])]
 
 
@@ -239,7 +241,7 @@ def test_terrace_model_rejects_what_the_contract_forbids(bad: dict[str, object])
 
 
 def test_written_file_follows_the_contract_and_is_deterministic(tmp_path: Path) -> None:
-    rows = [curated(osm_id=LUGARIS, verified="2026-11-01"), curated(id="b", name="T", kind="pub")]
+    rows = [curated(venue_id=LUGARIS, verified="2026-11-01"), curated(id="b", name="T", kind="pub")]
     first, second = tmp_path / "first.json", tmp_path / "second.json"
 
     write_terraces(build_terraces(fixture_venues(), rows), first)

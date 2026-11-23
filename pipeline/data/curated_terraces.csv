@@ -1,6 +1,9 @@
-id,osm_id,name,kind,terrace_lat,terrace_lon,verified,ayto_ref,notes
+id,venue_id,name,kind,terrace_lat,terrace_lon,verified,ayto_ref,notes
 el-muelle-del-guadiana,osm:way/564742759,,,38.884083,-6.977708,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: open paving south-east of the building, between tree rows. Evidence: OSM amenity=biergarten."
 el-velador,osm:node/9384007214,,,38.882474,-6.995114,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: pavement in front of the venue. Evidence: OSM outdoor_seating=yes."
 kiosco-san-francisco,osm:way/572854568,,,38.876237,-6.973112,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: paving south of the kiosk (Paseo de San Francisco). Evidence: park kiosk."
 kiosco-silva,osm:way/572854567,,,38.87666,-6.973496,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: paving east of the kiosk (Paseo de San Francisco). Evidence: park kiosk."
 panecafe,osm:node/12949582124,,,38.864535,-6.976902,,,"Desk-placed 2026-11-23 on PNOA true orthophoto: corner pavement east of the building. Evidence: OSM outdoor_seating=yes."
+dada,osm:node/4458343989,,,38.880436,-6.970898,,,"Desk-placed 2026-11-24: grid of about 20 round tables on Plaza de la Soledad, 12 m from the façade, seen on the PNOA 2019 orthophoto (absent on the Dec 2022, 2023 and 2025 flights, which may just be the season or time of day). Evidence: imagery research."
+la-cacharreria,overture:1223ff55-0cb9-493e-8bdb-b6d1b19e3beb,,,38.88137,-6.968578,,,"Desk-placed 2026-11-24: large white parasols on Plaza Alta, 4 m from the venue, seen on the PNOA June 2025 true orthophoto (also 2023, 2019). Medium confidence on which venue owns them. Evidence: imagery research."
+la-casona-alta,overture:dfd7cc3d-5ce8-4d24-8778-3d38775b03d8,,,38.881145,-6.968315,,,"Desk-placed 2026-11-24: large white parasols on Plaza Alta, 16 m from the venue (moved 4.5 m off the arcade roof to open ground), seen on the PNOA June 2025 true orthophoto (also 2023, 2019). Medium confidence on which venue owns them. Evidence: imagery research."
