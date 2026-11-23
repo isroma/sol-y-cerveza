@@ -91,6 +91,15 @@ export function App() {
     azimuth: 0,
   }
 
+  const night = sun.altitude <= 0
+
+  // The browser chrome (address bar on phones) follows the theme too.
+  useEffect(() => {
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', night ? '#141826' : '#FFC53D')
+  }, [night])
+
   const goToNow = useCallback(() => {
     const now = toMadridLocal(new Date())
     setDate(now.date)
@@ -98,7 +107,7 @@ export function App() {
   }, [])
 
   return (
-    <div className="app">
+    <div className={night ? 'app is-night' : 'app'}>
       <aside className="sidebar">
         <header className="brand">
           <Logo />
