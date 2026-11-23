@@ -51,3 +51,17 @@ export function pitchForZoom(zoom: number): number {
   const eased = t * t * (3 - 2 * t) // smoothstep: no jolt at either end
   return Math.round(eased * TILTED_PITCH * 10) / 10
 }
+
+/**
+ * How much of the selected venue's card shows at a zoom: the whole card up
+ * close, only the name and the sun line in between, and none in the city
+ * overview, where the venue is just its selected badge.
+ */
+export type CardLevel = 'full' | 'compact' | 'hidden'
+export const CARD_HIDDEN_BELOW = 15
+export const CARD_FULL_FROM = 16
+
+export function cardLevel(zoom: number): CardLevel {
+  if (zoom < CARD_HIDDEN_BELOW) return 'hidden'
+  return zoom < CARD_FULL_FROM ? 'compact' : 'full'
+}

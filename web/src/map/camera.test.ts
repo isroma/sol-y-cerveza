@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CARD_FULL_FROM,
+  CARD_HIDDEN_BELOW,
+  cardLevel,
   FLAT_ZOOM,
   RELIEF_ZOOM,
   TILTED_PITCH,
@@ -42,5 +45,15 @@ describe('pitchForZoom', () => {
       expect(pitch).toBeGreaterThanOrEqual(previous)
       previous = pitch
     }
+  })
+})
+
+describe('cardLevel', () => {
+  it('folds the card away in the overview and opens it up close', () => {
+    expect(cardLevel(13.8)).toBe('hidden')
+    expect(cardLevel(CARD_HIDDEN_BELOW)).toBe('compact')
+    expect(cardLevel(15.6)).toBe('compact')
+    expect(cardLevel(CARD_FULL_FROM)).toBe('full')
+    expect(cardLevel(18)).toBe('full')
   })
 })
