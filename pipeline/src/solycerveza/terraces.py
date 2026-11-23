@@ -1,7 +1,8 @@
-"""Build the base terrace records: OSM venues merged with the hand-curated terrace list.
+"""Build the base records: OSM venues merged with the hand-curated terrace list.
 
-A terrace record exists when OSM tags the venue `outdoor_seating=yes` or when a row in the
-curated list describes it. `horizon` stays null here; a later stage computes it.
+Every named venue gets a record. It has a terrace (`terrace` set) when OSM tags it
+`outdoor_seating=yes` or when a row in the curated list describes it; otherwise `terrace` is
+null ("terraza sin confirmar"). `horizon` stays null here; a later stage computes it.
 
 Curated list (`pipeline/data/curated_terraces.csv`, UTF-8, one row per terrace, header required):
 
@@ -96,10 +97,16 @@ class Terrace(BaseModel):
     name: Annotated[str, Field(min_length=1)]
     kind: Kind
     venue: LatLon
-    terrace: LatLon
+    terrace: LatLon | None
     sources: Annotated[list[str], Field(min_length=1)]
     verified: date | None
     horizon: Horizon | None = None
+
+    @model_validator(mode="after")
+    def _no_terrace_means_no_terrace_data(self) -> Self:
+        if self.terrace is None and (self.verified is not None or self.horizon is not None):
+            raise ValueError("verified and horizon must be null when terrace is null")
+        return self
 
 
 def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
@@ -130,7 +137,7 @@ def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
 
 
 def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -> list[Terrace]:
-    """Merge venues and curated rows into terrace records sorted by id."""
+    """Merge venues and curated rows into records sorted by id, one per named venue."""
     venues_by_id = {venue.id: venue for venue in venues}
     rows = list(curated)
     linked = {row.osm_id: row for row in rows if row.osm_id is not None}
@@ -143,10 +150,10 @@ def build_terraces(venues: Iterable[Venue], curated: Iterable[CuratedTerrace]) -
         row = linked.get(venue.id)
         if row is not None:
             terraces.append(_linked(venue, row))
-        elif venue.outdoor_seating == "yes":
-            if venue.name is None:
+        elif venue.name is None:
+            if venue.outdoor_seating == "yes":
                 logger.warning("skipping %s: outdoor_seating=yes but no name", venue.id)
-                continue
+        else:
             terraces.append(_osm_only(venue, venue.name))
     terraces.extend(_curated_only(row) for row in rows if row.osm_id is None)
     return sorted(terraces, key=lambda terrace: terrace.id)
@@ -168,12 +175,14 @@ def _linked(venue: Venue, row: CuratedTerrace) -> Terrace:
 
 
 def _osm_only(venue: Venue, name: str) -> Terrace:
+    # `outdoor_seating=yes` without a curated row: the venue position is a rough terrace position.
+    has_terrace = venue.outdoor_seating == "yes"
     return Terrace(
         id=venue.id,
         name=name,
         kind=venue.kind,
         venue=venue.location,
-        terrace=venue.location,
+        terrace=venue.location if has_terrace else None,
         sources=["osm"],
         verified=None,
     )

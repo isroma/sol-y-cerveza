@@ -44,7 +44,7 @@ class TerracesFile(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    version: Literal[1] = 1
+    version: Literal[2] = 2
     generated: datetime
     sample: bool
     attribution: list[str]
@@ -58,10 +58,13 @@ class TerracesFile(BaseModel):
 def add_horizons(terraces: Sequence[Terrace], horizon_for: HorizonFn) -> list[Terrace]:
     """Return copies of `terraces` with `horizon` computed at each terrace position.
 
-    Re-validates every record, so a malformed profile fails here rather than in the app.
+    Venues without a terrace are returned unchanged. Re-validates every record, so a malformed
+    profile fails here rather than in the app.
     """
     return [
-        Terrace.model_validate(
+        t
+        if t.terrace is None
+        else Terrace.model_validate(
             {**t.model_dump(), "horizon": horizon_for(t.terrace.lat, t.terrace.lon)}
         )
         for t in terraces
@@ -98,6 +101,8 @@ def position_warnings(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Pat
     """One message per terrace whose point sits on a roof or under a canopy."""
     warnings: list[str] = []
     for t in terraces:
+        if t.terrace is None:
+            continue
         height = height_above_ground(t.terrace.lat, t.terrace.lon, dsm_path, dtm_path)
         if height is not None and height > MAX_HEIGHT_ABOVE_GROUND_M:
             warnings.append(

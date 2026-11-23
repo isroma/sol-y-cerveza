@@ -37,15 +37,13 @@ export function terraceStatuses(
   endOfDay: Date,
 ): TerraceStatus[] {
   return terraces
-    .map((terrace) => ({
-      terrace,
-      state: sunState(terrace.horizon, sunPosition(at, terrace.terrace)),
-      minutesLeft: minutesOfSunLeft(
-        terrace.horizon,
-        terrace.terrace,
-        at,
-        endOfDay,
-      ),
-    }))
+    .map((terrace) => {
+      const location = terrace.terrace ?? terrace.venue
+      return {
+        terrace,
+        state: sunState(terrace.horizon, sunPosition(at, location)),
+        minutesLeft: minutesOfSunLeft(terrace.horizon, location, at, endOfDay),
+      }
+    })
     .sort(compareStatus)
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { LatLon } from '../data/terraces.ts'
 import {
   calleMenacho,
   horizonFromRuns,
@@ -101,7 +102,11 @@ describe('sunState', () => {
 })
 
 describe('minutesOfSunLeft', () => {
-  const left = (date: string, time: string, terrace: typeof plazaAlta) =>
+  const left = (
+    date: string,
+    time: string,
+    terrace: { horizon: number[] | null; terrace: LatLon },
+  ) =>
     minutesOfSunLeft(
       terrace.horizon,
       terrace.terrace,
