@@ -1247,7 +1247,7 @@ button {
   margin-top: var(--space-4);
 }
 
-/* Sun spell progress: fills as the sun hours pass, knob at the chosen time. */
+/* Sun spell progress: fills as the sun hours pass. No knob: it isn't a control. */
 .sun-countdown-track {
   position: relative;
   height: 8px;
@@ -1260,21 +1260,10 @@ button {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
+  /* Always at least a round cap, so the start of the spell still shows. */
+  min-width: 8px;
   background: linear-gradient(to right, #ffc53d, #f59e0b);
   transition: width 0.3s;
-}
-
-.sun-countdown-knob {
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  translate: -50% -50%;
-  border: 3px solid #f59e0b;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.25);
-  transition: left 0.3s;
 }
 
 .sun-countdown-fill.is-low {
