@@ -12,16 +12,19 @@ type Props = {
 const clock = (m: number) => formatClock(m % (24 * 60))
 
 /**
- * How much of the current sun spell is left, as a bar that empties as the
- * chosen time moves on: full when the sun has just arrived, empty when it
- * goes. Shows nothing outside a sun spell.
+ * Progress through the current sun spell: the bar fills from when the sun
+ * arrived and is full when it goes, with a round knob at the chosen time.
+ * Shows nothing outside a sun spell.
  */
 export function SunCountdown({ timeline, minutes }: Props) {
   const run = sunRuns(timeline).find(([a, b]) => a <= minutes && minutes < b)
   if (!run) return null
   const [start, end] = run
   const left = end - minutes
-  const percent = Math.max(0, Math.min(100, (left / (end - start)) * 100))
+  const percent = Math.max(
+    0,
+    Math.min(100, ((minutes - start) / (end - start)) * 100),
+  )
   return (
     <div className="sun-countdown">
       <div
@@ -34,9 +37,10 @@ export function SunCountdown({ timeline, minutes }: Props) {
         aria-valuetext={`Quedan ${formatDuration(left)} de sol, hasta las ${clock(end)}`}
       >
         <span
-          className={`sun-countdown-fill${percent < 20 ? ' is-low' : ''}`}
+          className={`sun-countdown-fill${percent > 80 ? ' is-low' : ''}`}
           style={{ width: `${percent}%` }}
         />
+        <span className="sun-countdown-knob" style={{ left: `${percent}%` }} />
       </div>
       <div className="sun-countdown-ticks">
         <span>{clock(start)}</span>

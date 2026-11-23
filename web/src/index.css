@@ -1127,11 +1127,11 @@ button {
   margin-top: var(--space-4);
 }
 
-/* A countdown: full when the sun arrives, empty when it goes. */
+/* Sun spell progress: fills as the sun hours pass, knob at the chosen time. */
 .sun-countdown-track {
   position: relative;
   height: 8px;
-  overflow: hidden;
+  margin: 0 var(--space-2);
   border-radius: 999px;
   background: var(--toggle-off);
 }
@@ -1142,6 +1142,19 @@ button {
   border-radius: 999px;
   background: linear-gradient(to right, #ffc53d, #f59e0b);
   transition: width 0.3s;
+}
+
+.sun-countdown-knob {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  translate: -50% -50%;
+  border: 3px solid #f59e0b;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.25);
+  transition: left 0.3s;
 }
 
 .sun-countdown-fill.is-low {

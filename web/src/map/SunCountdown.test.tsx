@@ -12,15 +12,18 @@ const fillWidth = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('.sun-countdown-fill')?.style.width
 
 describe('SunCountdown', () => {
-  it('is full when the sun has just arrived and empties as time goes on', () => {
+  it('fills as the sun hours pass and is full when the sun goes', () => {
     const { container, rerender } = render(
       <SunCountdown timeline={timeline} minutes={600} />,
     )
-    expect(fillWidth(container)).toBe('100%')
+    expect(fillWidth(container)).toBe('0%')
     rerender(<SunCountdown timeline={timeline} minutes={720} />)
     expect(fillWidth(container)).toBe('50%')
+    expect(
+      container.querySelector<HTMLElement>('.sun-countdown-knob')?.style.left,
+    ).toBe('50%')
     rerender(<SunCountdown timeline={timeline} minutes={810} />)
-    expect(fillWidth(container)).toBe('12.5%')
+    expect(fillWidth(container)).toBe('87.5%')
     expect(container.querySelector('.is-low')).not.toBeNull()
   })
 
