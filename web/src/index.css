@@ -726,11 +726,6 @@ button {
   background: #fafafa;
 }
 
-.map-3d {
-  font-size: 17px;
-  font-weight: 800;
-}
-
 .map-toast {
   position: absolute;
   top: 84px;
@@ -955,4 +950,45 @@ button {
 
 .pin-price:empty {
   display: none;
+}
+
+/* Zoomed out: only the best places keep a full pin (see highlights.ts). */
+.map-wrap.is-overview .pin-marker--top .pin:not(.pin--selected) {
+  scale: 1.12;
+}
+
+.map-wrap.is-overview
+  .pin-marker:not(.pin-marker--top)
+  .pin:not(.pin--selected) {
+  scale: 0.62;
+}
+
+.map-wrap.is-overview .pin-marker:not(.pin-marker--top) .pin-price {
+  display: none;
+}
+
+/* Night: the map turns dark (night.ts); its overlays follow. */
+.map-wrap.is-night .map-pill,
+.map-wrap.is-night .map-menu,
+.map-wrap.is-night .map-round,
+.map-wrap.is-night .map-zoom button,
+.map-wrap.is-night .map-toast,
+.map-wrap.is-night .map-legend,
+.map-wrap.is-night .map-info {
+  border-color: #2a3043;
+  background: #1a1f2d;
+  color: #e5e7eb;
+}
+
+.map-wrap.is-night .map-round:hover,
+.map-wrap.is-night .map-zoom button:hover {
+  background: #232a3b;
+}
+
+.map-wrap.is-night .icon-button {
+  color: #e5e7eb;
+}
+
+.map-wrap.is-night .pin {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
 }
