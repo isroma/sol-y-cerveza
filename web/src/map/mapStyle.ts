@@ -1,4 +1,5 @@
 import type {
+  ExpressionSpecification,
   LayerSpecification,
   LightSpecification,
   StyleSpecification,
@@ -42,7 +43,8 @@ const PAINT: Record<string, Record<string, unknown>> = {
   waterway_other: { 'line-color': '#9ACBEF' },
   building: { 'fill-color': '#F0E4D3', 'fill-outline-color': '#E5D5BF' },
   'building-3d': {
-    'fill-extrusion-color': '#F4E6D0',
+    // Whitewashed, warm stucco walls; the light shades the sides.
+    'fill-extrusion-color': '#F2E6D6',
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
     'fill-extrusion-height': [
       '*',
@@ -103,7 +105,41 @@ export function sunlitStyle(base: StyleSpecification): StyleSpecification {
       const current = 'paint' in layer ? layer.paint : undefined
       return { ...layer, paint: { ...current, ...paint } } as LayerSpecification
     })
-  return { ...base, layers }
+  return { ...base, layers: withRoofs(layers) }
+}
+
+/** Roof caps a touch lighter than the walls, so roofs read clearly from above. */
+export const ROOF_COLOR = '#FCF8F1'
+/** Thickness of a roof cap, in metres (before BUILDING_HEIGHT_SCALE). */
+const ROOF_M = 0.6
+
+/**
+ * Adds a thin, lighter roof cap on top of every 3D building: a second
+ * extrusion over the same buildings, from the roof up by ROOF_M. Walls keep
+ * their colour and lighting; roofs stand out against the streets.
+ */
+function withRoofs(layers: LayerSpecification[]): LayerSpecification[] {
+  return layers.flatMap((layer) => {
+    if (layer.id !== 'building-3d' || layer.type !== 'fill-extrusion')
+      return [layer]
+    const top: ExpressionSpecification = [
+      '*',
+      BUILDING_HEIGHT_SCALE,
+      ['get', 'render_height'],
+    ]
+    const roof: LayerSpecification = {
+      ...layer,
+      id: 'building-roof',
+      paint: {
+        'fill-extrusion-color': ROOF_COLOR,
+        'fill-extrusion-opacity': EXTRUSION_OPACITY,
+        'fill-extrusion-base': top,
+        'fill-extrusion-height': ['+', top, ROOF_M * BUILDING_HEIGHT_SCALE],
+        'fill-extrusion-vertical-gradient': false,
+      },
+    }
+    return [layer, roof]
+  })
 }
 
 /** Fixed light elevation (polar angle from straight up) that keeps roofs bright. */
@@ -129,7 +165,7 @@ export function sunLight(sun: SunPosition): LightSpecification {
     anchor: 'map',
     // [radial, azimuth from north clockwise, polar angle from straight up]
     position: [1.15, sun.azimuth, LIGHT_POLAR],
-    color: lowSun ? '#FFE7C4' : '#FFFFFF',
-    intensity: 0.4,
+    color: lowSun ? '#FFE7C4' : '#FFF6EA',
+    intensity: 0.2,
   }
 }

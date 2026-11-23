@@ -113,17 +113,17 @@ Sun colours don't change at night; they glow on the dark map. Pins and slider kn
 
 Apple Maps-like and warm. The map is the stage, not the star: low contrast, so the badges pop.
 
-| Layer            | Hex                                           |
-| ---------------- | --------------------------------------------- |
-| Land             | `#F6EEE2`                                     |
-| Residential      | `#F1E5D2`                                     |
-| Buildings (flat) | `#F0E4D3`, outline `#E5D5BF`                  |
-| Buildings (3D)   | `#F4E6D0`                                     |
-| Parks            | `#CDE5AE`                                     |
-| Water            | `#9ACBEF`                                     |
-| Streets          | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`) |
-| Shadows          | `#6B5848`, 0 → 0.6 opacity as the view tilts  |
-| Labels           | `#7A6B55` / `#8A7B66`, water `#4D8BC4`        |
+| Layer            | Hex                                                                |
+| ---------------- | ------------------------------------------------------------------ |
+| Land             | `#F6EEE2`                                                          |
+| Residential      | `#F1E5D2`                                                          |
+| Buildings (flat) | `#F0E4D3`, outline `#E5D5BF`                                       |
+| Buildings (3D)   | walls `#F2E6D6`, roof caps `#FCF8F1`, soft warm light, antialiased |
+| Parks            | `#CDE5AE`                                                          |
+| Water            | `#9ACBEF`                                                          |
+| Streets          | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`)                      |
+| Shadows          | `#6B5848`, 0 → 0.6 opacity as the view tilts                       |
+| Labels           | `#7A6B55` / `#8A7B66`, water `#4D8BC4`                             |
 
 Night map palettes: see `DUSK` and `NIGHT` in `web/src/map/night.ts` and [`tokens.json`](tokens.json).
 

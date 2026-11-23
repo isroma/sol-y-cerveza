@@ -1,6 +1,6 @@
 import type { StyleSpecification } from 'maplibre-gl'
 import { describe, expect, it } from 'vitest'
-import { sunLight, sunlitStyle } from './mapStyle.ts'
+import { ROOF_COLOR, sunLight, sunlitStyle } from './mapStyle.ts'
 
 const base: StyleSpecification = {
   version: 8,
@@ -41,6 +41,7 @@ describe('sunlitStyle', () => {
     expect(style.layers.map((l) => l.id)).toEqual([
       'background',
       'building-3d',
+      'building-roof',
       'road_minor',
       'poi_r1',
     ])
@@ -49,8 +50,21 @@ describe('sunlitStyle', () => {
   it('recolours known layers and keeps their other paint', () => {
     const building = style.layers.find((l) => l.id === 'building-3d')
     expect(building && 'paint' in building && building.paint).toMatchObject({
-      'fill-extrusion-color': '#F4E6D0',
+      'fill-extrusion-color': '#F2E6D6',
       'fill-extrusion-height': ['*', 1.4, ['get', 'render_height']],
+    })
+  })
+
+  it('caps every 3D building with a lighter roof', () => {
+    const roof = style.layers.find((l) => l.id === 'building-roof')
+    expect(roof && 'paint' in roof && roof.paint).toMatchObject({
+      'fill-extrusion-color': ROOF_COLOR,
+      'fill-extrusion-base': ['*', 1.4, ['get', 'render_height']],
+      'fill-extrusion-height': [
+        '+',
+        ['*', 1.4, ['get', 'render_height']],
+        0.84,
+      ],
     })
   })
 
@@ -118,7 +132,7 @@ describe('sunLight', () => {
 
   it('warms up when the sun is low', () => {
     expect(sunLight({ altitude: 5, azimuth: 250 }).color).toBe('#FFE7C4')
-    expect(sunLight({ altitude: 40, azimuth: 250 }).color).toBe('#FFFFFF')
+    expect(sunLight({ altitude: 40, azimuth: 250 }).color).toBe('#FFF6EA')
   })
 
   it('is dim and cool at night', () => {

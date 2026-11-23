@@ -184,6 +184,8 @@ export function MapView({
           minZoom: 12,
           // The tilt follows the zoom (see camera.ts), so no manual pitching.
           pitchWithRotate: false,
+          // Smooth building edges in the 3D view.
+          canvasContextAttributes: { antialias: true },
           locale: MAP_LOCALE,
           attributionControl: false,
         })
