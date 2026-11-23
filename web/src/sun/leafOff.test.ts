@@ -3,14 +3,14 @@ import { horizonFor, isLeafOff } from './leafOff.ts'
 
 describe('isLeafOff', () => {
   it.each([
-    ['2026-12-15', true],
+    ['2026-12-01', true],
     ['2026-12-31', true],
     ['2027-01-01', true],
-    ['2027-02-28', true],
     ['2028-02-29', true],
-    ['2026-12-14', false],
+    ['2027-03-15', true],
+    ['2026-11-30', false],
     ['2026-11-23', false],
-    ['2027-03-01', false],
+    ['2027-03-16', false],
     ['2027-06-21', false],
     ['not a date', false],
   ])('%s → %s', (date, expected) => {

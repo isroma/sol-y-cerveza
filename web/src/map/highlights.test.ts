@@ -31,7 +31,6 @@ function status(
     sunUntil: null,
     nextSun: null,
     minutesLeft: null,
-    throughBareTrees: false,
   }
 }
 

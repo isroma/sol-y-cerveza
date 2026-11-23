@@ -1,12 +1,12 @@
 import type { Terrace } from '../data/terraces.ts'
 
 /**
- * The leaf-off period (docs/adr/0007-seasonal-trees.md): from 15 December to
- * the end of February, by Madrid date, deciduous trees count as bare. A rule
- * of thumb that keeps to the core of the season, so it errs towards shade.
+ * The leaf-off period (docs/adr/0007-seasonal-trees.md): from 1 December to
+ * 15 March, by Madrid date, deciduous trees count as bare. A rule of thumb;
+ * the owner chose this wider window, accepting more risk at the edges.
  * Month-day strings, both ends inclusive.
  */
-export const LEAF_OFF = { from: '12-15', until: '02-29' } as const
+export const LEAF_OFF = { from: '12-01', until: '03-15' } as const
 
 const DATE = /^\d{4}-(\d{2}-\d{2})$/
 

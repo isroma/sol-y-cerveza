@@ -38,7 +38,7 @@ const terraceSchema = z.object({
   verified: z.iso.date().nullable(),
   // Tenths of a degree per compass azimuth bin, 0 = north, clockwise.
   horizon: horizonSchema.nullable(),
-  // The same with deciduous trees bare, used from 15 Dec to end of February
+  // The same with deciduous trees bare, used from 1 Dec to 15 Mar
   // (ADR-0007). Null or absent: same as `horizon`.
   horizon_winter: horizonSchema.nullable().optional(),
   // Curator-confirmed prices; files before 2026-11-23 have none.

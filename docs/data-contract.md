@@ -58,7 +58,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
 5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
-6. **Leaf-off period** (15 December to the end of February, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null`. When a sunny instant is sunny only with `horizon_winter`, the app says the sun comes through bare trees (ADR-0007).
+6. **Leaf-off period** (1 December to 15 March, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 
