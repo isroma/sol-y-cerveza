@@ -110,3 +110,44 @@ The pattern: cities that publish their terrace licences get used directly; elsew
 | [Coffee in the Sun](https://apps.apple.com/app/id6746173958), [SunnyPints](https://apps.apple.com/tz/app/sunnypints/id6760045754) | Several | Not stated (built on Apple Maps) | 3D building shadows |
 
 Shadow tooling: [OSM wiki: Shadows](https://wiki.openstreetmap.org/wiki/Shadows), [shadow-mapper](https://awesome.ecosyste.ms/projects/github.com%2Fperliedman%2Fshadow-mapper), [ShadeMap](https://bellingcat.gitbook.io/toolkit/more/all-tools/shademap).
+
+## Research round 2026-11-23: venue coverage and terrace signals
+
+Three research passes: open POI datasets and APIs, imagery, and the public sector (the last is written up separately when it lands). Decisions: [ADR-0003](../adr/0003-venue-base-osm-plus-overture.md).
+
+### Venues (bbox `38.84,-7.04,38.92,-6.92`)
+
+| Source | Venues | Licence | Outdoor-seating signal |
+| --- | --- | --- | --- |
+| OSM (2026-11-22) | 191 hospitality, of which 157 bar/pub/café/restaurant/biergarten | ODbL | `outdoor_seating` on 9 (4 yes), 2 bare `leisure=outdoor_seating` |
+| Overture 2026-11-18.0 | 994 hospitality (859 core). Confidence median 0.80; 41 permanently closed | CDLA-Permissive-2.0 (Meta, Microsoft, BrightQuery), Apache-2.0 (Foursquare, 10), CC0 (AllThePlaces, 5) | None in the schema; 15 names with terraza/jardín/kiosko/chiringuito |
+| Foursquare OS Places (ungated mirror 2025-02-06) | 1,175 hospitality, but 974 last refreshed before 2023 | Apache-2.0 + NOTICE | None in the open schema (paid add-on only) |
+| AllThePlaces 2026-11-14 | 12 chain sites | CC0 | Chain flags only (McDonald's yes) |
+| Wikidata | 0 | CC0 | — |
+
+The cross-source union holds about 980 venues that are probably operating (about 710 counting only venues confirmed by two sources, by OSM, or by high Overture confidence). The pipeline uses OSM plus filtered Overture, giving 613 named venues.
+
+### APIs with an outdoor-seating attribute
+
+All four forbid storing the value or building a venue database from it, which also rules out using it privately to choose venues for curators:
+
+- **Google Places `outdoorSeating`:** ToS §3.2.3(a)(b)(c)(d)(iii)(e) and Service Specific Terms §14.
+- **Foursquare Places API (premium attributes):** Master Terms §7.5.8 and AUP §IV.
+- **Yelp:** API Terms §5(a)(b)(g).
+- **TripAdvisor Content API:** its caching policy allows caching only `location_id`.
+
+HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are not a practical machine-readable route: 0 of 14 sampled sites had schema.org `amenityFeature` markup.
+
+### Imagery
+
+- **PNOA orthophoto served now:** the June 2025 *true* ortho at 0.25 m, flown in the morning. Historical layers: 2019 (best for terraces: midday, trees in leaf), December 2022 and the 2023 LiDAR-simultaneous ortho.
+- **Automatic detection is not usable at 0.25 m:**
+  - OWLv2 reached 15% precision on 2019 and 0% on 2025.
+  - Blob and parasol heuristics reached about 0–6%.
+  - Tables are about 3 px, and old-town terraces sit in shadow, under trees or under arcades.
+- **Curator aid:** multi-epoch strips per venue help on plazas, parks and kiosks. Imagery found furniture for Dada, two Plaza Alta venues and the two Paseo de San Francisco kiosks; these are now curated rows.
+- **Street level:**
+  - Panoramax has no coverage.
+  - Mapillary covers the old town densely (mostly 2–4 years old). Its terms (§13) allow using it to contribute to OSM, but not to extract data straight into our dataset.
+  - The best scalable route is our own summer street-level capture with a COCO detector (chair, dining table and umbrella), linked to façades.
+- **Linking clusters to venues:** nearest façade on the same street side, cost-based with an ambiguity flag. 94% correct within 6 m of the façade; venues missing from the list are the main source of error.
