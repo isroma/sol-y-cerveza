@@ -1,15 +1,1531 @@
 {
   "version": 2,
-  "generated": "2026-11-23T03:25:03Z",
+  "generated": "2026-11-23T08:43:40Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
     "Obra derivada de MDS05 2008-2015 CC-BY 4.0 scne.es",
     "Obra derivada de MDT05-cob1 2008-2015 CC-BY 4.0 scne.es",
     "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)",
-    "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)"
+    "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)",
+    "Más locales: Registro de restauración de la Junta de Extremadura (CC BY 4.0), geocodificado con CartoCiudad (CC BY 4.0 ign.es)"
   ],
   "terraces": [
+    {
+      "id": "junta:01ebf6116f88",
+      "name": "Aftasi Club",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879266,
+        "lon": -6.970139
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:02af18cef67c",
+      "name": "Babaloo",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.884375,
+        "lon": -6.993265
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:02b6b9ceb2e1",
+      "name": "La Doña",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87925,
+        "lon": -6.970773
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:039d8dacadd0",
+      "name": "Abaceria Casaseca",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869928,
+        "lon": -6.975401
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:03d10a8dfce2",
+      "name": "Los Deseos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866755,
+        "lon": -6.980188
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:03f6b31ef0e5",
+      "name": "Itos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.88933,
+        "lon": -6.90385
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:064e2c2a2ff5",
+      "name": "La Bodeguita de Tetin",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879002,
+        "lon": -6.972764
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:06fcb0772475",
+      "name": "Pub Punto O",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.876096,
+        "lon": -6.974582
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:0b512b1f6603",
+      "name": "Super I Doner Kebab",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875796,
+        "lon": -6.970589
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:1497369bbcf7",
+      "name": "Motel 7",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879286,
+        "lon": -6.969738
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:19939a0cfac1",
+      "name": "Malahierba",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880246,
+        "lon": -6.968652
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:1ad624c22595",
+      "name": "Capricho Cafe & Tostas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.876303,
+        "lon": -6.974994
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:1e98244260df",
+      "name": "Vintage Coffee",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.888783,
+        "lon": -6.901892
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:267b36af3342",
+      "name": "Pasta Urban Food",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870523,
+        "lon": -6.976415
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:29b13da5ea22",
+      "name": "Chin Chin",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883712,
+        "lon": -6.993226
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:29b4bfe87f68",
+      "name": "Taberna La Piconera",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872862,
+        "lon": -6.975901
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:2ca3be7d763d",
+      "name": "Nonna Isabela",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.88933,
+        "lon": -6.90385
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:2ef2fecdb439",
+      "name": "Siracusa",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875796,
+        "lon": -6.970589
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:3078ebb33975",
+      "name": "Los Melendres",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.889371,
+        "lon": -6.900966
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:35b1e8e50ac6",
+      "name": "Tiempo de Café",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873594,
+        "lon": -6.968648
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:3cbf0bc1aac2",
+      "name": "M&a",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867001,
+        "lon": -6.982304
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:411664a556c4",
+      "name": "El Toke de Lola",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883712,
+        "lon": -6.993226
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:41fa8d5945f8",
+      "name": "Nuevo Mesón Extremeño",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.888306,
+        "lon": -6.992625
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:450294277448",
+      "name": "El Sitio San Roque",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879002,
+        "lon": -6.961656
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:4fc3c81b9e5b",
+      "name": "Siente La Dehesa",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879143,
+        "lon": -6.969818
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:509bfd8b52eb",
+      "name": "Mcdonald's",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878763,
+        "lon": -6.955891
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:57592c3c37d2",
+      "name": "Tropicana Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.892254,
+        "lon": -6.986611
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:580af9749eab",
+      "name": "Don Café",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.867712,
+        "lon": -6.971463
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:59324812dc23",
+      "name": "Perdiendo El Norte",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.889554,
+        "lon": -6.902927
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:5f609dcabedd",
+      "name": "Las Encinas II",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878898,
+        "lon": -6.958485
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:5f8f3f60831e",
+      "name": "Pepe Taco",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.883712,
+        "lon": -6.993226
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:61fd13b44975",
+      "name": "Agua Bendita",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869791,
+        "lon": -6.990361
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:6409c098be61",
+      "name": "La Taberna de Todos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878808,
+        "lon": -6.970871
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:6656800dc05e",
+      "name": "La Despechá Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873986,
+        "lon": -6.976229
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:666c509552b3",
+      "name": "Repi-t Alma",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872115,
+        "lon": -6.975613
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:6aeb5be74bad",
+      "name": "Sushi Taki",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882267,
+        "lon": -6.995967
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:6c9dc7e327b2",
+      "name": "La Esquina de Popi",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873326,
+        "lon": -6.96493
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:72c35788c13e",
+      "name": "Sonata",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.868388,
+        "lon": -6.985715
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:72cb16ad6472",
+      "name": "Bar Los Poetas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.8785,
+        "lon": -6.951083
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:7316e3970fb8",
+      "name": "Forn de Campos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879221,
+        "lon": -6.958566
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:73a5b92cc6f3",
+      "name": "Churrería Dos y Dos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867605,
+        "lon": -6.971752
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:79a7b04dfc83",
+      "name": "La Molineta",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.86808,
+        "lon": -6.985429
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:7bae170e2a76",
+      "name": "Kebab Kashmir",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.885914,
+        "lon": -6.983172
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:818813036bb1",
+      "name": "Gran Muralla",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872663,
+        "lon": -6.988867
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:836027dff635",
+      "name": "Clover",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879108,
+        "lon": -6.956856
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:83fa6ad07358",
+      "name": "Salvatierra",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869912,
+        "lon": -6.970389
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8570d2d22694",
+      "name": "\"desayunos Meson Er Kiko\"",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.857289,
+        "lon": -6.988321
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8716646317ae",
+      "name": "S.I.M.A.G.O",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.857686,
+        "lon": -6.989616
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8881db7b5a4d",
+      "name": "Granier",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877679,
+        "lon": -6.973512
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:88daa7f5e8bf",
+      "name": "Badajoz",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869133,
+        "lon": -6.966227
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:897f22ccfbfe",
+      "name": "La Sevillana",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879633,
+        "lon": -6.960989
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8a8b99125c2a",
+      "name": "Convivio",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870523,
+        "lon": -6.976415
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8ab80407fedc",
+      "name": "Groucho Copas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873838,
+        "lon": -6.97785
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8b342ed323d3",
+      "name": "Picón",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.865319,
+        "lon": -6.977435
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:8ba841f05c66",
+      "name": "Vintage Cafe",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.918971,
+        "lon": -6.943144
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:913852a0717b",
+      "name": "La Encontrada",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875061,
+        "lon": -6.976987
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:9701ecb70c40",
+      "name": "Horno La Plaza",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870702,
+        "lon": -6.98744
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:99cf1e64e103",
+      "name": "China City",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8726,
+        "lon": -6.989074
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:9e12d710b381",
+      "name": "El Kafelito",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874141,
+        "lon": -6.972664
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:a69db7205327",
+      "name": "La Chefa",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.886677,
+        "lon": -6.98275
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:aaf6e5393588",
+      "name": "La Rosa de Alfre",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875874,
+        "lon": -6.970798
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:abfd66af7708",
+      "name": "El Chispazo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873485,
+        "lon": -6.971331
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:acaa149455c4",
+      "name": "Horno Los Remedios",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870545,
+        "lon": -6.972848
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:b780906c2c02",
+      "name": "Mentidero",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872697,
+        "lon": -6.977756
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:b8e9031dafe1",
+      "name": "Las Tres Copas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.864031,
+        "lon": -6.985897
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:be5c0ab230c1",
+      "name": "Carlitos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869864,
+        "lon": -6.975265
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:bfbb343e3404",
+      "name": "Plaza España",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878389,
+        "lon": -6.969527
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c03aa56349a6",
+      "name": "Clandestino",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.879086,
+        "lon": -6.972962
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c0b04d99a5a8",
+      "name": "El Rincon del Pescaito",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866384,
+        "lon": -6.982769
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c3a6a43032c7",
+      "name": "Mia Nonna",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882627,
+        "lon": -6.99379
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c73a03b6c72a",
+      "name": "Masumi Convento",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.881152,
+        "lon": -6.974344
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c74ead84312c",
+      "name": "El Rincon de Figueira",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.873622,
+        "lon": -6.969125
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:c85cec0d9b7a",
+      "name": "Durán",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.874708,
+        "lon": -6.961036
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:cbb1f0c67636",
+      "name": "Panvira",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.886131,
+        "lon": -6.982853
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:ce8d38e5e9ec",
+      "name": "Los Compis",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870927,
+        "lon": -6.975586
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:cf37a866abf9",
+      "name": "El Rincon",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87666,
+        "lon": -6.955998
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d243b68098d0",
+      "name": "Entre Barras",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876117,
+        "lon": -6.972006
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d3c94157eaf4",
+      "name": "Vertice 2.0",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875829,
+        "lon": -6.974863
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d5e12f2fc2df",
+      "name": "La Mirilla",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878517,
+        "lon": -6.971207
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d60537c5a50c",
+      "name": "Pez Gato Taberna Marinera",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872862,
+        "lon": -6.975901
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d60f9aa5445c",
+      "name": "King Doner Kebab",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878944,
+        "lon": -6.955624
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d966d6e174bb",
+      "name": "Sportium",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877182,
+        "lon": -6.959773
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:d9d6636c673f",
+      "name": "Camaleónico",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.883647,
+        "lon": -6.983194
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:df1e5401fac9",
+      "name": "Emotiva 63 Salón",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878432,
+        "lon": -6.953261
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:e0ba6f1d7e98",
+      "name": "Pipi",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887066,
+        "lon": -6.98322
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:e4abab1f0031",
+      "name": "Las Tres Campanas",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.880479,
+        "lon": -6.97105
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:e6409f8e820e",
+      "name": "Forn de Campos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.886599,
+        "lon": -6.984423
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:ea2185259a9b",
+      "name": "Meson El Perla",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.866888,
+        "lon": -6.978523
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:eb0b6b277589",
+      "name": "La Galería",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.87816,
+        "lon": -6.972144
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:edea250287af",
+      "name": "Va&co",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879851,
+        "lon": -6.97265
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f09c50ad5517",
+      "name": "Esquinados",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880021,
+        "lon": -6.948883
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f33080b85b08",
+      "name": "Asia",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877677,
+        "lon": -6.970338
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f3a976dfe7d6",
+      "name": "Big Bang",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879714,
+        "lon": -6.969237
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f5c7f9a005f7",
+      "name": "Osadía",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.867414,
+        "lon": -6.98567
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f5e9c5168d98",
+      "name": "Cantina Gallega",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869426,
+        "lon": -6.970639
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f805eea651ee",
+      "name": "La Gourmet del Marqués",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877267,
+        "lon": -6.971732
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:f8e1e959936e",
+      "name": "Taperia Lega",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.967249,
+        "lon": -6.922855
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:fb21792d007a",
+      "name": "Casa Marce II By Ana",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.885363,
+        "lon": -6.990627
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:fd78611332db",
+      "name": "Jara Helados y Café",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880479,
+        "lon": -6.97105
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:fdd8fe2b84b2",
+      "name": "Bianca del Art",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869548,
+        "lon": -6.978869
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "junta:ffe60ca04f37",
+      "name": "Bulevard",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.865327,
+        "lon": -6.973978
+      },
+      "terrace": null,
+      "sources": [
+        "junta"
+      ],
+      "verified": null,
+      "horizon": null
+    },
     {
       "id": "osm:node/1018628393",
       "name": "Bar Entrepuentes",
@@ -1815,12 +3331,16 @@
         "lat": 38.865243,
         "lon": -6.986601
       },
-      "terrace": null,
+      "terrace": {
+        "lat": 38.865206,
+        "lon": -6.986541
+      },
       "sources": [
+        "curated",
         "osm"
       ],
       "verified": null,
-      "horizon": null
+      "horizon": [584,584,584,584,584,584,584,584,584,506,506,506,506,506,506,506,506,419,419,419,419,419,419,263,215,215,215,215,197,108,96,67,64,61,62,64,65,63,63,59,62,93,103,114,122,125,131,132,130,129,126,125,182,185,187,211,214,214,218,246,246,246,241,244,244,244,249,244,236,229,221,221,224,224,214,187,190,190,190,190,190,181,175,175,175,175,153,153,153,153,138,138,140,140,140,140,169,184,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,226,203,203,203,203,203,203,203,203,203,203,184,184,184,184,184,180,223,223,223,223,223,245,245,245,245,245,245,245,245,245,245,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,272,245,139,139,139,139,139,139,139,139,139,139,139,123,123,125,125,125,125,125,125,125,125,125,125,123,123,123,123,123,102,98,98,98,98,98,95,56,52,52,50,51,51,52,51,51,45,39,34,17,18,32,70,71,121,129,359,359,359,359,359,359,359,397,397,397,397,416,416,416,416,416,417,417,417,417,435,435,435,435,511,511,511,511,511,543,543,543,543,543,543,543,543,543,543,563,563,563,563,563,543,543,566,566,566,566,566,566,566,566,566,566,566,589,589,613,613,613,613,613,613,613,613,613,596,596,596,596,633,633,633,633,633,633,633,672,672,672,672,672,672,672,672,672,672,672,672,672,672,672,672,633,633,633,633,633,633,633,596,596,596,596,596,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584,584]
     },
     {
       "id": "osm:node/9981259207",
@@ -2382,12 +3902,16 @@
         "lat": 38.866634,
         "lon": -6.986176
       },
-      "terrace": null,
+      "terrace": {
+        "lat": 38.86666,
+        "lon": -6.986177
+      },
       "sources": [
-        "overture"
+        "curated",
+        "osm"
       ],
       "verified": null,
-      "horizon": null
+      "horizon": [161,159,165,165,163,163,163,157,158,158,172,171,171,171,171,169,169,166,166,164,160,158,158,153,152,149,148,147,145,135,124,123,109,104,103,90,79,65,64,57,47,28,28,28,29,36,45,62,62,95,96,125,126,132,133,133,129,121,121,121,120,121,121,122,120,118,118,118,107,109,111,109,105,103,82,92,92,92,92,92,92,92,92,92,92,92,113,113,114,118,118,117,115,115,115,134,145,172,190,212,282,320,320,369,369,369,431,431,431,431,431,431,431,431,431,431,431,431,431,431,431,431,431,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,542,427,427,427,427,427,427,427,427,427,427,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,398,396,415,443,453,453,453,453,453,443,443,443,443,443,443,433,420,420,420,420,415,415,405,405,405,405,404,404,404,394,394,394,385,385,376,376,319,319,311,311,303,159,159,159,146,146,146,146,135,135,135,97,97,97,83,83,83,83,78,100,103,144,146,176,176,178,186,200,200,209,209,241,245,250,250,250,250,261,261,261,261,261,291,291,291,297,297,297,297,297,297,301,301,301,301,301,301,295,296,307,307,307,301,302,313,313,307,317,317,317,317,311,311,315,321,327,327,327,321,321,315,313,307,291,291,285,280,275,261,261,257,253,248,223,219,212,149,134,129,87,62,61,59,39,38,37,36,35,49,57,62,64,66,66,65,64,62,80,81,118,118,126,126,136,136,143,151,151,158,158,158,160]
     },
     {
       "id": "overture:0a4e8fe9-4ddd-4073-82d2-ca625a38d397",
@@ -3136,12 +4660,16 @@
         "lat": 38.884138,
         "lon": -6.984
       },
-      "terrace": null,
+      "terrace": {
+        "lat": 38.884192,
+        "lon": -6.983999
+      },
       "sources": [
-        "overture"
+        "curated",
+        "osm"
       ],
       "verified": null,
-      "horizon": null
+      "horizon": [91,91,91,87,87,87,87,87,73,73,73,73,80,85,88,88,88,88,86,86,76,76,76,65,65,65,63,72,76,78,79,81,84,82,81,81,80,57,62,107,120,123,128,130,132,131,133,132,133,132,129,127,106,72,71,49,51,53,53,53,53,46,45,38,25,18,18,119,119,119,126,126,129,129,244,244,280,287,287,287,287,287,287,287,287,287,305,305,305,305,305,312,305,305,277,277,277,277,277,273,273,273,273,282,299,318,339,362,362,388,388,388,388,418,418,418,418,456,456,456,456,500,500,500,500,593,593,593,637,637,637,637,637,637,637,637,637,637,637,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,684,735,735,735,735,735,735,735,735,735,735,735,735,735,735,735,735,735,684,684,684,684,684,684,684,455,455,455,455,455,455,255,240,240,240,240,240,240,240,240,227,227,227,227,194,121,121,214,214,220,227,227,234,234,242,234,234,227,227,220,212,207,201,196,188,188,194,194,194,194,188,183,178,173,149,145,137,78,75,53,53,50,22,31,31,30,9,3,0,0,1,2,14,14,12,18,18,17,15,12,12,25,25,30,37,37,38,71,71,76,76,80,83,82,82,80,79,79,78,76,76,75,75,74,72,74,76,75,75,67,64,65,65,70,72,72,71,63,64,66,67,118,121,123,123,164,248,248,253,325,327,333,339,362,368,368,374,374,368,368,368,362,362,368,368,368,363,357,347,346,346,346,346,315,274,233,233,233,223,131,87,87,87,91,91,91,91,91]
     },
     {
       "id": "overture:24b62eb0-339d-4b10-a193-b276491232a7",
@@ -8450,12 +9978,16 @@
         "lat": 38.867651,
         "lon": -6.984273
       },
-      "terrace": null,
+      "terrace": {
+        "lat": 38.867655,
+        "lon": -6.984328
+      },
       "sources": [
-        "overture"
+        "curated",
+        "osm"
       ],
       "verified": null,
-      "horizon": null
+      "horizon": [344,344,344,335,311,311,311,311,311,311,311,311,311,200,200,200,200,200,194,194,194,269,269,297,297,297,297,331,331,331,331,372,372,372,491,626,626,626,666,666,666,666,666,666,666,666,666,666,666,666,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,709,754,754,754,754,754,754,709,709,709,709,709,709,709,709,709,709,709,709,621,621,621,621,621,621,621,621,621,621,621,621,621,621,592,592,592,592,592,533,533,533,533,533,533,533,533,470,470,470,470,470,470,470,470,470,470,470,418,418,418,418,159,156,156,156,154,149,151,152,149,130,107,106,126,126,129,140,140,280,280,280,277,282,282,282,312,312,346,346,346,346,346,367,367,367,382,382,382,382,382,382,382,395,395,395,395,395,395,386,386,386,391,407,415,407,407,407,407,401,409,411,420,429,429,420,420,420,411,411,402,402,402,395,404,413,413,422,422,431,431,422,410,402,399,399,390,390,390,399,399,399,407,399,396,396,396,388,381,367,339,328,329,329,329,329,323,283,273,60,104,108,108,125,126,130,130,133,133,133,131,138,138,113,113,113,115,115,115,111,150,175,175,175,173,173,179,179,177,177,175,175,173,173,189,197,197,194,194,192,192,187,184,166,161,165,165,163,134,134,133,129,118,115,102,91,63,65,91,91,93,95,95,127,129,154,156,166,168,171,173,184,184,186,218,218,233,241,241,241,241,249,249,249,241,278,278,278,302,302,310,310,310,310,310,335,335,335,335,335,335,335,335]
     },
     {
       "id": "overture:e93427f5-5736-4fd8-8efe-3d55e1e168b4",
@@ -8630,12 +10162,16 @@
         "lat": 38.867571,
         "lon": -6.984184
       },
-      "terrace": null,
+      "terrace": {
+        "lat": 38.867545,
+        "lon": -6.984216
+      },
       "sources": [
-        "overture"
+        "curated",
+        "osm"
       ],
       "verified": null,
-      "horizon": null
+      "horizon": [651,651,651,651,651,651,620,620,620,620,620,620,620,620,620,620,620,623,623,645,645,667,667,667,691,691,691,691,691,691,691,667,669,669,669,669,669,669,705,705,705,705,705,705,705,705,705,705,705,705,705,705,705,705,705,669,669,669,669,669,669,669,636,636,636,636,650,650,650,650,650,650,650,650,650,629,608,608,588,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,580,448,448,433,433,420,420,420,420,420,420,420,420,420,420,420,420,420,420,420,420,420,420,420,211,216,216,216,213,206,206,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,223,378,378,378,378,378,359,359,372,372,372,402,421,440,440,440,440,440,440,430,430,443,454,464,464,464,454,464,475,475,475,475,464,464,464,464,436,443,443,454,465,465,465,465,465,454,454,443,443,443,452,452,452,443,443,434,434,434,430,429,438,438,438,438,429,420,411,402,389,395,395,395,395,404,404,404,404,404,395,367,359,359,359,359,359,359,359,341,283,283,283,283,283,127,127,127,127,126,126,112,112,105,105,80,98,128,152,154,154,152,152,154,154,154,147,150,148,147,147,164,166,164,162,161,158,157,139,142,140,139,118,117,106,103,92,81,53,52,50,281,281,281,281,281,307,307,307,307,307,307,307,416,416,416,416,416,416,416,416,416,439,620,620,620,620,620,620,620,620,620,620,620,620,620,620,620,620,620,620,620,651,651]
     },
     {
       "id": "overture:ef7495f3-e7d8-4f0a-9c8f-eb9c896150ef",

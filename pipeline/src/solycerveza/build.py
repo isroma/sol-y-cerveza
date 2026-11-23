@@ -22,7 +22,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
 from solycerveza.horizon import terrace_horizon
-from solycerveza.overture import load_all_venues
+from solycerveza.sources import load_all_venues
 from solycerveza.terraces import Terrace, build_terraces, read_curated
 from solycerveza.venues import CACHE_DIR
 
@@ -33,6 +33,10 @@ DSM_PATH = CACHE_DIR / "badajoz_dsm.tif"
 DTM_PATH = CACHE_DIR / "badajoz_dtm.tif"
 OSM_ATTRIBUTION = "© OpenStreetMap contributors (ODbL)"
 PNOA_ATTRIBUTION = "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
+JUNTA_ATTRIBUTION = (
+    "Más locales: Registro de restauración de la Junta de Extremadura (CC BY 4.0), "
+    "geocodificado con CartoCiudad (CC BY 4.0 ign.es)"
+)
 OVERTURE_ATTRIBUTION = (
     "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)"
 )
@@ -123,6 +127,8 @@ def attribution_lines(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Pat
         lines.append(PNOA_ATTRIBUTION)
     if any("overture" in t.sources for t in terraces):
         lines.append(OVERTURE_ATTRIBUTION)
+    if any("junta" in t.sources for t in terraces):
+        lines.append(JUNTA_ATTRIBUTION)
     return lines
 
 

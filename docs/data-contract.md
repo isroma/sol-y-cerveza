@@ -18,12 +18,12 @@ type TerracesFile = {
 }
 
 type Terrace = {
-  id: string // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "curated:<slug>", "sample:<slug>"
+  id: string // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "junta:<hash>", "curated:<slug>", "sample:<slug>"
   name: string
   kind: 'bar' | 'pub' | 'cafe' | 'restaurant' | 'biergarten'
   venue: LatLon // the venue itself (building or entrance)
   terrace: LatLon | null // where the tables are (horizon computed from here); null = no known terrace
-  sources: string[] // e.g. ["curated", "osm"] or ["overture"], sorted
+  sources: string[] // e.g. ["curated", "osm"], ["overture"] or ["junta"], sorted
   verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
   horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
 }
