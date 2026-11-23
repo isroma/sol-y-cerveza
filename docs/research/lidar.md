@@ -4,7 +4,7 @@ Research for #4. The pipeline step is `python -m solycerveza.obstacles` (run fro
 
 ## Summary
 
-- **Preferred products:** MDS02 and MDT02 from the 2nd PNOA-LiDAR coverage, at 2 m. Badajoz was flown in 2018–2019.
+- **Preferred products:** MDS02 and MDT02 from the 2nd PNOA-LiDAR coverage, at 2 m. Badajoz was flown in 2018–2019. **In use since 2026-11-24:** the four sheets were downloaded by hand and the published data is built from them.
 - **Sheets:** MTN50 sheet **0775 (Badajoz)** covers the whole bbox. MDS02/MDT02 come in MTN25 sheets, and the bbox needs two of them: **0775-2 (Valdebótoa)** and **0775-4 (Badajoz)**.
 - **CRS:** ETRS89 / UTM 29N (EPSG:25829), the CNIG "H29"/"HU29" files. No reprojection is needed for these sheets.
 - **Licence:** CC-BY 4.0 compatible (Orden FOM/2807/2015). Attribution for our derived rasters: `Obra derivada de MDS02 2015-2021 CC-BY 4.0 scne.es` and `Obra derivada de MDT02-cob2 2015-2021 CC-BY 4.0 scne.es`.
