@@ -19,6 +19,12 @@ Settled; don't propose or build these again unless the owner asks:
 - **Today only.** The app shows today, at any time of day. No date or day picker, and no date in the URL.
 - **No weather.** "Sun" means the sun is up and nothing blocks it. No clouds, forecasts or weather data.
 
+Parked: not now. They may come back later, but don't propose or start them unless the owner asks:
+
+- **Accessibility pass** (keyboard path through the map, focus management, contrast at night).
+- **More cities.** Badajoz only.
+- **Native mobile apps** (see Mobile above).
+
 ## Workflow (every change)
 
 1. Start from a GitHub issue. If none exists, create one. If requirements are unclear, ask on the issue instead of guessing.
