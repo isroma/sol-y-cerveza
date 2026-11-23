@@ -115,6 +115,12 @@ export function MapView({
           style: sunlitStyle(base),
           ...INITIAL_VIEW,
           maxPitch: 70,
+          // Badajoz only: no panning off to the rest of the world.
+          maxBounds: [
+            [-7.07, 38.82],
+            [-6.89, 38.94],
+          ],
+          minZoom: 12,
           // The tilt follows the zoom (see camera.ts), so no manual pitching.
           pitchWithRotate: false,
           locale: MAP_LOCALE,

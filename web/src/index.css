@@ -914,9 +914,9 @@ button {
   color: #fff;
 }
 
-.pin-price--unknown {
-  color: #9ca3af;
-  letter-spacing: 0.5px;
+/* Badge only until there is a price to show. */
+.pin:has(.pin-price:empty) {
+  padding: 4px;
 }
 
 .pin--sun .pin-icon {
