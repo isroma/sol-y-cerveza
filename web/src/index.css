@@ -743,20 +743,20 @@ button {
 
 @media (max-width: 899px) {
   /* The attribution button sits left of the legend, both at the bottom. */
-  /* The legend sits centred at the bottom of the map, as wide as its rows;
-     the map's attribution button sits at the left, just above it. */
+  /* The legend sits bottom-right, as wide as its rows; the map's attribution
+     button sits bottom-left on the same line and opens upwards. */
   .map-wrap {
     --legend-height: 56px;
   }
 
   .map-legend {
-    right: auto;
+    right: var(--space-3);
     bottom: var(--space-3);
-    left: 50%;
-    translate: -50% 0;
+    left: auto;
     align-items: center;
     width: max-content;
-    max-width: calc(100% - 2 * var(--space-3));
+    /* Leaves the bottom-left corner to the attribution button. */
+    max-width: calc(100% - 3 * var(--space-3) - 24px);
     height: var(--legend-height);
     /* Room on the right for the info button. */
     padding: var(--space-2) 40px var(--space-2) var(--space-3);
@@ -1317,13 +1317,34 @@ button {
 }
 
 @media (max-width: 899px) {
+  /* Bottom-left, centred on the legend's height. */
   .maplibregl-ctrl-bottom-left {
-    bottom: calc(var(--space-3) + var(--legend-height) + var(--space-2));
+    bottom: calc(var(--space-3) + (var(--legend-height) - 24px) / 2);
     left: var(--space-3);
-    max-width: calc(100% - 2 * var(--space-3));
   }
 
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
     margin: 0;
+  }
+
+  /* Opened, the button stays put and the credits unfold upwards as a small
+     card above the legend's line, instead of sideways across it. */
+  .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+    padding: 2px 24px 2px 0;
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact-show
+    .maplibregl-ctrl-attrib-inner {
+    position: absolute;
+    bottom: calc((var(--legend-height) + 24px) / 2 + var(--space-2));
+    left: 0;
+    width: max-content;
+    max-width: 220px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-m);
+    background: #fff;
+    box-shadow: var(--shadow);
+    font-size: 12px;
+    line-height: 1.5;
   }
 }
