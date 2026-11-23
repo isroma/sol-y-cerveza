@@ -4,7 +4,7 @@ import type {
   StyleSpecification,
 } from 'maplibre-gl'
 import type { SunPosition } from '../sun/sunState.ts'
-import { EXTRUSION_OPACITY } from './camera.ts'
+import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
 
 /** Dropped: POI icons (the venue pins are the points of interest) and road clutter. */
 const DROPPED_LAYERS = new Set([
@@ -44,6 +44,16 @@ const PAINT: Record<string, Record<string, unknown>> = {
   'building-3d': {
     'fill-extrusion-color': '#F4E6D0',
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
+    'fill-extrusion-height': [
+      '*',
+      BUILDING_HEIGHT_SCALE,
+      ['get', 'render_height'],
+    ],
+    'fill-extrusion-base': [
+      '*',
+      BUILDING_HEIGHT_SCALE,
+      ['coalesce', ['get', 'render_min_height'], 0],
+    ],
     'fill-extrusion-vertical-gradient': true,
   },
   poi_r1: { 'text-color': '#6B5E4B', 'text-halo-color': '#FFFFFF' },

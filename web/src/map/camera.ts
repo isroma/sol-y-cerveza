@@ -7,6 +7,11 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 export const FLAT_ZOOM = 14.5
 export const TILTED_ZOOM = 16
 export const TILTED_PITCH = 55
+/**
+ * Buildings are drawn this much taller than reality so the 3D city reads
+ * well when tilted. Only the picture: sun and shade use real heights.
+ */
+export const BUILDING_HEIGHT_SCALE = 1.4
 /** From here the view is tilted enough for 3D buildings and their shadows. */
 export const RELIEF_ZOOM = 15.3
 
