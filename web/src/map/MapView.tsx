@@ -136,6 +136,7 @@ export function MapView({
   }, [])
   const cardMarkerRef = useRef<Marker | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const attributionSlotRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const pinsRef = useRef(new Map<string, PinEntry>())
   const onSelectRef = useRef(onSelect)
@@ -162,6 +163,7 @@ export function MapView({
     const container = containerRef.current
     if (!container) return
     let map: MapLibreMap | null = null
+    let attributionControl: AttributionControl | null = null
     let cancelled = false
     const pins = pinsRef.current
 
@@ -186,15 +188,21 @@ export function MapView({
           attributionControl: false,
         })
         sizeCard(cardEl, map.getZoom())
-        map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
-        // MapLibre opens the compact attribution when its text first arrives
-        // and only closes it on a drag: start with just the "i" button.
-        const collapseAttribution = () =>
-          container
-            .querySelector('.maplibregl-ctrl-attrib')
-            ?.classList.remove('maplibregl-compact-show')
-        map.once('load', collapseAttribution)
-        map.once('idle', collapseAttribution)
+        // The attribution sits in our own layout, next to the legend
+        // (MapControls), rather than in a corner of the map.
+        const slot = attributionSlotRef.current
+        if (slot) {
+          attributionControl = new AttributionControl({ compact: true })
+          slot.replaceChildren(attributionControl.onAdd(map))
+          // MapLibre opens the compact attribution when its text first
+          // arrives and only closes it on a drag: start with just the "i".
+          const collapse = () =>
+            slot
+              .querySelector('.maplibregl-ctrl-attrib')
+              ?.classList.remove('maplibregl-compact-show')
+          map.once('load', collapse)
+          map.once('idle', collapse)
+        }
         map.touchPitch.disable()
         map.on('zoom', (event) => {
           if (!map) return
@@ -344,6 +352,7 @@ export function MapView({
       for (const { marker } of pins.values()) marker.remove()
       pins.clear()
       mapRef.current = null
+      attributionControl?.onRemove()
       map?.remove()
     }
   }, [cardEl])
@@ -467,7 +476,12 @@ export function MapView({
           No se ha podido cargar el mapa.
         </p>
       )}
-      <MapControls mapRef={mapRef} ready={ready} attribution={attribution} />
+      <MapControls
+        mapRef={mapRef}
+        ready={ready}
+        attribution={attribution}
+        attributionSlot={attributionSlotRef}
+      />
       {selectedStatus &&
         createPortal(
           <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,

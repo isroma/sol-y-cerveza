@@ -172,13 +172,14 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - A slim brand bar on top (32 px mark, 20 px title) with a **menu button** (44 px) on the right.
 - The map fills the middle and the **time bar is the footer**, always in view.
 - The menu opens over the map, between the brand bar and the footer, with search, filters and the list. The button turns into a close icon; Escape or picking a venue closes it, so the venue's map card shows.
-- The map attribution starts closed (just its "i") at the bottom-left; the legend, as wide as its rows (56 px tall), sits 8 px to its right. Opened, the credits unfold upwards as a narrow upright card (max 140 px) above that line, so the legend stays visible. The attribution follows the theme: `bg`/`ink` card and a light "i" at night.
+- The map attribution "i" and the legend (as wide as its rows, 56 px tall) form one group, 8 px apart, centred at the bottom of the map.
 
 ### Map overlays
 
 - Everything floating on the map sits on one **16 px inset** (`--map-inset`): city pill top-left, buttons top-right, legend bottom-right, attribution bottom-left.
 - Map buttons and the city pill are **44 px tall** (`--control`, Apple's minimum touch target); buttons are round, the zoom pair is one 44 px-wide capsule; **12 px** between button groups.
 - Toasts appear 12 px under the top controls.
+- Map attribution: MapLibre's compact control, mounted in our own layout 8 px left of the legend (never in a map corner). It starts closed (just the "i", no focus ring); opened, the credits rise above it as a 24 px-wide vertical strip read bottom to top. It follows the theme (`bg`/`ink`, a light "i" at night).
 - Legend: 16 px padding, 12 px between rows and between icon and label, 16 px radius; the info button is centred on the last row, 12 px from the right edge.
 - Info panel: 16 px padding and radius, opens 12 px above the legend, at most 340 px wide.
 
