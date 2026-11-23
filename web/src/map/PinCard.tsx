@@ -11,6 +11,8 @@ type Props = {
   minutes: number
   /** Today's sunset (kept for callers; the countdown uses the sun spell). */
   sunset: number | null
+  /** Mid zoom: only the name and the sun line. */
+  compact?: boolean
 }
 
 /** Shoulder radius where the badge tab flares into the card body. */
@@ -52,12 +54,14 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
  * joined to a card below it with the name, how much sun is left and a bar
  * counting down the current sun spell.
  */
-export function PinCard({ status, minutes }: Props) {
+export function PinCard({ status, minutes, compact = false }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
 
   return (
-    <div className={`pin-card pin-card--${status.category}`}>
+    <div
+      className={`pin-card pin-card--${status.category}${compact ? ' pin-card--compact' : ''}`}
+    >
       <div className="pin-card-tab">
         <Shoulder side="left" />
         <span className="pin-card-badge" aria-hidden="true">
@@ -68,10 +72,12 @@ export function PinCard({ status, minutes }: Props) {
       <div className="pin-card-body">
         <div className="pin-card-title">
           <strong>{venue.name}</strong>
-          <span>
-            {KIND_LABELS[venue.kind]}
-            {status.hasTerrace && ' · Terraza'}
-          </span>
+          {!compact && (
+            <span>
+              {KIND_LABELS[venue.kind]}
+              {status.hasTerrace && ' · Terraza'}
+            </span>
+          )}
         </div>
         <div className="pin-card-sun">
           <CategoryIcon category={status.category} size={30} />
@@ -80,10 +86,10 @@ export function PinCard({ status, minutes }: Props) {
             {box.detail && <span>{box.detail}</span>}
           </div>
         </div>
-        {status.timeline && (
+        {!compact && status.timeline && (
           <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
-        <PriceSection venue={venue} />
+        {!compact && <PriceSection venue={venue} />}
       </div>
     </div>
   )

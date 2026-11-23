@@ -13,7 +13,12 @@ import { createPortal } from 'react-dom'
 import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { pitchForZoom, SHADOW_OPACITY } from './camera.ts'
+import {
+  cardLevel,
+  pitchForZoom,
+  SHADOW_OPACITY,
+  type CardLevel,
+} from './camera.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
@@ -46,6 +51,20 @@ const MAP_LOCALE = {
   'AttributionControl.ToggleAttribution': 'Mostrar u ocultar la atribución',
   'AttributionControl.MapFeedback': 'Comentarios sobre el mapa',
   'Map.Title': 'Mapa',
+}
+
+/** Bring a venue into view, close enough for its full card. */
+function focusVenue(map: MapLibreMap, status: VenueStatus) {
+  const position = status.venue.terrace ?? status.venue.venue
+  const zoom = Math.max(map.getZoom(), 16.5)
+  map.easeTo({
+    center: [position.lon, position.lat],
+    zoom,
+    pitch: pitchForZoom(zoom),
+    // Venue a bit above centre, so the card below its badge fits in view.
+    offset: [0, -120],
+    duration: 900,
+  })
 }
 
 type Props = {
@@ -120,13 +139,19 @@ export function MapView({
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
+  const [level, setLevel] = useState<CardLevel>(cardLevel(INITIAL_ZOOM))
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
 
+  const selectedIdRef = useRef(selectedId)
+  const statusesRef = useRef(statuses)
+
   useEffect(() => {
     onSelectRef.current = onSelect
-  }, [onSelect])
+    selectedIdRef.current = selectedId
+    statusesRef.current = statuses
+  }, [onSelect, selectedId, statuses])
 
   useEffect(() => {
     const container = containerRef.current
@@ -160,6 +185,7 @@ export function MapView({
         map.on('zoom', (event) => {
           if (!map) return
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
+          setLevel(cardLevel(map.getZoom()))
           // Follow user gestures live; camera animations pass their own pitch.
           if (event.originalEvent) map.setPitch(pitchForZoom(map.getZoom()))
         })
@@ -341,7 +367,13 @@ export function MapView({
     for (const [id, status] of wanted) {
       let entry = pins.get(id)
       if (!entry) {
-        const el = createPin(() => onSelectRef.current(id))
+        const el = createPin(() => {
+          // Tapping the selected badge (folded in the overview) zooms back
+          // in to open its card.
+          const current = statusesRef.current.find((s) => s.venue.id === id)
+          if (id === selectedIdRef.current && current) focusVenue(map, current)
+          else onSelectRef.current(id)
+        })
         const position = status.venue.terrace ?? status.venue.venue
         const marker = new Marker({ element: el, anchor: 'bottom' })
           .setLngLat([position.lon, position.lat])
@@ -399,22 +431,12 @@ export function MapView({
     if (!ready || !map || selectedId === lastSelected.current) return
     lastSelected.current = selectedId
     const status = statuses.find((s) => s.venue.id === selectedId)
-    if (!status) return
-    const position = status.venue.terrace ?? status.venue.venue
-    const zoom = Math.max(map.getZoom(), 16.5)
-    map.easeTo({
-      center: [position.lon, position.lat],
-      zoom,
-      pitch: pitchForZoom(zoom),
-      // Venue a bit above centre, so the card below its badge fits in view.
-      offset: [0, -120],
-      duration: 900,
-    })
+    if (status) focusVenue(map, status)
   }, [ready, selectedId, statuses])
 
   return (
     <div
-      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}`}
+      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${level === 'hidden' ? ' is-card-folded' : ''}`}
     >
       <div
         ref={containerRef}
@@ -429,8 +451,14 @@ export function MapView({
       )}
       <MapControls mapRef={mapRef} ready={ready} attribution={attribution} />
       {selectedStatus &&
+        level !== 'hidden' &&
         createPortal(
-          <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,
+          <PinCard
+            status={selectedStatus}
+            minutes={minutes}
+            sunset={sunset}
+            compact={level === 'compact'}
+          />,
           cardEl,
         )}
     </div>

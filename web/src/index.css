@@ -1103,6 +1103,18 @@ button {
   --card-accent: #c2a88e;
 }
 
+/* Mid zoom: name and sun line only, a size smaller. Scaled around the tab's
+   badge centre (41 px from the top), so the tab stays on the venue. */
+.pin-card--compact {
+  width: 240px;
+  scale: 0.88;
+  transform-origin: 50% 41px;
+}
+
+.pin-card--compact .pin-card-title {
+  margin-bottom: var(--space-2);
+}
+
 /* The selected badge, grown into a tab on top of the card. */
 .pin-card-tab {
   position: relative;
@@ -1270,8 +1282,9 @@ button {
   color: var(--ink);
 }
 
-/* The badge has become the card's tab: hide the pin underneath. */
-.pin-marker[aria-pressed='true'] {
+/* The badge has become the card's tab: hide the pin underneath (unless the
+   card is folded away in the overview, where the selected badge stands in). */
+.map-wrap:not(.is-card-folded) .pin-marker[aria-pressed='true'] {
   visibility: hidden;
 }
 
