@@ -95,6 +95,9 @@ export function TimeSlider({
               title={`Volver a ahora · ${formatClock(now)}`}
               onClick={onNow}
             >
+              <span className="time-now-bubble" aria-hidden="true">
+                Ahora
+              </span>
               <span className="time-now-dot" />
             </button>
           </div>
