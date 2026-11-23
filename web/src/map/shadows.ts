@@ -32,48 +32,56 @@ export function shadowOffset(
   ]
 }
 
-function cross(o: LonLat, a: LonLat, b: LonLat): number {
-  return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-}
-
-/** Convex hull (Andrew's monotone chain), as a closed ring. */
-export function convexHull(points: readonly LonLat[]): LonLat[] {
-  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
-  if (sorted.length < 3) return sorted
-  const lower: LonLat[] = []
-  for (const p of sorted) {
-    while (lower.length >= 2 && cross(lower.at(-2)!, lower.at(-1)!, p) <= 0)
-      lower.pop()
-    lower.push(p)
+/** Twice the signed area of a ring in a local metric frame: > 0 when counter-clockwise. */
+function signedArea(ring: readonly LonLat[], k: number): number {
+  let sum = 0
+  for (let i = 0; i + 1 < ring.length; i++) {
+    const a = ring[i]
+    const b = ring[i + 1]
+    if (a && b) sum += a[0] * k * b[1] - b[0] * k * a[1]
   }
-  const upper: LonLat[] = []
-  for (const p of sorted.reverse()) {
-    while (upper.length >= 2 && cross(upper.at(-2)!, upper.at(-1)!, p) <= 0)
-      upper.pop()
-    upper.push(p)
-  }
-  const hull = [...lower.slice(0, -1), ...upper.slice(0, -1)]
-  const first = hull[0]
-  return first ? [...hull, first] : hull
+  return sum
 }
 
 /**
- * Ground shadow of a building footprint: the hull of the footprint and the
- * footprint shifted by the shadow offset. Exact for convex footprints, a
- * little generous for concave ones.
+ * Ground shadow of a building: one quad per wall that faces away from the sun,
+ * swept from the wall's foot along the shadow (the roof covers the rest).
+ * `rings` is a footprint polygon: the outer ring, then any courtyards (holes),
+ * whose walls throw shadows into the courtyard. Exact for any shape, unlike a
+ * hull of the footprint, which filled courtyards and inner corners.
  */
 export function buildingShadow(
-  footprint: readonly LonLat[],
+  rings: readonly (readonly LonLat[])[],
   height: number,
   sun: SunPosition,
-): LonLat[] | null {
-  const first = footprint[0]
+): LonLat[][] | null {
+  const first = rings[0]?.[0]
   if (!first) return null
   const offset = shadowOffset(height, sun, first[1])
   if (!offset) return null
-  const moved = footprint.map(([lon, lat]): LonLat => [
-    lon + offset[0],
-    lat + offset[1],
-  ])
-  return convexHull([...footprint, ...moved])
+  // Compare directions in metres: a degree of longitude is shorter here.
+  const k = Math.cos((first[1] * Math.PI) / 180)
+  const [ox, oy] = [offset[0] * k, offset[1]]
+  const quads: LonLat[][] = []
+  rings.forEach((ring, index) => {
+    const ccw = signedArea(ring, k) > 0
+    // Away from the solid: outside the outer ring, into a courtyard.
+    const awayIsRight = index === 0 ? ccw : !ccw
+    for (let i = 0; i + 1 < ring.length; i++) {
+      const a = ring[i]
+      const b = ring[i + 1]
+      if (!a || !b) continue
+      const dx = (b[0] - a[0]) * k
+      const dy = b[1] - a[1]
+      const [nx, ny] = awayIsRight ? [dy, -dx] : [-dy, dx]
+      // Walls along the shadow (or facing the sun) cast nothing; the
+      // tolerance drops floating-point noise from walls exactly along it.
+      const dot = nx * ox + ny * oy
+      if (dot <= 1e-9 * Math.hypot(nx, ny) * Math.hypot(ox, oy)) continue
+      const a2: LonLat = [a[0] + offset[0], a[1] + offset[1]]
+      const b2: LonLat = [b[0] + offset[0], b[1] + offset[1]]
+      quads.push([a, b, b2, a2, a])
+    }
+  })
+  return quads
 }

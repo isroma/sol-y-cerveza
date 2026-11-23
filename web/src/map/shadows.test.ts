@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildingShadow,
-  convexHull,
   MAX_SHADOW_M,
   shadowOffset,
   type LonLat,
@@ -36,39 +35,81 @@ describe('shadowOffset', () => {
   })
 })
 
-describe('convexHull', () => {
-  it('drops inner points and closes the ring', () => {
-    const square: LonLat[] = [
-      [0, 0],
-      [1, 0],
-      [1, 1],
-      [0, 1],
-      [0.5, 0.5],
-    ]
-    const hull = convexHull(square)
-    expect(hull).toHaveLength(5)
-    expect(hull[0]).toEqual(hull.at(-1))
-    expect(hull).not.toContainEqual([0.5, 0.5])
-  })
-})
+const D = 10 / M_LAT // 10 m in latitude degrees
+const DX = 10 / M_LON // 10 m in longitude degrees
+const NOON = { altitude: 45, azimuth: 180 } // shadows 1:1, due north
+
+/** A square footprint `size` metres wide at (east, north) metres, counter-clockwise. */
+function square(east: number, north: number, size: number): LonLat[] {
+  const x = (east / 10) * DX
+  const y = LAT + (north / 10) * D
+  const w = (size / 10) * DX
+  const h = (size / 10) * D
+  return [
+    [x, y],
+    [x + w, y],
+    [x + w, y + h],
+    [x, y + h],
+    [x, y],
+  ]
+}
+
+const northMetres = (quads: LonLat[][]) =>
+  Math.max(...quads.flat().map(([, lat]) => (lat - LAT) * M_LAT))
 
 describe('buildingShadow', () => {
-  it('covers the footprint and its shifted copy', () => {
-    const d = 10 / M_LAT
-    const footprint: LonLat[] = [
+  it('sweeps the walls facing away from the sun', () => {
+    const quads = buildingShadow([square(0, 0, 10)], 10, NOON) ?? []
+    // Noon sun: only the north wall casts, 10 m long for a 10 m building.
+    expect(quads).toHaveLength(1)
+    expect(northMetres(quads)).toBeCloseTo(20, 4)
+  })
+
+  it('handles either ring direction', () => {
+    const cw = square(0, 0, 10).slice().reverse()
+    expect(buildingShadow([cw], 10, NOON)).toHaveLength(1)
+  })
+
+  it('casts a courtyard wall shadow into the courtyard, not over it all', () => {
+    // A 30 m block with a 10 m courtyard in the middle (a ring of walls).
+    const outer = square(0, 0, 30)
+    const courtyard = square(10, 10, 10).slice().reverse()
+    const quads = buildingShadow([outer, courtyard], 10, NOON) ?? []
+    // The outer north wall, and the courtyard's south wall facing north.
+    expect(quads).toHaveLength(2)
+    const inside = quads.find((q) =>
+      q.every(([, lat]) => (lat - LAT) * M_LAT <= 20 + 1e-6),
+    )
+    expect(inside).toBeDefined()
+    // That shadow starts at the courtyard's south wall (10 m) and ends 10 m on.
+    const lats = (inside ?? []).map(([, lat]) => (lat - LAT) * M_LAT)
+    expect(Math.min(...lats)).toBeCloseTo(10, 4)
+    expect(Math.max(...lats)).toBeCloseTo(20, 4)
+  })
+
+  it('does not fill the inside corner of an L-shaped building', () => {
+    // L: 20 m square minus its north-east 10 m quarter.
+    const ring: LonLat[] = [
       [0, LAT],
-      [d, LAT],
-      [d, LAT + d],
-      [0, LAT + d],
+      [2 * DX, LAT],
+      [2 * DX, LAT + D],
+      [DX, LAT + D],
+      [DX, LAT + 2 * D],
+      [0, LAT + 2 * D],
+      [0, LAT],
     ]
-    const shadow = buildingShadow(footprint, 10, { altitude: 45, azimuth: 180 })
-    const maxLat = Math.max(...(shadow ?? []).map(([, lat]) => lat))
-    expect((maxLat - LAT) * M_LAT).toBeCloseTo(20, 4)
+    const quads = buildingShadow([ring], 5, NOON) ?? []
+    // North-facing walls: the short one at 10 m and the long one at 20 m.
+    expect(quads).toHaveLength(2)
+    const corner = quads.find((q) => q.some(([lon]) => lon > DX * 1.5))
+    const lats = (corner ?? []).map(([, lat]) => (lat - LAT) * M_LAT)
+    expect(Math.min(...lats)).toBeCloseTo(10, 4)
+    expect(Math.max(...lats)).toBeCloseTo(15, 4)
   })
 
   it('is null when the sun is down', () => {
     expect(
-      buildingShadow([[0, LAT]], 10, { altitude: -1, azimuth: 0 }),
+      buildingShadow([square(0, 0, 10)], 10, { altitude: -1, azimuth: 0 }),
     ).toBeNull()
   })
 })
