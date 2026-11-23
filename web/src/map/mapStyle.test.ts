@@ -49,7 +49,7 @@ describe('sunlitStyle', () => {
   it('recolours known layers and keeps their other paint', () => {
     const building = style.layers.find((l) => l.id === 'building-3d')
     expect(building && 'paint' in building && building.paint).toMatchObject({
-      'fill-extrusion-color': '#FFF8EC',
+      'fill-extrusion-color': '#F4E6D0',
       'fill-extrusion-height': ['get', 'render_height'],
     })
   })
@@ -67,6 +67,30 @@ describe('sunlitStyle', () => {
         1,
       ],
     })
+  })
+
+  it('draws streets white with a sand casing, Apple Maps style', () => {
+    const roads = sunlitStyle({
+      version: 8,
+      sources: {},
+      layers: [
+        { id: 'road_minor', type: 'line', source: 's', paint: {} },
+        { id: 'road_minor_casing', type: 'line', source: 's', paint: {} },
+        {
+          id: 'road_trunk_primary_casing',
+          type: 'line',
+          source: 's',
+          paint: {},
+        },
+        { id: 'road_major_rail', type: 'line', source: 's', paint: {} },
+      ],
+    }).layers.map((l) => ('paint' in l ? l.paint : undefined))
+    expect(roads).toEqual([
+      { 'line-color': '#FFFFFF' },
+      { 'line-color': '#E4D6C3' },
+      { 'line-color': '#E6CFA8' },
+      { 'line-color': '#D9CDBC' },
+    ])
   })
 
   it('keeps landmark labels as text only', () => {

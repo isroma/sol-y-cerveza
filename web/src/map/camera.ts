@@ -19,7 +19,7 @@ export const SHADOW_OPACITY: ExpressionSpecification = [
   FLAT_ZOOM,
   0.1,
   TILTED_ZOOM,
-  0.5,
+  0.6,
 ]
 
 /** 3D buildings appear as the view tilts, so the top view stays flat. */

@@ -148,7 +148,7 @@ export function MapView({
               source: SHADOWS,
               minzoom: 14,
               paint: {
-                'fill-color': '#2B3048',
+                'fill-color': '#6B5848',
                 'fill-opacity': SHADOW_OPACITY,
                 'fill-antialias': false,
               },

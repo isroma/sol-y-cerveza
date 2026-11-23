@@ -22,25 +22,47 @@ const DROPPED_LAYERS = new Set([
 /** Landmark labels (Alcazaba, Plaza Alta…) kept as text, without icons. */
 const TEXT_ONLY_LAYERS = new Set(['poi_r1'])
 
+/** Warm, Apple Maps-like palette: sandy land, white streets, soft blue water. */
 const PAINT: Record<string, Record<string, unknown>> = {
-  background: { 'background-color': '#F3EEE5' },
-  landuse_residential: { 'fill-color': '#EEE6D8', 'fill-opacity': 0.6 },
+  background: { 'background-color': '#F6EEE2' },
+  landuse_residential: { 'fill-color': '#F1E5D2', 'fill-opacity': 0.7 },
   park: {
-    'fill-color': '#CFE3B4',
-    'fill-opacity': 0.9,
-    'fill-outline-color': '#CFE3B4',
+    'fill-color': '#CDE5AE',
+    'fill-opacity': 0.95,
+    'fill-outline-color': '#CDE5AE',
   },
-  landcover_wood: { 'fill-color': '#BFD9A0', 'fill-opacity': 0.6 },
-  landcover_grass: { 'fill-color': '#CFE3B4', 'fill-opacity': 0.6 },
-  water: { 'fill-color': '#8EC5E8' },
-  waterway_river: { 'line-color': '#8EC5E8' },
-  building: { 'fill-color': '#E7DFD1', 'fill-outline-color': '#DDD3C2' },
+  park_outline: { 'line-color': '#C2DDA0' },
+  landcover_wood: { 'fill-color': '#BFDDA0', 'fill-opacity': 0.7 },
+  landcover_grass: { 'fill-color': '#CDE5AE', 'fill-opacity': 0.7 },
+  landuse_pitch: { 'fill-color': '#D3E6BC' },
+  landuse_school: { 'fill-color': '#F0E2D0' },
+  landuse_hospital: { 'fill-color': '#F6DEDB' },
+  water: { 'fill-color': '#9ACBEF' },
+  waterway_river: { 'line-color': '#9ACBEF' },
+  waterway_other: { 'line-color': '#9ACBEF' },
+  building: { 'fill-color': '#F0E4D3', 'fill-outline-color': '#E5D5BF' },
   'building-3d': {
-    'fill-extrusion-color': '#FFF8EC',
+    'fill-extrusion-color': '#F4E6D0',
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
     'fill-extrusion-vertical-gradient': true,
   },
   poi_r1: { 'text-color': '#6B5E4B', 'text-halo-color': '#FFFFFF' },
+  'highway-name-minor': { 'text-color': '#8A7B66' },
+  'highway-name-major': { 'text-color': '#7A6B55' },
+  waterway_line_label: { 'text-color': '#4D8BC4' },
+}
+
+const ROAD = /^(road|bridge|tunnel)_/
+
+/** Streets: white with a soft sand casing; rails faint. Apple Maps style. */
+function roadPaint(layer: LayerSpecification): Record<string, unknown> | null {
+  if (layer.type !== 'line' || !ROAD.test(layer.id)) return null
+  if (layer.id.includes('rail')) return { 'line-color': '#D9CDBC' }
+  if (layer.id.endsWith('_casing')) {
+    const major = /motorway|trunk|primary|secondary|link/.test(layer.id)
+    return { 'line-color': major ? '#E6CFA8' : '#E4D6C3' }
+  }
+  return { 'line-color': '#FFFFFF' }
 }
 
 function textOnly(layer: LayerSpecification): LayerSpecification {
@@ -59,7 +81,7 @@ export function sunlitStyle(base: StyleSpecification): StyleSpecification {
     .filter((layer) => !DROPPED_LAYERS.has(layer.id))
     .map((layer) => (TEXT_ONLY_LAYERS.has(layer.id) ? textOnly(layer) : layer))
     .map((layer) => {
-      const paint = PAINT[layer.id]
+      const paint = PAINT[layer.id] ?? roadPaint(layer) ?? undefined
       if (paint === undefined || !('paint' in layer || layer.type === 'symbol'))
         return layer
       const current = 'paint' in layer ? layer.paint : undefined

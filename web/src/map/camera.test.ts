@@ -16,7 +16,7 @@ describe('SHADOW_OPACITY', () => {
       FLAT_ZOOM,
       0.1,
       TILTED_ZOOM,
-      0.5,
+      0.6,
     ])
   })
 })
