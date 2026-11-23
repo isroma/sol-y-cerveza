@@ -22,7 +22,11 @@ function Icon({ size = 20, children, ...props }: IconProps) {
   )
 }
 
-/** Sun rising behind a pint: the app's mark. */
+/**
+ * Sun rising behind a pint: the app's mark. Same drawing as public/favicon.svg
+ * (the source for every PNG icon). All eight rays are drawn; the pint hides
+ * the right and lower ones.
+ */
 export function Logo({ size = 44 }: { size?: number }) {
   return (
     <svg
@@ -32,36 +36,49 @@ export function Logo({ size = 44 }: { size?: number }) {
       aria-hidden="true"
       focusable="false"
     >
-      <g stroke="#F5A623" strokeWidth="2.6" strokeLinecap="round">
-        <path d="M17 4v5M6.5 8.5l3.4 3.4M3 19h5M6.5 29.5l3.4-3.4M27.5 8.5l-3.4 3.4" />
-      </g>
-      <circle cx="17" cy="19" r="8.5" fill="#FFC53D" />
-      <rect x="17" y="17" width="20" height="25" rx="4" fill="#FFB020" />
-      <rect x="17" y="17" width="20" height="25" rx="4" fill="url(#beer)" />
+      <defs>
+        <radialGradient id="logo-sun" cx="0.35" cy="0.35" r="0.75">
+          <stop offset="0" stopColor="#FFD866" />
+          <stop offset="1" stopColor="#FFB020" />
+        </radialGradient>
+        <linearGradient id="logo-beer" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFC53D" stopOpacity="0.2" />
+          <stop offset="1" stopColor="#E8890C" stopOpacity="0.55" />
+        </linearGradient>
+      </defs>
       <path
-        d="M37 22h3.5a3.5 3.5 0 0 1 3.5 3.5v6a3.5 3.5 0 0 1-3.5 3.5H37"
+        d="M19.00 5.50L19.00 2.00M26.42 8.58L28.90 6.10M29.50 16.00L33.00 16.00M26.42 23.42L28.90 25.90M19.00 26.50L19.00 30.00M11.58 23.42L9.10 25.90M8.50 16.00L5.00 16.00M11.58 8.58L9.10 6.10"
+        stroke="#F5A623"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <circle cx="19" cy="16" r="7.5" fill="url(#logo-sun)" />
+      <rect x="17" y="19" width="20" height="25" rx="4" fill="#FFB020" />
+      <rect
+        x="17"
+        y="19"
+        width="20"
+        height="25"
+        rx="4"
+        fill="url(#logo-beer)"
+      />
+      <path
+        d="M37 24h3.5a3.5 3.5 0 0 1 3.5 3.5v6a3.5 3.5 0 0 1-3.5 3.5H37"
         fill="none"
         stroke="#FFB020"
         strokeWidth="3"
       />
       <path
-        d="M15.5 18.5c0-3.6 3-5.5 6-4.5 1.2-2.5 5-3 7-1 2-1.5 5.5-.8 6.5 1.6 2.4.2 3.6 2.2 3 4.4z"
+        d="M15.5 20.5c0-3.6 3-5.5 6-4.5 1.2-2.5 5-3 7-1 2-1.5 5.5-.8 6.5 1.6 2.4.2 3.6 2.2 3 4.4z"
         fill="#FFF8E7"
         stroke="#F3E2BF"
-        strokeWidth="1"
       />
       <path
-        d="M23 24v13M30 24v13"
+        d="M23 26v13M30 26v13"
         stroke="#FFE08A"
         strokeWidth="2"
         strokeLinecap="round"
       />
-      <defs>
-        <linearGradient id="beer" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FFC53D" stopOpacity="0.2" />
-          <stop offset="1" stopColor="#E8890C" stopOpacity="0.55" />
-        </linearGradient>
-      </defs>
     </svg>
   )
 }
