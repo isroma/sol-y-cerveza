@@ -6,6 +6,7 @@ import type {
 } from 'maplibre-gl'
 import type { SunPosition } from '../sun/sunState.ts'
 import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
+import { WALL_PATTERN } from './cityDetail.ts'
 
 /** Dropped: POI icons (the venue pins are the points of interest) and road clutter. */
 const DROPPED_LAYERS = new Set([
@@ -45,6 +46,8 @@ const PAINT: Record<string, Record<string, unknown>> = {
   'building-3d': {
     // Whitewashed, warm stucco walls; the light shades the sides.
     'fill-extrusion-color': '#F2E6D6',
+    // Walls with windows, in a few stucco tints (cityDetail.ts).
+    'fill-extrusion-pattern': WALL_PATTERN,
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
     'fill-extrusion-height': [
       '*',
