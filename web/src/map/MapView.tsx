@@ -233,13 +233,18 @@ export function MapView({
           map.addLayer(
             {
               id: SHADOWS,
-              type: 'fill',
+              // A paper-thin extrusion rather than a fill: MapLibre draws an
+              // extrusion layer in one pass and fades the layer as a whole,
+              // so where shadows overlap (neighbouring buildings, the same
+              // building twice at a tile edge) they don't stack darker.
+              type: 'fill-extrusion',
               source: SHADOWS,
               minzoom: 14,
               paint: {
-                'fill-color': '#6B5848',
-                'fill-opacity': SHADOW_OPACITY,
-                'fill-antialias': false,
+                'fill-extrusion-color': '#6B5848',
+                'fill-extrusion-opacity': SHADOW_OPACITY,
+                'fill-extrusion-height': 0.05,
+                'fill-extrusion-vertical-gradient': false,
               },
             },
             map.getLayer('building') ? 'building' : undefined,
