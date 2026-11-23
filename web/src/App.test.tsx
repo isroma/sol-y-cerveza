@@ -150,7 +150,7 @@ describe('App', () => {
     expect(await listedNames()).toEqual(['Terraza de ejemplo · Calle Menacho'])
   })
 
-  it('opens a card with sun details and labelled demo values', async () => {
+  it('opens a card with sun details and no made-up values', async () => {
     stubFetch(Response.json(sampleFile))
     render(<App />)
     await listedNames()
@@ -164,7 +164,8 @@ describe('App', () => {
       }),
     ).toBeInTheDocument()
     expect(within(card).getByText('Con sol ahora')).toBeInTheDocument()
-    expect(within(card).getAllByText('ejemplo')).toHaveLength(2)
+    expect(within(card).queryByText(/€/)).not.toBeInTheDocument()
+    expect(within(card).queryByText(/^ejemplo$/)).not.toBeInTheDocument()
     const footer = within(card).getByRole('button', {
       name: /Sol hasta las 17:15/,
     })

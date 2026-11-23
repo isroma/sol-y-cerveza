@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { demoValues, formatPrice } from '../demo/demo.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from './CategoryIcon.tsx'
 import { sunSummary } from './categoryStyle.ts'
@@ -53,9 +52,6 @@ export function VenueList({
                   <span className="venue-row-sun">
                     {sunSummary(status, minutes)}
                   </span>
-                </span>
-                <span className="venue-row-price">
-                  {formatPrice(demoValues(status.venue.id).priceCents)}
                 </span>
               </button>
             </li>
