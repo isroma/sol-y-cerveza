@@ -1,3 +1,4 @@
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
@@ -49,11 +50,19 @@ function preloadMapChunk(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   // Relative asset paths work both on GitHub Pages (/sol-y-cerveza/) and inside Capacitor.
   base: './',
   // reviewServer: dev-only API for the admin page (admin.html, `npm run admin`).
-  plugins: [react(), reviewServer(), preloadMapChunk()],
+  // Mode `lan` (`npm run admin:lan`) serves it over HTTPS with a self-signed
+  // certificate, because a phone only gets geolocation and the camera on a
+  // secure origin.
+  plugins: [
+    react(),
+    reviewServer(),
+    preloadMapChunk(),
+    ...(mode === 'lan' ? [basicSsl({ name: 'sol-y-cerveza-admin' })] : []),
+  ],
   // MapLibre's worker is an ES module.
   worker: { format: 'es' },
   test: {
@@ -61,4 +70,4 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     exclude: ['**/node_modules/**', '**/.git/**', 'e2e/**'],
   },
-})
+}))

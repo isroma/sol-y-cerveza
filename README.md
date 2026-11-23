@@ -67,6 +67,8 @@ The app icons in the web manifest (`web/public/icon-*.png`) and the link preview
 
 `cd web && npm run admin` opens the dev-only admin. It needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza.obstacles` above) for the sun preview; everything else works without them.
 
+Besides terraces, its **Website prices** button lists the beer prices `python -m solycerveza.price_candidates` found on venues' own websites ([ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page: check it, then **Accept** (it becomes the venue's price, shipped with the next Publish) or **Dismiss**.
+
 1. Pick **Needs a look**: terraces whose current horizon gets no sun today, on 21 Jun or on 21 Dec, or is above 60° over most of the southern half. Usually the pin is against a wall, under a tree crown or on a roof.
 2. Click one, press **T** and click (or drag the pin to) where the tables stand. The panel's **Sun at the terrace pin** updates as you go: today's hours of sun, a 24 h strip (amber sun, grey shade, light night) and the **height above ground** at the pin.
 3. Read it:
@@ -81,6 +83,29 @@ cd pipeline && uv run python -m solycerveza.price_candidates   # --refresh to do
 ```
 
 It reads the venues' own websites (never social networks, review sites or delivery apps), honouring robots.txt, and writes the caña and tercio prices it is sure about, with the page and the text they came from, to `pipeline/data/price_candidates.csv`. These are candidates: nothing reaches the app until you accept one, which copies it into `venue_prices.csv`. Menus published as PDF or image files are listed in `pipeline/.cache/menu_leads.csv` to read by hand. See [ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md).
+
+### Using the admin on a phone
+
+The admin still runs on your computer (it writes `pipeline/data/*.csv` there); the phone is a screen for it. Under 900 px it switches to a phone layout: full-screen map, the venue in a bottom sheet (name and Terrace / No terrace / Not a venue; "Prices, sun and more" expands it), the list and filters behind the ☰ button. **Terrace** shows a cross in the middle of the map: pan the map until it is on the tables and tap **Place terrace here** (dragging the pin works too). The locate button (◎) centres the map on your GPS position, lists the nearest venues along the bottom and sorts the list by distance.
+
+**Same Wi-Fi (or your phone's hotspot).** On the computer:
+
+```bash
+cd web && npm run admin:lan
+```
+
+It prints an address such as `https://192.168.1.20:5173/admin.html?token=…`. Open that exact URL on the phone.
+
+- It is HTTPS with a self-signed certificate, because phones only give location and the camera to secure pages. The phone warns once: accept it ("Show details → visit this website" in Safari, "Advanced → Proceed" in Chrome). The certificate is kept in `web/node_modules/.vite/basic-ssl/` and renewed about monthly, when the warning comes back.
+- The token in the URL is new on every run. With `--host` the server is reachable by everyone on that network, and its endpoints write the CSVs and Publish pushes to GitHub, so every `/__admin` request without the token gets a 401. The page keeps the token for the tab (sessionStorage) and drops it from the address bar. After restarting the server, open the new URL. Use it on networks you trust; `npm run admin` (localhost only) needs no token, as before.
+- If the phone can't connect, the computer's firewall may be blocking the port (macOS asks the first time; allow Node).
+
+**Away from home (a bar, mobile data).** The phone can't reach your computer, so saves fail. They are not lost: each one is kept on the phone, in order, and the admin shows **N edits waiting**. When the server answers again (back on your Wi-Fi), they are sent in the order made, automatically every 15 s or with **Retry now**; Publish waits until they are through. Limits:
+
+- Open the page at home and keep it open. Away from the server, a reload (or the phone's browser dropping a tab it kept in the background) can't load the admin at all; the queued edits stay on the phone and go out the next time the page loads from the server at the same address.
+- They live in that browser for that address (`https://<ip>:<port>`). If your computer gets a different IP, the new address doesn't see them: **Export file** saves them as JSON, and **Import edits…** in the admin at the new address (or on the computer) sends them.
+- The sun preview and the suggestions queue need the server, so they don't work offline.
+- To reach the computer from anywhere instead, a tunnel works (e.g. Tailscale on both devices, then `npm run admin:lan` and the computer's Tailscale address), with the same token.
 
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 

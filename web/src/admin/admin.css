@@ -261,6 +261,10 @@ body {
   font-size: 12px;
 }
 
+.admin-pin-mode p {
+  margin: 0;
+}
+
 .admin-publish {
   margin-top: 10px;
   font-size: 12px;
@@ -471,6 +475,30 @@ body {
   font-size: 10px;
 }
 
+/* Website price candidates (PriceCandidates.tsx) */
+.admin-candidates h2 {
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.admin-candidate-snippet {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.admin-candidate-source {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-candidate-leads {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  overflow-wrap: anywhere;
+}
+
 /* Read prices from a photo (PricePhoto.tsx). */
 .admin-photo {
   margin-top: 4px;
@@ -548,4 +576,565 @@ body {
   padding-left: 16px;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* "Where am I", the offline queue and the phone layout. */
+
+.admin-map-buttons {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-round {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgb(59 50 40 / 22%);
+  cursor: pointer;
+}
+
+.admin-filters button[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.admin-round[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.admin-locating {
+  animation: admin-spin 1.6s linear infinite;
+}
+
+.admin-map-notes {
+  position: absolute;
+  top: 12px;
+  right: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.admin-map-notes > * {
+  pointer-events: auto;
+}
+
+.admin-toast {
+  max-width: 300px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 10px rgb(59 50 40 / 22%);
+  font-size: 13px;
+}
+
+.admin-waiting-pill {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff3d1;
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgb(59 50 40 / 22%);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-me {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #2b6cb0;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+  pointer-events: none;
+}
+
+.admin-me span {
+  position: absolute;
+  border: 1px solid rgb(43 108 176 / 35%);
+  border-radius: 50%;
+  background: rgb(43 108 176 / 14%);
+  pointer-events: none;
+}
+
+.admin-waiting {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff3d1;
+  font-size: 12px;
+}
+
+.admin-waiting p {
+  margin: 0;
+  color: var(--ink);
+}
+
+.admin-waiting ol {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.admin-waiting summary {
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.admin-head .admin-import-line {
+  margin: -8px 0 0;
+}
+
+.admin-import {
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-actions .admin-import {
+  align-self: center;
+}
+
+.admin-import input {
+  display: none;
+}
+
+.admin-sheet {
+  display: contents;
+}
+
+.admin-sheet-handle,
+.admin-crosshair {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .admin .admin-phone-only {
+    display: none;
+  }
+}
+
+/* Touch screens: pins get a finger-sized grab area around them. */
+@media (pointer: coarse) {
+  .admin-venue-pin::before,
+  .admin-terrace-pin::before {
+    position: absolute;
+    inset: -14px;
+    content: '';
+  }
+}
+
+@media (max-width: 899px) {
+  .admin {
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .admin .admin-desktop-only {
+    display: none;
+  }
+
+  .admin-main {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* The list and filters: a full-screen menu behind the list button. */
+  .admin-side {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    border: 0;
+    background: var(--paper);
+  }
+
+  .admin-menu-open .admin-side {
+    display: flex;
+  }
+
+  .admin-head {
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+  }
+
+  .admin-head input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* The menu's top row: actions and the close button, no room for a title. */
+  .admin-title h1 {
+    display: none;
+  }
+
+  .admin-title-actions {
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-title-actions button {
+    white-space: nowrap;
+  }
+
+  .admin-title .admin-menu-close {
+    margin-left: auto;
+  }
+
+  .admin-title button,
+  .admin-filters button,
+  .admin-actions button,
+  .admin-publish button {
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .admin-title .admin-menu-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    padding: 0;
+    border-color: var(--line);
+    background: white;
+    color: var(--ink);
+  }
+
+  .admin-filters {
+    gap: 8px;
+  }
+
+  /* The whole menu scrolls, so the list gets the screen once past the header. */
+  .admin-menu-open .admin-side {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .admin-list {
+    flex: none;
+    overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .admin-list button {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .admin-actions kbd {
+    display: none;
+  }
+
+  .admin-import {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .admin-head .admin-import-line {
+    margin: -12px 0 0;
+  }
+
+  .admin-waiting {
+    font-size: 14px;
+  }
+
+  /* Map buttons sit above the bottom sheet and the map credits, under the
+     right thumb. */
+  .admin-map-buttons {
+    top: auto;
+    bottom: calc(var(--sheet-h, 0px) + 48px);
+    z-index: 3;
+  }
+
+  .admin-sheet-open .admin-map-buttons {
+    display: none;
+  }
+
+  .admin-map-notes {
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+  }
+
+  .admin-main .maplibregl-ctrl-bottom-right,
+  .admin-main .maplibregl-ctrl-bottom-left {
+    bottom: var(--sheet-h, 0px);
+  }
+
+  /* Pin placement: pan the map under a fixed cross, then "Place here". */
+  .admin-crosshair {
+    display: block;
+    position: absolute;
+    top: calc((100% - var(--sheet-h, 0px)) / 2);
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .admin-crosshair::before,
+  .admin-crosshair::after {
+    position: absolute;
+    background: var(--ink);
+    box-shadow: 0 0 0 1px white;
+    content: '';
+  }
+
+  .admin-crosshair::before {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    margin-top: -1px;
+  }
+
+  .admin-crosshair::after {
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 100%;
+    margin-left: -1px;
+  }
+
+  .admin-terrace-pin {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* The venue panel and the nearby bar: a bottom sheet. */
+  .admin-sheet {
+    display: block;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+  }
+
+  .admin-panel,
+  .admin-nearby {
+    position: static;
+    box-sizing: border-box;
+    width: auto;
+    max-height: 80dvh;
+    padding: 0 16px calc(12px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 16px 16px 0 0;
+    background: white;
+    box-shadow: 0 -4px 18px rgb(59 50 40 / 18%);
+  }
+
+  .admin-panel .admin-more {
+    display: none;
+  }
+
+  .admin-sheet-open .admin-panel .admin-more {
+    display: block;
+  }
+
+  .admin-sheet-handle {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    width: calc(100% + 32px);
+    height: 22px;
+    margin: 0 -16px;
+    padding: 0;
+    border: 0;
+    background: white;
+    cursor: pointer;
+  }
+
+  .admin-sheet-handle::before {
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: var(--line);
+    content: '';
+  }
+
+  .admin-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-panel h2 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 19px;
+  }
+
+  .admin-close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -10px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--muted);
+  }
+
+  .admin-meta {
+    font-size: 13px;
+  }
+
+  .admin-help {
+    font-size: 14px;
+  }
+
+  .admin-actions {
+    gap: 8px;
+  }
+
+  .admin-status {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  }
+
+  .admin-status button {
+    min-height: 48px;
+    padding: 0 6px;
+    font-weight: 600;
+  }
+
+  .admin-pin-mode {
+    font-size: 14px;
+  }
+
+  .admin-pin-mode .admin-actions {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    margin-top: 8px;
+  }
+
+  .admin-pin-mode .admin-actions button:first-child {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: white;
+    font-weight: 600;
+  }
+
+  .admin-sheet-more {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 8px;
+    background: #f6eee2;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+  }
+
+  .admin-field {
+    font-size: 13px;
+  }
+
+  .admin-field input,
+  .admin-field select,
+  .admin-price,
+  .admin-price-row select {
+    box-sizing: border-box;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .admin-subhead {
+    font-size: 15px;
+  }
+
+  .admin-price-row {
+    font-size: 16px;
+  }
+
+  .admin-price {
+    width: 84px;
+  }
+
+  .admin-price-remove {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .admin-sun-line {
+    font-size: 15px;
+  }
+
+  .admin-warn-box {
+    font-size: 14px;
+  }
+
+  .admin-nearby {
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .admin-nearby .admin-help {
+    margin: 0;
+    padding: 0 16px;
+  }
+
+  .admin-chips {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0 16px;
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: none;
+  }
+
+  .admin-chips button {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    max-width: 240px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: white;
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .admin-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
