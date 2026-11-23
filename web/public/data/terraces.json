@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "generated": "2026-11-22T23:16:19Z",
+  "version": 2,
+  "generated": "2026-11-23T03:03:25Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
@@ -9,6 +9,231 @@
     "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)"
   ],
   "terraces": [
+    {
+      "id": "osm:node/1018628393",
+      "name": "Bar Entrepuentes",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.884905,
+        "lon": -6.9827
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/10301087281",
+      "name": "Rebai",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866843,
+        "lon": -6.990141
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/10660744048",
+      "name": "La Croque 3.7.8",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.88015,
+        "lon": -6.972904
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11212430417",
+      "name": "La Cantina",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.916267,
+        "lon": -6.959251
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11501483030",
+      "name": "Corte y sabor",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880232,
+        "lon": -6.948725
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11565750964",
+      "name": "Asador Los Canchales",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87285,
+        "lon": -6.978444
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11815216615",
+      "name": "El Rincon de María",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.919933,
+        "lon": -6.941939
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11959908848",
+      "name": "Rincon Nazari",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880952,
+        "lon": -6.969667
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11961726933",
+      "name": "Churrería",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877905,
+        "lon": -6.954669
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11961726943",
+      "name": "Los Pardales",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877256,
+        "lon": -6.958529
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11961746398",
+      "name": "Esquinita JJ",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876854,
+        "lon": -6.958822
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11961746407",
+      "name": "Asociación de vecinos de San Roque",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877226,
+        "lon": -6.95374
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/11985353231",
+      "name": "Tanuki San",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865765,
+        "lon": -6.98309
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/1223964663",
+      "name": "Restaurante La Girola",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880142,
+        "lon": -6.973028
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/12370413570",
+      "name": "Gambrinus Badajoz",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866708,
+        "lon": -6.986677
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
     {
       "id": "osm:node/12949582124",
       "name": "PaneCafé",
@@ -27,6 +252,1506 @@
       ],
       "verified": null,
       "horizon": [125,124,124,124,124,124,147,150,150,168,181,181,181,178,178,178,175,179,189,189,189,189,185,179,177,177,177,177,176,174,173,170,168,149,145,145,46,45,45,45,43,44,43,30,25,21,34,34,40,40,41,41,41,41,37,37,34,31,31,28,27,29,29,30,30,27,27,23,11,8,20,27,28,29,29,27,18,34,55,55,54,41,38,29,28,28,22,14,14,14,16,32,42,44,44,40,46,52,52,52,54,59,59,57,72,81,84,88,88,88,84,451,451,451,451,451,451,451,451,451,451,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,564,716,716,716,716,716,716,716,716,716,716,716,716,716,564,564,564,589,589,633,633,633,681,681,681,681,681,732,732,732,732,732,732,732,732,732,732,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,786,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,823,823,823,823,823,823,823,823,823,823,823,823,823,823,823,823,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,749,680,680,680,680,680,680,680,680,680,680,680,421,421,421,421,421,358,358,358,310,310,273,243,219,137,137,125,125]
+    },
+    {
+      "id": "osm:node/13372388632",
+      "name": "Bar Cafeteria Dali",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.887212,
+        "lon": -6.980162
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13372401016",
+      "name": "Bar Cafetería Altay",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.877221,
+        "lon": -6.973454
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13410185623",
+      "name": "Restaurante Puerto Seco",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871321,
+        "lon": -6.987566
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13472249101",
+      "name": "Casa Rosendo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878476,
+        "lon": -6.971545
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13472264001",
+      "name": "Taquería del Sur",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867624,
+        "lon": -6.984206
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13952547765",
+      "name": "Café-Bar Veracruz (Santa Marina)",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.875141,
+        "lon": -6.978986
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/13952648701",
+      "name": "Sushi Ran",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872585,
+        "lon": -6.97718
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/14178633726",
+      "name": "Bar Tajamar",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.866672,
+        "lon": -6.979671
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/14381493301",
+      "name": "Braseria La Mara",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87975,
+        "lon": -6.959537
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/1577871242",
+      "name": "Cafeteria 24 Horas Las Bóvedas",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.890578,
+        "lon": -7.014607
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/1592656224",
+      "name": "Restaurante Asador Las Bovedas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.890467,
+        "lon": -7.014768
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/1707984447",
+      "name": "El Rincón de Rubén",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.843258,
+        "lon": -6.96839
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/1792397046",
+      "name": "Café Bar El Pasaje",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.874694,
+        "lon": -6.97885
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309875641",
+      "name": "Pin Up",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875787,
+        "lon": -6.970674
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309896157",
+      "name": "Juanito I",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87555,
+        "lon": -6.9707
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309896162",
+      "name": "Las Tinajas",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875604,
+        "lon": -6.970694
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309896167",
+      "name": "Mal de Amores",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875696,
+        "lon": -6.970684
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309896172",
+      "name": "Odisea",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.875403,
+        "lon": -6.970525
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2309918380",
+      "name": "Cafetería Tristana",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877532,
+        "lon": -6.971906
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2310906521",
+      "name": "Café Bar Vera Cruz",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.870596,
+        "lon": -6.985035
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2310906523",
+      "name": "La Taberna del Pelícano",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870294,
+        "lon": -6.984791
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2318438494",
+      "name": "El Templete de la Música",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876271,
+        "lon": -6.972785
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2318588753",
+      "name": "El Baluarte ONCE",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875338,
+        "lon": -6.971306
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2324571425",
+      "name": "Bar Restaurante El Abuelo",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870154,
+        "lon": -6.988387
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2335913317",
+      "name": "Café Stadium",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.874406,
+        "lon": -6.968396
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2336793642",
+      "name": "Bar Pasaje",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.874001,
+        "lon": -6.970474
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2336793643",
+      "name": "Churrería Sote",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873736,
+        "lon": -6.969619
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2336806397",
+      "name": "HO Zone",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873424,
+        "lon": -6.971325
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2342167526",
+      "name": "El Otro Almirez",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.875706,
+        "lon": -6.972233
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2351183083",
+      "name": "El Loro Azul",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869486,
+        "lon": -6.98834
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2351183085",
+      "name": "Blues Cafes",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.879222,
+        "lon": -6.9698
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2351183086",
+      "name": "Forn De Campos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866929,
+        "lon": -6.973162
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2351183087",
+      "name": "Bar Los Navegantes",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.882103,
+        "lon": -6.970361
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2351273221",
+      "name": "Bodeguita Lo Nuestro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872609,
+        "lon": -6.977487
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2516188960",
+      "name": "El Aldeano",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.875645,
+        "lon": -6.972529
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2516301944",
+      "name": "Mesón Ibérico",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.873151,
+        "lon": -6.971412
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2516520042",
+      "name": "Panadería Cafetería El Taller",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.873048,
+        "lon": -6.973342
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/2883832901",
+      "name": "Mesón El Boche",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.875571,
+        "lon": -6.970698
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/3190144147",
+      "name": "Los Alféreces",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.875417,
+        "lon": -6.977438
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/3190150128",
+      "name": "El Fogón de Manuel",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866301,
+        "lon": -6.990211
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/3411151768",
+      "name": "Croquetería Doña Lucía",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.881654,
+        "lon": -6.968979
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/3764469705",
+      "name": "El Sigar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.862164,
+        "lon": -6.985772
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/3796887615",
+      "name": "WorkShop Cafe",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.871932,
+        "lon": -6.969019
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4365895596",
+      "name": "Trozitos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869557,
+        "lon": -6.988373
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4365922895",
+      "name": "La Jarana",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.870325,
+        "lon": -6.991371
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4365923392",
+      "name": "Astoria",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870197,
+        "lon": -6.988857
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4365923592",
+      "name": "Cervecería 100 Montaditos",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869746,
+        "lon": -6.988508
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4365923694",
+      "name": "taj mahal",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869681,
+        "lon": -6.988456
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4458343989",
+      "name": "Dada",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.880374,
+        "lon": -6.971025
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4461397189",
+      "name": "Ciudad del Cabo",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.872159,
+        "lon": -6.977509
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4765312123",
+      "name": "El Chozo Extremeno",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878338,
+        "lon": -6.970936
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/4765312124",
+      "name": "Cervecería Pepe Jerez",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878607,
+        "lon": -6.970242
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5228260623",
+      "name": "Restaurante Dosca II",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876616,
+        "lon": -6.975819
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5381939162",
+      "name": "Bar Castelar",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.878675,
+        "lon": -6.977135
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5392928568",
+      "name": "Laguna Seca",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879886,
+        "lon": -6.948783
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5520139922",
+      "name": "Tapería Ajonegro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87919,
+        "lon": -6.973178
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5560594893",
+      "name": "Restaurante-Cervecería CASA RAÚL",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868438,
+        "lon": -6.990813
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5560594894",
+      "name": "Brasería Las Vaguadas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.843365,
+        "lon": -6.968187
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5630871521",
+      "name": "La Galería",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879956,
+        "lon": -6.969567
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5649852799",
+      "name": "Café bar La Roca",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879169,
+        "lon": -6.957518
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5649852802",
+      "name": "Café Bar Los Albatros",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87901,
+        "lon": -6.958533
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5653664170",
+      "name": "Bar Las Encinas",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87849,
+        "lon": -6.953705
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5653664171",
+      "name": "Gran Vía",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878737,
+        "lon": -6.953984
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5653664173",
+      "name": "100 Montaditos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878663,
+        "lon": -6.955377
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5653664177",
+      "name": "El Capitol",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878691,
+        "lon": -6.955601
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5653664181",
+      "name": "Lisbonne",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878255,
+        "lon": -6.954925
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5683295358",
+      "name": "Mesón La Finca",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.878666,
+        "lon": -6.953368
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5709082448",
+      "name": "Café Bar Venero",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.877667,
+        "lon": -6.961144
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/5760082863",
+      "name": "Superbestia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87843,
+        "lon": -6.971864
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6121530615",
+      "name": "Bar La Esquina",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.879044,
+        "lon": -6.959222
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6171685486",
+      "name": "El refugio",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.870642,
+        "lon": -6.976647
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6238242485",
+      "name": "Espantaperros",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.878467,
+        "lon": -6.97185
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6350940394",
+      "name": "El Jueves",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.876513,
+        "lon": -6.969234
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6430186945",
+      "name": "M&A",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866971,
+        "lon": -6.973605
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6430186946",
+      "name": "Roma",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.867059,
+        "lon": -6.973298
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6430186947",
+      "name": "Sanvi",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866595,
+        "lon": -6.973554
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6524155885",
+      "name": "Gladys",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871045,
+        "lon": -6.98952
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6588244062",
+      "name": "100 Montaditos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.87798,
+        "lon": -6.970329
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6588244063",
+      "name": "Pub Atenea",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.878374,
+        "lon": -6.970428
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6588244064",
+      "name": "Carmen",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.879039,
+        "lon": -6.969986
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6588244065",
+      "name": "Pan Frito",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.876893,
+        "lon": -6.970256
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6680882686",
+      "name": "Venero",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877484,
+        "lon": -6.980427
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6680882687",
+      "name": "Rocío",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877483,
+        "lon": -6.980005
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6680983698",
+      "name": "Doscar",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.877949,
+        "lon": -6.9801
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6787655373",
+      "name": "Mesón Los Cotos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.849002,
+        "lon": -6.938947
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6982798614",
+      "name": "Restaurante Galaxia",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.872945,
+        "lon": -6.975816
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/6982798615",
+      "name": "Restaurante Marchivirito",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.890922,
+        "lon": -6.971897
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7026823017",
+      "name": "Churrería tan agustito",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.883066,
+        "lon": -6.98995
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7054322061",
+      "name": "Calle Abajo",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.877827,
+        "lon": -6.968292
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114586093",
+      "name": "Vistabella",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.870018,
+        "lon": -6.973174
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114741287",
+      "name": "La parada",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8666,
+        "lon": -6.974347
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114761785",
+      "name": "Rebai",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.867346,
+        "lon": -6.974497
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114761789",
+      "name": "La marisma",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.869658,
+        "lon": -6.972798
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114769885",
+      "name": "La clave",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.868644,
+        "lon": -6.973583
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7114770085",
+      "name": "Venta El Alma",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.868971,
+        "lon": -6.973587
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7646099892",
+      "name": "Marisquería Badamar",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.898964,
+        "lon": -6.991288
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/7646099900",
+      "name": "Café Bar Élite",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.900343,
+        "lon": -6.993702
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9141272854",
+      "name": "El Taller",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876242,
+        "lon": -6.974182
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9141273888",
+      "name": "Durán Cacho",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876906,
+        "lon": -6.975424
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9384000947",
+      "name": "Bar La caloja",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882375,
+        "lon": -6.994845
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
     },
     {
       "id": "osm:node/9384007214",
@@ -48,6 +1773,186 @@
       "horizon": [390,390,390,390,390,455,523,532,591,624,624,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,658,624,624,624,624,624,624,624,624,624,624,623,623,623,623,623,623,623,620,620,620,620,620,620,620,620,620,620,542,518,518,518,514,514,514,514,514,514,432,432,432,432,420,420,420,420,420,377,340,310,284,208,208,50,51,51,60,60,59,59,119,119,125,146,154,164,164,167,176,176,176,171,184,190,196,196,205,219,225,231,244,244,244,244,244,244,237,237,237,231,231,215,215,215,209,209,211,211,211,211,226,226,226,226,243,243,243,243,243,243,333,356,356,356,356,356,356,356,356,356,382,384,384,384,384,384,401,401,401,401,401,401,401,401,401,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,411,397,397,397,397,397,397,397,397,397,380,380,380,380,380,375,375,375,359,359,359,359,359,345,345,345,345,345,331,331,333,321,321,321,287,272,272,263,263,254,254,246,246,231,224,217,217,211,199,193,188,183,179,133,133,133,136,132,130,122,122,122,122,122,122,122,122,122,122,122,122,122,122,397,397,397,397,397,397,397,397,397,397,397,397,397,397,397,406,438,455,455,455,455,455,455,455,455,455,455,468,468,489,489,512,512,536,536,536,536,536,536,536,536,536,512,512,512,512,512,512,489,489,489,486,486,465,465,465,465,445,445,445,427,427,427,409,409,314,315,303,293,293,283,274,265,205,198,192,147,143,135,106,100,95,184,184,184,216,216,216,216,216,216,216,216,390,390]
     },
     {
+      "id": "osm:node/9384034340",
+      "name": "Restaurante \"El Chupi\"",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.882219,
+        "lon": -6.994351
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9511820344",
+      "name": "La Ballutería",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.867731,
+        "lon": -6.985635
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9525074569",
+      "name": "La Ballutería Gastro",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.865243,
+        "lon": -6.986601
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9981259207",
+      "name": "Miniatura",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.871447,
+        "lon": -6.974961
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9981293027",
+      "name": "Abuela Justa",
+      "kind": "pub",
+      "venue": {
+        "lat": 38.880007,
+        "lon": -6.97131
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9981321060",
+      "name": "Gastrobar Casa Javi",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.886938,
+        "lon": -6.983029
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9981321061",
+      "name": "Mesón San Fernando",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.886849,
+        "lon": -6.982953
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:node/9993746732",
+      "name": "Pizzeria Carlos",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.866264,
+        "lon": -6.97912
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/1240886316",
+      "name": "Churrería aAaaa",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.880946,
+        "lon": -6.968641
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/372884041",
+      "name": "Jaraque",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.859603,
+        "lon": -7.034834
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/421617080",
+      "name": "Complejo Alcántara",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.8577,
+        "lon": -7.001968
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/551282200",
+      "name": "Lugaris",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.88399,
+        "lon": -6.987658
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
       "id": "osm:way/564742759",
       "name": "El muelle del Guadiana",
       "kind": "biergarten",
@@ -65,6 +1970,36 @@
       ],
       "verified": null,
       "horizon": [633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,633,526,526,526,526,526,526,493,493,493,493,493,493,493,493,493,493,493,463,463,463,463,463,463,436,436,436,436,436,168,168,168,142,142,142,142,142,142,142,122,122,122,122,107,107,107,107,95,95,6,6,5,3,6,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,10,10,10,9,2,4,8,8,12,12,12,10,10,10,6,4,4,4,4,0,0,0,11,27,47,47,40,12,14,15,16,17,17,17,16,16,20,20,20,27,27,28,28,28,26,29,29,29,27,27,31,31,31,38,38,38,38,32,33,33,36,37,37,37,37,43,44,44,44,43,34,38,40,40,39,39,40,41,43,42,41,33,33,34,35,36,37,36,36,45,46,47,46,45,45,34,34,34,34,34,35,47,48,127,129,128,150,152,154,153,133,131,106,64,41,40,46,46,45,45,87,87,88,88,88,88,82,69,69,69,69,57,57,51,49,49,49,45,45,45,44,43,43,43,39,39,29,37,37,37,41,41,47,47,47,48,47,29,29,29,27,212,212,223,266,266,266,266,266,303,303,510,510,510,533,533,533,533,556,556,556,556,556,581,641,641,641,641,641,641,664,664,664,664,664,664,664,664,664,664,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,688,664,633,633,633,633]
+    },
+    {
+      "id": "osm:way/566029373",
+      "name": "Cafetería Restaurante Club Familiar Don Bosco",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.869786,
+        "lon": -6.981426
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/570762641",
+      "name": "Sobre la marcha",
+      "kind": "cafe",
+      "venue": {
+        "lat": 38.876363,
+        "lon": -6.970889
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
     },
     {
       "id": "osm:way/572854567",
@@ -103,6 +2038,36 @@
       ],
       "verified": null,
       "horizon": [232,232,232,232,232,232,232,208,208,208,208,208,208,197,197,197,197,197,197,197,197,197,197,197,197,206,211,218,218,218,223,251,251,251,251,251,243,244,248,244,241,242,242,239,239,235,232,230,230,227,224,224,229,234,234,234,234,234,234,219,222,216,195,195,224,224,224,224,224,224,238,238,238,238,238,241,248,248,248,248,269,269,269,269,269,269,292,292,292,292,292,292,292,292,292,292,292,323,344,355,355,355,355,355,355,355,355,355,355,344,352,362,362,362,352,366,366,367,377,377,377,377,377,385,396,396,396,396,396,396,385,385,385,381,374,374,384,375,386,386,386,397,412,412,471,471,471,484,484,484,487,496,496,496,496,496,527,527,527,527,527,527,527,540,540,540,540,540,514,501,501,480,475,475,475,475,475,475,475,475,432,432,432,432,414,414,414,414,414,414,414,392,392,392,392,392,359,359,359,359,359,440,440,440,440,440,440,440,440,440,440,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,554,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,657,657,657,657,657,657,657,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,479,364,364,364,364,364,364,364,364,364,364,364,289,289,289,289,289,239,239,239,208,208,208,208,208,232,232,232,232]
+    },
+    {
+      "id": "osm:way/577192255",
+      "name": "Restaurante Área de Servicio San Martín",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.900704,
+        "lon": -6.989632
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
+    },
+    {
+      "id": "osm:way/577783806",
+      "name": "El Candil",
+      "kind": "restaurant",
+      "venue": {
+        "lat": 38.849881,
+        "lon": -6.966634
+      },
+      "terrace": null,
+      "sources": [
+        "osm"
+      ],
+      "verified": null,
+      "horizon": null
     }
   ]
 }

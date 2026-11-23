@@ -48,8 +48,8 @@ export function App() {
       statuses.map(({ terrace, state }) => ({
         id: terrace.id,
         name: terrace.name,
-        lat: terrace.terrace.lat,
-        lon: terrace.terrace.lon,
+        lat: (terrace.terrace ?? terrace.venue).lat,
+        lon: (terrace.terrace ?? terrace.venue).lon,
         state,
         verified: terrace.verified,
       })),

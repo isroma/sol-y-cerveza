@@ -1,6 +1,8 @@
-# `terraces.json` data contract (version 1)
+# `terraces.json` data contract (version 2)
 
 The pipeline writes **`web/public/data/terraces.json`**. The web app fetches it at `./data/terraces.json` and validates it with zod. Until the build command lands (#12), the file holds sample data (`"sample": true`).
+
+Version 2 (2026-11-24) lists **every named venue**, not only those with a terrace: `terrace` is null when no terrace is known ("terraza sin confirmar"), and then `verified` and `horizon` are null too. Version 1 only listed venues with a terrace.
 
 A breaking change bumps `version` and updates, in the same PR: this document, the web zod schema and the pipeline pydantic model.
 
@@ -8,11 +10,11 @@ A breaking change bumps `version` and updates, in the same PR: this document, th
 
 ```ts
 type TerracesFile = {
-  version: 1
+  version: 2
   generated: string // ISO 8601 UTC timestamp of the pipeline run
   sample: boolean // true while the file holds fake data; the app shows a notice
   attribution: string[] // shown in the app, one line each
-  terraces: Terrace[] // sorted by id
+  terraces: Terrace[] // one per named venue, sorted by id
 }
 
 type Terrace = {
@@ -20,10 +22,10 @@ type Terrace = {
   name: string
   kind: 'bar' | 'pub' | 'cafe' | 'restaurant' | 'biergarten'
   venue: LatLon // the venue itself (building or entrance)
-  terrace: LatLon // where the tables are: the horizon is computed from here
+  terrace: LatLon | null // where the tables are (horizon computed from here); null = no known terrace
   sources: string[] // e.g. ["curated", "osm"], sorted
-  verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position
-  horizon: number[] | null // 360 integers, see below; null if not computed yet
+  verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
+  horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
 }
 
 type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
@@ -42,6 +44,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 2. If `alt <= 0`, the result is **night**.
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
+5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out as "terraza sin confirmar".
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 

@@ -71,7 +71,7 @@ def test_render_follows_the_contract_layout() -> None:
     assert horizon_lines == ['      "horizon": [' + ",".join(map(str, range(360))) + "]"]
     data = json.loads(text)
     assert list(data) == ["version", "generated", "sample", "attribution", "terraces"]
-    assert data["version"] == 1
+    assert data["version"] == 2
     assert data["generated"] == "2026-11-22T18:30:05Z"
     assert list(data["terraces"][0]) == [
         "id",

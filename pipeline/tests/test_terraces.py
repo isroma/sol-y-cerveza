@@ -121,11 +121,14 @@ def test_read_curated_rejects_duplicates(
         read_curated(curated_csv(tmp_path, *rows))
 
 
-def test_osm_outdoor_seating_alone_makes_a_terrace_at_the_venue() -> None:
+def test_every_named_venue_gets_a_record_and_outdoor_seating_a_terrace() -> None:
     records = build_terraces(fixture_venues(), [])
 
-    assert [record.id for record in records] == [PANECAFE, VELADOR]
-    velador = records[1]
+    assert [record.id for record in records] == [PANECAFE, JUEVES, VELADOR, LUGARIS]
+    by_id = {record.id: record for record in records}
+    assert by_id[JUEVES].terrace is None  # outdoor_seating=no
+    assert by_id[LUGARIS].terrace is None  # no outdoor_seating tag
+    velador = by_id[VELADOR]
     assert velador == Terrace(
         id=VELADOR,
         name="Café Bar El Velador",
@@ -172,7 +175,13 @@ def test_unlinked_curated_row_gets_a_curated_id_and_no_osm_source() -> None:
 
     records = build_terraces(fixture_venues(), [row])
 
-    assert [record.id for record in records] == ["curated:terraza-sola", PANECAFE, VELADOR]
+    assert [record.id for record in records] == [
+        "curated:terraza-sola",
+        PANECAFE,
+        JUEVES,
+        VELADOR,
+        LUGARIS,
+    ]
     assert records[0] == Terrace(
         id="curated:terraza-sola",
         name="Terraza de prueba",
@@ -241,8 +250,9 @@ def test_written_file_follows_the_contract_and_is_deterministic(tmp_path: Path) 
     assert text.endswith("]\n")
     assert '"name": "Café Bar El Velador"' in text  # UTF-8, not \u escapes
     records = json.loads(text)
-    assert [record["id"] for record in records] == ["curated:b", PANECAFE, VELADOR, LUGARIS]
-    assert list(records[3]) == [
+    assert [record["id"] for record in records] == ["curated:b", PANECAFE, JUEVES, VELADOR, LUGARIS]
+    assert records[2]["terrace"] is None
+    assert list(records[4]) == [
         "id",
         "name",
         "kind",
@@ -252,8 +262,8 @@ def test_written_file_follows_the_contract_and_is_deterministic(tmp_path: Path) 
         "verified",
         "horizon",
     ]
-    assert records[3]["verified"] == "2026-11-01"
-    assert records[3]["horizon"] is None
+    assert records[4]["verified"] == "2026-11-01"
+    assert records[4]["horizon"] is None
 
 
 def test_cli_writes_terraces_base_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,10 +274,27 @@ def test_cli_writes_terraces_base_json(tmp_path: Path, monkeypatch: pytest.Monke
     assert terraces.main([]) == 0
 
     records = json.loads((tmp_path / "terraces_base.json").read_text(encoding="utf-8"))
-    assert [record["id"] for record in records] == [PANECAFE, VELADOR]
+    assert [record["id"] for record in records] == [PANECAFE, JUEVES, VELADOR, LUGARIS]
 
 
 def test_ayto_ref_is_not_exported(tmp_path: Path) -> None:
     rows = read_curated(curated_csv(tmp_path, "solo,,Terraza,bar,38.88,-6.97,,EXP-1,"))
     (terrace,) = build_terraces([], rows)
     assert "ayto_ref" not in terrace.model_dump()
+
+
+def test_a_venue_without_terrace_cannot_have_terrace_data() -> None:
+    base: dict[str, object] = {
+        "id": "osm:node/1",
+        "name": "Bar",
+        "kind": "bar",
+        "venue": {"lat": 38.88, "lon": -6.97},
+        "terrace": None,
+        "sources": ["osm"],
+        "verified": None,
+    }
+    assert Terrace.model_validate(base).horizon is None
+    with pytest.raises(ValidationError, match="must be null when terrace is null"):
+        Terrace.model_validate({**base, "horizon": [0] * 360})
+    with pytest.raises(ValidationError, match="must be null when terrace is null"):
+        Terrace.model_validate({**base, "verified": "2026-11-01"})

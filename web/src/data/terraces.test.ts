@@ -17,13 +17,18 @@ describe('terracesFileSchema', () => {
     )
   })
 
+  it('accepts a venue without a known terrace', () => {
+    const file = withTerrace({ terrace: null, horizon: null, verified: null })
+    expect(terracesFileSchema.safeParse(file).success).toBe(true)
+  })
+
   it('accepts a null horizon and a verified date', () => {
     const file = withTerrace({ horizon: null, verified: '2026-11-20' })
     expect(terracesFileSchema.safeParse(file).success).toBe(true)
   })
 
   it.each([
-    ['an unknown version', { ...sampleFile, version: 2 }],
+    ['an old version', { ...sampleFile, version: 1 }],
     ['a missing attribution', { ...sampleFile, attribution: undefined }],
     ['a non-UTC timestamp', { ...sampleFile, generated: '22/11/2026' }],
     ['a horizon with 359 bins', withTerrace({ horizon: Array(359).fill(0) })],

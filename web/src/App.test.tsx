@@ -118,7 +118,7 @@ describe('App', () => {
   })
 
   it('shows an error when the file is malformed', async () => {
-    stubFetch(Response.json({ ...sampleFile, version: 2 }))
+    stubFetch(Response.json({ ...sampleFile, version: 1 }))
     render(<App />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(

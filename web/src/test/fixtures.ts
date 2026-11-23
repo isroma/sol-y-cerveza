@@ -15,7 +15,7 @@ export function horizonFromRuns(
 // public/data/terraces.json, copied so tests survive the real data (#12).
 
 /** Open square: 8.3° all around. */
-export const plazaAlta: Terrace = {
+export const plazaAlta = {
   id: 'sample:plaza-alta',
   name: 'Terraza de ejemplo · Plaza Alta',
   kind: 'restaurant',
@@ -24,10 +24,10 @@ export const plazaAlta: Terrace = {
   sources: ['sample'],
   verified: null,
   horizon: horizonFromRuns([[0, 359, 83]]),
-}
+} satisfies Terrace
 
 /** Narrow north–south street: open only along its axis. */
-export const calleMenacho: Terrace = {
+export const calleMenacho = {
   id: 'sample:calle-menacho',
   name: 'Terraza de ejemplo · Calle Menacho',
   kind: 'bar',
@@ -42,10 +42,10 @@ export const calleMenacho: Terrace = {
     [200, 340, 665],
     [341, 359, 130],
   ]),
-}
+} satisfies Terrace
 
 /** Under trees: 31° all around. */
-export const paseoSanFrancisco: Terrace = {
+export const paseoSanFrancisco = {
   id: 'sample:paseo-san-francisco',
   name: 'Terraza de ejemplo · Paseo de San Francisco',
   kind: 'cafe',
@@ -54,9 +54,9 @@ export const paseoSanFrancisco: Terrace = {
   sources: ['sample'],
   verified: null,
   horizon: horizonFromRuns([[0, 359, 310]]),
-}
+} satisfies Terrace
 
-export const withoutHorizon: Terrace = {
+export const withoutHorizon = {
   id: 'sample:sin-horizonte',
   name: 'Terraza de ejemplo · Sin horizonte',
   kind: 'pub',
@@ -65,10 +65,10 @@ export const withoutHorizon: Terrace = {
   sources: ['sample'],
   verified: null,
   horizon: null,
-}
+} satisfies Terrace
 
 export const sampleFile: TerracesFile = {
-  version: 1,
+  version: 2,
   generated: '2026-11-22T00:00:00Z',
   sample: true,
   attribution: ['Datos de ejemplo: terrazas y horizontes ficticios'],

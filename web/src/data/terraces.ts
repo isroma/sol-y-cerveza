@@ -5,7 +5,7 @@ export const TERRACES_URL = './data/terraces.json'
 
 export const HORIZON_BINS = 360
 
-// Mirrors docs/data-contract.md (version 1).
+// Mirrors docs/data-contract.md (version 2).
 const latLonSchema = z.object({
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
@@ -16,7 +16,8 @@ const terraceSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(['bar', 'pub', 'cafe', 'restaurant', 'biergarten']),
   venue: latLonSchema,
-  terrace: latLonSchema,
+  // Null when no terrace is known for the venue (then verified and horizon are null too).
+  terrace: latLonSchema.nullable(),
   sources: z.array(z.string()),
   verified: z.iso.date().nullable(),
   // Tenths of a degree per compass azimuth bin, 0 = north, clockwise.
@@ -27,7 +28,7 @@ const terraceSchema = z.object({
 })
 
 export const terracesFileSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   generated: z.iso.datetime(),
   sample: z.boolean(),
   attribution: z.array(z.string()),
