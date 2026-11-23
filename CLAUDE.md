@@ -39,6 +39,10 @@ Web, iOS and Android app that shows which bar and restaurant terraces in Badajoz
 - The app UI is in Spanish (i18n later). That covers UI strings, the `attribution` lines in `terraces.json` and tests that assert them.
 - The name stays "Sol y Cerveza". Proper nouns, official names, legal citations and licence attribution wording stay in their original language; explain them in English where useful.
 
+### Design (`web/`)
+
+- Follow [`docs/design/README.md`](docs/design/README.md) for colours, type, components, copy and map behaviour. Use its tokens; don't invent new colours. Update the standards in the same PR when the look changes.
+
 ### TypeScript (`web/`)
 
 - `strict` and `noUncheckedIndexedAccess` are on. No `any`, and avoid `as`.
