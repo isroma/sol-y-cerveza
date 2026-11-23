@@ -62,7 +62,7 @@ export function TimeSlider({
               style={at(sunrise)}
               title={`Amanecer · ${formatClock(sunrise)}`}
             >
-              <SunriseIcon size={15} />
+              <SunriseIcon size={12} />
             </span>
           )}
           {inRange(sunset) && (
@@ -71,7 +71,7 @@ export function TimeSlider({
               style={at(sunset)}
               title={`Atardecer · ${formatClock(sunset)}`}
             >
-              <SunsetIcon size={15} />
+              <SunsetIcon size={12} />
             </span>
           )}
           {showNow && (
