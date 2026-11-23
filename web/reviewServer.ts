@@ -14,6 +14,13 @@ import {
   type Review,
 } from './src/admin/review.ts'
 import {
+  isLoopbackHost,
+  newToken,
+  tokenAccepted,
+  TOKEN_HEADER,
+  TOKEN_PARAM,
+} from './src/admin/lanToken.ts'
+import {
   parseProbeOutput,
   parseProbeQuery,
   type Position,
@@ -174,6 +181,44 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
+      // LAN mode (`npm run admin:lan`, i.e. --host): the write and publish
+      // endpoints are reachable from the network, so every /__admin request
+      // needs this run's token. Localhost mode needs none.
+      const lan = !isLoopbackHost(server.config.server.host)
+      const token = lan ? newToken() : null
+      server.middlewares.use('/__admin', (req, res, next) => {
+        if (tokenAccepted(token, req.headers[TOKEN_HEADER])) return next()
+        send(res, 401, {
+          error:
+            'LAN mode: open the admin URL with the token printed by npm run admin:lan',
+        })
+      })
+      if (token) {
+        const printUrls = server.printUrls.bind(server)
+        server.printUrls = () => {
+          printUrls()
+          const urls = [
+            ...(server.resolvedUrls?.network ?? []),
+            ...(server.resolvedUrls?.local ?? []),
+          ]
+          const links = urls.map(
+            (url) => `    ${url}admin.html?${TOKEN_PARAM}=${token}`,
+          )
+          server.config.logger.info(
+            [
+              '',
+              '  Admin on your phone (same Wi-Fi), token for this run only:',
+              ...links,
+              ...(server.config.server.https
+                ? [
+                    '  The certificate is self-signed: accept the browser warning on the phone.',
+                  ]
+                : []),
+              '',
+            ].join('\n'),
+          )
+        }
+      }
       server.middlewares.use('/__admin/publish', (req, res) => {
         if (req.method === 'GET') return send(res, 200, publishStatus())
         if (req.method !== 'POST')
@@ -193,9 +238,9 @@ export function reviewServer(): Plugin {
         '',
       )
       const api = env['VITE_PRICES_API'] ?? ''
-      const token = env['PRICES_ADMIN_TOKEN'] ?? ''
+      const apiToken = env['PRICES_ADMIN_TOKEN'] ?? ''
       server.middlewares.use('/__admin/suggestions', (req, res) => {
-        if (!api || !token)
+        if (!api || !apiToken)
           return send(res, 503, {
             error:
               'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
@@ -208,7 +253,7 @@ export function reviewServer(): Plugin {
           const init: RequestInit = {
             method: req.method === 'POST' ? 'POST' : 'GET',
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${apiToken}`,
               'Content-Type': 'application/json',
             },
           }
