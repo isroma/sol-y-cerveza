@@ -14,7 +14,10 @@ import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
+  CARD_FOLD_BELOW,
   cardLevel,
+  cardOpacity,
+  cardScale,
   pitchForZoom,
   SHADOW_OPACITY,
   type CardLevel,
@@ -51,6 +54,12 @@ const MAP_LOCALE = {
   'AttributionControl.ToggleAttribution': 'Mostrar u ocultar la atribución',
   'AttributionControl.MapFeedback': 'Comentarios sobre el mapa',
   'Map.Title': 'Mapa',
+}
+
+/** Size and fade the venue card for a zoom (see cardScale, cardOpacity). */
+function sizeCard(el: HTMLElement, zoom: number) {
+  el.style.setProperty('--card-scale', String(cardScale(zoom)))
+  el.style.setProperty('--card-opacity', String(cardOpacity(zoom)))
 }
 
 /** Bring a venue into view, close enough for its full card. */
@@ -140,6 +149,7 @@ export function MapView({
   const [failed, setFailed] = useState(false)
   const [overview, setOverview] = useState(INITIAL_ZOOM < OVERVIEW_ZOOM)
   const [level, setLevel] = useState<CardLevel>(cardLevel(INITIAL_ZOOM))
+  const [folded, setFolded] = useState(INITIAL_ZOOM < CARD_FOLD_BELOW)
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
@@ -180,12 +190,18 @@ export function MapView({
           locale: MAP_LOCALE,
           attributionControl: false,
         })
+        sizeCard(cardEl, map.getZoom())
         map.addControl(new AttributionControl({ compact: true }), 'bottom-left')
         map.touchPitch.disable()
         map.on('zoom', (event) => {
           if (!map) return
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
-          setLevel(cardLevel(map.getZoom()))
+          const zoom = map.getZoom()
+          setLevel(cardLevel(zoom))
+          setFolded(zoom < CARD_FOLD_BELOW)
+          // Every frame of a pinch: size and fade the card straight from the
+          // zoom, without waiting for React.
+          sizeCard(cardEl, zoom)
           // Follow user gestures live; camera animations pass their own pitch.
           if (event.originalEvent) map.setPitch(pitchForZoom(map.getZoom()))
         })
@@ -328,7 +344,7 @@ export function MapView({
       mapRef.current = null
       map?.remove()
     }
-  }, [])
+  }, [cardEl])
 
   // Light the buildings from the sun's real position and cast their shadows.
   useEffect(() => {
@@ -436,7 +452,7 @@ export function MapView({
 
   return (
     <div
-      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${level === 'hidden' ? ' is-card-folded' : ''}`}
+      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${folded ? ' is-card-folded' : ''}`}
     >
       <div
         ref={containerRef}
