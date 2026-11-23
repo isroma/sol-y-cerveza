@@ -729,8 +729,12 @@ button {
 }
 
 .map-info-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
   margin: 0;
-  padding-left: 16px;
+  padding: 0;
+  list-style: none;
   /* Licence lines carry long unbroken names and URLs. */
   overflow-wrap: anywhere;
   color: var(--muted);
