@@ -7,13 +7,21 @@
   --sun-soft: #ffc53d;
   --sun-dark: #b45309;
   --chip: #ffc83d;
+  /* Surfaces and secondary text: day values here, night values on .app.is-night. */
+  --bg: #fff;
+  --surface-hover: #faf8f4;
+  --highlight: #fff6e0;
+  --text-soft: #4b5563;
+  --placeholder: #8a8f98;
+  --toggle-off: #e5e7eb;
+  --legend-bg: rgba(255, 255, 255, 0.96);
   --shadow: 0 4px 16px rgba(31, 35, 40, 0.1), 0 1px 3px rgba(31, 35, 40, 0.08);
   --font:
     -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto,
     system-ui, sans-serif;
   font: 16px/1.4 var(--font);
   color: var(--ink);
-  background: #fff;
+  background: var(--bg);
   color-scheme: light;
 }
 
@@ -63,7 +71,7 @@ button {
   padding: 24px 24px 16px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg);
   z-index: 1;
 }
 
@@ -108,7 +116,7 @@ button {
   margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff6e0;
+  background: var(--highlight);
   font-size: 14px;
 }
 
@@ -129,7 +137,7 @@ button {
 }
 
 .search input::placeholder {
-  color: #8a8f98;
+  color: var(--placeholder);
 }
 
 .search input::-webkit-search-cancel-button {
@@ -141,7 +149,7 @@ button {
   top: 50%;
   left: 16px;
   translate: 0 -50%;
-  color: #4b5563;
+  color: var(--text-soft);
 }
 
 .search-clear {
@@ -183,7 +191,7 @@ button {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  color: #374151;
+  color: var(--text-soft);
   cursor: pointer;
 }
 
@@ -210,7 +218,7 @@ button {
   padding: 9px 24px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg);
   font-size: 16px;
   font-weight: 500;
   box-shadow: 0 1px 2px rgba(31, 35, 40, 0.06);
@@ -247,7 +255,7 @@ button {
 }
 
 .link-button:hover {
-  background: #fff6e0;
+  background: var(--highlight);
 }
 
 .time-slider {
@@ -337,7 +345,7 @@ button {
 }
 
 .filter-icon {
-  color: #4b5563;
+  color: var(--text-soft);
 }
 
 .filter-icon.sun {
@@ -351,7 +359,7 @@ button {
   background: transparent
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f2328' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
     no-repeat right 2px center / 16px;
-  color: #4b5563;
+  color: var(--text-soft);
   text-align: right;
   appearance: none;
   cursor: pointer;
@@ -363,7 +371,7 @@ button {
   height: 30px;
   margin: 0;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: var(--toggle-off);
   transition: background 0.2s;
   appearance: none;
   cursor: pointer;
@@ -433,11 +441,11 @@ button {
 }
 
 .venue-row:hover {
-  background: #faf8f4;
+  background: var(--surface-hover);
 }
 
 .venue-row[aria-current='true'] {
-  background: #fff6e0;
+  background: var(--highlight);
 }
 
 .venue-row-text {
@@ -465,12 +473,12 @@ button {
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg);
   font-weight: 600;
 }
 
 .more-button:hover {
-  background: #faf8f4;
+  background: var(--surface-hover);
 }
 
 /* Card */
@@ -483,7 +491,7 @@ button {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: 0 10px 30px rgba(31, 35, 40, 0.14);
 }
 
@@ -528,7 +536,7 @@ button {
   align-items: center;
   gap: 5px;
   margin: 0;
-  color: #374151;
+  color: var(--text-soft);
   font-size: 14px;
 }
 
@@ -540,13 +548,13 @@ button {
   padding: 14px;
   border: 0;
   border-top: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg);
   font-size: 15px;
   text-align: left;
 }
 
 .card-footer:hover {
-  background: #fffaf0;
+  background: var(--surface-hover);
 }
 
 .card-footer-sun {
@@ -636,7 +644,7 @@ button {
   translate: -50% -50%;
   padding: 12px 16px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: var(--shadow);
 }
 
@@ -653,7 +661,7 @@ button {
   padding: 12px 18px;
   border: 0;
   border-radius: 999px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 17px;
   font-weight: 500;
@@ -667,7 +675,7 @@ button {
   margin: 0;
   padding: 6px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: var(--shadow);
   list-style: none;
 }
@@ -679,7 +687,7 @@ button {
 }
 
 .map-menu li[aria-checked='true'] {
-  background: #fff6e0;
+  background: var(--highlight);
   font-weight: 600;
 }
 
@@ -701,7 +709,7 @@ button {
   height: 52px;
   padding: 0;
   border: 0;
-  background: #fff;
+  background: var(--bg);
 }
 
 .map-round {
@@ -723,7 +731,7 @@ button {
 
 .map-round:hover,
 .map-zoom button:hover {
-  background: #fafafa;
+  background: var(--surface-hover);
 }
 
 .map-toast {
@@ -737,7 +745,7 @@ button {
   margin: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 14px;
 }
@@ -751,7 +759,7 @@ button {
   gap: 12px;
   padding: 14px 14px 14px 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--legend-bg);
   box-shadow: var(--shadow);
 }
 
@@ -793,7 +801,7 @@ button {
   width: min(340px, calc(100vw - 40px));
   padding: 14px 16px;
   border-radius: 16px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: var(--shadow);
   font-size: 14px;
 }
@@ -967,28 +975,31 @@ button {
   display: none;
 }
 
-/* Night: the map turns dark (night.ts); its overlays follow. */
-.map-wrap.is-night .map-pill,
-.map-wrap.is-night .map-menu,
-.map-wrap.is-night .map-round,
-.map-wrap.is-night .map-zoom button,
-.map-wrap.is-night .map-toast,
-.map-wrap.is-night .map-legend,
-.map-wrap.is-night .map-info {
-  border-color: #2a3043;
-  background: #1a1f2d;
-  color: #e5e7eb;
-}
-
-.map-wrap.is-night .map-round:hover,
-.map-wrap.is-night .map-zoom button:hover {
-  background: #232a3b;
-}
-
-.map-wrap.is-night .icon-button {
-  color: #e5e7eb;
-}
-
 .map-wrap.is-night .pin {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* Night: the whole app goes dark while the sun is down (the map via night.ts). */
+.app.is-night {
+  --ink: #e8eaf0;
+  --muted: #9aa3b5;
+  --line: #2a3043;
+  --field: #1d2231;
+  --bg: #141826;
+  --surface-hover: #1c2132;
+  --highlight: #2c2818;
+  --text-soft: #c3c9d6;
+  --placeholder: #7d8596;
+  --toggle-off: #2f3647;
+  --legend-bg: rgba(20, 24, 38, 0.96);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+.app {
+  background: var(--bg);
+  transition:
+    background-color 0.4s,
+    color 0.4s;
 }

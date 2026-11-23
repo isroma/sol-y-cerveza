@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App.tsx'
 import { sampleFile } from './test/fixtures.ts'
@@ -218,6 +224,26 @@ describe('App', () => {
     expect(
       screen.getByText('Datos de ejemplo: terrazas y horizontes ficticios'),
     ).toBeInTheDocument()
+  })
+
+  it('turns the whole app dark at night', async () => {
+    const meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    document.head.append(meta)
+    stubFetch(Response.json(sampleFile))
+    const { container } = render(<App />)
+    await listedNames()
+    const app = container.querySelector('.app')
+    expect(app).not.toHaveClass('is-night')
+
+    // 22:00 in Madrid, well after sunset on 21 December.
+    window.history.replaceState(null, '', '/?fecha=2026-12-21&hora=22:00')
+    const { container: night } = render(<App />)
+    await waitFor(() =>
+      expect(night.querySelector('.app')).toHaveClass('is-night'),
+    )
+    expect(meta).toHaveAttribute('content', '#141826')
+    meta.remove()
   })
 
   it('hides the sample notice for real data', async () => {
