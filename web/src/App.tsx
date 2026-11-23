@@ -159,6 +159,7 @@ export function App() {
           onSelect={setSelectedId}
           sun={sun}
           minutes={minutes}
+          sunset={times?.sunset ?? null}
           attribution={load.status === 'ready' ? load.file.attribution : []}
         />
       </main>

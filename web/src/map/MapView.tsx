@@ -9,6 +9,7 @@ import {
 import 'maplibre-gl/dist/maplibre-gl.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
@@ -16,6 +17,7 @@ import { pitchForZoom, SHADOW_OPACITY } from './camera.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
+import { PinCard } from './PinCard.tsx'
 import { sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { shadowCollection } from './shadowLayer.ts'
@@ -51,8 +53,10 @@ type Props = {
   selectedId: string | null
   onSelect: (id: string | null) => void
   sun: SunPosition
-  /** Chosen minute of the day, for the sun left in the selected badge. */
+  /** Chosen minute of the day, for the sun left in the selected venue's card. */
   minutes: number
+  /** Today's sunset, for the card's sun bar. */
+  sunset: number | null
   attribution: readonly string[]
 }
 
@@ -84,8 +88,16 @@ export function MapView({
   onSelect,
   sun,
   minutes,
+  sunset,
   attribution,
 }: Props) {
+  // The selected venue's card floats above its badge, as its own marker.
+  const cardEl = useMemo(() => {
+    const el = document.createElement('div')
+    el.className = 'pin-card-marker'
+    return el
+  }, [])
+  const cardMarkerRef = useRef<Marker | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const pinsRef = useRef(new Map<string, PinEntry>())
@@ -322,7 +334,7 @@ export function MapView({
         entry = { marker, el }
         pins.set(id, entry)
       }
-      updatePin(entry.el, status, id === selectedId, minutes)
+      updatePin(entry.el, status, id === selectedId)
       const top = highlighted.has(id)
       entry.el.classList.toggle('pin-marker--top', top)
       entry.el.style.zIndex =
@@ -334,7 +346,34 @@ export function MapView({
               ? '2'
               : '1'
     }
-  }, [ready, statuses, selectedId, highlighted, minutes])
+  }, [ready, statuses, selectedId, highlighted])
+
+  const selectedStatus = statuses.find((s) => s.venue.id === selectedId) ?? null
+
+  // Place the card above the selected venue (badge or dot).
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !selectedStatus) {
+      cardMarkerRef.current?.remove()
+      cardMarkerRef.current = null
+      return
+    }
+    const position = selectedStatus.venue.terrace ?? selectedStatus.venue.venue
+    const offset: [number, number] = [0, selectedStatus.hasTerrace ? -58 : -14]
+    if (!cardMarkerRef.current) {
+      cardMarkerRef.current = new Marker({
+        element: cardEl,
+        anchor: 'bottom',
+        offset,
+      })
+        .setLngLat([position.lon, position.lat])
+        .addTo(map)
+    } else {
+      cardMarkerRef.current
+        .setOffset(offset)
+        .setLngLat([position.lon, position.lat])
+    }
+  }, [ready, selectedStatus, cardEl])
 
   // Bring the selected venue into view when the selection changes.
   const lastSelected = useRef<string | null>(null)
@@ -350,6 +389,8 @@ export function MapView({
       center: [position.lon, position.lat],
       zoom,
       pitch: pitchForZoom(zoom),
+      // Venue a bit below centre, so its card above the badge fits in view.
+      offset: [0, 110],
       duration: 900,
     })
   }, [ready, selectedId, statuses])
@@ -370,6 +411,11 @@ export function MapView({
         </p>
       )}
       <MapControls mapRef={mapRef} ready={ready} attribution={attribution} />
+      {selectedStatus &&
+        createPortal(
+          <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,
+          cardEl,
+        )}
     </div>
   )
 }
