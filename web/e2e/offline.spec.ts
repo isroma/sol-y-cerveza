@@ -316,7 +316,11 @@ test.describe('map chunk missing', () => {
     missing: (loads: number) => boolean,
   ) {
     const counter = { loads: 0 }
-    page.on('domcontentloaded', () => counter.loads++)
+    // Counted when the navigation commits, before the page asks for the
+    // chunk (it is preloaded while the HTML is still being parsed).
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame()) counter.loads++
+    })
     await page.route(/\/assets\/MapView-[^/]+\.js$/, (route) =>
       missing(counter.loads)
         ? route.fulfill({ status: 404, body: 'Not found' })
