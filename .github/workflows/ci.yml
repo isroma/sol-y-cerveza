@@ -57,10 +57,30 @@ jobs:
       - run: uv run pytest
 
   # Single required check for the main ruleset, so jobs can be added or renamed freely.
+  api:
+    name: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [web, pipeline]
+    needs: [web, pipeline, api]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any required job failed or was cancelled
