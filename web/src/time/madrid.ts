@@ -105,3 +105,25 @@ export function formatDuration(minutes: number): string {
   if (mins === 0) return `${hours} h`
   return `${hours} h ${mins} min`
 }
+
+/** The YYYY-MM-DD date `days` after `date` (calendar arithmetic, no time zones). */
+export function addDays(date: string, days: number): string {
+  const match = DATE_PATTERN.exec(date)
+  if (!match) throw new RangeError(`Invalid date: ${date}`)
+  const d = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days),
+  )
+  return d.toISOString().slice(0, 10)
+}
+
+const DAY_LABEL = new Intl.DateTimeFormat('es-ES', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+})
+
+/** "lun, 1 dic" for a YYYY-MM-DD date. */
+export function formatDayLabel(date: string): string {
+  return DAY_LABEL.format(new Date(`${date}T12:00:00Z`))
+}
