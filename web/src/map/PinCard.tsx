@@ -31,10 +31,11 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
       viewBox={`0 0 ${R + 3} ${R + 3}`}
       aria-hidden="true"
     >
-      {/* The fill runs to the svg's edges so it also hides the inner half of
-          the tab's side border and the card's top border under the curve. */}
+      {/* The fill runs past the svg's edges (overflow is visible) so it also
+          hides the tab's side border and the card's top border under the
+          curve, with a 3 px overlap so no anti-aliased seam shows. */}
       <path
-        d={`M0 ${r} A${r} ${r} 0 0 0 ${r} 0 L${R + 3} 0 L${R + 3} ${R + 3} L0 ${R + 3} Z`}
+        d={`M0 ${r} A${r} ${r} 0 0 0 ${r} 0 L${R + 6} 0 L${R + 6} ${R + 6} L0 ${R + 6} Z`}
         fill="var(--bg)"
       />
       <path

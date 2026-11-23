@@ -1003,8 +1003,10 @@ button {
 .pin-card-tab {
   position: relative;
   z-index: 1;
-  margin-bottom: -3px;
-  padding: 12px 10px 0;
+  /* Overlaps the card's top border by a pixel more than its width, so the
+     join has no anti-aliased seam. */
+  margin-bottom: -4px;
+  padding: 12px 10px 1px;
   border: 3px solid var(--card-accent);
   border-bottom: 0;
   /* Straight sides at the bottom, so the shoulders meet a vertical edge. */
@@ -1015,6 +1017,7 @@ button {
 .pin-card-shoulder {
   position: absolute;
   bottom: 0;
+  overflow: visible;
   z-index: 1;
 }
 
