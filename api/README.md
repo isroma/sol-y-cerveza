@@ -8,6 +8,10 @@ A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices
 | `GET /v1/prices` | the app | prices with consensus, cached for 5 minutes |
 | `GET /v1/admin/suggestions` | the admin view | pending suggestions (`Authorization: Bearer <ADMIN_TOKEN>`) |
 | `POST /v1/admin/resolve` | the admin view | `{venueId, item, brand, cents, status: accepted \| rejected}` |
+| `GET /v1/owner/check` | owner mode | 200 when `Authorization: Bearer <OWNER_TOKEN>` is right |
+| `PUT` / `DELETE /v1/owner/prices` | owner mode | `{venueId, item, brand, cents}`: a confirmed price, dated today (Madrid) |
+| `POST /v1/owner/photo` | owner mode | `{image, mediaType}` → `{proposals, notes, barName}`, read by the Claude API (`ANTHROPIC_API_KEY`) |
+| `GET /v1/admin/owner-prices` | the admin view | owner prices, for the import into `venue_prices.csv` |
 
 ## Local development
 
@@ -28,4 +32,6 @@ npm run dev                      # http://localhost:8787
    - `npx wrangler secret put TURNSTILE_SECRET`
    - `npx wrangler secret put ADMIN_TOKEN` (any long random string)
    - `npx wrangler secret put IP_SALT` (another long random string)
+   - `npx wrangler secret put OWNER_TOKEN` (another long random string: the owner-mode key)
+   - `npx wrangler secret put ANTHROPIC_API_KEY` (for owner photo reading)
 6. Run `npm run deploy` and note the `*.workers.dev` URL.

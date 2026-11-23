@@ -20,7 +20,8 @@ export type Suggestion = {
   cents: number
 }
 
-export type CrowdPrice = Suggestion & { voters: number; last: string }
+/** A price the app shows: agreed by visitors (approximate) or saved by the owner (confirmed). */
+export type CrowdPrice = Suggestion & { voters: number; last: string; confirmed: boolean }
 
 const VENUE_ID =
   /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
@@ -87,7 +88,15 @@ export function consensus(groups: readonly PriceGroup[]): CrowdPrice[] {
       if (!isItem(g.item)) return []
       const brand = isBrand(g.brand) ? g.brand : null
       return [
-        { venueId: g.venue_id, item: g.item, brand, cents: g.cents, voters: g.voters, last: g.last },
+        {
+          venueId: g.venue_id,
+          item: g.item,
+          brand,
+          cents: g.cents,
+          voters: g.voters,
+          last: g.last,
+          confirmed: false,
+        },
       ]
     })
     .sort((a, b) =>
@@ -109,4 +118,43 @@ export function safeEqual(a: string, b: string): boolean {
 export function allowedOrigin(origin: string | null, allowed: string): string | null {
   if (!origin) return null
   return allowed.split(',').map((o) => o.trim()).includes(origin) ? origin : null
+}
+
+export type OwnerRow = { venue_id: string; item: string; brand: string; cents: number; seen: string }
+
+/** Owner prices as the app shows them; they replace visitor prices for the same item. */
+export function withOwnerPrices(crowd: readonly CrowdPrice[], owner: readonly OwnerRow[]): CrowdPrice[] {
+  const key = (p: { venueId: string; item: string; brand: string | null }) =>
+    `${p.venueId}|${p.item}|${p.brand ?? ''}`
+  const byKey = new Map(crowd.map((p) => [key(p), p]))
+  for (const row of owner) {
+    if (!isItem(row.item)) continue
+    const brand = isBrand(row.brand) ? row.brand : null
+    const price: CrowdPrice = {
+      venueId: row.venue_id,
+      item: row.item,
+      brand,
+      cents: row.cents,
+      voters: 0,
+      last: row.seen,
+      confirmed: true,
+    }
+    byKey.set(key(price), price)
+  }
+  return [...byKey.values()].sort((a, b) => (key(a) < key(b) ? -1 : 1))
+}
+
+/** An owner price in a request body (`{venueId, item, brand, cents}`), or why it is invalid. */
+export function parseOwnerPrice(
+  body: unknown,
+): { ok: true; value: Suggestion } | { ok: false; error: string } {
+  const parsed = parseSuggestion(
+    typeof body === 'object' && body !== null ? { ...body, token: 'owner' } : body,
+  )
+  return parsed.ok ? { ok: true, value: parsed.value } : parsed
+}
+
+/** Today as YYYY-MM-DD in Spain (the date a price was seen). */
+export function madridDate(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now)
 }

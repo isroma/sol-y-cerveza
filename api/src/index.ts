@@ -7,16 +7,25 @@
  * - GET /v1/prices: prices at least THRESHOLD people agree on (shown with "~").
  * - GET /v1/admin/suggestions, POST /v1/admin/resolve: the review queue,
  *   for the local admin view only (bearer ADMIN_TOKEN).
+ * - Owner mode (bearer OWNER_TOKEN, which can only add or remove prices):
+ *   GET /v1/owner/check, PUT/DELETE /v1/owner/prices saves a confirmed price,
+ *   POST /v1/owner/photo reads prices and the bar's name from a photo.
+ * - GET /v1/admin/owner-prices: owner prices, for the admin's import.
  */
 import {
   allowedOrigin,
   consensus,
   DAILY_LIMIT,
+  madridDate,
+  parseOwnerPrice,
   parseSuggestion,
   safeEqual,
   WINDOW_DAYS,
+  withOwnerPrices,
+  type OwnerRow,
   type PriceGroup,
 } from './logic.ts'
+import { parsePhoto, PhotoError, readPhoto } from './photo.ts'
 
 type Env = {
   DB: D1Database
@@ -25,9 +34,13 @@ type Env = {
   TURNSTILE_SECRET: string
   ADMIN_TOKEN: string
   IP_SALT: string
+  OWNER_TOKEN: string
+  ANTHROPIC_API_KEY: string
 }
 
 const MAX_BODY = 8 * 1024
+/** A downscaled photo (about 0.5 MB) as base64, with room to spare. */
+const MAX_PHOTO_BODY = 7 * 1024 * 1024
 
 let venues: { ids: Set<string>; until: number } | null = null
 
@@ -122,7 +135,12 @@ async function prices(env: Env): Promise<Response> {
   )
     .bind(since)
     .all<PriceGroup>()
-  return json({ prices: consensus(results) }, 200, { 'Cache-Control': 'public, max-age=300' })
+  const owner = await env.DB.prepare(
+    'SELECT venue_id, item, brand, cents, seen FROM owner_prices',
+  ).all<OwnerRow>()
+  return json({ prices: withOwnerPrices(consensus(results), owner.results) }, 200, {
+    'Cache-Control': 'public, max-age=300',
+  })
 }
 
 async function pending(env: Env): Promise<Response> {
@@ -156,14 +174,65 @@ async function resolve(request: Request, env: Env): Promise<Response> {
   return json({ updated: result.meta.changes }, 200)
 }
 
+async function ownerPrice(request: Request, env: Env): Promise<Response> {
+  const parsed = parseOwnerPrice(await request.json().catch(() => null))
+  if (!parsed.ok) return json({ error: `invalid ${parsed.error}` }, 400)
+  const { venueId, item, brand, cents } = parsed.value
+  if (!(await knownVenues(env)).has(venueId)) return json({ error: 'unknown venue' }, 400)
+  if (request.method === 'DELETE') {
+    await env.DB.prepare('DELETE FROM owner_prices WHERE venue_id = ? AND item = ? AND brand = ?')
+      .bind(venueId, item, brand ?? '')
+      .run()
+    return json({ ok: true }, 200)
+  }
+  const seen = madridDate(new Date())
+  await env.DB.prepare(
+    `INSERT INTO owner_prices (venue_id, item, brand, cents, seen) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (venue_id, item, brand) DO UPDATE SET cents = excluded.cents, seen = excluded.seen`,
+  )
+    .bind(venueId, item, brand ?? '', cents, seen)
+    .run()
+  return json({ ok: true, seen }, 200)
+}
+
+async function ownerPhoto(request: Request, env: Env): Promise<Response> {
+  const text = await request.text()
+  if (text.length > MAX_PHOTO_BODY) return json({ error: 'the photo is too large' }, 413)
+  try {
+    const photo = parsePhoto(JSON.parse(text))
+    return json(await readPhoto(env.ANTHROPIC_API_KEY, photo), 200)
+  } catch (error) {
+    if (error instanceof PhotoError) return json({ error: error.message }, error.status)
+    if (error instanceof SyntaxError) return json({ error: 'invalid JSON' }, 400)
+    throw error
+  }
+}
+
+async function ownerPrices(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    'SELECT venue_id, item, brand, cents, seen FROM owner_prices ORDER BY venue_id, item, brand',
+  ).all<OwnerRow>()
+  return json({ prices: results }, 200)
+}
+
+function bearer(request: Request, token: string): boolean {
+  return Boolean(token) && safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${token}`)
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url)
   if (pathname === '/v1/prices' && request.method === 'GET') return prices(env)
   if (pathname === '/v1/suggestions' && request.method === 'POST') return suggest(request, env)
+  if (pathname.startsWith('/v1/owner/')) {
+    if (!bearer(request, env.OWNER_TOKEN)) return json({ error: 'unauthorized' }, 401)
+    if (pathname === '/v1/owner/check' && request.method === 'GET') return json({ ok: true }, 200)
+    if (pathname === '/v1/owner/prices' && (request.method === 'PUT' || request.method === 'DELETE'))
+      return ownerPrice(request, env)
+    if (pathname === '/v1/owner/photo' && request.method === 'POST') return ownerPhoto(request, env)
+  }
   if (pathname.startsWith('/v1/admin/')) {
-    const auth = request.headers.get('Authorization') ?? ''
-    if (!env.ADMIN_TOKEN || !safeEqual(auth, `Bearer ${env.ADMIN_TOKEN}`))
-      return json({ error: 'unauthorized' }, 401)
+    if (!bearer(request, env.ADMIN_TOKEN)) return json({ error: 'unauthorized' }, 401)
+    if (pathname === '/v1/admin/owner-prices' && request.method === 'GET') return ownerPrices(env)
     if (pathname === '/v1/admin/suggestions' && request.method === 'GET') return pending(env)
     if (pathname === '/v1/admin/resolve' && request.method === 'POST') return resolve(request, env)
   }
@@ -176,8 +245,8 @@ export default {
     const cors: Record<string, string> = origin
       ? {
           'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           Vary: 'Origin',
         }
       : {}
