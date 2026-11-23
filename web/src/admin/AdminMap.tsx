@@ -22,6 +22,8 @@ type Props = {
   selected: MapVenue | null
   /** Where the selected venue's tables are, if known. */
   terrace: LatLon | null
+  /** Terrace pin mode: the next click places the pin, which can be dragged meanwhile. */
+  pinning: boolean
   onSelect: (id: string | null) => void
   /** A click on the map away from any venue dot. */
   onMapClick: (at: LatLon) => void
@@ -80,6 +82,7 @@ export function AdminMap({
   venues,
   selected,
   terrace,
+  pinning,
   onSelect,
   onMapClick,
   onPinTerrace,
@@ -259,15 +262,20 @@ export function AdminMap({
     venueMarker.current = marker
   }, [ready, selected])
 
-  // Draggable terrace pin.
+  // Terrace pin, draggable only in pin mode.
   useEffect(() => {
     const map = mapRef.current
     terraceMarker.current?.remove()
     terraceMarker.current = null
     if (!map || !ready || !selected || !terrace) return
     const marker = new Marker({
-      element: pinElement('admin-terrace-pin', 'Terrace: drag to move'),
-      draggable: true,
+      element: pinElement(
+        'admin-terrace-pin',
+        pinning
+          ? 'Terrace: drag or click the map'
+          : 'Terrace (press T to move)',
+      ),
+      draggable: pinning,
     })
       .setLngLat([terrace.lon, terrace.lat])
       .addTo(map)
@@ -276,7 +284,12 @@ export function AdminMap({
       callbacks.current.onPinTerrace({ lat, lon: lng })
     })
     terraceMarker.current = marker
-  }, [ready, selected, terrace])
+  }, [ready, selected, terrace, pinning])
 
-  return <div ref={containerRef} className="admin-map" />
+  return (
+    <div
+      ref={containerRef}
+      className={pinning ? 'admin-map admin-pinning' : 'admin-map'}
+    />
+  )
 }

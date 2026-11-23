@@ -2,6 +2,7 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
+import { publishReview } from './publish.ts'
 import {
   formatReviewCsv,
   parseReviewCsv,
@@ -69,6 +70,21 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
+      let publishing = false
+      server.middlewares.use('/__admin/publish', (req, res) => {
+        if (req.method !== 'POST')
+          return send(res, 405, { error: 'method not allowed' })
+        if (publishing) return send(res, 409, { error: 'already publishing' })
+        publishing = true
+        // Waits for pending saves so the CSV is complete.
+        void queue
+          .then(publishReview)
+          .then((result) => send(res, 200, result))
+          .catch((error: unknown) => send(res, 500, { error: String(error) }))
+          .finally(() => {
+            publishing = false
+          })
+      })
       server.middlewares.use('/__admin/review', (req, res) => {
         const run = queue.then(() => handle(req, res))
         queue = run.catch((error: unknown) => {

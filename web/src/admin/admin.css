@@ -248,3 +248,41 @@ body {
   opacity: 0.4;
   cursor: default;
 }
+
+.admin-pinning .maplibregl-canvas {
+  cursor: crosshair;
+}
+
+.admin-pin-mode {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff3d1;
+  font-size: 12px;
+}
+
+.admin-publish {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.admin-publish button {
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-publish button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.admin-publish p {
+  margin: 6px 0 0;
+}
