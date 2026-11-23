@@ -1,1 +1,1 @@
-venue_id,status,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed
+venue_id,status,name,kind,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed

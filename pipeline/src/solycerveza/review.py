@@ -4,9 +4,11 @@ The admin view writes `pipeline/data/venue_review.csv` (UTF-8, header required, 
 venue, sorted by `venue_id`). The build applies it last, so a review wins over the curated list,
 OSM tags and the other sources:
 
-- `venue_id`: the reviewed venue (`osm:…`, `overture:…` or `junta:…`).
+- `venue_id`: the reviewed venue (`osm:…`, `overture:…` or `junta:…`), or `review:<slug>` for a
+  venue no source lists, added in the admin view.
 - `status`: `terrace`, `no_terrace`, `not_venue` (closed, or not a bar or restaurant: the venue is
   dropped), or empty when only the venue position was fixed.
+- `name`, `kind`: only for `review:` venues, and required there.
 - `venue_lat`, `venue_lon`: the corrected venue position, or both empty to keep the source's.
 - `terrace_lat`, `terrace_lon`: where the tables are, for `terrace` (both empty keeps the current
   terrace position, or the venue position when there is none).
@@ -23,12 +25,22 @@ from typing import Annotated, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from solycerveza.terraces import Terrace
-from solycerveza.venues import VENUE_ID_PATTERN, Lat, LatLon, Lon, Venue
+from solycerveza.venues import VENUE_ID_PATTERN, Kind, Lat, LatLon, Lon, Venue
 
 logger = logging.getLogger(__name__)
 
 REVIEW_CSV = Path(__file__).resolve().parents[2] / "data" / "venue_review.csv"
-COLUMNS = ("venue_id", "status", "venue_lat", "venue_lon", "terrace_lat", "terrace_lon", "reviewed")
+COLUMNS = (
+    "venue_id",
+    "status",
+    "name",
+    "kind",
+    "venue_lat",
+    "venue_lon",
+    "terrace_lat",
+    "terrace_lon",
+    "reviewed",
+)
 
 Status = Literal["terrace", "no_terrace", "not_venue"]
 
@@ -38,6 +50,8 @@ class Review(BaseModel):
 
     venue_id: Annotated[str, Field(pattern=VENUE_ID_PATTERN)]
     status: Status | None = None
+    name: str | None = None
+    kind: Kind | None = None
     venue_lat: Lat | None = None
     venue_lon: Lon | None = None
     terrace_lat: Lat | None = None
@@ -52,6 +66,13 @@ class Review(BaseModel):
             raise ValueError("terrace_lat and terrace_lon go together")
         if self.terrace_lat is not None and self.status != "terrace":
             raise ValueError("a terrace position needs status terrace")
+        added = self.venue_id.startswith("review:")
+        if added and (self.name is None or self.kind is None or self.venue_lat is None):
+            raise ValueError("an added venue needs a name, a kind and a venue position")
+        if added and self.status == "not_venue":
+            raise ValueError("delete the row instead of marking an added venue not_venue")
+        if not added and (self.name is not None or self.kind is not None):
+            raise ValueError("name and kind are only for added (review:) venues")
         if self.status is None and self.venue_lat is None:
             raise ValueError("a row needs a status or a venue position")
         return self
@@ -96,8 +117,8 @@ def dropped_ids(reviews: Sequence[Review]) -> set[str]:
 
 
 def review_venues(venues: Sequence[Venue], reviews: Sequence[Review]) -> list[Venue]:
-    """Venues without the `not_venue` ones and with corrected positions."""
-    by_id = {r.venue_id: r for r in reviews}
+    """Venues without the `not_venue` ones, with corrected positions, plus the added ones."""
+    by_id = {r.venue_id: r for r in reviews if not r.venue_id.startswith("review:")}
     for stale in sorted(set(by_id) - {v.id for v in venues}):
         logger.warning("venue review for %s: no such venue any more, remove the row", stale)
     dropped = dropped_ids(reviews)
@@ -109,6 +130,20 @@ def review_venues(venues: Sequence[Venue], reviews: Sequence[Review]) -> list[Ve
         if review is not None and review.venue is not None:
             venue = venue.model_copy(update={"location": review.venue})
         result.append(venue)
+    for review in reviews:
+        if review.venue_id.startswith("review:"):
+            # The validator guarantees these for added venues; the asserts narrow the types.
+            assert review.venue is not None
+            assert review.kind is not None
+            result.append(
+                Venue(
+                    id=review.venue_id,
+                    name=review.name,
+                    kind=review.kind,
+                    location=review.venue,
+                    outdoor_seating=None,
+                )
+            )
     return result
 
 

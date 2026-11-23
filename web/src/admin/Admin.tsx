@@ -2,7 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { loadTerraces, type LatLon, type Terrace } from '../data/terraces.ts'
 import { AdminMap } from './AdminMap.tsx'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
-import { nextReview, reviewSchema, type Review, type Status } from './review.ts'
+import {
+  ADDED_PREFIX,
+  addedId,
+  cleanName,
+  KINDS,
+  nextReview,
+  reviewSchema,
+  type Kind,
+  type Review,
+  type Status,
+} from './review.ts'
 
 const API = '/__admin/review'
 
@@ -47,6 +57,24 @@ function osmUrl(id: string): string | null {
   return match ? `https://www.openstreetmap.org/${match[1]}/${match[2]}` : null
 }
 
+type Adding = { name: string; kind: Kind; at: LatLon | null }
+
+/** A venue added in the admin view, shaped like a dataset record. */
+function addedVenue(review: Review): Terrace | null {
+  if (!review.venueId.startsWith(ADDED_PREFIX)) return null
+  if (!review.name || !review.kind || !review.venue) return null
+  return {
+    id: review.venueId,
+    name: review.name,
+    kind: review.kind,
+    venue: review.venue,
+    terrace: null,
+    sources: ['review'],
+    verified: null,
+    horizon: null,
+  }
+}
+
 async function fetchReviews(): Promise<Map<string, Review>> {
   const response = await fetch(API)
   if (!response.ok) throw new Error(`GET ${API}: HTTP ${response.status}`)
@@ -55,7 +83,8 @@ async function fetchReviews(): Promise<Map<string, Review>> {
 }
 
 export function Admin() {
-  const [venues, setVenues] = useState<Terrace[]>([])
+  const [dataVenues, setVenues] = useState<Terrace[]>([])
+  const [adding, setAdding] = useState<Adding | null>(null)
   const [reviews, setReviews] = useState(new Map<string, Review>())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -65,14 +94,21 @@ export function Admin() {
   useEffect(() => {
     Promise.all([loadTerraces(), fetchReviews()])
       .then(([file, rows]) => {
-        setVenues(
-          [...file.terraces].sort((a, b) => a.name.localeCompare(b.name, 'es')),
-        )
+        setVenues(file.terraces)
         setReviews(rows)
         setMessage('')
       })
       .catch((error: unknown) => setMessage(String(error)))
   }, [])
+
+  const venues = useMemo(
+    () =>
+      [
+        ...dataVenues,
+        ...[...reviews.values()].flatMap((r) => addedVenue(r) ?? []),
+      ].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    [dataVenues, reviews],
+  )
 
   const mapVenues = useMemo<MapVenue[]>(
     () =>
@@ -98,7 +134,14 @@ export function Admin() {
   }, [venues, reviews, filter, query])
 
   const selectedVenue = venues.find((v) => v.id === selectedId) ?? null
-  const selectedMap = mapVenues.find((v) => v.id === selectedId) ?? null
+  const selectedMap: MapVenue | null = adding
+    ? adding.at && {
+        id: 'new',
+        name: adding.name || 'New venue',
+        at: adding.at,
+        state: 'unknown',
+      }
+    : (mapVenues.find((v) => v.id === selectedId) ?? null)
   const review = selectedId ? reviews.get(selectedId) : undefined
   const terrace: LatLon | null = !selectedVenue
     ? null
@@ -141,6 +184,12 @@ export function Admin() {
         | { kind: 'venue'; at: LatLon },
     ) => {
       if (!selectedId) return
+      if (
+        change.kind === 'status' &&
+        change.status === 'not_venue' &&
+        selectedId.startsWith(ADDED_PREFIX)
+      )
+        return
       void save(
         selectedId,
         nextReview(reviews.get(selectedId), selectedId, change, today()),
@@ -158,7 +207,15 @@ export function Admin() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement) return
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLSelectElement
+      )
+        return
+      if (adding) {
+        if (event.key === 'Escape') setAdding(null)
+        return
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const key = event.key.toLowerCase()
       if (key === 'escape') setSelectedId(null)
@@ -171,7 +228,34 @@ export function Admin() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [change, nextToReview])
+  }, [change, nextToReview, adding])
+
+  const startAdding = () => {
+    setSelectedId(null)
+    setAdding({ name: '', kind: 'bar', at: null })
+  }
+
+  const saveAdded = () => {
+    const name = cleanName(adding?.name ?? '')
+    if (!adding?.at || !name) return
+    const venueId = addedId(name, new Set(venues.map((v) => v.id)))
+    void save(venueId, {
+      venueId,
+      status: null,
+      name,
+      kind: adding.kind,
+      venue: adding.at,
+      terrace: null,
+      reviewed: today(),
+    })
+    setAdding(null)
+    setSelectedId(venueId)
+  }
+
+  const onMapClick = (at: LatLon) => {
+    if (adding) setAdding({ ...adding, at })
+    else if (selectedId) change({ kind: 'terrace', at })
+  }
 
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
   const osm = selectedId ? osmUrl(selectedId) : null
@@ -180,7 +264,12 @@ export function Admin() {
     <div className="admin">
       <aside className="admin-side">
         <header className="admin-head">
-          <h1>Venue review</h1>
+          <div className="admin-title">
+            <h1>Venue review</h1>
+            <button type="button" onClick={startAdding}>
+              + Add venue
+            </button>
+          </div>
           <p>
             {reviewed} of {venues.length} reviewed
             {message && <span className="admin-message"> · {message}</span>}
@@ -233,17 +322,78 @@ export function Admin() {
           venues={mapVenues}
           selected={selectedMap}
           terrace={terrace}
-          onSelect={setSelectedId}
+          onSelect={(id) => {
+            if (!adding) setSelectedId(id)
+          }}
+          onMapClick={onMapClick}
           onPinTerrace={(at) => change({ kind: 'terrace', at })}
-          onMoveVenue={(at) => change({ kind: 'venue', at })}
+          onMoveVenue={(at) =>
+            adding
+              ? setAdding({ ...adding, at })
+              : change({ kind: 'venue', at })
+          }
         />
-        {selectedVenue && selectedMap && (
+        {adding && (
+          <section className="admin-panel" aria-label="Add a venue">
+            <h2>Add a venue</h2>
+            <p className="admin-help">
+              For a bar or restaurant that is missing from the list. Click the
+              map where it is, then name it.
+            </p>
+            <label className="admin-field">
+              Name
+              <input
+                autoFocus
+                value={adding.name}
+                onChange={(e) => setAdding({ ...adding, name: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveAdded()
+                  if (e.key === 'Escape') setAdding(null)
+                }}
+              />
+            </label>
+            <label className="admin-field">
+              Kind
+              <select
+                value={adding.kind}
+                onChange={(e) => {
+                  const kind = KINDS.find((k) => k === e.target.value)
+                  if (kind) setAdding({ ...adding, kind })
+                }}
+              >
+                {KINDS.map((k) => (
+                  <option key={k}>{k}</option>
+                ))}
+              </select>
+            </label>
+            <p className="admin-meta">
+              {adding.at
+                ? 'Placed. Drag the pin or click again to adjust.'
+                : 'Not placed yet: click the map.'}
+            </p>
+            <div className="admin-actions">
+              <button
+                type="button"
+                disabled={!adding.at || !cleanName(adding.name)}
+                onClick={saveAdded}
+              >
+                Save venue
+              </button>
+              <button type="button" onClick={() => setAdding(null)}>
+                Cancel
+              </button>
+            </div>
+          </section>
+        )}
+        {!adding && selectedVenue && selectedMap && (
           <section className="admin-panel" aria-label="Selected venue">
             <h2>{selectedVenue.name}</h2>
             <p className="admin-meta">
               {selectedVenue.kind} · {selectedVenue.sources.join(', ')} ·{' '}
               {STATE_LABELS[selectedMap.state]}
-              {review?.venue && ' · moved'}
+              {review?.venue &&
+                !selectedVenue.id.startsWith(ADDED_PREFIX) &&
+                ' · moved'}
             </p>
             <p className="admin-meta">
               {osm ? (
@@ -269,13 +419,17 @@ export function Admin() {
               >
                 No terrace <kbd>N</kbd>
               </button>
-              <button
-                type="button"
-                aria-pressed={review?.status === 'not_venue'}
-                onClick={() => change({ kind: 'status', status: 'not_venue' })}
-              >
-                Not a venue <kbd>X</kbd>
-              </button>
+              {!selectedVenue.id.startsWith(ADDED_PREFIX) && (
+                <button
+                  type="button"
+                  aria-pressed={review?.status === 'not_venue'}
+                  onClick={() =>
+                    change({ kind: 'status', status: 'not_venue' })
+                  }
+                >
+                  Not a venue <kbd>X</kbd>
+                </button>
+              )}
             </div>
             <p className="admin-help">
               Click the map where the tables are to pin the terrace (marks it as
@@ -290,7 +444,9 @@ export function Admin() {
                   type="button"
                   onClick={() => void save(selectedVenue.id, null)}
                 >
-                  Undo review
+                  {selectedVenue.id.startsWith(ADDED_PREFIX)
+                    ? 'Delete venue'
+                    : 'Undo review'}
                 </button>
               )}
             </div>

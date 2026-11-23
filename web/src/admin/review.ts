@@ -8,6 +8,8 @@ import { z } from 'zod'
 export const REVIEW_COLUMNS = [
   'venue_id',
   'status',
+  'name',
+  'kind',
   'venue_lat',
   'venue_lon',
   'terrace_lat',
@@ -18,8 +20,14 @@ export const REVIEW_COLUMNS = [
 export const STATUSES = ['terrace', 'no_terrace', 'not_venue'] as const
 export type Status = (typeof STATUSES)[number]
 
+export const KINDS = ['bar', 'pub', 'cafe', 'restaurant', 'biergarten'] as const
+export type Kind = (typeof KINDS)[number]
+
+/** Venues no source lists, added in the admin view. */
+export const ADDED_PREFIX = 'review:'
+
 const VENUE_ID =
-  /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12})$/
+  /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
 
 const latLonSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -30,6 +38,8 @@ export const reviewSchema = z
   .object({
     venueId: z.string().regex(VENUE_ID),
     status: z.enum(STATUSES).nullable(),
+    name: z.string().min(1).nullable(),
+    kind: z.enum(KINDS).nullable(),
     venue: latLonSchema.nullable(),
     terrace: latLonSchema.nullable(),
     reviewed: z.iso.date(),
@@ -37,6 +47,17 @@ export const reviewSchema = z
   .refine((r) => r.terrace === null || r.status === 'terrace', {
     message: 'a terrace position needs status terrace',
   })
+  .refine(
+    (r) =>
+      r.venueId.startsWith(ADDED_PREFIX)
+        ? r.name !== null && r.kind !== null && r.venue !== null
+        : r.name === null && r.kind === null,
+    { message: 'name, kind and position go with added (review:) venues only' },
+  )
+  .refine(
+    (r) => !(r.venueId.startsWith(ADDED_PREFIX) && r.status === 'not_venue'),
+    { message: 'delete an added venue instead of marking it not_venue' },
+  )
   .refine((r) => r.status !== null || r.venue !== null, {
     message: 'a row needs a status or a venue position',
   })
@@ -68,10 +89,16 @@ export function parseReviewCsv(text: string): Review[] {
     )
   }
   return lines.map((line, index) => {
-    const [venueId, status, vLat, vLon, tLat, tLon, reviewed] = line.split(',')
+    if (line.includes('"')) {
+      throw new Error(`venue_review.csv:${index + 2}: quotes are not supported`)
+    }
+    const [venueId, status, name, kind, vLat, vLon, tLat, tLon, reviewed] =
+      line.split(',')
     const parsed = reviewSchema.safeParse({
       venueId,
       status: status || null,
+      name: name || null,
+      kind: kind || null,
       venue: pair(vLat, vLon),
       terrace: pair(tLat, tLon),
       reviewed,
@@ -93,6 +120,8 @@ export function formatReviewCsv(reviews: readonly Review[]): string {
       [
         r.venueId,
         r.status,
+        r.name,
+        r.kind,
         r.venue?.lat ?? null,
         r.venue?.lon ?? null,
         r.terrace?.lat ?? null,
@@ -132,6 +161,8 @@ export function nextReview(
   const base: Review = current ?? {
     venueId,
     status: null,
+    name: null,
+    kind: null,
     venue: null,
     terrace: null,
     reviewed: today,
@@ -149,4 +180,26 @@ export function nextReview(
     case 'venue':
       return { ...base, venue: change.at, reviewed: today }
   }
+}
+
+/** A `review:` id for a new venue, unique among `taken`. */
+export function addedId(name: string, taken: ReadonlySet<string>): string {
+  const slug =
+    name
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'venue'
+  let id = `${ADDED_PREFIX}${slug}`
+  for (let n = 2; taken.has(id); n++) id = `${ADDED_PREFIX}${slug}-${n}`
+  return id
+}
+
+/** CSV cells are not quoted, so names lose commas, quotes and line breaks. */
+export function cleanName(name: string): string {
+  return name
+    .replace(/[,"\n\r]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
