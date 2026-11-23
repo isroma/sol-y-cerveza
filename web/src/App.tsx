@@ -11,9 +11,10 @@ import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
 import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
-import { Logo } from './ui/icons.tsx'
+import { CloseIcon, Logo, MenuIcon } from './ui/icons.tsx'
 import { SearchBox } from './ui/SearchBox.tsx'
 import { TimeSlider } from './ui/TimeSlider.tsx'
+import { useMediaQuery } from './ui/useMediaQuery.ts'
 import { VenueList } from './ui/VenueList.tsx'
 
 type LoadState =
@@ -32,8 +33,10 @@ export function App() {
   const [query, setQuery] = useState('')
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  // Phones only: the bottom sheet under the map can grow to show more of the list.
-  const [sheetOpen, setSheetOpen] = useState(false)
+  // Phones: the time bar is the footer; search, filters and the list live in
+  // a menu that opens over the map.
+  const phone = useMediaQuery('(max-width: 899px)')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -104,35 +107,53 @@ export function App() {
     setMinutes(current.minutes)
   }, [])
 
-  // Picking a venue from the list shrinks the sheet so its map card shows.
+  // Picking a venue from the list closes the menu so its map card shows.
   const selectFromList = useCallback((id: string | null) => {
     setSelectedId(id)
-    setSheetOpen(false)
+    setMenuOpen(false)
   }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen])
+
+  const timeSlider = (
+    <TimeSlider
+      minutes={minutes}
+      onChange={setMinutes}
+      onNow={goToNow}
+      now={now.minutes}
+      sunrise={times?.sunrise ?? null}
+      sunset={times?.sunset ?? null}
+    />
+  )
 
   return (
     <div className={night ? 'app is-night' : 'app'}>
       <header className="brand">
         <Logo />
         <h1>Sol y Cerveza</h1>
+        {phone && (
+          <button
+            type="button"
+            className="menu-button"
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={menuOpen}
+            aria-controls="sidebar"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? <CloseIcon size={24} /> : <MenuIcon size={24} />}
+          </button>
+        )}
       </header>
-      <aside className={sheetOpen ? 'sidebar is-open' : 'sidebar'}>
-        <button
-          type="button"
-          className="sheet-handle"
-          aria-expanded={sheetOpen}
-          aria-label={sheetOpen ? 'Mostrar más mapa' : 'Mostrar más lista'}
-          onClick={() => setSheetOpen(!sheetOpen)}
-        />
+      <aside id="sidebar" className="sidebar" hidden={phone && !menuOpen}>
         <SearchBox value={query} onChange={setQuery} />
-        <TimeSlider
-          minutes={minutes}
-          onChange={setMinutes}
-          onNow={goToNow}
-          now={now.minutes}
-          sunrise={times?.sunrise ?? null}
-          sunset={times?.sunset ?? null}
-        />
+        {!phone && timeSlider}
         <FiltersPanel filters={filters} onChange={setFilters} />
         {load.status === 'ready' && load.file.sample && (
           <p className="sample-notice" role="note">
@@ -168,6 +189,7 @@ export function App() {
           attribution={load.status === 'ready' ? load.file.attribution : []}
         />
       </main>
+      {phone && <footer className="time-footer">{timeSlider}</footer>}
     </div>
   )
 }

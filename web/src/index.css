@@ -107,16 +107,11 @@ button {
   min-height: 0;
 }
 
-.sheet-handle {
-  display: none;
-}
-
-/* Phones: a slim brand bar on top, the map in the middle and a bottom sheet
-   whose first block is the time bar, always in view. Search, filters and the
-   list scroll under it; the handle lets the sheet grow over more of the map. */
+/* Phones: a slim brand bar on top with the menu button, the map in the
+   middle and the time bar as the footer. Search, filters and the list open
+   from the menu, over the map. */
 @media (max-width: 899px) {
   .app {
-    --sheet-overlap: var(--space-4);
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
     height: 100dvh;
@@ -126,13 +121,13 @@ button {
   .brand {
     grid-area: 1 / 1;
     gap: var(--space-2);
-    padding: calc(env(safe-area-inset-top) + var(--space-2)) var(--space-4)
-      var(--space-2);
+    padding: calc(env(safe-area-inset-top) + var(--space-2)) var(--space-2)
+      var(--space-2) var(--space-4);
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
-  .brand svg {
+  .brand > svg {
     width: 32px;
     height: 32px;
   }
@@ -142,70 +137,39 @@ button {
     letter-spacing: -0.3px;
   }
 
+  .menu-button {
+    display: grid;
+    place-items: center;
+    width: var(--control);
+    height: var(--control);
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ink);
+  }
+
+  .menu-button:hover {
+    background: var(--surface-hover);
+  }
+
   .map-area {
     grid-area: 2 / 1;
   }
 
+  /* The menu covers the map, between the brand bar and the time bar. */
   .sidebar {
-    grid-area: 3 / 1;
+    grid-area: 2 / 1;
     gap: var(--space-4);
-    max-height: 34dvh;
-    margin-top: calc(-1 * var(--sheet-overlap));
-    padding: 0 var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));
+    padding: var(--space-4);
     border-right: 0;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    box-shadow: 0 -4px 16px rgba(31, 35, 40, 0.12);
     overscroll-behavior: contain;
-    transition: max-height 0.3s ease;
-    z-index: 2;
+    z-index: 3;
   }
 
-  .sidebar.is-open {
-    max-height: 60dvh;
-  }
-
-  .sheet-handle {
-    position: sticky;
-    top: 0;
-    display: block;
-    flex: none;
-    order: -2;
-    height: 20px;
-    margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
-    padding: 0;
-    border: 0;
-    background: var(--bg);
-    z-index: 2;
-  }
-
-  .sheet-handle::before {
-    display: block;
-    width: 36px;
-    height: 5px;
-    margin: var(--space-2) auto 0;
-    border-radius: 999px;
-    background: var(--toggle-off);
-    content: '';
-  }
-
-  /* The time bar leads the sheet and stays pinned while the rest scrolls. */
-  .sidebar > .time {
-    position: sticky;
-    top: 20px;
-    order: -1;
-    margin: 0 calc(-1 * var(--space-4));
-    padding: var(--space-2) var(--space-4) var(--space-3);
-    border-bottom: 1px solid var(--line);
-    background: var(--bg);
-    z-index: 1;
-  }
-
-  .sidebar > .time .time-value {
-    font-size: 20px;
-  }
-
-  .sidebar > .time .time-slider {
-    margin: var(--space-3) 0 var(--space-2);
+  .sidebar[hidden] {
+    display: none;
   }
 
   .filters,
@@ -216,11 +180,22 @@ button {
   .filters-header h2 {
     font-size: 17px;
   }
-}
 
-@media (max-width: 899px) and (prefers-reduced-motion: reduce) {
-  .sidebar {
-    transition: none;
+  .time-footer {
+    grid-area: 3 / 1;
+    padding: var(--space-3) var(--space-4)
+      calc(env(safe-area-inset-bottom) + var(--space-3));
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    z-index: 2;
+  }
+
+  .time-footer .time-value {
+    font-size: 20px;
+  }
+
+  .time-footer .time-slider {
+    margin: var(--space-3) 0 var(--space-2);
   }
 }
 
@@ -759,11 +734,10 @@ button {
 }
 
 @media (max-width: 899px) {
-  /* The sheet's rounded top overlaps the map by --sheet-overlap; the
-     attribution button sits left of the legend, both just above the sheet. */
+  /* The attribution button sits left of the legend, both at the bottom. */
   .map-legend {
     right: var(--space-3);
-    bottom: calc(var(--sheet-overlap) + var(--space-3));
+    bottom: var(--space-3);
     left: calc(var(--space-3) + 24px + var(--space-2));
     /* Room on the right for the info button. */
     padding: var(--space-2) 40px var(--space-2) var(--space-3);
@@ -1308,6 +1282,6 @@ button {
 
 @media (max-width: 899px) {
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
-    margin: 0 0 calc(var(--sheet-overlap) + var(--space-3)) var(--space-3);
+    margin: 0 0 var(--space-3) var(--space-3);
   }
 }

@@ -72,16 +72,34 @@ describe('App', () => {
     expect(screen.getByTestId('map')).toBeInTheDocument()
   })
 
-  it('lets the phone sheet grow and shrink', () => {
+  it('on phones, keeps the time in the footer and the rest in a menu', () => {
     stubFetch(Response.json(sampleFile))
+    vi.stubGlobal(
+      'matchMedia',
+      (query: string) =>
+        ({
+          matches: true,
+          media: query,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+        }) satisfies Partial<MediaQueryList>,
+    )
     render(<App />)
 
-    const handle = screen.getByRole('button', { name: 'Mostrar más lista' })
-    expect(handle).toHaveAttribute('aria-expanded', 'false')
-    fireEvent.click(handle)
+    expect(screen.getByRole('slider', { name: 'Hora del día' })).toBeVisible()
     expect(
-      screen.getByRole('button', { name: 'Mostrar más mapa' }),
-    ).toHaveAttribute('aria-expanded', 'true')
+      screen.queryByRole('searchbox', { name: 'Buscar bar o terraza' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }))
+    expect(
+      screen.getByRole('searchbox', { name: 'Buscar bar o terraza' }),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar menú' }))
+    expect(
+      screen.queryByRole('searchbox', { name: 'Buscar bar o terraza' }),
+    ).not.toBeInTheDocument()
   })
 
   it('loads the venues from a relative URL', () => {
