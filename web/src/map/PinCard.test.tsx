@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { sunBox } from '../ui/categoryStyle.ts'
 import { PinCard } from './PinCard.tsx'
@@ -79,5 +79,71 @@ describe('PinCard', () => {
       <PinCard status={status({})} minutes={at} sunset={18 * 60} />,
     )
     expect(container.querySelector('.sun-countdown')).toBeNull()
+  })
+})
+
+describe('PinCard share button', () => {
+  const sunny = () =>
+    status({ category: 'sun', sunUntil: 16 * 60 + 37, timeline: null })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.history.replaceState(null, '', '/')
+  })
+
+  it('opens the share sheet with the venue, its sun and a link', async () => {
+    const share = vi.fn(async () => undefined)
+    vi.stubGlobal('navigator', { ...navigator, share })
+    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Compartir Café La Plaza' }),
+    )
+    await waitFor(() => expect(share).toHaveBeenCalledOnce())
+    expect(share).toHaveBeenCalledWith({
+      title: 'Café La Plaza',
+      text: 'Café La Plaza: 2 h 5 min de sol',
+      url: expect.stringMatching(/\?t=14:32&v=curated:x$/),
+    })
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('copies the link where there is no share sheet', async () => {
+    const writeText = vi.fn(async () => undefined)
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share: undefined,
+      clipboard: { writeText },
+    })
+    window.history.replaceState(null, '', '/?utm=x')
+    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Compartir Café La Plaza' }),
+    )
+    expect(await screen.findByText('Enlace copiado')).toBeInTheDocument()
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringMatching(/\/\?utm=x&t=14:32&v=curated:x$/),
+    )
+  })
+
+  it('says so when the link cannot be copied', async () => {
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share: undefined,
+      clipboard: {
+        writeText: async () => {
+          throw new Error('denied')
+        },
+      },
+    })
+    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Compartir Café La Plaza' }),
+    )
+    expect(
+      await screen.findByText('No se ha podido copiar el enlace'),
+    ).toBeInTheDocument()
   })
 })

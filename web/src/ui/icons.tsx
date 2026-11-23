@@ -172,6 +172,14 @@ export const TerraceIcon = (p: IconProps) => (
   </Icon>
 )
 
+/** Box with an arrow leaving it upwards: share a link. */
+export const ShareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5v11M8 7.5l4-4 4 4" />
+    <path d="M8.5 10.5H7a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6.5a2 2 0 0 0-2-2h-1.5" />
+  </Icon>
+)
+
 export const ChevronDownIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m6 9 6 6 6-6" />
