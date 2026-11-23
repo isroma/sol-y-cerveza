@@ -57,6 +57,7 @@ describe('consensus', () => {
         cents: 150,
         voters: THRESHOLD,
         last: '2026-11-23T10:00:00Z',
+        confirmed: false,
       },
     ])
   })

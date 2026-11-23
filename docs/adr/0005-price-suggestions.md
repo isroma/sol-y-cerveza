@@ -22,6 +22,17 @@ Two sources:
 
 Cloudflare was chosen over Supabase because Turnstile, the Worker and D1 come from one account on the free tier, and a free Supabase project pauses after a week without traffic.
 
+### Owner mode (2026-11-23)
+
+The owner records prices at the bar from their phone, without the laptop.
+
+- **Unlocking:** a private link carrying `OWNER_TOKEN` turns on owner mode on the public site. The token is kept in the phone's local storage.
+- **Saving:** the venue card gets price fields, which save straight to `owner_prices` in D1 (`PUT /v1/owner/prices`). `GET /v1/prices` serves those prices as confirmed (no "~"), replacing visitor prices for the same item. They're dated with the Madrid date.
+- **Photo:** "Foto de la carta" sends a downscaled photo to `POST /v1/owner/photo`, which reads the prices and the bar's name with the Claude API, using the same prompt and price rules as the admin's photo reader (`web/src/data/photoReading.ts`). The photo isn't stored.
+- **Auto-save:** the app saves clear readings for a clearly matched bar and asks for anything unclear. The bar is matched by the card that's open, or, for a photo from the library, by its GPS location and the name on the menu.
+- **Scope of the token:** `OWNER_TOKEN` can only add or remove prices; it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can delete, and the token can be replaced with `wrangler secret put`.
+- **Repo copy:** the admin's "Import phone prices" copies owner prices into `venue_prices.csv`, so the repo keeps the full record and Publish ships them as usual.
+
 ## Consequences
 
 - The site stays static: suggested prices load at runtime, so a consensus shows up without a rebuild.

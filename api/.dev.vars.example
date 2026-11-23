@@ -2,3 +2,6 @@
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
 ADMIN_TOKEN=local-admin-token
 IP_SALT=local-salt
+OWNER_TOKEN=local-owner-token
+# Real key needed only to test photo reading locally.
+ANTHROPIC_API_KEY=
