@@ -86,7 +86,8 @@ def fetch_places(bbox: BoundingBox = BADAJOZ_BBOX, cache_dir: Path = CACHE_DIR) 
                  (bbox.xmin + bbox.xmax) / 2 AS lon, (bbox.ymin + bbox.ymax) / 2 AS lat,
                  confidence, operating_status,
                  taxonomy.primary AS category, taxonomy.hierarchy AS hierarchy,
-                 list_transform(sources, lambda s: s.dataset) AS datasets
+                 list_transform(sources, lambda s: s.dataset) AS datasets,
+                 websites
           FROM read_parquet('{PLACES}', hive_partitioning = 1)
           WHERE bbox.xmin >= ? AND bbox.xmax <= ? AND bbox.ymin >= ? AND bbox.ymax <= ?
           ORDER BY id
@@ -143,6 +144,29 @@ def read_places(path: Path) -> list[Venue]:
             )
         )
     return venues
+
+
+def read_websites(path: Path) -> dict[str, list[str]]:
+    """Venue id -> the place's `websites`, from a parquet written by `fetch_places`.
+
+    Parquets downloaded before websites were kept have no such column: re-run
+    `python -m solycerveza.overture` to get them.
+    """
+    if not path.exists():
+        return {}
+    con = duckdb.connect()
+    columns = {
+        row[0]
+        for row in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(path)]).fetchall()
+    }
+    if "websites" not in columns:
+        logger.warning("%s has no websites: re-run `python -m solycerveza.overture`", path)
+        return {}
+    rows = con.execute(
+        "SELECT id, websites FROM read_parquet(?) WHERE len(websites) > 0 ORDER BY id",
+        [str(path)],
+    ).fetchall()
+    return {f"overture:{place_id}": [str(url) for url in urls] for place_id, urls in rows}
 
 
 # Words that say what a venue is, not which one it is.
