@@ -42,50 +42,34 @@ afterEach(() => {
 })
 
 describe('ReportPicker', () => {
-  it('sends a move only once the pin has moved, and not too far', async () => {
-    const fetchMock = vi.fn(async () =>
-      Response.json({ ok: true }, { status: 201 }),
+  it('hands a move back once the pin has moved, and not too far', () => {
+    const onPlace = vi.fn()
+    const picking: Picking = { kind: 'move', venue, from: venue.venue }
+    const picker = (center: { lat: number; lon: number }) => (
+      <ReportPicker
+        picking={picking}
+        center={center}
+        onPlace={onPlace}
+        onClose={vi.fn()}
+      />
     )
-    vi.stubGlobal('fetch', fetchMock)
-    const picking: Picking = { kind: 'move', venue }
-    const { rerender } = render(
-      <ReportPicker picking={picking} center={venue.venue} onClose={vi.fn()} />,
-    )
+    const { rerender } = render(picker(venue.venue))
+    const done = () => screen.getByRole('button', { name: 'Listo' })
     expect(screen.getByRole('region', { name: 'Mover Bar Uno' })).toHaveFocus()
     expect(screen.getByRole('status')).toHaveTextContent(
       'Mueve el mapa hasta el sitio correcto',
     )
-    expect(send()).toBeDisabled()
+    expect(done()).toBeDisabled()
 
     // About 1.1 km north: the API would refuse it.
-    rerender(
-      <ReportPicker
-        picking={picking}
-        center={{ lat: 38.888, lon: -6.97 }}
-        onClose={vi.fn()}
-      />,
-    )
+    rerender(picker({ lat: 38.888, lon: -6.97 }))
     expect(screen.getByRole('status')).toHaveTextContent('más de 500 m')
-    expect(send()).toBeDisabled()
+    expect(done()).toBeDisabled()
 
-    // About 22 m north.
-    rerender(
-      <ReportPicker
-        picking={picking}
-        center={{ lat: 38.8782, lon: -6.97 }}
-        onClose={vi.fn()}
-      />,
-    )
-    expect(send()).toBeEnabled()
-    fireEvent.click(send())
-    expect(await screen.findByText(/¡Gracias!/)).toBeInTheDocument()
-    expect(sentBody(fetchMock)).toEqual({
-      kind: 'move',
-      venueId: 'osm:node/1',
-      lat: 38.8782,
-      lon: -6.97,
-      token: 'token',
-    })
+    // About 22 m north: no bot check here, the card's back sends it.
+    rerender(picker({ lat: 38.8782, lon: -6.97 }))
+    fireEvent.click(done())
+    expect(onPlace).toHaveBeenCalledWith({ lat: 38.8782, lon: -6.97 })
   })
 
   it('adds a venue with a name, a kind and its terrace', async () => {
@@ -97,6 +81,7 @@ describe('ReportPicker', () => {
       <ReportPicker
         picking={{ kind: 'add' }}
         center={{ lat: 38.878, lon: -6.97 }}
+        onPlace={vi.fn()}
         onClose={vi.fn()}
       />,
     )
@@ -127,6 +112,7 @@ describe('ReportPicker', () => {
       <ReportPicker
         picking={{ kind: 'add' }}
         center={{ lat: 38.95, lon: -6.97 }}
+        onPlace={vi.fn()}
         onClose={onClose}
       />,
     )

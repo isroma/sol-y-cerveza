@@ -11,11 +11,27 @@ import {
 
 // window.__map is typed in smoke.spec.ts.
 
-/** Gets a token at once, like Turnstile's always-pass test key. */
-const TURNSTILE_STUB = `window.turnstile = {
-  render: (el, options) => { setTimeout(() => options.callback('test-token')); return 'w' },
+/**
+ * Gets a token at once, like Turnstile's always-pass test key; a widget
+ * rendered with execution 'execute' waits for execute(). Counts each run.
+ */
+const TURNSTILE_STUB = `window.__checks = 0
+window.__widgets = {}
+window.turnstile = {
+  render: (el, options) => {
+    const id = 'w' + Object.keys(window.__widgets).length
+    const run = () => { window.__checks++; setTimeout(() => options.callback('test-token')) }
+    window.__widgets[id] = run
+    if (options.execution !== 'execute') run()
+    return id
+  },
+  execute: (id) => window.__widgets[id](),
   remove: () => {},
 }`
+
+/** How many bot checks have run on the page. */
+const checks = (page: Page) =>
+  page.evaluate(() => (window as unknown as { __checks: number }).__checks)
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1'])
 
@@ -47,11 +63,8 @@ const test = base.extend<{ reports: unknown[] }>({
           })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/prices')
           return route.fulfill({ json: { prices: [] } })
-        if (
-          url.hostname === 'prices.test' &&
-          url.pathname === '/v1/suggestions'
-        ) {
-          reports.push({ suggestion: request.postDataJSON() })
+        if (url.hostname === 'prices.test' && url.pathname === '/v1/changes') {
+          reports.push({ change: request.postDataJSON() })
           return route.fulfill({ status: 201, json: { ok: true } })
         }
         if (url.hostname === 'prices.test' && url.pathname === '/v1/reports') {
@@ -106,6 +119,8 @@ test('reports a closed venue from the back of its card', async ({
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
   await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
   await expect(card.locator('.change-title')).toBeFocused()
+  // The check loads with the back, and runs only once something is edited.
+  expect(await checks(page)).toBe(0)
   await shot(page, '2-card-back')
   await card.getByRole('switch', { name: 'Ya no existe' }).check()
   await card.getByRole('button', { name: 'Enviar' }).click()
@@ -114,7 +129,7 @@ test('reports a closed venue from the back of its card', async ({
   )
   await shot(page, '5-thanks-closed')
   expect(reports).toEqual([
-    { kind: 'closed', venueId: 'test:0', token: 'test-token' },
+    { change: { venueId: 'test:0', token: 'test-token', closed: true } },
   ])
 })
 
@@ -136,12 +151,10 @@ test('sends a price from the back of the card, then goes back', async ({
   )
   expect(reports).toEqual([
     {
-      suggestion: {
+      change: {
         venueId: 'test:0',
-        item: 'tercio',
-        brand: 'cruzcampo',
-        cents: 220,
         token: 'test-token',
+        price: { item: 'tercio', brand: 'cruzcampo', cents: 220 },
       },
     },
   ])
@@ -152,17 +165,23 @@ test('sends a price from the back of the card, then goes back', async ({
   ).toBeVisible()
 })
 
-test('moves a venue with the centre pin', async ({ page, reports }) => {
+test('moves a venue and sends it with a price, behind one check', async ({
+  page,
+  reports,
+}) => {
   await openCard(page, 'Bar Sol Uno')
   await shot(page, '1-card-front')
   await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await page
+    .getByRole('textbox', { name: 'Precio de la caña en euros' })
+    .fill('1,80')
   await page.getByRole('button', { name: /Ubicación/ }).click()
   const bar = page.getByRole('region', { name: 'Mover Bar Sol Uno' })
   await expect(bar).toBeFocused()
   await expect(page.locator('.pin-card')).toHaveCount(0)
   await settled(page)
-  const send = bar.getByRole('button', { name: 'Enviar' })
-  await expect(send).toBeDisabled()
+  const done = bar.getByRole('button', { name: 'Listo' })
+  await expect(done).toBeDisabled()
   if (isPhone(page)) await expect(page.locator('.time-footer')).toHaveCount(0)
   await shot(page, '3-move-picker')
 
@@ -172,7 +191,7 @@ test('moves a venue with the centre pin', async ({ page, reports }) => {
     .click({ force: true })
   await expect(page.locator('.pin-card')).toHaveCount(0)
 
-  // Move the map so the pin lands a few metres away, then send.
+  // Move the map so the pin lands a few metres away: back to the card.
   const map = page.getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
   const box = await map.boundingBox()
   if (!box) throw new Error('no map')
@@ -180,16 +199,32 @@ test('moves a venue with the centre pin', async ({ page, reports }) => {
   await page.mouse.down()
   await page.mouse.move(box.x + 80, box.y + 160, { steps: 8 })
   await page.mouse.up()
-  await expect(send).toBeEnabled()
-  await send.click()
-  await expect(bar.getByRole('status')).toHaveText(
+  await expect(done).toBeEnabled()
+  await done.click()
+  await expect(bar).toHaveCount(0)
+  const card = page.locator('.pin-card')
+  await expect(card.getByRole('button', { name: /Ubicación/ })).toContainText(
+    /Movida \d+ m/,
+  )
+  // The price typed before the trip to the map is still there.
+  await expect(
+    card.getByRole('textbox', { name: 'Precio de la caña en euros' }),
+  ).toHaveValue('1,80')
+  await shot(page, '4-card-back-moved')
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
   )
   await shot(page, '5-thanks-move')
+  expect(await checks(page)).toBe(1)
   expect(reports).toHaveLength(1)
-  expect(reports[0]).toMatchObject({ kind: 'move', venueId: 'test:0' })
-  await bar.getByRole('button', { name: 'Cerrar' }).click()
-  await expect(bar).toHaveCount(0)
+  expect(reports[0]).toMatchObject({
+    change: {
+      venueId: 'test:0',
+      price: { item: 'cana', brand: null, cents: 180 },
+      move: {},
+    },
+  })
 })
 
 test('adds a missing venue from the menu', async ({ page, reports }) => {
@@ -233,12 +268,18 @@ test('adds a missing venue from the menu', async ({ page, reports }) => {
   await expect(bar).toHaveCount(0)
 })
 
-test('Escape cancels the picker', async ({ page, reports }) => {
+test('Escape cancels the picker, back to the card', async ({
+  page,
+  reports,
+}) => {
   await openCard(page, 'Bar Sol Uno')
   await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
   await page.getByRole('button', { name: /Ubicación/ }).click()
   await expect(page.getByRole('region', { name: /^Mover/ })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: /^Mover/ })).toHaveCount(0)
+  await expect(
+    page.locator('.pin-card').getByRole('button', { name: /Ubicación/ }),
+  ).toContainText('Mover en el mapa')
   expect(reports).toEqual([])
 })

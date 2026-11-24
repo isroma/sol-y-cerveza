@@ -24,14 +24,17 @@ type Props = {
   picking: Picking
   /** The map's centre, under the fixed pin; null until the map reports it. */
   center: LatLon | null
+  /** A move's spot, handed back to the card's back, which sends it. */
+  onPlace: (spot: LatLon) => void
   onClose: () => void
 }
 
 /**
  * Places a venue on the map: a fixed pin at the centre of the map, which the
- * visitor pans and zooms under it, and a bottom bar to send or cancel.
+ * visitor pans and zooms under it, and a bottom bar. A new venue is sent from
+ * here; a move goes back to its card's back with Listo, sent with the rest.
  */
-export function ReportPicker({ picking, center, onClose }: Props) {
+export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<AddKind>('bar')
   const [terrace, setTerrace] = useState(true)
@@ -79,32 +82,29 @@ export function ReportPicker({ picking, center, onClose }: Props) {
   const outside = center !== null && !insideBadajoz(center)
   const ready =
     center !== null &&
-    token !== null &&
+    (venue !== null || token !== null) &&
     moved &&
     !tooFar &&
     !outside &&
-    (picking.kind === 'move' || validName(name))
+    (venue !== null || validName(name))
 
   const send = () => {
-    if (!ready || center === null || token === null) return
+    if (!ready || center === null) return
+    if (venue) {
+      onPlace(center)
+      return
+    }
+    if (token === null) return
     setSending(true)
-    const sent = venue
-      ? reportVenue({
-          kind: 'move',
-          venueId: venue.id,
-          lat: center.lat,
-          lon: center.lon,
-          token,
-        })
-      : reportVenue({
-          kind: 'add',
-          name: cleanName(name),
-          venueKind: kind,
-          terrace,
-          lat: center.lat,
-          lon: center.lon,
-          token,
-        })
+    const sent = reportVenue({
+      kind: 'add',
+      name: cleanName(name),
+      venueKind: kind,
+      terrace,
+      lat: center.lat,
+      lon: center.lon,
+      token,
+    })
     void sent.then((answer) => {
       setSending(false)
       setResult(answer)
@@ -199,7 +199,7 @@ export function ReportPicker({ picking, center, onClose }: Props) {
                 </div>
               </>
             )}
-            {TURNSTILE_SITE_KEY && (
+            {TURNSTILE_SITE_KEY && !venue && (
               <Turnstile
                 siteKey={TURNSTILE_SITE_KEY}
                 action="report"
@@ -215,7 +215,7 @@ export function ReportPicker({ picking, center, onClose }: Props) {
                 className="picker-send"
                 disabled={!ready || sending}
               >
-                {sending ? 'Enviando…' : 'Enviar'}
+                {venue ? 'Listo' : sending ? 'Enviando…' : 'Enviar'}
               </button>
             </div>
           </form>

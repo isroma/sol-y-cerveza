@@ -12,6 +12,7 @@ import {
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
 import { OwnerBar } from './prices/OwnerBar.tsx'
+import { DraftContext, type ChangeDraft } from './reports/draft.ts'
 import { StartMoveContext, type Picking } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
 import { CAN_REPORT } from './reports/reports.ts'
@@ -57,6 +58,9 @@ export function App() {
   // Reporting a moved or missing venue: a centre pin over the map.
   const [picking, setPicking] = useState<Picking | null>(null)
   const [center, setCenter] = useState<LatLon | null>(null)
+  // The open card back's draft, kept while its venue is moved on the map.
+  const [draft, setDraft] = useState<ChangeDraft | null>(null)
+  const draftState = useMemo(() => ({ draft, setDraft }), [draft])
 
   useEffect(() => {
     let cancelled = false
@@ -162,24 +166,42 @@ export function App() {
     setCenter(null)
   }, [])
 
-  const startMove = useCallback((venue: Terrace) => {
-    setSelectedId(null)
-    setPicking({ kind: 'move', venue })
-  }, [])
+  // A move starts where the visitor last placed it, else at the badge.
+  const startMove = useCallback(
+    (venue: Terrace) => {
+      const placed = draft?.venueId === venue.id ? draft.move : null
+      setSelectedId(null)
+      setPicking({
+        kind: 'move',
+        venue,
+        from: placed ?? venue.terrace ?? venue.venue,
+      })
+    },
+    [draft],
+  )
   const startAdd = useCallback(() => {
     setMenuOpen(false)
     setSelectedId(null)
     setPicking({ kind: 'add' })
   }, [])
   const stopPicking = useCallback(() => {
+    // A move returns to its card's back; adding a venue just ends.
+    if (picking?.kind === 'move') setSelectedId(picking.venue.id)
     setPicking(null)
     setCenter(null)
-  }, [])
+  }, [picking])
+  // The spot a move was placed at goes back to the card's draft.
+  const placeMove = useCallback(
+    (spot: LatLon) => {
+      if (picking?.kind !== 'move') return
+      const id = picking.venue.id
+      setDraft((d) => (d?.venueId === id ? { ...d, move: spot } : d))
+      stopPicking()
+    },
+    [picking, stopPicking],
+  )
   const flyTo = useMemo(
-    () =>
-      picking?.kind === 'move'
-        ? (picking.venue.terrace ?? picking.venue.venue)
-        : null,
+    () => (picking?.kind === 'move' ? picking.from : null),
     [picking],
   )
 
@@ -253,24 +275,27 @@ export function App() {
       </aside>
       <main className="map-area">
         <StartMoveContext value={startMove}>
-          <MapView
-            statuses={visible}
-            selectedId={selectedId}
-            onSelect={picking ? ignoreSelect : setSelectedId}
-            sun={sun}
-            minutes={minutes}
-            sunset={times?.sunset ?? null}
-            attribution={load.status === 'ready' ? load.file.attribution : []}
-            leafOffTrees={leafOffTrees}
-            onCenterChange={picking ? setCenter : undefined}
-            flyTo={flyTo}
-          />
+          <DraftContext value={draftState}>
+            <MapView
+              statuses={visible}
+              selectedId={selectedId}
+              onSelect={picking ? ignoreSelect : setSelectedId}
+              sun={sun}
+              minutes={minutes}
+              sunset={times?.sunset ?? null}
+              attribution={load.status === 'ready' ? load.file.attribution : []}
+              leafOffTrees={leafOffTrees}
+              onCenterChange={picking ? setCenter : undefined}
+              flyTo={flyTo}
+            />
+          </DraftContext>
         </StartMoveContext>
         {picking && (
           <ReportPicker
             key={picking.kind === 'move' ? picking.venue.id : 'add'}
             picking={picking}
             center={center}
+            onPlace={placeMove}
             onClose={stopPicking}
           />
         )}

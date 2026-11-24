@@ -1,4 +1,5 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
+import type { Brand, Item } from '../data/prices.ts'
 import {
   PRICES_API,
   TURNSTILE_SITE_KEY,
@@ -100,4 +101,36 @@ export const RESULT_TEXT: Record<SuggestResult, string> = {
     'Hay demasiados avisos enviados desde tu conexión. Prueba más tarde.',
   bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
   error: 'No se ha podido enviar. Inténtalo más tarde.',
+}
+
+/** Everything a visitor suggests from a card's back, behind one bot check. */
+export type Change = {
+  venueId: string
+  token: string
+  price?: { item: Item; brand: Brand | null; cents: number }
+  move?: LatLon
+  closed?: true
+}
+
+export async function sendChange(change: Change): Promise<SuggestResult> {
+  if (!PRICES_API) return 'error'
+  const body = change.move
+    ? {
+        ...change,
+        move: { lat: round6(change.move.lat), lon: round6(change.move.lon) },
+      }
+    : change
+  try {
+    const response = await fetch(`${PRICES_API}/v1/changes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (response.ok) return 'ok'
+    if (response.status === 429) return 'rate-limited'
+    if (response.status === 403) return 'bot'
+    return 'error'
+  } catch {
+    return 'error'
+  }
 }

@@ -7,6 +7,7 @@ import { SunCountdown } from './SunCountdown.tsx'
 import { CAN_SUGGEST } from '../prices/crowd.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useOwner } from '../prices/owner.ts'
+import { emptyDraft, useDraft } from '../reports/draft.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
 import { currentSunRun } from '../sun/venueStatus.ts'
 import { shareUrl } from '../urlState.ts'
@@ -127,9 +128,10 @@ export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
   const { token } = useOwner()
-  // Which venue's card shows its back: switching venues turns it round.
-  const [backFor, setBackFor] = useState<string | null>(null)
-  const showBack = backFor === venue.id
+  // The open back's draft, kept by App across the map picker: the card shows
+  // its back while the draft is this venue's. Switching venues turns it round.
+  const { draft, setDraft } = useDraft()
+  const showBack = draft?.venueId === venue.id
   // Turning round: the card turns edge-on ('out'), swaps sides, then turns
   // face-on again ('in').
   const [turn, setTurn] = useState<'out' | 'in' | null>(null)
@@ -137,14 +139,15 @@ export function PinCard({ status, minutes }: Props) {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   useEffect(() => () => clearTimeout(turnTimer.current), [])
   const flipTo = (id: string | null) => {
+    const swap = () => setDraft(id === null ? null : emptyDraft(id))
     if (reduceMotion) {
-      setBackFor(id)
+      swap()
       return
     }
     clearTimeout(turnTimer.current)
     setTurn('out')
     turnTimer.current = window.setTimeout(() => {
-      setBackFor(id)
+      swap()
       setTurn('in')
     }, FLIP_HALF_MS)
   }
@@ -175,8 +178,15 @@ export function PinCard({ status, minutes }: Props) {
           <Shoulder side="right" />
         </div>
         <div className="pin-card-body">
-          {showBack ? (
-            <SuggestChange venue={venue} onBack={() => flipTo(null)} />
+          {showBack && draft ? (
+            <SuggestChange
+              venue={venue}
+              draft={draft}
+              onChange={(patch) =>
+                setDraft((d) => (d ? { ...d, ...patch } : d))
+              }
+              onBack={() => flipTo(null)}
+            />
           ) : (
             <>
               <div className="pin-card-title">
