@@ -68,7 +68,7 @@ type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
 /**
  * Cloudflare's bot check; invisible unless Cloudflare wants an interaction.
  * Every mount needs a new check (each turn of the card), and the first in a
- * session also loads Cloudflare's script: while one runs, "Verificando…".
+ * session also loads Cloudflare's script: while one runs, a spinner.
  */
 export function Turnstile({
   siteKey,
@@ -153,10 +153,13 @@ export function Turnstile({
     <>
       {/* Only while a check runs: a deferred one waits for `run`. */}
       {run && state === 'checking' && (
-        <p className="turnstile-checking" role="status">
-          <span className="turnstile-spinner" aria-hidden="true" />
-          Verificando…
-        </p>
+        <div className="turnstile-checking">
+          <span
+            className="turnstile-spinner"
+            role="status"
+            aria-label="Verificando"
+          />
+        </div>
       )}
       {/* Once Cloudflare is happy, its "success" box adds nothing: fold it away. */}
       <div

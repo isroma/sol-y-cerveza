@@ -36,10 +36,12 @@ afterEach(() => {
 })
 
 describe('Turnstile', () => {
-  it('shows "Verificando…" until the check passes', async () => {
+  it('shows the spinner until the check passes', async () => {
     const onToken = vi.fn()
     render(<Turnstile siteKey="key" onToken={onToken} />)
-    expect(screen.getByRole('status')).toHaveTextContent('Verificando…')
+    expect(
+      screen.getByRole('status', { name: 'Verificando' }),
+    ).toBeInTheDocument()
     const check = await rendered()
     act(() => check.callback('token'))
     expect(screen.queryByRole('status')).toBeNull()
@@ -69,7 +71,9 @@ describe('Turnstile', () => {
     await rendered()
     expect(screen.queryByRole('status')).toBeNull()
     rerender(<Turnstile siteKey="key" onToken={vi.fn()} run />)
-    expect(screen.getByRole('status')).toHaveTextContent('Verificando…')
+    expect(
+      screen.getByRole('status', { name: 'Verificando' }),
+    ).toBeInTheDocument()
   })
 
   it('shows it again while an expired token is renewed', async () => {
@@ -77,6 +81,8 @@ describe('Turnstile', () => {
     const check = await rendered()
     act(() => check.callback('token'))
     act(() => check['expired-callback']())
-    expect(screen.getByRole('status')).toHaveTextContent('Verificando…')
+    expect(
+      screen.getByRole('status', { name: 'Verificando' }),
+    ).toBeInTheDocument()
   })
 })
