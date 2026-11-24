@@ -38,6 +38,7 @@ Parked: not now. They may come back later, but don't propose or start them unles
 5. Run the quality gates below before pushing.
 6. `main` is protected:
    - A PR is required, and `ci-ok` and `pr-title` must pass.
+   - CodeQL code scanning must pass too: a new alert of high severity or above blocks the merge. Fix the code it points at; don't dismiss the alert. It scans the workflows, JavaScript/TypeScript and Python (Swift and Java/Kotlin are off while mobile is paused).
    - All conversations must be resolved. The branch does not need to be up to date; CI on `main` catches combined breakage.
    - Squash merge only.
    - Never push to `main`, never force-push a shared branch, never use `--no-verify`.
