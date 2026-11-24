@@ -13,6 +13,8 @@ OSM tags and the other sources:
 - `terrace_lat`, `terrace_lon`: where the tables are, for `terrace` (both empty keeps the current
   terrace position, or the venue position when there is none).
 - `reviewed`: YYYY-MM-DD of the decision.
+- `looks_right`: `yes` when the owner checked the terrace and its sun and it is right as it is (only
+  for `terrace`); the admin's "Needs a look" list skips it. Older files may lack the column.
 """
 
 import csv
@@ -40,7 +42,10 @@ COLUMNS = (
     "terrace_lat",
     "terrace_lon",
     "reviewed",
+    "looks_right",
 )
+# Files written before `looks_right` existed.
+LEGACY_COLUMNS = COLUMNS[:-1]
 
 Status = Literal["terrace", "no_terrace", "not_venue"]
 
@@ -57,6 +62,9 @@ class Review(BaseModel):
     terrace_lat: Lat | None = None
     terrace_lon: Lon | None = None
     reviewed: date
+    # The owner checked the terrace and its sun result and it is right as it is
+    # (the admin's Y); only the admin's "Needs a look" list uses it.
+    looks_right: bool = False
 
     @model_validator(mode="after")
     def _pairs(self) -> Self:
@@ -75,6 +83,8 @@ class Review(BaseModel):
             raise ValueError("name and kind are only for added (review:) venues")
         if self.status is None and self.venue_lat is None:
             raise ValueError("a row needs a status or a venue position")
+        if self.looks_right and self.status != "terrace":
+            raise ValueError("looks_right is only for a terrace")
         return self
 
     @property
@@ -96,11 +106,12 @@ def read_review(path: Path = REVIEW_CSV) -> list[Review]:
         return []
     with path.open(encoding="utf-8", newline="") as file:
         reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != COLUMNS:
+        if tuple(reader.fieldnames or ()) not in (COLUMNS, LEGACY_COLUMNS):
             raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
         reviews: list[Review] = []
         for row in reader:
-            cells = {k: (v or "").strip() or None for k, v in row.items()}
+            cells: dict[str, object] = {k: (v or "").strip() or None for k, v in row.items()}
+            cells["looks_right"] = cells.get("looks_right") == "yes"
             try:
                 reviews.append(Review.model_validate(cells))
             except ValidationError as error:

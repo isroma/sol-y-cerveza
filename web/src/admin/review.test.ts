@@ -11,6 +11,8 @@ import {
 } from './review.ts'
 
 const HEADER =
+  'venue_id,status,name,kind,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed,looks_right\n'
+const LEGACY_HEADER =
   'venue_id,status,name,kind,venue_lat,venue_lon,terrace_lat,terrace_lon,reviewed\n'
 const TODAY = '2026-11-23'
 
@@ -22,6 +24,7 @@ const terrace: Review = {
   venue: null,
   terrace: { lat: 38.8812341, lon: -6.9712349 },
   reviewed: TODAY,
+  looksRight: false,
 }
 const moved: Review = {
   venueId: 'overture:abc-1',
@@ -31,6 +34,7 @@ const moved: Review = {
   venue: { lat: 38.88, lon: -6.97 },
   terrace: null,
   reviewed: TODAY,
+  looksRight: false,
 }
 
 describe('venue review CSV', () => {
@@ -38,8 +42,8 @@ describe('venue review CSV', () => {
     const text = formatReviewCsv([moved, terrace])
     expect(text).toBe(
       HEADER +
-        'osm:node/2,terrace,,,,,38.881234,-6.971235,2026-11-23\n' +
-        'overture:abc-1,,,,38.88,-6.97,,,2026-11-23\n',
+        'osm:node/2,terrace,,,,,38.881234,-6.971235,2026-11-23,\n' +
+        'overture:abc-1,,,,38.88,-6.97,,,2026-11-23,\n',
     )
     expect(parseReviewCsv(text)).toEqual([
       { ...terrace, terrace: { lat: 38.881234, lon: -6.971235 } },
@@ -86,6 +90,7 @@ describe('nextReview', () => {
       venue: null,
       terrace: at,
       reviewed: TODAY,
+      looksRight: false,
     })
   })
 
@@ -123,6 +128,7 @@ describe('added venues', () => {
       venue: { lat: 38.879, lon: -6.971 },
       terrace: null,
       reviewed: TODAY,
+      looksRight: false,
     }
     const text = formatReviewCsv([added])
     expect(text).toContain('review:bar-nuevo,,Bar Nuevo,bar,38.879,-6.971,,,')
@@ -144,5 +150,35 @@ describe('added venues', () => {
       'review:cafe-anil-2',
     )
     expect(cleanName(' Bar, "El"  Sitio ')).toBe('Bar El Sitio')
+  })
+})
+
+describe('looks right (Y)', () => {
+  it('round-trips and reads files written before the column', () => {
+    const row = HEADER + 'osm:node/1,terrace,,,,,,,2026-11-23,yes\n'
+    expect(parseReviewCsv(row)[0]?.looksRight).toBe(true)
+    expect(formatReviewCsv(parseReviewCsv(row))).toBe(row)
+    const legacy = LEGACY_HEADER + 'osm:node/1,terrace,,,,,,,2026-11-23\n'
+    expect(parseReviewCsv(legacy)[0]?.looksRight).toBe(false)
+  })
+
+  it('is only for a terrace, and moving the pin clears it', () => {
+    expect(() =>
+      parseReviewCsv(HEADER + 'osm:node/1,no_terrace,,,,,,,2026-11-23,yes\n'),
+    ).toThrow()
+    const right = nextReview(
+      undefined,
+      'osm:node/1',
+      { kind: 'looksRight' },
+      TODAY,
+    )
+    expect([right.status, right.looksRight]).toEqual(['terrace', true])
+    const moved = nextReview(
+      right,
+      'osm:node/1',
+      { kind: 'terrace', at: { lat: 38.9, lon: -6.9 } },
+      TODAY,
+    )
+    expect(moved.looksRight).toBe(false)
   })
 })
