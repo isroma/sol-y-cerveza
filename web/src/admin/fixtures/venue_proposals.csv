@@ -1,0 +1,8 @@
+venue_id,kind,lat,lon,confidence,evidence,source,generated
+osm:node/1,terrace,38.87901,-6.97052,0.82,"Street-level photo shows tables and parasols on the pavement, in front of the door.",imagery,2026-11-24
+osm:node/1,position,38.8791,-6.9706,0.40,The entrance is 12 m north of the mapped point.,imagery,2026-11-24
+overture:abc-123,not_venue,,,0.91,"Website says ""cerrado definitivamente"".",website,2026-11-24T09:30:00Z
+junta:0123456789ab,no_terrace,,,0.55,No outdoor seating in any photo.,imagery,2026-11-24
+osm:node/2,terrace,,,0.70,Missing pin.,imagery,2026-11-24
+osm:node/3,sofa,,,0.70,Unknown kind.,imagery,2026-11-24
+osm:node/4,no_terrace,,,1.70,Confidence out of range.,imagery,2026-11-24
