@@ -201,6 +201,16 @@ body {
   cursor: grab;
 }
 
+/* Where a visitor report would put the venue: hollow, so the current pin shows through. */
+.admin-proposed-pin {
+  width: 22px;
+  height: 22px;
+  border: 3px dashed var(--ink);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 60%);
+  pointer-events: none;
+}
+
 .admin-terrace-pin {
   width: 22px;
   height: 22px;
@@ -375,6 +385,7 @@ body {
 .admin-title-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
 }
 

@@ -33,6 +33,8 @@ type Props = {
   onMoveVenue: (at: LatLon) => void
   /** Machine-proposed positions for the selected venue, shown as ghost pins. */
   ghosts?: readonly Ghost[]
+  /** A position a visitor report proposes, shown until accepted or dismissed. */
+  proposed?: LatLon | null
 }
 
 export type Ghost = { at: LatLon; kind: 'terrace' | 'position'; label: string }
@@ -97,12 +99,14 @@ export function AdminMap({
   onDragTerrace,
   onMoveVenue,
   ghosts = NO_GHOSTS,
+  proposed = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
   const ghostMarkers = useRef<Marker[]>([])
+  const proposedMarker = useRef<Marker | null>(null)
   const callbacks = useRef({
     onSelect,
     onMapClick,
@@ -259,6 +263,24 @@ export function AdminMap({
       duration: 600,
     })
   }, [ready, selectedId])
+
+  // A reported position: not interactive, and flown to after the selection.
+  useEffect(() => {
+    const map = mapRef.current
+    proposedMarker.current?.remove()
+    proposedMarker.current = null
+    if (!map || !ready || !proposed) return
+    proposedMarker.current = new Marker({
+      element: pinElement('admin-proposed-pin', 'Reported position'),
+    })
+      .setLngLat([proposed.lon, proposed.lat])
+      .addTo(map)
+    map.easeTo({
+      center: [proposed.lon, proposed.lat],
+      zoom: Math.max(map.getZoom(), 18),
+      duration: 600,
+    })
+  }, [ready, proposed])
 
   // Draggable venue pin.
   useEffect(() => {

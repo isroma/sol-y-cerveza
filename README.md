@@ -109,6 +109,21 @@ cd pipeline && uv run python -m solycerveza.price_candidates   # --refresh to do
 
 It reads the venues' own websites (never social networks, review sites or delivery apps), honouring robots.txt, and writes the caña and tercio prices it is sure about, with the page and the text they came from, to `pipeline/data/price_candidates.csv`. These are candidates: nothing reaches the app until you accept one, which copies it into `venue_prices.csv`. Menus published as PDF or image files are listed in `pipeline/.cache/menu_leads.csv` to read by hand. See [ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md).
 
+### Machine proposals for unreviewed venues
+
+```bash
+cd pipeline
+git show 164f946^:web/public/data/terraces.json > .cache/terraces_pre_review.json   # once
+uv run python -m solycerveza.proposals --evaluate --baseline .cache/terraces_pre_review.json --yes
+uv run python -m solycerveza.proposals --limit 50     # then the unreviewed venues, 50 at a time
+```
+
+Three proposers suggest answers for venues nobody has reviewed: a terrace (and where its tables are) read from the PNOA orthophoto by the Claude API (`ANTHROPIC_API_KEY`); a corrected position from the Junta register address (CartoCiudad); and "not a venue" for weak Overture places. They write `pipeline/data/venue_proposals.csv`, which the build never reads. See [ADR-0008](docs/adr/0008-machine-venue-proposals.md).
+
+1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review. Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only.
+2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
+3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
+
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 
 ## Data and attribution
