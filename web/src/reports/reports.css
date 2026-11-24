@@ -1,0 +1,226 @@
+/* Visitor reports (ADR-0008): a quiet link on the card, its options, and the
+   map picker's centre pin and bottom bar. */
+.report-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: 14px;
+}
+
+/* Secondary on purpose: the card is about the sun. */
+.report-link {
+  align-self: center;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.report-link:hover {
+  color: var(--ink);
+}
+
+.report-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-options button {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-options button:hover:not(:disabled) {
+  background: var(--highlight);
+}
+
+.report-options button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.report-options .report-cancel-option {
+  min-height: 32px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 400;
+  text-align: center;
+}
+
+.report-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.report-confirm p {
+  margin: 0;
+}
+
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* The same pills as the price form. */
+.report-cancel {
+  padding: 6px 14px;
+  border: 1.5px solid var(--sun-soft);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--sun-dark);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.report-cancel:hover {
+  background: var(--highlight);
+}
+
+.report-send {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(160deg, #ffc53d, #f59e0b);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.report-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.report-result {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 14px;
+  background: var(--field);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.report-result.is-ok {
+  background: var(--highlight);
+  color: var(--ink);
+}
+
+/* The picker: a fixed pin whose tip is the map centre. */
+.pick-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  /* The icon's tip (y = 21 of 24) sits on the centre. */
+  translate: -50% -88%;
+  color: var(--ink);
+  filter: drop-shadow(0 2px 3px rgba(31, 35, 40, 0.35));
+  pointer-events: none;
+}
+
+.pick-pin svg {
+  fill: var(--bg);
+}
+
+.pick-bar {
+  position: absolute;
+  right: var(--map-inset);
+  /* Above the map attribution's 24 px "i". */
+  bottom: calc(var(--map-inset) + 24px + var(--space-2));
+  left: var(--map-inset);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.pick-bar-prompt {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pick-bar-problem {
+  margin: 0;
+  color: var(--sun-dark);
+  font-size: 13px;
+}
+
+.pick-bar-fields {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+}
+
+.pick-bar-fields input {
+  grid-column: 1 / -1;
+}
+
+.pick-field {
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-m);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* iOS doesn't zoom into 16 px fields */
+}
+
+.pick-field:focus {
+  border-color: var(--sun-soft);
+  outline: none;
+}
+
+.pick-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.pick-bar .price-turnstile:empty,
+.report-section .price-turnstile:empty {
+  display: none;
+}

@@ -23,6 +23,9 @@ import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
+import { PickBar } from '../reports/PickBar.tsx'
+import type { Pick } from '../reports/reports.ts'
+import { PinIcon } from '../ui/icons.tsx'
 import { sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { shadowCollection } from './shadowLayer.ts'
@@ -84,7 +87,15 @@ type Props = {
   attribution: readonly string[]
   /** The data has leaf-off horizons (ADR-0007). */
   leafOffTrees?: boolean
+  /** A visitor report placing a point (ADR-0008): the card hides, a centre pin shows. */
+  pick?: Pick | null
+  /** The card's report options start a pick for its venue. */
+  onPick?: (pick: Pick) => void
+  onPickClose?: () => void
 }
+
+/** Close enough to put a pin on a terrace's tables. */
+const PICK_ZOOM = 18
 
 /**
  * A click inside the venue card (e.g. its price form) is not a map click.
@@ -130,6 +141,9 @@ export function MapView({
   sunset,
   attribution,
   leafOffTrees = false,
+  pick = null,
+  onPick,
+  onPickClose,
 }: Props) {
   // The selected badge opens into a card below it, as its own marker.
   const cardEl = useMemo(() => {
@@ -434,6 +448,25 @@ export function MapView({
 
   const selectedStatus = statuses.find((s) => s.venue.id === selectedId) ?? null
 
+  // A pick opens on the point it corrects, flat and close; a missing bar
+  // starts wherever the map is.
+  const pickStart = pick && pick.kind !== 'add' ? pick.start : null
+  const pickKey = pick
+    ? `${pick.kind}|${'venueId' in pick ? pick.venueId : ''}`
+    : null
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !pickKey) return
+    const zoom = Math.max(map.getZoom(), PICK_ZOOM)
+    map.easeTo({
+      ...(pickStart ? { center: [pickStart.lon, pickStart.lat] } : {}),
+      zoom,
+      pitch: pitchForZoom(zoom),
+      duration: 600,
+    })
+    // pickStart is App state, stable for the whole pick: this runs once per pick.
+  }, [ready, pickKey, pickStart])
+
   // Place the card so its badge tab sits exactly on the selected badge (or dot).
   useEffect(() => {
     const map = mapRef.current
@@ -475,7 +508,7 @@ export function MapView({
 
   return (
     <div
-      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${folded ? ' is-card-folded' : ''}`}
+      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${folded ? ' is-card-folded' : ''}${pick ? ' is-picking' : ''}`}
     >
       <div
         ref={containerRef}
@@ -496,10 +529,41 @@ export function MapView({
         attributionSlot={attributionSlotRef}
       />
       {selectedStatus &&
+        !pick &&
         createPortal(
-          <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,
+          <PinCard
+            status={selectedStatus}
+            minutes={minutes}
+            sunset={sunset}
+            onPick={(kind) => {
+              const { venue } = selectedStatus
+              onPick?.({
+                kind,
+                venueId: venue.id,
+                name: venue.name,
+                from: venue.venue,
+                start:
+                  kind === 'pin' ? (venue.terrace ?? venue.venue) : venue.venue,
+              })
+            }}
+          />,
           cardEl,
         )}
+      {pick && (
+        <>
+          <div className="pick-pin" aria-hidden="true">
+            <PinIcon size={44} />
+          </div>
+          <PickBar
+            pick={pick}
+            center={() => {
+              const center = mapRef.current?.getCenter()
+              return center ? { lat: center.lat, lon: center.lng } : null
+            }}
+            onClose={() => onPickClose?.()}
+          />
+        </>
+      )}
     </div>
   )
 }

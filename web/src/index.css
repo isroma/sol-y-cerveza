@@ -526,6 +526,26 @@ body,
   background: var(--surface-hover);
 }
 
+/* Visitor reports (ADR-0008): a quiet link under the list. */
+.missing-button {
+  display: block;
+  min-height: 32px;
+  margin: var(--space-3) auto 0;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.missing-button:hover {
+  color: var(--ink);
+}
+
 /* Map */
 
 .map-wrap,
@@ -1470,7 +1490,15 @@ body,
 }
 
 /* The badge has become the card's tab: hide the pin underneath (unless the
-   card is folded away in the overview, where the selected badge stands in). */
-.map-wrap:not(.is-card-folded) .pin-marker[aria-pressed='true'] {
+   card is folded away in the overview, where the selected badge stands in,
+   or a report picker has put the card away). */
+.map-wrap:not(.is-card-folded):not(.is-picking)
+  .pin-marker[aria-pressed='true'] {
   visibility: hidden;
+}
+
+/* The report picker's bar takes the bottom of the map: the legend steps
+   aside, the attribution "i" stays (the bar sits above it). */
+.map-wrap.is-picking .map-legend {
+  display: none;
 }

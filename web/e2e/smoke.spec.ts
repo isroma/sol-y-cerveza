@@ -15,6 +15,8 @@ type MapHandle = {
   jumpTo(options: { bearing?: number; zoom?: number }): void
   getLayer(id: string): { type: string } | undefined
   isMoving(): boolean
+  getCenter(): { lat: number; lng: number }
+  panBy(offset: [number, number], options: { duration: number }): void
   getSource(
     id: string,
   ): { getData(): Promise<{ features?: unknown[] }> } | undefined

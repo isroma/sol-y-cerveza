@@ -44,12 +44,14 @@ function loadTurnstile(): Promise<TurnstileApi> {
 
 type Props = {
   siteKey: string
+  /** Checked by the API: `suggest` for prices (the default), `report` for venue reports. */
+  action?: string
   /** A fresh token, or null when it expired. */
   onToken: (token: string | null) => void
 }
 
 /** Cloudflare's bot check; invisible unless Cloudflare wants an interaction. */
-export function Turnstile({ siteKey, onToken }: Props) {
+export function Turnstile({ siteKey, action = 'suggest', onToken }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   // Once Cloudflare is happy, its "success" box adds nothing: fold it away.
   const [passed, setPassed] = useState(false)
@@ -70,7 +72,7 @@ export function Turnstile({ siteKey, onToken }: Props) {
         api = loaded
         widget = loaded.render(element, {
           sitekey: siteKey,
-          action: 'suggest',
+          action,
           callback: (token) => {
             setPassed(true)
             onTokenRef.current(token)
@@ -88,7 +90,7 @@ export function Turnstile({ siteKey, onToken }: Props) {
       cancelled = true
       if (api && widget) api.remove(widget)
     }
-  }, [siteKey])
+  }, [siteKey, action])
 
   return (
     <div

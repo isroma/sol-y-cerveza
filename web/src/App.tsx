@@ -18,6 +18,7 @@ import { TimeSlider } from './ui/TimeSlider.tsx'
 import { useMediaQuery } from './ui/useMediaQuery.ts'
 import { VenueList } from './ui/VenueList.tsx'
 import { readUrlState, writeUrlState } from './urlState.ts'
+import { CAN_REPORT, type Pick } from './reports/reports.ts'
 
 type LoadState =
   | { status: 'loading' }
@@ -43,6 +44,8 @@ export function App() {
   // a menu that opens over the map.
   const phone = useMediaQuery('(max-width: 899px)')
   const [menuOpen, setMenuOpen] = useState(false)
+  // A visitor report placing a point on the map (ADR-0008).
+  const [pick, setPick] = useState<Pick | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -142,8 +145,22 @@ export function App() {
 
   // Picking a venue from the list closes the menu so its map card shows.
   const selectFromList = useCallback((id: string | null) => {
+    setPick(null)
     setSelectedId(id)
     setMenuOpen(false)
+  }, [])
+
+  // While placing a point, taps on the map belong to the picker.
+  const selectOnMap = useCallback(
+    (id: string | null) => {
+      if (!pick) setSelectedId(id)
+    },
+    [pick],
+  )
+  const closePick = useCallback(() => setPick(null), [])
+  const addMissing = useCallback(() => {
+    setMenuOpen(false)
+    setPick({ kind: 'add' })
   }, [])
 
   useEffect(() => {
@@ -208,6 +225,7 @@ export function App() {
             minutes={minutes}
             selectedId={selectedId}
             onSelect={selectFromList}
+            onAddMissing={CAN_REPORT ? addMissing : undefined}
           />
         )}
       </aside>
@@ -215,12 +233,15 @@ export function App() {
         <MapView
           statuses={visible}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={selectOnMap}
           sun={sun}
           minutes={minutes}
           sunset={times?.sunset ?? null}
           attribution={load.status === 'ready' ? load.file.attribution : []}
           leafOffTrees={leafOffTrees}
+          pick={pick}
+          onPick={setPick}
+          onPickClose={closePick}
         />
         {load.status === 'ready' && (
           <OwnerBar venues={load.file.terraces} onSelect={setSelectedId} />

@@ -8,6 +8,9 @@ const PORT = 5199
 /** scripts/sw-test-server.mjs; e2e/offline.spec.ts uses the same port. */
 const SW_TEST_PORT = 5299
 const OFFLINE = /offline\.spec\.ts$/
+/** e2e/reports.spec.ts: a dev server built with a (stubbed) reports API. */
+const REPORTS_PORT = 5197
+const REPORTS = /reports\.spec\.ts$/
 const CI = Boolean(process.env['CI'])
 
 // Software WebGL, so the map renders on machines without a GPU (CI).
@@ -39,15 +42,33 @@ export default defineConfig({
   projects: [
     {
       name: 'phone',
-      testIgnore: OFFLINE,
+      testIgnore: [OFFLINE, REPORTS],
       use: { ...devices['iPhone 13'], browserName: 'chromium' },
     },
     {
       name: 'desktop',
-      testIgnore: OFFLINE,
+      testIgnore: [OFFLINE, REPORTS],
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 800 },
+      },
+    },
+    {
+      name: 'reports-phone',
+      testMatch: REPORTS,
+      use: {
+        ...devices['iPhone 13'],
+        browserName: 'chromium',
+        baseURL: `http://localhost:${REPORTS_PORT}/`,
+      },
+    },
+    {
+      name: 'reports-desktop',
+      testMatch: REPORTS,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        baseURL: `http://localhost:${REPORTS_PORT}/`,
       },
     },
     // The service worker only exists in production builds: these run
@@ -71,6 +92,17 @@ export default defineConfig({
       timeout: 60_000,
       // No price suggestions API, even with a local .env.local.
       env: { VITE_PRICES_API: '', VITE_TURNSTILE_SITE_KEY: '' },
+    },
+    {
+      // The same app with a reports API that e2e/reports.spec.ts stubs.
+      command: `npx vite --port ${REPORTS_PORT} --strictPort`,
+      url: `http://localhost:${REPORTS_PORT}/`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: {
+        VITE_PRICES_API: 'https://api.test',
+        VITE_TURNSTILE_SITE_KEY: 'e2e-site-key',
+      },
     },
     {
       // Builds the test sites first (a few seconds), then serves them.
