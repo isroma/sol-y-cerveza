@@ -9,6 +9,10 @@ ALLOWED_ORIGINS = "https://isroma.github.io,http://localhost:5173,http://localho
 # The published data, used to reject suggestions for unknown venues.
 TERRACES_URL = "https://isroma.github.io/sol-y-cerveza/data/terraces.json"
 
+# Workers AI: reads the owner's menu photos (free daily allowance).
+[ai]
+binding = "AI"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "sol-y-cerveza"
@@ -16,5 +20,4 @@ database_name = "sol-y-cerveza"
 database_id = "0a0de20d-6c0d-4bc1-ba40-1145861c02c5"
 
 # Secrets (`wrangler secret put <NAME>`; locally in .dev.vars):
-# TURNSTILE_SECRET, ADMIN_TOKEN, IP_SALT, OWNER_TOKEN (owner mode: add or remove prices only),
-# ANTHROPIC_API_KEY (owner photo reading)
+# TURNSTILE_SECRET, ADMIN_TOKEN, IP_SALT, OWNER_TOKEN (owner mode: add or remove prices only)

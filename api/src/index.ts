@@ -57,7 +57,7 @@ type Env = {
   ADMIN_TOKEN: string
   IP_SALT: string
   OWNER_TOKEN: string
-  ANTHROPIC_API_KEY: string
+  AI: Ai
 }
 
 const MAX_BODY = 8 * 1024
@@ -366,7 +366,7 @@ async function ownerPhoto(request: Request, env: Env): Promise<Response> {
   if (text.length > MAX_PHOTO_BODY) return json({ error: 'the photo is too large' }, 413)
   try {
     const photo = parsePhoto(JSON.parse(text))
-    return json(await readPhoto(env.ANTHROPIC_API_KEY, photo), 200)
+    return json(await readPhoto(env.AI, photo), 200)
   } catch (error) {
     if (error instanceof PhotoError) return json({ error: error.message }, error.status)
     if (error instanceof SyntaxError) return json({ error: 'invalid JSON' }, 400)

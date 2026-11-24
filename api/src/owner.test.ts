@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { madridDate, parseOwnerPrice, withOwnerPrices, type CrowdPrice } from './logic.ts'
-import { parsePhoto, parseReading, PhotoError } from './photo.ts'
+import { parsePhoto, parseReading, PhotoError, PHOTO_MODEL, readPhoto } from './photo.ts'
 
 describe('owner prices', () => {
   it('validates like a suggestion, without a Turnstile token', () => {
@@ -62,5 +62,44 @@ describe('owner photos', () => {
     ])
     expect(reading?.notes.some((n) => n.includes('Tercio 2,00'))).toBe(true)
     expect(parseReading('{"prices": "nope"}')).toBeNull()
+  })
+})
+
+describe('readPhoto', () => {
+  const photo = { image: 'AAAA', mediaType: 'image/jpeg' as const }
+  // Ai.run is generic over every model, so the fake can only be cast.
+  const fakeAi = (output: unknown) => {
+    const run = vi.fn(async () => output)
+    return { ai: { run } as unknown as Ai, run }
+  }
+  const answer = (content: string | null, finish_reason = 'stop') => ({
+    choices: [{ index: 0, finish_reason, message: { role: 'assistant', content } }],
+  })
+
+  it('sends the photo as a data URL and reads the JSON answer', async () => {
+    const reading = { prices: [], notes: [], bar_name: 'Bar Ejemplo' }
+    const { ai, run } = fakeAi(answer(JSON.stringify(reading)))
+    const result = await readPhoto(ai, photo)
+    expect(result).toEqual({ proposals: [], notes: [], barName: 'Bar Ejemplo' })
+    expect(run).toHaveBeenCalledWith(
+      PHOTO_MODEL,
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.arrayContaining([
+              { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AAAA' } },
+            ]),
+          }),
+        ]),
+      }),
+    )
+  })
+
+  it('turns a cut-off, odd or failed answer into a PhotoError', async () => {
+    await expect(readPhoto(fakeAi(answer('{', 'length')).ai, photo)).rejects.toThrow('cut off')
+    await expect(readPhoto(fakeAi(answer('not json')).ai, photo)).rejects.toThrow(PhotoError)
+    await expect(readPhoto(fakeAi(answer(null)).ai, photo)).rejects.toThrow(PhotoError)
+    const failing = { run: vi.fn(async () => Promise.reject(new Error('4006: daily limit'))) }
+    await expect(readPhoto(failing as unknown as Ai, photo)).rejects.toThrow('Workers AI error: 4006')
   })
 })

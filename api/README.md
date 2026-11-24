@@ -10,7 +10,7 @@ A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices
 | `POST /v1/admin/resolve` | the admin view | `{venueId, item, brand, cents, status: accepted \| rejected}` |
 | `GET /v1/owner/check` | owner mode | 200 when `Authorization: Bearer <OWNER_TOKEN>` is right |
 | `PUT` / `DELETE /v1/owner/prices` | owner mode | `{venueId, item, brand, cents}`: a confirmed price, dated today (Madrid) |
-| `POST /v1/owner/photo` | owner mode | `{image, mediaType}` → `{proposals, notes, barName}`, read by the Claude API (`ANTHROPIC_API_KEY`) |
+| `POST /v1/owner/photo` | owner mode | `{image, mediaType}` → `{proposals, notes, barName}`, read by Workers AI (`@cf/google/gemma-4-26b-a4b-it`, the `AI` binding; free daily allowance) |
 | `GET /v1/admin/owner-prices` | the admin view | owner prices, for the import into `venue_prices.csv` |
 | `POST /v1/reports` | the app | `{kind: move, venueId, lat, lon, token}`, `{kind: closed, venueId, token}` or `{kind: add, name, venueKind, terrace, lat, lon, token}`; for terraces `{kind: terrace, venueId, terrace: true \| false, token}` or `{kind: pin, venueId, lat, lon, token}` (Turnstile action `report`) |
 | `GET /v1/admin/reports` | the admin view | pending reports: `closed` grouped per venue and `terrace` per venue and answer (`reporters` = distinct networks), `move`, `pin` and `add` one per row, most reporters first |
@@ -51,7 +51,6 @@ npm run dev                      # http://localhost:8787
    - `npx wrangler secret put ADMIN_TOKEN` (any long random string)
    - `npx wrangler secret put IP_SALT` (another long random string)
    - `npx wrangler secret put OWNER_TOKEN` (another long random string: the owner-mode key)
-   - `npx wrangler secret put ANTHROPIC_API_KEY` (for owner photo reading)
 6. Run `npm run deploy` and note the `*.workers.dev` URL.
 
 ## Updating

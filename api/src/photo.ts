@@ -1,9 +1,9 @@
 /**
  * Owner photo reading: beer prices and the bar's name from a photo of a price
- * board, read by the Claude API. The prompt, schema and price rules are the
- * admin's (web/src/data/photoReading.ts); this adds the bar's name.
+ * board, read by a Workers AI vision model (free daily allowance, zero data
+ * retention). The prompt, schema and price rules are the admin's
+ * (web/src/data/photoReading.ts); this adds the bar's name.
  */
-import Anthropic from '@anthropic-ai/sdk'
 import {
   base64Bytes,
   PHOTO_MAX_BYTES,
@@ -18,7 +18,9 @@ import {
 } from '../../web/src/data/photoReading.ts'
 import { BRANDS, ITEMS } from '../../web/src/data/prices.ts'
 
-export const PHOTO_MODEL = 'claude-opus-5-5'
+// Not Llama 4 or Llama 3.2 Vision: their licence withholds the multimodal
+// rights from EU-based developers.
+export const PHOTO_MODEL = '@cf/google/gemma-4-26b-a4b-it'
 
 const OUTPUT_SCHEMA = {
   ...PHOTO_OUTPUT_SCHEMA,
@@ -94,34 +96,28 @@ export function parseReading(text: string): OwnerPhotoResult | null {
   }
 }
 
-/** Sends the photo to the Claude API; the photo isn't stored anywhere. */
+/** Sends the photo to Workers AI; the photo isn't stored anywhere. */
 export async function readPhoto(
-  apiKey: string,
+  ai: Ai,
   photo: { image: string; mediaType: PhotoMediaType },
 ): Promise<OwnerPhotoResult> {
-  if (!apiKey) throw new PhotoError(503, 'photo reading is not set up (ANTHROPIC_API_KEY)')
-  const client = new Anthropic({ apiKey, timeout: 120_000, maxRetries: 1 })
-  let message
+  let output
   try {
-    message = await client.beta.messages.create({
-      model: PHOTO_MODEL,
-      max_tokens: 16000,
-      // On a policy decline, retry on Anthropic's recommended fallback model.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      thinking: { type: 'adaptive' },
-      output_config: {
-        effort: 'medium',
-        format: { type: 'json_schema', schema: OUTPUT_SCHEMA },
+    output = await ai.run(PHOTO_MODEL, {
+      max_tokens: 8192,
+      temperature: 0,
+      response_format: {
+        type: 'json_schema',
+        json_schema: { name: 'photo_reading', schema: OUTPUT_SCHEMA, strict: true },
       },
-      system: SYSTEM_PROMPT,
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: { type: 'base64', media_type: photo.mediaType, data: photo.image },
+              type: 'image_url',
+              image_url: { url: `data:${photo.mediaType};base64,${photo.image}` },
             },
             { type: 'text', text: USER_PROMPT },
           ],
@@ -129,20 +125,13 @@ export async function readPhoto(
       ],
     })
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError)
-      throw new PhotoError(502, 'the Claude API rejected the key')
-    if (error instanceof Anthropic.RateLimitError)
-      throw new PhotoError(429, 'Claude API rate limit: try again soon')
-    if (error instanceof Anthropic.APIConnectionError)
-      throw new PhotoError(502, `could not reach the Claude API: ${error.message}`)
-    if (error instanceof Anthropic.APIError)
-      throw new PhotoError(502, `Claude API error ${error.status ?? ''}: ${error.message}`)
+    if (error instanceof Error) throw new PhotoError(502, `Workers AI error: ${error.message}`)
     throw error
   }
-  if (message.stop_reason === 'refusal') throw new PhotoError(422, 'Claude declined to read this photo')
-  if (message.stop_reason === 'max_tokens') throw new PhotoError(502, 'the answer was cut off: try again')
-  const text = message.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('')
-  const result = parseReading(text)
-  if (!result) throw new PhotoError(502, 'Claude answered in an unexpected shape')
+  const [choice] = output.choices
+  if (choice?.finish_reason === 'length') throw new PhotoError(502, 'the answer was cut off: try again')
+  const text = choice?.message.content
+  const result = typeof text === 'string' ? parseReading(text) : null
+  if (!result) throw new PhotoError(502, 'the model answered in an unexpected shape')
   return result
 }
