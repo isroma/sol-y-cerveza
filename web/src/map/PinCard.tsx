@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
@@ -10,6 +10,7 @@ import { useOwner } from '../prices/owner.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
 import { currentSunRun } from '../sun/venueStatus.ts'
 import { shareUrl } from '../urlState.ts'
+import { useMediaQuery } from '../ui/useMediaQuery.ts'
 
 type Props = {
   status: VenueStatus
@@ -119,6 +120,9 @@ export function ShareButton({
  * joined to a card below it with the name, how much sun is left and a bar
  * counting down the current sun spell.
  */
+/** Half a turn of the card, front to edge-on (see .is-turning-out). */
+const FLIP_HALF_MS = 150
+
 export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
@@ -126,6 +130,24 @@ export function PinCard({ status, minutes }: Props) {
   // Which venue's card shows its back: switching venues turns it round.
   const [backFor, setBackFor] = useState<string | null>(null)
   const showBack = backFor === venue.id
+  // Turning round: the card turns edge-on ('out'), swaps sides, then turns
+  // face-on again ('in').
+  const [turn, setTurn] = useState<'out' | 'in' | null>(null)
+  const turnTimer = useRef(0)
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  useEffect(() => () => clearTimeout(turnTimer.current), [])
+  const flipTo = (id: string | null) => {
+    if (reduceMotion) {
+      setBackFor(id)
+      return
+    }
+    clearTimeout(turnTimer.current)
+    setTurn('out')
+    turnTimer.current = window.setTimeout(() => {
+      setBackFor(id)
+      setTurn('in')
+    }, FLIP_HALF_MS)
+  }
   const bar =
     status.timeline !== null && currentSunRun(status.timeline, minutes) !== null
 
@@ -134,7 +156,7 @@ export function PinCard({ status, minutes }: Props) {
       <button
         type="button"
         className={bar ? 'card-suggest' : 'card-suggest card-suggest--alone'}
-        onClick={() => setBackFor(venue.id)}
+        onClick={() => flipTo(venue.id)}
       >
         Sugerir un cambio
       </button>
@@ -142,43 +164,47 @@ export function PinCard({ status, minutes }: Props) {
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
-      <div className="pin-card-tab">
-        <Shoulder side="left" />
-        <span className="pin-card-badge" aria-hidden="true">
-          <BeerIcon size={26} />
-        </span>
-        <Shoulder side="right" />
-      </div>
-      <div className="pin-card-body">
-        {showBack ? (
-          <SuggestChange venue={venue} onBack={() => setBackFor(null)} />
-        ) : (
-          <>
-            <div className="pin-card-title">
-              <strong>{venue.name}</strong>
-              <span>
-                {KIND_LABELS[venue.kind]}
-                {status.hasTerrace && ' · Terraza'}
-              </span>
-            </div>
-            <div className="pin-card-sun">
-              <CategoryIcon category={status.category} size={30} />
-              <div>
-                <strong>{box.title}</strong>
-                {box.detail && <span>{box.detail}</span>}
+      <div
+        className={turn ? `pin-card-flip is-turning-${turn}` : 'pin-card-flip'}
+      >
+        <div className="pin-card-tab">
+          <Shoulder side="left" />
+          <span className="pin-card-badge" aria-hidden="true">
+            <BeerIcon size={26} />
+          </span>
+          <Shoulder side="right" />
+        </div>
+        <div className="pin-card-body">
+          {showBack ? (
+            <SuggestChange venue={venue} onBack={() => flipTo(null)} />
+          ) : (
+            <>
+              <div className="pin-card-title">
+                <strong>{venue.name}</strong>
+                <span>
+                  {KIND_LABELS[venue.kind]}
+                  {status.hasTerrace && ' · Terraza'}
+                </span>
               </div>
-            </div>
-            {status.timeline && bar && (
-              <SunCountdown
-                timeline={status.timeline}
-                minutes={minutes}
-                middle={suggest}
-              />
-            )}
-            <PriceSection venue={venue} />
-            {!bar && suggest}
-          </>
-        )}
+              <div className="pin-card-sun">
+                <CategoryIcon category={status.category} size={30} />
+                <div>
+                  <strong>{box.title}</strong>
+                  {box.detail && <span>{box.detail}</span>}
+                </div>
+              </div>
+              {status.timeline && bar && (
+                <SunCountdown
+                  timeline={status.timeline}
+                  minutes={minutes}
+                  middle={suggest}
+                />
+              )}
+              <PriceSection venue={venue} />
+              {!bar && suggest}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

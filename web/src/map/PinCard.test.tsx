@@ -82,12 +82,13 @@ describe('PinCard', () => {
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
   })
 
-  it('turns round to suggest a change, and back', () => {
+  it('turns round to suggest a change, and back', async () => {
     render(<PinCard status={status({})} minutes={at} sunset={18 * 60} />)
     fireEvent.click(screen.getByRole('button', { name: 'Sugerir un cambio' }))
-    expect(screen.queryByText('Café · Terraza')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
-    expect(screen.getByText('Café · Terraza')).toBeInTheDocument()
+    // The sides swap halfway through the turn.
+    fireEvent.click(await screen.findByRole('button', { name: 'Volver' }))
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeNull()
+    expect(await screen.findByText('Café · Terraza')).toBeInTheDocument()
   })
 
   it('has no share button', () => {
