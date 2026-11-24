@@ -346,18 +346,27 @@ export function MapView({
             },
             map.getLayer('building') ? 'building' : undefined,
           )
+          // Recast the shadows once the map is at rest with its tiles
+          // loaded, and only for a new view. Recasting every building on
+          // each tile load and zoom end made fast zooming stutter in daylight.
+          let shadowView = ''
           const refreshShadows = () => {
-            if (map)
-              void map
-                .getSource<GeoJSONSource>(SHADOWS)
-                ?.setData(shadowCollection(map, sunRef.current))
+            if (!map) return
+            const { lng, lat } = map.getCenter()
+            const view = [
+              map.getZoom().toFixed(2),
+              lng.toFixed(5),
+              lat.toFixed(5),
+              map.getBearing().toFixed(1),
+              map.getPitch().toFixed(1),
+            ].join()
+            if (view === shadowView) return
+            shadowView = view
+            void map
+              .getSource<GeoJSONSource>(SHADOWS)
+              ?.setData(shadowCollection(map, sunRef.current))
           }
-          map.on('moveend', refreshShadows)
-          map.once('idle', refreshShadows)
-          map.on('sourcedata', (event) => {
-            if (event.sourceId === 'openmaptiles' && event.isSourceLoaded)
-              refreshShadows()
-          })
+          map.on('idle', refreshShadows)
           map.addSource(DOTS_SOURCE, {
             type: 'geojson',
             data: dotsData([], null),

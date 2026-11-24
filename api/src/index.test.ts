@@ -355,6 +355,101 @@ describe('the Worker on a migrated D1', () => {
   })
 })
 
+describe('POST /v1/changes', () => {
+  let api: Api
+  beforeAll(async () => {
+    api = await startApi()
+  })
+  afterAll(() => api.dispose())
+
+  const change = (body: Record<string, unknown>, token = 'ok:change') =>
+    postJson({ venueId: 'osm:node/5', token, ...body })
+
+  it('stores a price, a move and closed behind one bot check', async () => {
+    const before = api.calls.siteverify
+    const response = await api.call('/v1/changes', {
+      ...change({
+        price: { item: 'cana', brand: null, cents: 150 },
+        move: { lat: 38.8781, lon: -6.9701 },
+        closed: true,
+      }),
+      ip: '93.1.1.1',
+    })
+    expect(response.status).toBe(201)
+    expect(api.calls.siteverify - before).toBe(1)
+    expect(
+      await api.rows<{ cents: number }>(
+        'SELECT cents FROM suggestions WHERE venue_id = ?',
+        'osm:node/5',
+      ),
+    ).toEqual([{ cents: 150 }])
+    expect(
+      await api.rows<{ kind: string }>(
+        'SELECT kind FROM venue_reports WHERE venue_id = ? ORDER BY kind',
+        'osm:node/5',
+      ),
+    ).toEqual([{ kind: 'closed' }, { kind: 'move' }])
+    // Each part counts towards the caps.
+    expect(
+      await api.rows<{ n: number }>(
+        'SELECT COUNT(*) AS n FROM suggestion_events WHERE venue_id = ?',
+        'osm:node/5',
+      ),
+    ).toEqual([{ n: 3 }])
+  })
+
+  it('stores nothing when one part is refused', async () => {
+    const response = await api.call('/v1/changes', {
+      ...change({
+        venueId: 'osm:node/6',
+        price: { item: 'cana', brand: null, cents: 150 },
+        // About 1.1 km away: over the 500 m a move may go.
+        move: { lat: 38.888, lon: -6.97 },
+      }),
+      ip: '93.1.1.2',
+    })
+    expect(response.status).toBe(400)
+    expect(
+      await api.rows(
+        'SELECT 1 FROM suggestions WHERE venue_id = ?',
+        'osm:node/6',
+      ),
+    ).toEqual([])
+  })
+
+  it('refuses a token made for another action, or a failed check', async () => {
+    const real = await startApi({ TURNSTILE_SECRET: REAL_SECRET })
+    try {
+      const status = async (token: string) =>
+        (
+          await real.call('/v1/changes', {
+            ...change({ closed: true }, token),
+            base: DEPLOYED,
+          })
+        ).status
+      expect(await status('ok:change')).toBe(201)
+      expect(await status('ok:suggest')).toBe(403)
+      expect(await status('no:change')).toBe(403)
+    } finally {
+      await real.dispose()
+    }
+  })
+
+  it('refuses an unknown venue and an empty change', async () => {
+    expect(
+      (
+        await api.call('/v1/changes', {
+          ...change({ venueId: 'osm:node/999', closed: true }),
+          ip: '93.1.1.4',
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (await api.call('/v1/changes', { ...change({}), ip: '93.1.1.4' })).status,
+    ).toBe(400)
+  })
+})
+
 describe('a rejected price', () => {
   let api: Api
   beforeAll(async () => {
