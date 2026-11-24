@@ -1,6 +1,6 @@
 import type { Map as MapLibreMap, MapGeoJSONFeature } from 'maplibre-gl'
 import type { SunPosition } from '../sun/sunState.ts'
-import { BUILDING_HEIGHT_SCALE } from './camera.ts'
+import { BUILDING_HEIGHT_SCALE, RELIEF_ZOOM } from './camera.ts'
 import { buildingShadow, type LonLat } from './shadows.ts'
 
 type ShadowFeature = {
@@ -27,7 +27,7 @@ function polygons(geometry: MapGeoJSONFeature['geometry']): LonLat[][][] {
  * `building` layer, `render_height` in metres) for the given sun.
  */
 export function shadowCollection(map: MapLibreMap, sun: SunPosition) {
-  if (sun.altitude <= 0 || map.getZoom() < 14) return EMPTY
+  if (sun.altitude <= 0 || map.getZoom() < RELIEF_ZOOM) return EMPTY
   const features: ShadowFeature[] = []
   for (const feature of map.querySourceFeatures('openmaptiles', {
     sourceLayer: 'building',

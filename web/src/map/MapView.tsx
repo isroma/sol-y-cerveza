@@ -17,7 +17,9 @@ import {
   cardFolded,
   cardScale,
   pitchForZoom,
+  RELIEF_ZOOM,
   SHADOW_OPACITY,
+  TILTED_ZOOM,
 } from './camera.ts'
 import { dotsData, dotsUpdate } from './dots.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
@@ -154,14 +156,17 @@ function fitCard(map: MapLibreMap, card: HTMLElement, wrap: HTMLElement) {
 function focusVenue(map: MapLibreMap, status: VenueStatus) {
   const position = status.venue.terrace ?? status.venue.venue
   const zoom = Math.max(map.getZoom(), 16.5)
-  map.easeTo({
-    center: [position.lon, position.lat],
-    zoom,
-    pitch: pitchForZoom(zoom),
-    // Venue a bit above centre, so the card below its badge fits in view.
-    offset: [0, -120],
-    duration: 900,
-  })
+  map.easeTo(
+    {
+      center: [position.lon, position.lat],
+      zoom,
+      pitch: pitchForZoom(zoom),
+      // Venue a bit above centre, so the card below its badge fits in view.
+      offset: [0, -120],
+      duration: 900,
+    },
+    VENUE_FLIGHT,
+  )
 }
 
 type Props = {
@@ -197,6 +202,12 @@ function onCard(event: Event): boolean {
 
 /** How long the card takes to shrink back into its badge (see .is-closing). */
 const CARD_CLOSE_MS = 220
+
+/** Marks the camera events of a flight to a venue (see the shadows). */
+const VENUE_FLIGHT = { venueFlight: true }
+
+/** How often the shadows are recast at most while the map moves. */
+const SHADOW_THROTTLE_MS = 120
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
@@ -336,7 +347,7 @@ export function MapView({
               // building twice at a tile edge) they don't stack darker.
               type: 'fill-extrusion',
               source: SHADOWS,
-              minzoom: 14,
+              minzoom: RELIEF_ZOOM,
               paint: {
                 'fill-extrusion-color': '#6B5848',
                 'fill-extrusion-opacity': SHADOW_OPACITY,
@@ -346,26 +357,51 @@ export function MapView({
             },
             map.getLayer('building') ? 'building' : undefined,
           )
-          // Recast the shadows once the map is at rest with its tiles
-          // loaded, and only for a new view. Recasting every building on
-          // each tile load and zoom end made fast zooming stutter in daylight.
-          let shadowView = ''
+          // Shadows only show from RELIEF_ZOOM, where a view holds few
+          // enough buildings to recast them in a few ms. On a flight to a
+          // venue they are recast along its last stretch, from TILTED_ZOOM
+          // (at most every SHADOW_THROTTLE_MS, and as building tiles arrive),
+          // so they are there when it lands. While the visitor zooms or
+          // pans, they wait until the map settles: recasting during a fast
+          // zoom stutters.
+          let shadowsDirty = true
+          let shadowsEmpty = false
+          let flying = false
+          let shadowTimer: ReturnType<typeof setTimeout> | null = null
           const refreshShadows = () => {
-            if (!map) return
-            const { lng, lat } = map.getCenter()
-            const view = [
-              map.getZoom().toFixed(2),
-              lng.toFixed(5),
-              lat.toFixed(5),
-              map.getBearing().toFixed(1),
-              map.getPitch().toFixed(1),
-            ].join()
-            if (view === shadowView) return
-            shadowView = view
-            void map
-              .getSource<GeoJSONSource>(SHADOWS)
-              ?.setData(shadowCollection(map, sunRef.current))
+            if (shadowTimer) clearTimeout(shadowTimer)
+            shadowTimer = null
+            if (!map || !shadowsDirty) return
+            shadowsDirty = false
+            const data = shadowCollection(map, sunRef.current)
+            const empty = data.features.length === 0
+            if (empty && shadowsEmpty) return
+            shadowsEmpty = empty
+            void map.getSource<GeoJSONSource>(SHADOWS)?.setData(data)
           }
+          const scheduleShadows = () => {
+            shadowsDirty = true
+            shadowTimer ??= setTimeout(refreshShadows, SHADOW_THROTTLE_MS)
+          }
+          map.on('movestart', (event) => {
+            flying = 'venueFlight' in event
+          })
+          map.on('move', (event) => {
+            if (!('venueFlight' in event)) flying = false
+            shadowsDirty = true
+            if (map && flying && map.getZoom() >= TILTED_ZOOM) scheduleShadows()
+          })
+          map.on('moveend', () => {
+            if (flying) refreshShadows()
+            flying = false
+          })
+          map.on('sourcedata', (event) => {
+            if (event.sourceId !== 'openmaptiles' || !event.tile || !map) return
+            const settled = !map.isMoving()
+            if (settled || (flying && map.getZoom() >= TILTED_ZOOM))
+              scheduleShadows()
+            else shadowsDirty = true
+          })
           map.on('idle', refreshShadows)
           map.addSource(DOTS_SOURCE, {
             type: 'geojson',
