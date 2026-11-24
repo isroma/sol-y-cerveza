@@ -122,7 +122,7 @@ It prints an address such as `https://192.168.1.20:5173/admin.html?token=…`. O
 
 - Open the page at home and keep it open. Away from the server, a reload (or the phone's browser dropping a tab it kept in the background) can't load the admin at all; the queued edits stay on the phone and go out the next time the page loads from the server at the same address.
 - They live in that browser for that address (`https://<ip>:<port>`). If your computer gets a different IP, the new address doesn't see them: **Export file** saves them as JSON, and **Import edits…** in the admin at the new address (or on the computer) sends them.
-- The sun preview and the suggestions queue need the server, so they don't work offline.
+- The sun preview and the suggestions and reports queues need the server, so they don't work offline.
 - To reach the computer from anywhere instead, a tunnel works (e.g. Tailscale on both devices, then `npm run admin:lan` and the computer's Tailscale address), with the same token.
 
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.

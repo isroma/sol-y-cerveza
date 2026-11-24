@@ -43,6 +43,8 @@ type Props = {
   /** The device's position ("Where am I"), with its accuracy in metres. */
   me?: { at: LatLon; accuracy: number } | null
   control?: RefObject<AdminMapControl | null>
+  /** A position a visitor report proposes, shown until accepted or dismissed. */
+  proposed?: LatLon | null
 }
 
 const SOURCE = 'venues'
@@ -104,12 +106,14 @@ export function AdminMap({
   onMoveVenue,
   me = null,
   control,
+  proposed = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
   const meMarker = useRef<Marker | null>(null)
+  const proposedMarker = useRef<Marker | null>(null)
   // Applied on the next move only, so resizing the sheet never jumps the map.
   const bottomInset = useRef(0)
   const callbacks = useRef({
@@ -334,6 +338,19 @@ export function AdminMap({
       map.off('zoom', fit)
     }
   }, [ready, meLat, meLon, meAccuracy])
+
+  // A reported position, not interactive.
+  useEffect(() => {
+    const map = mapRef.current
+    proposedMarker.current?.remove()
+    proposedMarker.current = null
+    if (!map || !ready || !proposed) return
+    proposedMarker.current = new Marker({
+      element: pinElement('admin-proposed-pin', 'Reported position'),
+    })
+      .setLngLat([proposed.lon, proposed.lat])
+      .addTo(map)
+  }, [ready, proposed])
 
   // Venue dots (the selected one is a draggable marker instead).
   const selectedId = selected?.id ?? null
