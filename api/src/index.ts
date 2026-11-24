@@ -14,7 +14,8 @@
  *   POST /v1/owner/photo reads prices and the bar's name from a photo.
  * - GET /v1/admin/owner-prices: owner prices, for the admin's import.
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
- *   with the same identity and caps as suggestions. Never applied automatically.
+ *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
+ *   identity and caps as suggestions. Never applied automatically.
  * - GET /v1/admin/reports, POST /v1/admin/reports/resolve: the reports queue.
  */
 import {
@@ -38,7 +39,7 @@ import {
 import { parsePhoto, PhotoError, readPhoto } from './photo.ts'
 import {
   distanceMetres,
-  MAX_MOVE_METRES,
+  maxDistance,
   NEW_VENUE_KEY,
   parseReport,
   parseResolution,
@@ -225,7 +226,8 @@ async function report(request: Request, env: Env): Promise<Response> {
     const published = (await knownVenues(env)).get(value.venueId)
     if (!published) return json({ error: 'unknown venue' }, 400)
     // A NaN position (a record without `venue`) is never within range.
-    if (value.kind === 'move' && !(distanceMetres(published, value) <= MAX_MOVE_METRES))
+    const limit = maxDistance(value)
+    if (limit !== null && 'lat' in value && !(distanceMetres(published, value) <= limit))
       return json({ error: 'invalid position' }, 400)
   }
 
@@ -255,9 +257,9 @@ async function report(request: Request, env: Env): Promise<Response> {
       venueId,
       value.kind === 'add' ? value.name : '',
       value.kind === 'add' ? value.venueKind : '',
-      value.kind === 'closed' ? null : value.lat,
-      value.kind === 'closed' ? null : value.lon,
-      value.kind === 'add' ? Number(value.terrace) : null,
+      'lat' in value ? value.lat : null,
+      'lon' in value ? value.lon : null,
+      'terrace' in value ? Number(value.terrace) : null,
       voterHash,
       netHash,
       new Date(now).toISOString(),
