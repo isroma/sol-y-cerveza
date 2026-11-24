@@ -1,19 +1,61 @@
 name: Deploy web to GitHub Pages
 
+# Deploys main only after CI has passed on that exact commit, so a combined
+# breakage on main (each PR green alone) never ships. Manual runs deploy main as
+# it is now (the README's service-worker kill switch uses them).
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# One deploy at a time. A newer run waits instead of cancelling one mid-deploy,
+# and GitHub drops an older pending run when a newer one queues. The `latest`
+# job below skips any commit that is no longer main's tip, so an older commit
+# (a late CI run, a re-run) never overwrites a newer one.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
+  latest:
+    name: latest
+    # workflow_run: only CI runs for pushes to main that passed (a fork PR from a
+    # branch named main also matches `branches`, hence the event check).
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.tip.outputs.sha }}
+      deploy: ${{ steps.tip.outputs.deploy }}
+    steps:
+      - name: Deploy only main's current tip
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # The commit CI tested; for a manual run, the commit it was started on.
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          tip=$(gh api "repos/$REPO/branches/main" -q .commit.sha)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          if [ "$tip" = "$SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped $SHA: main is now at $tip, whose own run deploys it."
+          fi
+
   build:
+    needs: latest
+    if: needs.latest.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -22,6 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.latest.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
