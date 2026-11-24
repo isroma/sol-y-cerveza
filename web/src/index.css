@@ -1483,10 +1483,3 @@ body,
 .map-wrap:not(.is-card-folded) .pin-marker[aria-pressed='true'] {
   visibility: hidden;
 }
-
-/* Narrow screens: the legend steps aside while a venue card is open. */
-@media (max-width: 899px) {
-  .map-wrap.has-card .map-legend {
-    visibility: hidden;
-  }
-}
