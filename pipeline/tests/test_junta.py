@@ -105,6 +105,7 @@ def test_geocoder_caches_answers(tmp_path: Path) -> None:
     assert geocoder.portal("CALLE LAS LAVANDERAS", "1") == LatLon(lat=38.88, lon=-6.97)
     assert len(calls) == 1
     geocoder.save()
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["cache.json"]  # written atomically
     again = Geocoder(tmp_path / "cache.json", client, delay_s=0)
     assert again.portal("CALLE LAS LAVANDERAS", "1") == LatLon(lat=38.88, lon=-6.97)
     assert len(calls) == 1

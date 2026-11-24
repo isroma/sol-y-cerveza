@@ -65,6 +65,7 @@ from solycerveza.terrace_vision import (
     Asker,
     CachedAnswer,
     ClaudeAsker,
+    Unanswered,
     answer_key,
     ask,
     estimate_usd,
@@ -357,9 +358,11 @@ def position_proposals(
 
 @dataclass(frozen=True)
 class VisionPlan:
-    """Which targets already have an answer, and which would need a request."""
+    """Which targets already have an answer (or a paid one without a usable answer), and which
+    would need a request."""
 
     cached: dict[str, CachedAnswer]
+    unanswered: dict[str, Unanswered]
     to_ask: list[Terrace]
 
 
@@ -367,6 +370,7 @@ def plan_vision(
     targets: Sequence[Terrace], ortho_cache: Path = ORTHO_CACHE, vision_cache: Path = VISION_CACHE
 ) -> VisionPlan:
     cached: dict[str, CachedAnswer] = {}
+    unanswered: dict[str, Unanswered] = {}
     to_ask: list[Terrace] = []
     for t in sorted(targets, key=lambda t: t.id):
         image = cached_crop(Crop(t.venue), ortho_cache)
@@ -374,9 +378,11 @@ def plan_vision(
         answer = None if key is None else read_answer(key, vision_cache)
         if answer is None:
             to_ask.append(t)
+        elif isinstance(answer, Unanswered):
+            unanswered[t.id] = answer
         else:
             cached[t.id] = answer
-    return VisionPlan(cached=cached, to_ask=to_ask)
+    return VisionPlan(cached=cached, unanswered=unanswered, to_ask=to_ask)
 
 
 def ask_vision(
@@ -386,7 +392,11 @@ def ask_vision(
     today: date,
     vision_cache: Path = VISION_CACHE,
 ) -> dict[str, CachedAnswer]:
-    """Fetch the crop and ask, for each target in order; answers are cached as they come."""
+    """Fetch the crop and ask, for each target in order; answers are cached as they come.
+
+    A paid request without a usable answer is cached too (as `Unanswered`) but not returned; a
+    transient failure is neither, so the next run asks again.
+    """
     answers: dict[str, CachedAnswer] = {}
     for i, t in enumerate(to_ask, 1):
         crop = Crop(t.venue)
@@ -397,6 +407,11 @@ def ask_vision(
         if answer is None:
             continue
         write_answer(answer_key(t.name, t.kind, image), answer, vision_cache)
+        if isinstance(answer, Unanswered):
+            logger.info(
+                "vision %d/%d %s: no usable answer (%s)", i, len(to_ask), t.id, answer.reason
+            )
+            continue
         answers[t.id] = answer
         logger.info("vision %d/%d %s: %s", i, len(to_ask), t.id, answer.answer.terrace)
     return answers
@@ -434,6 +449,16 @@ def vision_proposals(
 
 
 @dataclass(frozen=True)
+class AskAll:
+    """`--yes`: make every Claude API call needed."""
+
+
+#: How many new Claude API calls a run may make: `AskAll()`, at most N, or None (none; the run
+#: only says how to allow them).
+AskBudget = AskAll | int | None
+
+
+@dataclass(frozen=True)
 class Targets:
     """The records each proposer looks at."""
 
@@ -442,11 +467,22 @@ class Targets:
     overture: list[Terrace]
 
 
+def vision_to_ask(to_ask: Sequence[Terrace], budget: AskBudget) -> list[Terrace]:
+    """The targets this run may pay for."""
+    if isinstance(budget, AskAll):
+        return list(to_ask)
+    if budget is None:
+        return []
+    if budget < 0:
+        raise ValueError(f"a call budget cannot be negative: {budget}")
+    return list(to_ask[:budget])
+
+
 def run_proposers(
     targets: Targets,
     only: set[str],
     *,
-    ask_limit: int | None,
+    ask_limit: AskBudget,
     today: date,
     asker: Asker | None = None,
 ) -> tuple[list[Proposal], dict[str, list[str]]]:
@@ -476,20 +512,31 @@ def run_proposers(
         low, high = estimate_usd(len(plan.to_ask))
         # The estimate is for the person running it, so it goes to stdout.
         print(
-            f"vision: {len(targets.vision)} venues, {len(plan.cached)} answers cached, "
+            f"vision: {len(targets.vision)} venues, {len(plan.cached)} answers cached "
+            f"({len(plan.unanswered)} more without a usable answer), "
             f"{len(plan.to_ask)} Claude API calls needed (about ${low:.2f}-${high:.2f})"
         )
         answers = dict(plan.cached)
+        chosen = vision_to_ask(plan.to_ask, ask_limit)
         if plan.to_ask and ask_limit is None:
             print("vision: asking nothing new; re-run with --yes or --limit N")
-        elif plan.to_ask and ask_limit is not None and ask_limit != 0:
-            chosen = plan.to_ask if ask_limit < 0 else plan.to_ask[:ask_limit]
+        elif chosen:
             with httpx.Client() as client:
                 fetcher = OrthoFetcher(client=client)
                 answers |= ask_vision(chosen, fetcher, asker or ClaudeAsker(), today)
         proposals += vision_proposals(targets.vision, answers)
         ran["vision"] = sorted(answers)
     return proposals, ran
+
+
+def _non_negative(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"not a whole number: {text!r}") from None
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"must be 0 or more, not {value}")
+    return value
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -501,7 +548,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     budget = parser.add_mutually_exclusive_group()
     budget.add_argument("--yes", action="store_true", help="make every Claude API call needed")
-    budget.add_argument("--limit", type=int, help="make at most N new Claude API calls")
+    budget.add_argument(
+        "--limit", type=_non_negative, help="make at most N new Claude API calls (N >= 0)"
+    )
     parser.add_argument(
         "--min-confidence",
         type=float,
@@ -525,7 +574,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     unknown = only - set(PROPOSERS)
     if unknown:
         parser.error(f"unknown proposers: {', '.join(sorted(unknown))}")
-    ask_limit = -1 if args.yes else args.limit
+    ask_limit: AskBudget = AskAll() if args.yes else args.limit
     today = date.today()
 
     reviews = read_review()

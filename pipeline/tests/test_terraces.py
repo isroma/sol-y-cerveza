@@ -167,6 +167,28 @@ def test_curated_name_and_kind_override_osm() -> None:
     assert (record.name, record.kind, record.sources) == ("El Velador", "bar", ["curated", "osm"])
 
 
+@pytest.mark.parametrize(
+    ("venue_id", "source"),
+    [
+        ("overture:0a0ce46c-b2fa-475e-b99d-c50919db927a", "overture"),
+        ("junta:0123456789ab", "junta"),
+        ("review:bar-x", "review"),
+    ],
+)
+def test_curated_row_keeps_the_linked_venues_own_source(venue_id: str, source: str) -> None:
+    venue = Venue(
+        id=venue_id,
+        name="Bar X",
+        kind="bar",
+        location=LatLon(lat=38.88, lon=-6.97),
+        outdoor_seating=None,
+    )
+
+    (record,) = build_terraces([venue], [curated(venue_id=venue_id)])
+
+    assert record.sources == sorted(["curated", source])
+
+
 def test_curated_row_wins_over_outdoor_seating_no() -> None:
     ids = [record.id for record in build_terraces(fixture_venues(), [curated(venue_id=JUEVES)])]
     assert JUEVES in ids
