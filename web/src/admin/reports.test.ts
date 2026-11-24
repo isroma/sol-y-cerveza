@@ -3,6 +3,7 @@ import {
   byReporters,
   describeReport,
   isStale,
+  reportChange,
   reportsResponseSchema,
 } from './reports.ts'
 
@@ -99,5 +100,73 @@ describe('describeReport', () => {
     expect(isStale(move, pepe)).toBe(false)
     expect(isStale(add, undefined)).toBe(false)
     expect(describeReport(closed, undefined)).toContain('stale')
+  })
+})
+
+describe('terrace reports (#210)', () => {
+  const [yes, no, pin] = reportsResponseSchema.parse({
+    reports: [
+      {
+        ids: [6, 7],
+        kind: 'terrace',
+        venueId: 'osm:node/1',
+        terrace: true,
+        reporters: 2,
+        last: '2026-11-24T10:00:00.000Z',
+      },
+      {
+        ids: [8],
+        kind: 'terrace',
+        venueId: 'osm:node/1',
+        terrace: false,
+        reporters: 1,
+        last: '2026-11-24T09:00:00.000Z',
+      },
+      {
+        ids: [9],
+        kind: 'pin',
+        venueId: 'osm:node/1',
+        lat: 38.8781,
+        lon: -6.9705,
+        reporters: 1,
+        last: '2026-11-24T08:00:00.000Z',
+      },
+    ],
+  }).reports
+
+  it('describes answers with their counts, and a pin with its distance', () => {
+    if (!yes || !no || !pin) throw new Error('fixture')
+    expect(describeReport(yes, pepe)).toBe('Terrace: yes · Bar Pepe · 2 people')
+    expect(describeReport(no, pepe)).toBe('Terrace: no · Bar Pepe · 1 person')
+    expect(describeReport(pin, pepe)).toBe(
+      'Terrace here · Bar Pepe · 11 m from the venue',
+    )
+    expect(isStale(pin, undefined)).toBe(true)
+    expect(describeReport(yes, undefined)).toContain('stale')
+  })
+
+  it('turns each report into the review change the admin would make', () => {
+    if (
+      yes?.kind !== 'terrace' ||
+      no?.kind !== 'terrace' ||
+      pin?.kind !== 'pin' ||
+      move?.kind !== 'move' ||
+      closed?.kind !== 'closed'
+    )
+      throw new Error('fixture')
+    expect(reportChange(yes)).toEqual({ kind: 'status', status: 'terrace' })
+    expect(reportChange(no)).toEqual({ kind: 'status', status: 'no_terrace' })
+    expect(reportChange(pin)).toEqual({
+      kind: 'terrace',
+      at: { lat: 38.8781, lon: -6.9705 },
+    })
+    expect(reportChange(move)).toEqual({
+      kind: 'venue',
+      at: { lat: 38.878, lon: -6.97 },
+    })
+    expect(reportChange(closed)).toEqual({
+      kind: 'status',
+      status: 'not_venue',
+    })
   })
 })
