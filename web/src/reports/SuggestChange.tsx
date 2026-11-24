@@ -227,19 +227,21 @@ export function SuggestChange({
               Escribe un precio entre 0,50 € y 8,00 €.
             </p>
           )}
-          {TURNSTILE_SITE_KEY && hasPrice && (
-            <Turnstile
-              siteKey={TURNSTILE_SITE_KEY}
-              action="suggest"
-              onToken={setPriceToken}
-            />
-          )}
-          {TURNSTILE_SITE_KEY && closed && (
-            <Turnstile
-              siteKey={TURNSTILE_SITE_KEY}
-              action="report"
-              onToken={setReportToken}
-            />
+          {/* Both checks start as the back opens, so their tokens are
+              ready by the time the visitor has typed a price. */}
+          {TURNSTILE_SITE_KEY && (
+            <>
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                action="suggest"
+                onToken={setPriceToken}
+              />
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                action="report"
+                onToken={setReportToken}
+              />
+            </>
           )}
           <button
             type="submit"

@@ -65,6 +65,10 @@ describe('SuggestChange', () => {
     const onBack = vi.fn()
     render(<SuggestChange venue={venue} onBack={onBack} />)
     expect(screen.getByText('Sugerir un cambio').parentElement).toHaveFocus()
+    // Both bot checks start at once, before anything is typed.
+    expect(
+      screen.getAllByTestId('turnstile').map((t) => t.textContent),
+    ).toEqual(['suggest', 'report'])
     expect(send()).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
     expect(onBack).toHaveBeenCalledOnce()
