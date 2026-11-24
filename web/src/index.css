@@ -526,6 +526,20 @@ body,
   background: var(--surface-hover);
 }
 
+/* "¿Falta un bar? Añádelo": a quiet link under the list (issue #201). */
+.add-venue {
+  display: flex;
+  align-items: center;
+  min-height: var(--control);
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+}
+
 /* Map */
 
 .map-wrap,

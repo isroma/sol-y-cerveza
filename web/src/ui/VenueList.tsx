@@ -9,6 +9,8 @@ type Props = {
   minutes: number
   selectedId: string | null
   onSelect: (id: string) => void
+  /** Opens the picker to report a missing venue; unset hides the button. */
+  onAdd?: () => void
 }
 
 /** Rows shown at first and added per "Ver más": the full list is hundreds long. */
@@ -20,6 +22,7 @@ export function VenueList({
   minutes,
   selectedId,
   onSelect,
+  onAdd,
 }: Props) {
   const [limit, setLimit] = useState(PAGE)
   const sunny = statuses.filter((s) => s.category === 'sun').length
@@ -65,6 +68,11 @@ export function VenueList({
           onClick={() => setLimit(limit + PAGE)}
         >
           Ver más ({statuses.length - shown.length})
+        </button>
+      )}
+      {onAdd && (
+        <button type="button" className="add-venue" onClick={onAdd}>
+          ¿Falta un bar? Añádelo
         </button>
       )}
     </section>

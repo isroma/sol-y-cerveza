@@ -7,6 +7,7 @@ import { SunCountdown } from './SunCountdown.tsx'
 import { CAN_SUGGEST } from '../prices/crowd.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useOwner } from '../prices/owner.ts'
+import { ReportSection } from '../reports/ReportSection.tsx'
 import { shareUrl } from '../urlState.ts'
 
 type Props = {
@@ -174,6 +175,7 @@ export function PinCard({ status, minutes }: Props) {
           open={formOpen}
           onOpenChange={(open) => setFormFor(open ? venue.id : null)}
         />
+        <ReportSection key={venue.id} venue={venue} />
       </div>
     </div>
   )

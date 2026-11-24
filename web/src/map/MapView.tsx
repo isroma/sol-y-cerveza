@@ -10,6 +10,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BASEMAP_STYLE_URL } from '../config.ts'
+import type { LatLon } from '../data/terraces.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
@@ -52,6 +53,9 @@ const MAP_LOCALE = {
   'AttributionControl.MapFeedback': 'Comentarios sobre el mapa',
   'Map.Title': 'Mapa',
 }
+
+/** Close enough to place a venue within a few metres (the report picker). */
+const PICK_ZOOM = 18
 
 /** Size the venue card for a zoom (see cardScale). */
 function sizeCard(el: HTMLElement, zoom: number) {
@@ -130,6 +134,10 @@ type Props = {
   attribution: readonly string[]
   /** The data has leaf-off horizons (ADR-0007). */
   leafOffTrees?: boolean
+  /** While set, gets the map's centre now and as the map moves (the report picker). */
+  onCenterChange?: (center: LatLon) => void
+  /** Centres the map here, zoomed in to place a point (the report picker). */
+  flyTo?: LatLon | null
 }
 
 /**
@@ -156,6 +164,8 @@ export function MapView({
   sunset,
   attribution,
   leafOffTrees = false,
+  onCenterChange,
+  flyTo = null,
 }: Props) {
   // The selected badge opens into a card below it, as its own marker.
   const cardEl = useMemo(() => {
@@ -171,6 +181,7 @@ export function MapView({
   /** What the dots source holds now (see dotsUpdate). */
   const dotsKeyRef = useRef<string | null>(null)
   const onSelectRef = useRef(onSelect)
+  const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
@@ -186,9 +197,10 @@ export function MapView({
 
   useEffect(() => {
     onSelectRef.current = onSelect
+    onCenterChangeRef.current = onCenterChange
     selectedIdRef.current = selectedId
     statusesRef.current = statuses
-  }, [onSelect, selectedId, statuses])
+  }, [onSelect, onCenterChange, selectedId, statuses])
 
   useEffect(() => {
     const container = containerRef.current
@@ -241,6 +253,11 @@ export function MapView({
           map.once('idle', collapse)
         }
         map.touchPitch.disable()
+        map.on('move', () => {
+          if (!map) return
+          const { lat, lng } = map.getCenter()
+          onCenterChangeRef.current?.({ lat, lon: lng })
+        })
         map.on('zoom', (event) => {
           if (!map) return
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
@@ -399,6 +416,26 @@ export function MapView({
       map?.remove()
     }
   }, [cardEl])
+
+  // The report picker: its first centre, then flying to the venue to move.
+  const tracking = onCenterChange !== undefined
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !tracking) return
+    const { lat, lng } = map.getCenter()
+    onCenterChangeRef.current?.({ lat, lon: lng })
+  }, [ready, tracking])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !flyTo) return
+    map.easeTo({
+      center: [flyTo.lon, flyTo.lat],
+      zoom: PICK_ZOOM,
+      pitch: pitchForZoom(PICK_ZOOM),
+      duration: 900,
+    })
+  }, [ready, flyTo])
 
   // Light the buildings from the sun's real position and cast their shadows.
   useEffect(() => {

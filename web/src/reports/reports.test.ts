@@ -1,0 +1,99 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  cleanName,
+  distanceMetres,
+  insideBadajoz,
+  reportVenue,
+  validName,
+  type Report,
+} from './reports.ts'
+
+vi.mock('../prices/crowd.ts', () => ({
+  PRICES_API: 'https://api.test',
+  TURNSTILE_SITE_KEY: 'site-key',
+}))
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('cleanName', () => {
+  it('turns commas, quotes and line breaks into single spaces', () => {
+    expect(cleanName('  Bar "El Sol",\n  Badajoz ')).toBe('Bar El Sol Badajoz')
+  })
+})
+
+describe('validName', () => {
+  it('takes 2 to 60 characters after cleaning, without links', () => {
+    expect(validName('Bar Nuevo')).toBe(true)
+    expect(validName(' a ')).toBe(false)
+    expect(validName('x'.repeat(61))).toBe(false)
+    expect(validName('www.bar.es')).toBe(false)
+    expect(validName('Bar HTTPS')).toBe(false)
+  })
+})
+
+describe('insideBadajoz', () => {
+  it('accepts the city box only', () => {
+    expect(insideBadajoz({ lat: 38.878, lon: -6.97 })).toBe(true)
+    expect(insideBadajoz({ lat: 38.95, lon: -6.97 })).toBe(false)
+    expect(insideBadajoz({ lat: 38.878, lon: -7.05 })).toBe(false)
+  })
+})
+
+describe('distanceMetres', () => {
+  it('measures short distances in metres', () => {
+    // 0.001° of latitude is about 111 m.
+    const d = distanceMetres(
+      { lat: 38.878, lon: -6.97 },
+      { lat: 38.879, lon: -6.97 },
+    )
+    expect(d).toBeGreaterThan(110)
+    expect(d).toBeLessThan(112)
+  })
+})
+
+describe('reportVenue', () => {
+  it('posts the report with positions rounded to 6 decimals', async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ ok: true }, { status: 201 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const result = await reportVenue({
+      kind: 'move',
+      venueId: 'osm:node/1',
+      lat: 38.87812345678,
+      lon: -6.97012345678,
+      token: 't',
+    })
+    expect(result).toBe('ok')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/reports',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    const init: unknown = fetchMock.mock.calls[0]?.at(1)
+    const body =
+      init && typeof init === 'object' && 'body' in init ? init.body : null
+    expect(JSON.parse(String(body))).toEqual({
+      kind: 'move',
+      venueId: 'osm:node/1',
+      lat: 38.878123,
+      lon: -6.970123,
+      token: 't',
+    })
+  })
+
+  it('maps rate limits, bot checks and failures', async () => {
+    const closed: Report = { kind: 'closed', venueId: 'osm:node/1', token: 't' }
+    vi.stubGlobal('fetch', async () => new Response(null, { status: 429 }))
+    expect(await reportVenue(closed)).toBe('rate-limited')
+    vi.stubGlobal('fetch', async () => new Response(null, { status: 403 }))
+    expect(await reportVenue(closed)).toBe('bot')
+    vi.stubGlobal('fetch', async () => new Response(null, { status: 400 }))
+    expect(await reportVenue(closed)).toBe('error')
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('offline')
+    })
+    expect(await reportVenue(closed)).toBe('error')
+  })
+})
