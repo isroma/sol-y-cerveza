@@ -58,6 +58,52 @@ function sizeCard(el: HTMLElement, zoom: number) {
   el.style.setProperty('--card-scale', String(cardScale(zoom)))
 }
 
+const FIT_MARGIN = 16
+const FIT_GAP = 8
+
+/**
+ * Pan so the open card sits fully inside the map and clear of the floating
+ * controls (city, buttons, legend). If it is taller than the free space, cap
+ * its height (`--card-max`) so the card body scrolls instead.
+ */
+function fitCard(map: MapLibreMap, card: HTMLElement, wrap: HTMLElement) {
+  const box = wrap.getBoundingClientRect()
+  const cardRect = card.querySelector('.pin-card')?.getBoundingClientRect()
+  if (!cardRect || cardRect.width === 0) return
+  let top = box.top + FIT_MARGIN
+  let bottom = box.bottom - FIT_MARGIN
+  for (const el of wrap.querySelectorAll(
+    '.map-city, .map-buttons, .map-legend',
+  )) {
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.right <= cardRect.left || r.left >= cardRect.right)
+      continue
+    if (r.top + r.height / 2 < box.top + box.height / 2)
+      top = Math.max(top, r.bottom + FIT_GAP)
+    else bottom = Math.min(bottom, r.top - FIT_GAP)
+  }
+  const scale = Number(card.style.getPropertyValue('--card-scale')) || 1
+  card.style.setProperty('--card-max', `${(bottom - top) / scale}px`)
+  const fresh =
+    card.querySelector('.pin-card')?.getBoundingClientRect() ?? cardRect
+  const left = box.left + FIT_MARGIN
+  const right = box.right - FIT_MARGIN
+  const dx =
+    fresh.left < left
+      ? fresh.left - left
+      : fresh.right > right
+        ? fresh.right - right
+        : 0
+  const dy =
+    fresh.top < top || fresh.height > bottom - top
+      ? fresh.top - top
+      : fresh.bottom > bottom
+        ? fresh.bottom - bottom
+        : 0
+  if (Math.abs(dx) > 1 || Math.abs(dy) > 1)
+    map.panBy([dx, dy], { duration: 300 })
+}
+
 /** Bring a venue into view, close enough for its full card. */
 function focusVenue(map: MapLibreMap, status: VenueStatus) {
   const position = status.venue.terrace ?? status.venue.venue
@@ -470,12 +516,38 @@ export function MapView({
     const status = statuses.find((s) => s.venue.id === selectedId)
     if (selectedId !== null && !status) return
     lastSelected.current = selectedId
-    if (status) focusVenue(map, status)
-  }, [ready, selectedId, statuses])
+    if (!status) return
+    focusVenue(map, status)
+    // Once there, make sure the whole card is visible and usable.
+    map.once('moveend', () => {
+      const wrap = containerRef.current?.parentElement
+      if (wrap) fitCard(map, cardEl, wrap)
+    })
+  }, [ready, selectedId, statuses, cardEl])
+
+  // Keep the card in view when it grows (price form, longer names).
+  useEffect(() => {
+    const map = mapRef.current
+    const wrap = containerRef.current?.parentElement
+    if (!ready || !map || !wrap || !selectedId) return
+    let frame = 0
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        if (!map.isMoving()) fitCard(map, cardEl, wrap)
+      })
+    })
+    const card = cardEl.querySelector('.pin-card')
+    if (card) observer.observe(card)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+    }
+  }, [ready, selectedId, cardEl])
 
   return (
     <div
-      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${folded ? ' is-card-folded' : ''}`}
+      className={`map-wrap${overview ? ' is-overview' : ''}${night ? ' is-night' : ''}${folded ? ' is-card-folded' : ''}${selectedStatus && !folded ? ' has-card' : ''}`}
     >
       <div
         ref={containerRef}
