@@ -5,6 +5,7 @@ import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
+import { ReportSection } from '../reports/ReportSection.tsx'
 import { shareUrl } from '../urlState.ts'
 
 type Props = {
@@ -152,6 +153,7 @@ export function PinCard({ status, minutes }: Props) {
           <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
         <PriceSection venue={venue} />
+        <ReportSection key={venue.id} venue={venue} />
       </div>
     </div>
   )

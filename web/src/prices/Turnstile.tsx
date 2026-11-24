@@ -46,10 +46,12 @@ type Props = {
   siteKey: string
   /** A fresh token, or null when it expired. */
   onToken: (token: string | null) => void
+  /** The API checks it per endpoint: 'suggest' for prices, 'report' for venue reports. */
+  action?: string
 }
 
 /** Cloudflare's bot check; invisible unless Cloudflare wants an interaction. */
-export function Turnstile({ siteKey, onToken }: Props) {
+export function Turnstile({ siteKey, onToken, action = 'suggest' }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const onTokenRef = useRef(onToken)
   useEffect(() => {
@@ -68,7 +70,7 @@ export function Turnstile({ siteKey, onToken }: Props) {
         api = loaded
         widget = loaded.render(element, {
           sitekey: siteKey,
-          action: 'suggest',
+          action,
           callback: (token) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),
           appearance: 'interaction-only',
@@ -80,7 +82,7 @@ export function Turnstile({ siteKey, onToken }: Props) {
       cancelled = true
       if (api && widget) api.remove(widget)
     }
-  }, [siteKey])
+  }, [siteKey, action])
 
   return <div ref={ref} className="price-turnstile" />
 }

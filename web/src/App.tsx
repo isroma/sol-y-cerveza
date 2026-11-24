@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { loadTerraces, type TerracesFile } from './data/terraces.ts'
+import {
+  loadTerraces,
+  type LatLon,
+  type Terrace,
+  type TerracesFile,
+} from './data/terraces.ts'
 import {
   applyFilters,
   DEFAULT_FILTERS,
@@ -7,6 +12,9 @@ import {
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
 import { OwnerBar } from './prices/OwnerBar.tsx'
+import { StartMoveContext, type Picking } from './reports/picking.ts'
+import { ReportPicker } from './reports/ReportPicker.tsx'
+import { CAN_REPORT } from './reports/reports.ts'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
@@ -23,6 +31,9 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; file: TerracesFile }
+
+/** While the report picker is open, tapping badges doesn't open cards. */
+function ignoreSelect() {}
 
 /** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
@@ -43,6 +54,9 @@ export function App() {
   // a menu that opens over the map.
   const phone = useMediaQuery('(max-width: 899px)')
   const [menuOpen, setMenuOpen] = useState(false)
+  // Reporting a moved or missing venue: a centre pin over the map.
+  const [picking, setPicking] = useState<Picking | null>(null)
+  const [center, setCenter] = useState<LatLon | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -144,7 +158,30 @@ export function App() {
   const selectFromList = useCallback((id: string | null) => {
     setSelectedId(id)
     setMenuOpen(false)
+    setPicking(null)
+    setCenter(null)
   }, [])
+
+  const startMove = useCallback((venue: Terrace) => {
+    setSelectedId(null)
+    setPicking({ kind: 'move', venue })
+  }, [])
+  const startAdd = useCallback(() => {
+    setMenuOpen(false)
+    setSelectedId(null)
+    setPicking({ kind: 'add' })
+  }, [])
+  const stopPicking = useCallback(() => {
+    setPicking(null)
+    setCenter(null)
+  }, [])
+  const flyTo = useMemo(
+    () =>
+      picking?.kind === 'move'
+        ? (picking.venue.terrace ?? picking.venue.venue)
+        : null,
+    [picking],
+  )
 
   useEffect(() => {
     if (!menuOpen) return
@@ -167,7 +204,9 @@ export function App() {
   )
 
   return (
-    <div className={night ? 'app is-night' : 'app'}>
+    <div
+      className={`app${night ? ' is-night' : ''}${picking ? ' is-picking' : ''}`}
+    >
       <header className="brand">
         <Logo />
         <h1>Sol y Cerveza</h1>
@@ -208,25 +247,40 @@ export function App() {
             minutes={minutes}
             selectedId={selectedId}
             onSelect={selectFromList}
+            onAdd={CAN_REPORT ? startAdd : undefined}
           />
         )}
       </aside>
       <main className="map-area">
-        <MapView
-          statuses={visible}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          sun={sun}
-          minutes={minutes}
-          sunset={times?.sunset ?? null}
-          attribution={load.status === 'ready' ? load.file.attribution : []}
-          leafOffTrees={leafOffTrees}
-        />
+        <StartMoveContext value={startMove}>
+          <MapView
+            statuses={visible}
+            selectedId={selectedId}
+            onSelect={picking ? ignoreSelect : setSelectedId}
+            sun={sun}
+            minutes={minutes}
+            sunset={times?.sunset ?? null}
+            attribution={load.status === 'ready' ? load.file.attribution : []}
+            leafOffTrees={leafOffTrees}
+            onCenterChange={picking ? setCenter : undefined}
+            flyTo={flyTo}
+          />
+        </StartMoveContext>
+        {picking && (
+          <ReportPicker
+            key={picking.kind === 'move' ? picking.venue.id : 'add'}
+            picking={picking}
+            center={center}
+            onClose={stopPicking}
+          />
+        )}
         {load.status === 'ready' && (
           <OwnerBar venues={load.file.terraces} onSelect={setSelectedId} />
         )}
       </main>
-      {phone && <footer className="time-footer">{timeSlider}</footer>}
+      {phone && !picking && (
+        <footer className="time-footer">{timeSlider}</footer>
+      )}
     </div>
   )
 }
