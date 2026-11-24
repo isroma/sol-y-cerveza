@@ -239,8 +239,9 @@ export function reviewServer(): Plugin {
             : send(res, 409, { error: 'a Publish is still building' }),
         )
       })
-      // The suggestions review queue, proxied to the API so the admin token
-      // (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the browser.
+      // The suggestions and reports review queues, proxied to the API so the
+      // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
+      // browser: GET reads the queue, POST resolves entries.
       const env = loadEnv(
         server.config.mode,
         server.config.envDir || process.cwd(),
@@ -248,32 +249,40 @@ export function reviewServer(): Plugin {
       )
       const api = env['VITE_PRICES_API'] ?? ''
       const token = env['PRICES_ADMIN_TOKEN'] ?? ''
-      server.middlewares.use('/__admin/suggestions', (req, res) => {
-        if (!api || !token)
-          return send(res, 503, {
-            error:
-              'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
-          })
-        const forward = async () => {
-          const path =
-            req.method === 'POST'
-              ? '/v1/admin/resolve'
-              : '/v1/admin/suggestions'
-          const init: RequestInit = {
-            method: req.method === 'POST' ? 'POST' : 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
+      const proxy =
+        (getPath: string, postPath: string) =>
+        (req: IncomingMessage, res: ServerResponse) => {
+          if (!api || !token)
+            return send(res, 503, {
+              error:
+                'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
+            })
+          const forward = async () => {
+            const path = req.method === 'POST' ? postPath : getPath
+            const init: RequestInit = {
+              method: req.method === 'POST' ? 'POST' : 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+            if (req.method === 'POST')
+              init.body = JSON.stringify(await body(req))
+            const response = await fetch(`${api}${path}`, init)
+            send(res, response.status, await response.json())
           }
-          if (req.method === 'POST') init.body = JSON.stringify(await body(req))
-          const response = await fetch(`${api}${path}`, init)
-          send(res, response.status, await response.json())
+          forward().catch((error: unknown) =>
+            send(res, 502, { error: String(error) }),
+          )
         }
-        forward().catch((error: unknown) =>
-          send(res, 502, { error: String(error) }),
-        )
-      })
+      server.middlewares.use(
+        '/__admin/suggestions',
+        proxy('/v1/admin/suggestions', '/v1/admin/resolve'),
+      )
+      server.middlewares.use(
+        '/__admin/reports',
+        proxy('/v1/admin/reports', '/v1/admin/reports/resolve'),
+      )
       // Sun preview: the horizon and height above ground at a pin, from the
       // LiDAR rasters. PROBE_DSM and PROBE_DTM (e.g. in web/.env.local)
       // override the rasters in pipeline/.cache/.

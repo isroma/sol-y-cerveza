@@ -4,6 +4,8 @@ import { AdminMap } from './AdminMap.tsx'
 import { PricesEditor } from './PricesEditor.tsx'
 import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
+import { ReportsQueue } from './ReportsQueue.tsx'
+import { fetchReports, type VenueReport } from './reports.ts'
 import { BRANDS } from '../data/prices.ts'
 import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
@@ -127,12 +129,17 @@ export function Admin() {
   const [dragging, setDragging] = useState<LatLon | null>(null)
   const [queueOpen, setQueueOpen] = useState(false)
   const [candidatesOpen, setCandidatesOpen] = useState(false)
+  const [reportsOpen, setReportsOpen] = useState(false)
+  const [reportCount, setReportCount] = useState<number | null>(null)
+  // Where a selected visitor report would put a venue.
+  const [proposed, setProposed] = useState<LatLon | null>(null)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)
     setPinning(false)
     setDragging(null)
+    setProposed(null)
   }, [])
 
   // Sun checks on the horizons in terraces.json, for the "Needs a look" filter.
@@ -270,9 +277,11 @@ export function Admin() {
           })
       if (!response.ok) throw new Error(await response.text())
       setMessage('Saved')
+      return true
     } catch (error) {
       setMessage(`Not saved: ${String(error)}`)
       setReviews(await fetchReviews())
+      return false
     }
   }, [])
 
@@ -454,6 +463,56 @@ export function Admin() {
     await savePrice(priceKey(price), price)
   }
 
+  // Pending reports, for the count on the Reports button.
+  useEffect(() => {
+    void fetchReports().then((r) => {
+      if (r.reports) setReportCount(r.reports.length)
+    })
+  }, [])
+
+  const selectReport = (r: VenueReport) => {
+    if (r.kind === 'add') {
+      setAdding(null)
+      select(null)
+    } else select(r.venueId)
+    if (r.kind !== 'closed') setProposed({ lat: r.lat, lon: r.lon })
+  }
+
+  /** Applies a visitor report through the review rows; true once saved. */
+  const acceptReport = async (r: VenueReport): Promise<boolean> => {
+    let saved: boolean
+    if (r.kind === 'add') {
+      const name = cleanName(r.name)
+      const venueId = addedId(name, new Set(venues.map((v) => v.id)))
+      saved = await save(venueId, {
+        venueId,
+        status: r.terrace ? 'terrace' : null,
+        name,
+        kind: r.venueKind,
+        venue: { lat: r.lat, lon: r.lon },
+        terrace: null,
+        reviewed: today(),
+        looksRight: false,
+      })
+    } else if (r.kind === 'closed' && r.venueId.startsWith(ADDED_PREFIX)) {
+      saved = await save(r.venueId, null)
+    } else {
+      saved = await save(
+        r.venueId,
+        nextReview(
+          reviews.get(r.venueId),
+          r.venueId,
+          r.kind === 'closed'
+            ? { kind: 'status', status: 'not_venue' }
+            : { kind: 'venue', at: { lat: r.lat, lon: r.lon } },
+          today(),
+        ),
+      )
+    }
+    if (saved) setProposed(null)
+    return saved
+  }
+
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
   const osm = selectedId ? osmUrl(selectedId) : null
 
@@ -470,6 +529,16 @@ export function Admin() {
                 onClick={() => setQueueOpen(!queueOpen)}
               >
                 Suggestions
+              </button>
+              <button
+                type="button"
+                aria-pressed={reportsOpen}
+                onClick={() => {
+                  setReportsOpen(!reportsOpen)
+                  setProposed(null)
+                }}
+              >
+                Reports{reportCount ? ` (${reportCount})` : ''}
               </button>
               <button
                 type="button"
@@ -515,6 +584,14 @@ export function Admin() {
               nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
               onSelect={select}
               onAccept={acceptSuggestion}
+            />
+          )}
+          {reportsOpen && (
+            <ReportsQueue
+              venueOf={(id) => mapVenues.find((v) => v.id === id)}
+              onSelect={selectReport}
+              onAccept={acceptReport}
+              onCount={setReportCount}
             />
           )}
           {candidatesOpen && (
@@ -584,6 +661,7 @@ export function Admin() {
           selected={selectedMap}
           terrace={terrace}
           pinning={pinning}
+          proposed={proposed}
           onSelect={(id) => {
             if (!adding) select(id)
           }}
