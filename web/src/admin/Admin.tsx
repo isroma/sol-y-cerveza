@@ -5,7 +5,7 @@ import { PricesEditor } from './PricesEditor.tsx'
 import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
 import { ReportsQueue } from './ReportsQueue.tsx'
-import { fetchReports, type VenueReport } from './reports.ts'
+import { fetchReports, reportChange, type VenueReport } from './reports.ts'
 import { BRANDS } from '../data/prices.ts'
 import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
@@ -475,7 +475,7 @@ export function Admin() {
       setAdding(null)
       select(null)
     } else select(r.venueId)
-    if (r.kind !== 'closed') setProposed({ lat: r.lat, lon: r.lon })
+    if ('lat' in r) setProposed({ lat: r.lat, lon: r.lon })
   }
 
   /** Applies a visitor report through the review rows; true once saved. */
@@ -499,14 +499,7 @@ export function Admin() {
     } else {
       saved = await save(
         r.venueId,
-        nextReview(
-          reviews.get(r.venueId),
-          r.venueId,
-          r.kind === 'closed'
-            ? { kind: 'status', status: 'not_venue' }
-            : { kind: 'venue', at: { lat: r.lat, lon: r.lon } },
-          today(),
-        ),
+        nextReview(reviews.get(r.venueId), r.venueId, reportChange(r), today()),
       )
     }
     if (saved) setProposed(null)
