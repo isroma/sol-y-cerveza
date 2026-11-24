@@ -31,6 +31,8 @@ type Props = {
   /** The terrace pin's position while it is dragged, before onPinTerrace. */
   onDragTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
+  /** A position a visitor report proposes, shown until accepted or dismissed. */
+  proposed?: LatLon | null
 }
 
 const SOURCE = 'venues'
@@ -90,11 +92,13 @@ export function AdminMap({
   onPinTerrace,
   onDragTerrace,
   onMoveVenue,
+  proposed = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
+  const proposedMarker = useRef<Marker | null>(null)
   const callbacks = useRef({
     onSelect,
     onMapClick,
@@ -251,6 +255,24 @@ export function AdminMap({
       duration: 600,
     })
   }, [ready, selectedId])
+
+  // A reported position: not interactive, and flown to after the selection.
+  useEffect(() => {
+    const map = mapRef.current
+    proposedMarker.current?.remove()
+    proposedMarker.current = null
+    if (!map || !ready || !proposed) return
+    proposedMarker.current = new Marker({
+      element: pinElement('admin-proposed-pin', 'Reported position'),
+    })
+      .setLngLat([proposed.lon, proposed.lat])
+      .addTo(map)
+    map.easeTo({
+      center: [proposed.lon, proposed.lat],
+      zoom: Math.max(map.getZoom(), 18),
+      duration: 600,
+    })
+  }, [ready, proposed])
 
   // Draggable venue pin.
   useEffect(() => {
