@@ -19,7 +19,6 @@ import {
   pitchForZoom,
   RELIEF_ZOOM,
   SHADOW_OPACITY,
-  TILTED_ZOOM,
 } from './camera.ts'
 import { dotsData, dotsUpdate } from './dots.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
@@ -28,7 +27,7 @@ import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
-import { shadowCollection } from './shadowLayer.ts'
+import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
 // Let Vite bundle the worker and tell MapLibre where it ended up.
@@ -156,17 +155,14 @@ function fitCard(map: MapLibreMap, card: HTMLElement, wrap: HTMLElement) {
 function focusVenue(map: MapLibreMap, status: VenueStatus) {
   const position = status.venue.terrace ?? status.venue.venue
   const zoom = Math.max(map.getZoom(), 16.5)
-  map.easeTo(
-    {
-      center: [position.lon, position.lat],
-      zoom,
-      pitch: pitchForZoom(zoom),
-      // Venue a bit above centre, so the card below its badge fits in view.
-      offset: [0, -120],
-      duration: 900,
-    },
-    VENUE_FLIGHT,
-  )
+  map.easeTo({
+    center: [position.lon, position.lat],
+    zoom,
+    pitch: pitchForZoom(zoom),
+    // Venue a bit above centre, so the card below its badge fits in view.
+    offset: [0, -120],
+    duration: 900,
+  })
 }
 
 type Props = {
@@ -203,11 +199,18 @@ function onCard(event: Event): boolean {
 /** How long the card takes to shrink back into its badge (see .is-closing). */
 const CARD_CLOSE_MS = 220
 
-/** Marks the camera events of a flight to a venue (see the shadows). */
-const VENUE_FLIGHT = { venueFlight: true }
-
 /** How often the shadows are recast at most while the map moves. */
 const SHADOW_THROTTLE_MS = 120
+
+/** Shows the building shadows when new buildings or a new sun changed them. */
+function castShadows(map: MapLibreMap, sun: SunPosition, cache: ShadowCache) {
+  const change = cache.update(map, sun)
+  const source = map.getSource<GeoJSONSource>(SHADOWS)
+  if (!change || !source) return
+  if ('data' in change) void source.setData(change.data)
+  // Only the new streets: re-sending every shadow stutters as they add up.
+  else void source.updateData(change)
+}
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
@@ -236,6 +239,8 @@ export function MapView({
   const pinsRef = useRef(new Map<string, PinEntry>())
   /** What the dots source holds now (see dotsUpdate). */
   const dotsKeyRef = useRef<string | null>(null)
+  /** The buildings seen so far and their shadows (see ShadowCache). */
+  const shadowCacheRef = useRef(new ShadowCache())
   const onSelectRef = useRef(onSelect)
   const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
@@ -336,8 +341,9 @@ export function MapView({
           // Ground shadows of the buildings, under the 3D extrusions.
           map.addSource(SHADOWS, {
             type: 'geojson',
-            data: shadowCollection(map, sunRef.current),
+            data: { type: 'FeatureCollection', features: [] },
           })
+          shadowCacheRef.current = new ShadowCache()
           map.addLayer(
             {
               id: SHADOWS,
@@ -357,50 +363,24 @@ export function MapView({
             },
             map.getLayer('building') ? 'building' : undefined,
           )
-          // Shadows only show from RELIEF_ZOOM, where a view holds few
-          // enough buildings to recast them in a few ms. On a flight to a
-          // venue they are recast along its last stretch, from TILTED_ZOOM
-          // (at most every SHADOW_THROTTLE_MS, and as building tiles arrive),
-          // so they are there when it lands. While the visitor zooms or
-          // pans, they wait until the map settles: recasting during a fast
-          // zoom stutters.
-          let shadowsDirty = true
-          let shadowsEmpty = false
-          let flying = false
+          // Check as the map moves (at most every SHADOW_THROTTLE_MS), as
+          // building tiles arrive and when it settles, so shadows keep up
+          // with zooms, pans and flights. Most checks redo nothing (see
+          // ShadowCache): only buildings new to it or a new sun are cast.
           let shadowTimer: ReturnType<typeof setTimeout> | null = null
           const refreshShadows = () => {
             if (shadowTimer) clearTimeout(shadowTimer)
             shadowTimer = null
-            if (!map || !shadowsDirty) return
-            shadowsDirty = false
-            const data = shadowCollection(map, sunRef.current)
-            const empty = data.features.length === 0
-            if (empty && shadowsEmpty) return
-            shadowsEmpty = empty
-            void map.getSource<GeoJSONSource>(SHADOWS)?.setData(data)
+            if (map) castShadows(map, sunRef.current, shadowCacheRef.current)
           }
           const scheduleShadows = () => {
-            shadowsDirty = true
             shadowTimer ??= setTimeout(refreshShadows, SHADOW_THROTTLE_MS)
           }
-          map.on('movestart', (event) => {
-            flying = 'venueFlight' in event
-          })
-          map.on('move', (event) => {
-            if (!('venueFlight' in event)) flying = false
-            shadowsDirty = true
-            if (map && flying && map.getZoom() >= TILTED_ZOOM) scheduleShadows()
-          })
-          map.on('moveend', () => {
-            if (flying) refreshShadows()
-            flying = false
-          })
+          map.on('move', scheduleShadows)
+          map.on('moveend', refreshShadows)
           map.on('sourcedata', (event) => {
-            if (event.sourceId !== 'openmaptiles' || !event.tile || !map) return
-            const settled = !map.isMoving()
-            if (settled || (flying && map.getZoom() >= TILTED_ZOOM))
+            if (event.sourceId === 'openmaptiles' && event.tile)
               scheduleShadows()
-            else shadowsDirty = true
           })
           map.on('idle', refreshShadows)
           map.addSource(DOTS_SOURCE, {
@@ -533,9 +513,7 @@ export function MapView({
     const map = mapRef.current
     if (!ready || !map) return
     map.setLight(sunLight(sun))
-    void map
-      .getSource<GeoJSONSource>(SHADOWS)
-      ?.setData(shadowCollection(map, sun))
+    castShadows(map, sun, shadowCacheRef.current)
   }, [ready, sun])
 
   // A dark map at night.
