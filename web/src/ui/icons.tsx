@@ -180,6 +180,14 @@ export const ShareIcon = (p: IconProps) => (
   </Icon>
 )
 
+/** Pencil: suggest or correct a value. */
+export const EditIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" />
+    <path d="M13.5 6.5l4 4" />
+  </Icon>
+)
+
 export const ChevronDownIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m6 9 6 6 6-6" />

@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import type { LatLon } from '../data/terraces.ts'
-import { KINDS } from './review.ts'
+import { KINDS, type nextReview } from './review.ts'
 
 /**
- * Visitor venue reports (a venue moved, closed or missing), as the API's
+ * Visitor venue reports (a venue moved, closed or missing; whether it has a
+ * terrace and where, ADR-0009), as the API's
  * `GET /v1/admin/reports` serves them (proxied by the dev server). Pure,
  * except fetchReports.
  */
@@ -18,6 +19,19 @@ export const reportSchema = z.discriminatedUnion('kind', [
   z.object({
     ...common,
     kind: z.literal('move'),
+    venueId: z.string(),
+    lat: z.number(),
+    lon: z.number(),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal('terrace'),
+    venueId: z.string(),
+    terrace: z.boolean(),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal('pin'),
     venueId: z.string(),
     lat: z.number(),
     lon: z.number(),
@@ -54,7 +68,7 @@ export function byReporters(reports: readonly VenueReport[]): VenueReport[] {
   return [...reports].sort((a, b) => b.reporters - a.reporters)
 }
 
-/** A `closed` or `move` report whose venue is gone from the data. */
+/** A report on an existing venue (anything but `add`) whose venue is gone from the data. */
 export function isStale(
   report: VenueReport,
   venue: ReportedVenue | undefined,
@@ -62,24 +76,72 @@ export function isStale(
   return report.kind !== 'add' && venue === undefined
 }
 
-/** One line: "Closed · Bar Pepe · 3 people", "Moved · Bar Pepe · 42 m", "New · Bar Nuevo (bar, terrace)". */
+const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`
+
+/**
+ * One line: "Closed · Bar Pepe · 3 people", "Moved · Bar Pepe · 42 m",
+ * "Terrace: yes · Bar Pepe · 4 people", "Terrace here · Bar Pepe · 12 m from
+ * the venue", "New · Bar Nuevo (bar, terrace)".
+ */
 export function describeReport(
   report: VenueReport,
   venue: ReportedVenue | undefined,
 ): string {
   switch (report.kind) {
-    case 'closed': {
-      const people = `${report.reporters} ${report.reporters === 1 ? 'person' : 'people'}`
+    case 'closed':
       return venue
-        ? `Closed · ${venue.name} · ${people}`
+        ? `Closed · ${venue.name} · ${people(report.reporters)}`
         : `Closed · ${report.venueId} · stale: no longer in the data`
+    case 'terrace': {
+      const answer = `Terrace: ${report.terrace ? 'yes' : 'no'}`
+      return venue
+        ? `${answer} · ${venue.name} · ${people(report.reporters)}`
+        : `${answer} · ${report.venueId} · stale: no longer in the data`
     }
+    case 'pin':
+      return venue
+        ? `Terrace here · ${venue.name} · ${Math.round(distanceM(venue.at, report))} m from the venue`
+        : `Terrace here · ${report.venueId} · stale: no longer in the data`
     case 'move':
       return venue
         ? `Moved · ${venue.name} · ${Math.round(distanceM(venue.at, report))} m`
         : `Moved · ${report.venueId} · stale: no longer in the data`
     case 'add':
       return `New · ${report.name} (${report.venueKind}${report.terrace ? ', terrace' : ''})`
+  }
+}
+
+/** A change to a venue's review row, as `nextReview` takes it. */
+export type ReviewChange = Parameters<typeof nextReview>[2]
+
+/**
+ * What accepting a report on an existing venue does to its review row:
+ * `closed` → not a venue, `move` → the venue position, `terrace` → terrace or
+ * no terrace, `pin` → a terrace at that position. (A `closed` on an added
+ * `review:` venue deletes the row instead; the caller handles that.)
+ *
+ * A `move` on a venue with a terrace moves the terrace instead: the badge the
+ * visitor dragged from in the app sits on the terrace, not on the venue.
+ */
+export function reportChange(
+  report: Exclude<VenueReport, { kind: 'add' }>,
+  hasTerrace = false,
+): ReviewChange {
+  switch (report.kind) {
+    case 'closed':
+      return { kind: 'status', status: 'not_venue' }
+    case 'move':
+      return {
+        kind: hasTerrace ? 'terrace' : 'venue',
+        at: { lat: report.lat, lon: report.lon },
+      }
+    case 'terrace':
+      return {
+        kind: 'status',
+        status: report.terrace ? 'terrace' : 'no_terrace',
+      }
+    case 'pin':
+      return { kind: 'terrace', at: { lat: report.lat, lon: report.lon } }
   }
 }
 

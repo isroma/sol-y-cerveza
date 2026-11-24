@@ -25,7 +25,7 @@ A venue's own website is different. The venue publishes it to tell the public it
    - Each request has a timeout and stops at 1 MB.
    - Per site: the home page, then up to four same-site pages whose link looks like a menu ("carta", "menú", "bebidas", "precios").
    - HTML only. PDF and image menus are never downloaded: their links are listed as leads (`.cache/menu_leads.csv`) for the owner to read by hand.
-   - Raw answers are cached in `pipeline/.cache/websites/` (gitignored), so re-running the extraction needs no network.
+   - Raw answers are cached in `pipeline/.cache/websites/` (gitignored), so re-running the extraction needs no network. Network failures and 5xx answers are not cached, so a site that was briefly down is kept out for that run only, and a cached robots.txt is fetched again after 30 days.
 3. **Precision over recall.**
    - A price is kept only when a short text segment names exactly one item (a caña, or a tercio of one known brand) and states exactly one price, between 0,50 € and 15,00 €.
    - Other sizes, drinks and variants (dobles, jarras, quintos, botellines, wine, alcohol-free) are dropped, and so is food that shares a word ("caña de lomo", "tercio de ibérico").

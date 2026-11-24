@@ -14,6 +14,8 @@
     "noEmit": true,
 
     /* Linting */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
@@ -22,6 +24,8 @@
   "include": [
     "vite.config.ts",
     "capacitor.config.ts",
+    "adminGuard.ts",
+    "adminGuard.test.ts",
     "reviewServer.ts",
     "pricePhotoServer.ts",
     "pricePhotoServer.test.ts",

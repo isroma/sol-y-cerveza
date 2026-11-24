@@ -3,7 +3,10 @@ from pathlib import Path
 import duckdb
 import pytest
 
+from solycerveza.geo import BADAJOZ_BBOX
 from solycerveza.overture import (
+    cache_path,
+    fetch_places,
     merge_venues,
     name_similarity,
     overture_kind,
@@ -93,3 +96,36 @@ def test_read_places_filters_closed_low_confidence_foursquare_and_non_venues(
     venues = read_places(path)
     assert [(v.id, v.name, v.kind) for v in venues] == [("overture:ok", "Bar Bueno", "bar")]
     assert venues[0].outdoor_seating is None
+
+
+def overture_release_file(path: Path) -> None:
+    """A tiny file shaped like Overture's places release (only the columns we read)."""
+    duckdb.execute(
+        f"""
+        COPY (
+          SELECT 'a' AS id, {{'primary': 'Bar Sol'}} AS names,
+                 {{'xmin': -6.97, 'xmax': -6.97, 'ymin': 38.88, 'ymax': 38.88}} AS bbox,
+                 0.9 AS confidence, 'open' AS operating_status,
+                 {{'primary': 'bar', 'hierarchy': ['food_and_drink', 'bar']}} AS taxonomy,
+                 [{{'dataset': 'meta'}}] AS sources, ['https://barsol.es'] AS websites
+        ) TO '{path}' (FORMAT parquet)
+        """
+    )
+
+
+def test_fetch_places_writes_the_cache_only_when_complete(tmp_path: Path) -> None:
+    release = tmp_path / "release.parquet"
+    overture_release_file(release)
+    cache = tmp_path / "cache"
+
+    path = fetch_places(BADAJOZ_BBOX, cache, source=str(release))
+
+    assert path == cache_path(cache)
+    assert [v.id for v in read_places(path)] == ["overture:a"]
+    assert sorted(p.name for p in cache.iterdir()) == [path.name]  # no `.part` left behind
+
+
+def test_failed_fetch_places_leaves_no_cache(tmp_path: Path) -> None:
+    with pytest.raises(duckdb.Error):
+        fetch_places(BADAJOZ_BBOX, tmp_path, source=str(tmp_path / "missing.parquet"))
+    assert not cache_path(tmp_path).exists()

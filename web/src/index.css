@@ -1337,6 +1337,15 @@ body,
   background: var(--bg);
 }
 
+/* Never taller than the free map area (fitCard sets --card-max): the body
+   scrolls inside the card instead of running off the screen. The tab above
+   it takes about 68px. */
+.pin-card-body {
+  max-height: calc(var(--card-max, 100vh) - 68px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* Share: a small icon button in the card's top-right corner. */
 .pin-card-share {
   position: absolute;
@@ -1345,6 +1354,20 @@ body,
   width: 32px;
   height: 32px;
   color: var(--text-soft);
+}
+
+.pin-card-edit {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+
+.pin-card-edit[aria-expanded='true'] {
+  background: var(--highlight);
+  color: var(--sun-dark);
 }
 
 /* "Enlace copiado": a brief pill under the share button. */

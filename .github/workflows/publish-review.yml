@@ -22,6 +22,44 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Full history, so origin/main and the merge base are there to diff against.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # PUBLISH_TOKEN auto-merges whatever the branch holds, so the branch may only
+      # change the files Publish commits (REVIEW, PRICES and DATA in web/publish.ts).
+      - name: Check the branch only changes the published data
+        id: files
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          changed=$(git diff --no-renames --name-only origin/main...HEAD)
+          other=''
+          while IFS= read -r file; do
+            case "$file" in
+              '' | pipeline/data/venue_review.csv | pipeline/data/venue_prices.csv | web/public/data/terraces.json) ;;
+              *) other="$other$file"$'\n' ;;
+            esac
+          done <<< "$changed"
+          if [ -n "$other" ]; then
+            echo "::error::$BRANCH changes files Publish never commits, so it is not merged."
+            printf '%s' "$other"
+            exit 1
+          fi
+          printf 'Changed files:\n%s\n' "$changed"
+      # A later push that fails the check must not ride on auto-merge enabled earlier.
+      - name: Turn auto-merge off
+        if: failure() && steps.files.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          pr=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json url -q '.[0].url')
+          if [ -n "$pr" ] && [ -n "$GH_TOKEN" ]; then
+            gh pr merge "$pr" -R "$REPO" --disable-auto || true
+          fi
       - name: Open the PR and enable auto-merge
         env:
           GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}

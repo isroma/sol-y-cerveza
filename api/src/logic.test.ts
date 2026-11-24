@@ -20,10 +20,17 @@ describe('parseSuggestion', () => {
   it('accepts a plausible caña or tercio', () => {
     expect(parseSuggestion(valid)).toEqual({
       ok: true,
-      value: { venueId: 'osm:node/1', item: 'tercio', brand: 'cruzcampo', cents: 200 },
+      value: {
+        venueId: 'osm:node/1',
+        item: 'tercio',
+        brand: 'cruzcampo',
+        cents: 200,
+      },
       token: 'turnstile-token',
     })
-    expect(parseSuggestion({ ...valid, item: 'cana', brand: null, cents: 150 }).ok).toBe(true)
+    expect(
+      parseSuggestion({ ...valid, item: 'cana', brand: null, cents: 150 }).ok,
+    ).toBe(true)
   })
 
   it.each([
@@ -42,8 +49,19 @@ describe('parseSuggestion', () => {
   })
 })
 
-function group(cents: number, voters: number, last = '2026-11-23T10:00:00Z'): PriceGroup {
-  return { venue_id: 'osm:node/1', item: 'cana', brand: '', cents, voters, last }
+function group(
+  cents: number,
+  voters: number,
+  last = '2026-11-23T10:00:00Z',
+): PriceGroup {
+  return {
+    venue_id: 'osm:node/1',
+    item: 'cana',
+    brand: '',
+    cents,
+    voters,
+    last,
+  }
 }
 
 describe('consensus', () => {
@@ -65,8 +83,10 @@ describe('consensus', () => {
   it('picks the most agreed price, then the most recent', () => {
     expect(consensus([group(150, 6), group(160, 9)])[0]?.cents).toBe(160)
     expect(
-      consensus([group(150, 6, '2026-11-01T00:00:00Z'), group(160, 6, '2026-11-20T00:00:00Z')])[0]
-        ?.cents,
+      consensus([
+        group(150, 6, '2026-11-01T00:00:00Z'),
+        group(160, 6, '2026-11-20T00:00:00Z'),
+      ])[0]?.cents,
     ).toBe(160)
   })
 })
@@ -80,7 +100,9 @@ describe('helpers', () => {
 
   it('allows only listed origins', () => {
     const allowed = 'https://isroma.github.io,http://localhost:5173'
-    expect(allowedOrigin('https://isroma.github.io', allowed)).toBe('https://isroma.github.io')
+    expect(allowedOrigin('https://isroma.github.io', allowed)).toBe(
+      'https://isroma.github.io',
+    )
     expect(allowedOrigin('https://evil.example', allowed)).toBeNull()
     expect(allowedOrigin(null, allowed)).toBeNull()
   })

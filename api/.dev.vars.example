@@ -1,7 +1,9 @@
-# Copy to .dev.vars for `npm run dev`. These Turnstile test keys always pass.
+# Copy to .dev.vars for `npm run dev`. These Turnstile test keys always pass, but only
+# on localhost: a deployed Worker with a test secret fails every bot check.
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
 ADMIN_TOKEN=local-admin-token
-IP_SALT=local-salt
+# At least 16 characters, or the API answers 503 where it hashes addresses.
+IP_SALT=local-salt-for-dev-only
 OWNER_TOKEN=local-owner-token
 # Real key needed only to test photo reading locally.
 ANTHROPIC_API_KEY=

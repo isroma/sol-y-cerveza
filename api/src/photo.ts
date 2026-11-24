@@ -19,6 +19,8 @@ import {
 import { BRANDS, ITEMS } from '../../web/src/data/prices.ts'
 
 export const PHOTO_MODEL = 'claude-opus-5-5'
+/** Photos owner mode may send to the Claude API per rolling 24 hours: bounds the spend of a leaked OWNER_TOKEN. */
+export const PHOTO_DAILY_LIMIT = 50
 
 const OUTPUT_SCHEMA = {
   ...PHOTO_OUTPUT_SCHEMA,
@@ -51,14 +53,24 @@ function isMediaType(value: unknown): value is PhotoMediaType {
 }
 
 /** Validates `{image: <base64>, mediaType}`: at most 5 MB, really that image type. */
-export function parsePhoto(body: unknown): { image: string; mediaType: PhotoMediaType } {
-  if (typeof body !== 'object' || body === null) throw new PhotoError(400, 'send {image, mediaType}')
+export function parsePhoto(body: unknown): {
+  image: string
+  mediaType: PhotoMediaType
+} {
+  if (typeof body !== 'object' || body === null)
+    throw new PhotoError(400, 'send {image, mediaType}')
   const { image, mediaType } = body as Record<string, unknown>
   if (typeof image !== 'string' || !isMediaType(mediaType))
-    throw new PhotoError(400, 'send {image: <base64>, mediaType: image/jpeg|png|webp|gif}')
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image)) throw new PhotoError(400, 'image is not base64')
-  if (base64Bytes(image) > PHOTO_MAX_BYTES) throw new PhotoError(413, 'the photo is larger than 5 MB')
-  if (sniffImage(image) !== mediaType) throw new PhotoError(415, 'the file is not that image type')
+    throw new PhotoError(
+      400,
+      'send {image: <base64>, mediaType: image/jpeg|png|webp|gif}',
+    )
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image))
+    throw new PhotoError(400, 'image is not base64')
+  if (base64Bytes(image) > PHOTO_MAX_BYTES)
+    throw new PhotoError(413, 'the photo is larger than 5 MB')
+  if (sniffImage(image) !== mediaType)
+    throw new PhotoError(415, 'the file is not that image type')
   return { image, mediaType }
 }
 
@@ -76,21 +88,37 @@ export function parseReading(text: string): OwnerPhotoResult | null {
   const read: ReadPrice[] = []
   for (const p of prices) {
     if (typeof p !== 'object' || p === null) return null
-    const { item, brand, cents, label, confidence } = p as Record<string, unknown>
+    const { item, brand, cents, label, confidence } = p as Record<
+      string,
+      unknown
+    >
     const knownItem = ITEMS.find((i) => i === item)
     const knownBrand = BRANDS.find((b) => b === brand)
     if (!knownItem || (brand !== null && !knownBrand)) return null
-    if (typeof cents !== 'number' || !Number.isInteger(cents) || typeof label !== 'string')
+    if (
+      typeof cents !== 'number' ||
+      !Number.isInteger(cents) ||
+      typeof label !== 'string'
+    )
       return null
     if (confidence !== 'high' && confidence !== 'low') return null
-    read.push({ item: knownItem, brand: knownBrand ?? null, cents, label, confidence })
+    read.push({
+      item: knownItem,
+      brand: knownBrand ?? null,
+      cents,
+      label,
+      confidence,
+    })
   }
   const result = toProposals(read)
-  const modelNotes = notes.filter((n): n is string => typeof n === 'string' && n.trim() !== '')
+  const modelNotes = notes.filter(
+    (n): n is string => typeof n === 'string' && n.trim() !== '',
+  )
   return {
     proposals: result.proposals,
     notes: [...modelNotes, ...result.notes],
-    barName: typeof barName === 'string' && barName.trim() ? barName.trim() : null,
+    barName:
+      typeof barName === 'string' && barName.trim() ? barName.trim() : null,
   }
 }
 
@@ -99,7 +127,8 @@ export async function readPhoto(
   apiKey: string,
   photo: { image: string; mediaType: PhotoMediaType },
 ): Promise<OwnerPhotoResult> {
-  if (!apiKey) throw new PhotoError(503, 'photo reading is not set up (ANTHROPIC_API_KEY)')
+  if (!apiKey)
+    throw new PhotoError(503, 'photo reading is not set up (ANTHROPIC_API_KEY)')
   const client = new Anthropic({ apiKey, timeout: 120_000, maxRetries: 1 })
   let message
   try {
@@ -121,7 +150,11 @@ export async function readPhoto(
           content: [
             {
               type: 'image',
-              source: { type: 'base64', media_type: photo.mediaType, data: photo.image },
+              source: {
+                type: 'base64',
+                media_type: photo.mediaType,
+                data: photo.image,
+              },
             },
             { type: 'text', text: USER_PROMPT },
           ],
@@ -134,15 +167,26 @@ export async function readPhoto(
     if (error instanceof Anthropic.RateLimitError)
       throw new PhotoError(429, 'Claude API rate limit: try again soon')
     if (error instanceof Anthropic.APIConnectionError)
-      throw new PhotoError(502, `could not reach the Claude API: ${error.message}`)
+      throw new PhotoError(
+        502,
+        `could not reach the Claude API: ${error.message}`,
+      )
     if (error instanceof Anthropic.APIError)
-      throw new PhotoError(502, `Claude API error ${error.status ?? ''}: ${error.message}`)
+      throw new PhotoError(
+        502,
+        `Claude API error ${error.status ?? ''}: ${error.message}`,
+      )
     throw error
   }
-  if (message.stop_reason === 'refusal') throw new PhotoError(422, 'Claude declined to read this photo')
-  if (message.stop_reason === 'max_tokens') throw new PhotoError(502, 'the answer was cut off: try again')
-  const text = message.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('')
+  if (message.stop_reason === 'refusal')
+    throw new PhotoError(422, 'Claude declined to read this photo')
+  if (message.stop_reason === 'max_tokens')
+    throw new PhotoError(502, 'the answer was cut off: try again')
+  const text = message.content
+    .flatMap((b) => (b.type === 'text' ? [b.text] : []))
+    .join('')
   const result = parseReading(text)
-  if (!result) throw new PhotoError(502, 'Claude answered in an unexpected shape')
+  if (!result)
+    throw new PhotoError(502, 'Claude answered in an unexpected shape')
   return result
 }

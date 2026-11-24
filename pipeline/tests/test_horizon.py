@@ -240,7 +240,11 @@ def test_terrace_horizon_rejects_a_geographic_crs(tmp_path: Path) -> None:
         terrace_horizon(LAT, LON, path, ground_elevation=GROUND)
 
 
-def test_thousand_points_on_a_2m_raster_take_seconds() -> None:
+def test_a_profile_on_a_2m_raster_takes_milliseconds() -> None:
+    # A performance bound: the build computes one profile per terrace (about a thousand), so a
+    # regression to a slower algorithm must fail here. The cost is linear in the number of
+    # points, so a sample of 100 checks the same per-point budget as 1000 would, in a tenth of
+    # the time.
     rng = np.random.default_rng(0)
     size = 1000  # 2 km x 2 km
     surface = np.full((size, size), GROUND)
@@ -249,9 +253,10 @@ def test_thousand_points_on_a_2m_raster_take_seconds() -> None:
         rows, cols = rng.integers(3, 20, 2)
         surface[row : row + rows, col : col + cols] = GROUND + rng.uniform(3, 25)
     transform = Affine.scale(PIXEL, -PIXEL)
-    points = rng.uniform(0, size * PIXEL, (1000, 2))
+    count = 100
+    points = rng.uniform(0, size * PIXEL, (count, 2))
     start = time.perf_counter()
     for x, y in points:
         horizon_profile(surface, transform, float(x), -float(y), GROUND)
-    # About 2 s on a laptop; the bound leaves room for slow CI runners.
-    assert time.perf_counter() - start < 30
+    # 2-17 ms per point on a laptop or a cloud container; 30 ms leaves room for slow CI runners.
+    assert (time.perf_counter() - start) / count < 0.030

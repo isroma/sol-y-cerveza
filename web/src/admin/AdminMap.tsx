@@ -12,7 +12,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useRef, useState } from 'react'
 import { BADAJOZ_CENTER, BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
-import { sunlitStyle } from '../map/mapStyle.ts'
+import { parseBasemapStyle, sunlitStyle } from '../map/mapStyle.ts'
 import { STATE_COLORS, type MapVenue } from './mapState.ts'
 
 setWorkerUrl(workerUrl)
@@ -31,9 +31,15 @@ type Props = {
   /** The terrace pin's position while it is dragged, before onPinTerrace. */
   onDragTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
+  /** Machine-proposed positions for the selected venue, shown as ghost pins. */
+  ghosts?: readonly Ghost[]
   /** A position a visitor report proposes, shown until accepted or dismissed. */
   proposed?: LatLon | null
 }
+
+export type Ghost = { at: LatLon; kind: 'terrace' | 'position'; label: string }
+
+const NO_GHOSTS: readonly Ghost[] = []
 
 const SOURCE = 'venues'
 const DOTS = 'venues-dots'
@@ -92,12 +98,14 @@ export function AdminMap({
   onPinTerrace,
   onDragTerrace,
   onMoveVenue,
+  ghosts = NO_GHOSTS,
   proposed = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
+  const ghostMarkers = useRef<Marker[]>([])
   const proposedMarker = useRef<Marker | null>(null)
   const callbacks = useRef({
     onSelect,
@@ -126,7 +134,11 @@ export function AdminMap({
     let cancelled = false
     let map: MapLibreMap | null = null
     void fetch(BASEMAP_STYLE_URL)
-      .then((response) => response.json() as Promise<StyleSpecification>)
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(`basemap style: HTTP ${response.status}`)
+        return parseBasemapStyle(await response.json())
+      })
       .then((base) => {
         if (cancelled) return
         const m = new MapLibreMap({
@@ -240,7 +252,7 @@ export function AdminMap({
   const selectedId = selected?.id ?? null
   useEffect(() => {
     const source = mapRef.current?.getSource<GeoJSONSource>(SOURCE)
-    source?.setData(collection(venues, selectedId))
+    void source?.setData(collection(venues, selectedId))
   }, [ready, venues, selectedId])
 
   // Fly to a newly selected venue, close enough to place a pin.
@@ -320,6 +332,24 @@ export function AdminMap({
     })
     terraceMarker.current = marker
   }, [ready, selected, terrace, pinning])
+
+  // Ghost pins: where a machine proposal puts the terrace or the venue.
+  useEffect(() => {
+    const map = mapRef.current
+    for (const marker of ghostMarkers.current) marker.remove()
+    ghostMarkers.current = []
+    if (!map || !ready) return
+    ghostMarkers.current = ghosts.map((ghost) =>
+      new Marker({
+        element: pinElement(
+          `admin-ghost-pin admin-ghost-${ghost.kind}`,
+          ghost.label,
+        ),
+      })
+        .setLngLat([ghost.at.lon, ghost.at.lat])
+        .addTo(map),
+    )
+  }, [ready, ghosts])
 
   return (
     <div

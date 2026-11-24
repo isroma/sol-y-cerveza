@@ -1,6 +1,11 @@
 import type { StyleSpecification } from 'maplibre-gl'
 import { describe, expect, it } from 'vitest'
-import { ROOF_COLOR, sunLight, sunlitStyle } from './mapStyle.ts'
+import {
+  parseBasemapStyle,
+  ROOF_COLOR,
+  sunLight,
+  sunlitStyle,
+} from './mapStyle.ts'
 
 const base: StyleSpecification = {
   version: 8,
@@ -139,5 +144,28 @@ describe('sunLight', () => {
     const night = sunLight({ altitude: -10, azimuth: 0 })
     expect(night.intensity).toBeLessThan(0.4)
     expect(night.color).toBe('#D5DAEC')
+  })
+})
+
+describe('parseBasemapStyle', () => {
+  const style = {
+    version: 8,
+    glyphs: 'https://example.test/{fontstack}/{range}.pbf',
+    sources: { openmaptiles: { type: 'vector', url: 'https://example.test' } },
+    layers: [{ id: 'background', type: 'background', paint: {} }],
+  }
+
+  it('passes a style through unchanged', () => {
+    expect(parseBasemapStyle(style)).toEqual(style)
+  })
+
+  it.each([
+    ['an error page', { error: 'not found' }],
+    ['another style version', { ...style, version: 7 }],
+    ['layers without ids', { ...style, layers: [{ type: 'background' }] }],
+    ['no sources', { version: 8, layers: [] }],
+    ['not an object', 'Bad gateway'],
+  ])('refuses %s', (_name, json) => {
+    expect(() => parseBasemapStyle(json)).toThrow(/not a MapLibre style/)
   })
 })

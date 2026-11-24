@@ -61,7 +61,7 @@ export function App() {
   useEffect(() => {
     let cancelled = false
     loadTerraces().then(
-      (file) => {
+      ({ file }) => {
         if (cancelled) return
         setLoad({ status: 'ready', file })
         // A linked venue that doesn't exist is dropped; one without a

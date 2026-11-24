@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   DAILY_LIMIT,
+  isLocalRequest,
   isTestSecret,
   limitHit,
+  MIN_SALT_LENGTH,
   NETWORK_DAILY_LIMIT,
+  parsePriceResolution,
+  saltUsable,
   turnstilePassed,
   VENUE_HOURLY_LIMIT,
   voterKeys,
@@ -11,14 +15,20 @@ import {
 
 describe('voterKeys', () => {
   it('keys IPv4 by address and its /24', () => {
-    expect(voterKeys('83.44.10.7')).toEqual({ voter: '83.44.10.7', network: '83.44.10.0/24' })
+    expect(voterKeys('83.44.10.7')).toEqual({
+      voter: '83.44.10.7',
+      network: '83.44.10.0/24',
+    })
   })
 
   it('gives every address of an IPv6 /64 the same voter', () => {
     const a = voterKeys('2a01:4f8:1c1c:9e2d:1111:2222:3333:4444')
     const b = voterKeys('2a01:4f8:1c1c:9e2d::1')
     expect(a).toEqual(b)
-    expect(a).toEqual({ voter: '2a01:4f8:1c1c:9e2d::/64', network: '2a01:4f8:1c1c::/48' })
+    expect(a).toEqual({
+      voter: '2a01:4f8:1c1c:9e2d::/64',
+      network: '2a01:4f8:1c1c::/48',
+    })
   })
 
   it('puts neighbouring /64s in one network but separate voters', () => {
@@ -46,11 +56,22 @@ describe('voterKeys', () => {
 
 describe('turnstilePassed', () => {
   const origins = 'https://isroma.github.io,http://localhost:5173'
-  const pass = { success: true, hostname: 'isroma.github.io', action: 'suggest' }
+  const pass = {
+    success: true,
+    hostname: 'isroma.github.io',
+    action: 'suggest',
+  }
 
   it('accepts our action on our hostname', () => {
     expect(turnstilePassed(pass, origins, false, 'suggest')).toBe(true)
-    expect(turnstilePassed({ ...pass, hostname: 'localhost' }, origins, false, 'suggest')).toBe(true)
+    expect(
+      turnstilePassed(
+        { ...pass, hostname: 'localhost' },
+        origins,
+        false,
+        'suggest',
+      ),
+    ).toBe(true)
   })
 
   it.each([
@@ -64,13 +85,24 @@ describe('turnstilePassed', () => {
   })
 
   it('checks the action the caller expects', () => {
-    expect(turnstilePassed({ ...pass, action: 'report' }, origins, false, 'report')).toBe(true)
+    expect(
+      turnstilePassed({ ...pass, action: 'report' }, origins, false, 'report'),
+    ).toBe(true)
     expect(turnstilePassed(pass, origins, false, 'report')).toBe(false)
   })
 
   it('skips hostname and action for test secrets, but not success', () => {
-    expect(turnstilePassed({ success: true, hostname: 'example.com' }, origins, true, 'suggest')).toBe(true)
-    expect(turnstilePassed({ success: false }, origins, true, 'suggest')).toBe(false)
+    expect(
+      turnstilePassed(
+        { success: true, hostname: 'example.com' },
+        origins,
+        true,
+        'suggest',
+      ),
+    ).toBe(true)
+    expect(turnstilePassed({ success: false }, origins, true, 'suggest')).toBe(
+      false,
+    )
   })
 
   it('recognises only the documented test secrets', () => {
@@ -92,7 +124,70 @@ describe('limitHit', () => {
 
   it('names the first cap reached', () => {
     expect(limitHit({ voter: DAILY_LIMIT, network: 0, venue: 0 })).toBe('voter')
-    expect(limitHit({ voter: 0, network: NETWORK_DAILY_LIMIT, venue: 0 })).toBe('network')
-    expect(limitHit({ voter: 0, network: 0, venue: VENUE_HOURLY_LIMIT })).toBe('venue')
+    expect(limitHit({ voter: 0, network: NETWORK_DAILY_LIMIT, venue: 0 })).toBe(
+      'network',
+    )
+    expect(limitHit({ voter: 0, network: 0, venue: VENUE_HOURLY_LIMIT })).toBe(
+      'venue',
+    )
+  })
+})
+
+describe('misconfiguration guards', () => {
+  it('lets test secrets pass only on a local dev server', () => {
+    expect(isLocalRequest('http://localhost:8787/v1/suggestions')).toBe(true)
+    expect(isLocalRequest('http://127.0.0.1:8787/v1/suggestions')).toBe(true)
+    expect(isLocalRequest('http://[::1]:8787/v1/suggestions')).toBe(true)
+    expect(
+      isLocalRequest(
+        'https://sol-y-cerveza-api.example.workers.dev/v1/suggestions',
+      ),
+    ).toBe(false)
+    expect(isLocalRequest('https://localhost.example.com/')).toBe(false)
+    expect(isLocalRequest('not a url')).toBe(false)
+  })
+
+  it(`needs an IP_SALT of at least ${MIN_SALT_LENGTH} characters`, () => {
+    expect(saltUsable(undefined)).toBe(false)
+    expect(saltUsable('')).toBe(false)
+    expect(saltUsable('x'.repeat(MIN_SALT_LENGTH - 1))).toBe(false)
+    expect(saltUsable('x'.repeat(MIN_SALT_LENGTH))).toBe(true)
+  })
+})
+
+describe('parsePriceResolution', () => {
+  const base = {
+    venueId: 'osm:node/1',
+    item: 'cana',
+    brand: null,
+    cents: 150,
+    status: 'rejected',
+  }
+
+  it('stores a caña with brand ""', () => {
+    expect(parsePriceResolution(base)).toEqual({ ...base, brand: '' })
+    expect(
+      parsePriceResolution({
+        ...base,
+        item: 'tercio',
+        brand: 'cruzcampo',
+        status: 'accepted',
+      }),
+    ).toEqual({
+      ...base,
+      item: 'tercio',
+      brand: 'cruzcampo',
+      status: 'accepted',
+    })
+  })
+
+  it.each([
+    ['an unknown item', { ...base, item: 'pinta' }],
+    ['a bad venue id', { ...base, venueId: 'nope' }],
+    ['fractional cents', { ...base, cents: 1.5 }],
+    ['an unknown status', { ...base, status: 'pending' }],
+    ['not an object', null],
+  ])('refuses %s', (_, body) => {
+    expect(parsePriceResolution(body)).toBeNull()
   })
 })

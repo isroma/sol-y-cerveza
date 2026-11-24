@@ -1,0 +1,35 @@
+# Sources for machine venue proposals (2026-11-24)
+
+The sources behind `python -m solycerveza.proposals` ([ADR-0008](../adr/0008-machine-venue-proposals.md)): their endpoints, their licences and what was checked.
+
+## PNOA orthophoto (terrace proposer)
+
+- **Service:** IGN's WMS for "PNOA máxima actualidad", `https://www.ign.es/wms-inspire/pnoa-ma`, layer `OI.OrthoimageCoverage`. It is the INSPIRE orthoimagery view service and serves the most recent PNOA flight over each area.
+  - In Badajoz that is the June 2025 true ortho at 0.25 m, flown in the morning ([data-sources.md](data-sources.md), Imagery).
+  - Historical flights are on `https://www.ign.es/wms/pnoa-historico`. The 2019 layer is the best for terraces (midday, trees in leaf), but it is not used yet.
+- **Request:** WMS 1.3.0 `GetMap` in EPSG:25829 (ETRS89 / UTM 29N, the pipeline's raster CRS; its axis order is easting, northing), `image/jpeg`.
+  - Each crop is 120 m × 120 m at 800 × 800 px (0.15 m per pixel). The service resamples from the 0.25 m source.
+  - One request at a time, at least 1 s apart, with the pipeline's User-Agent.
+  - Every image is cached in `pipeline/.cache/ortho/`.
+- **Licence:** CC BY 4.0, like every IGN/CNIG product since Orden FOM/2807/2015 (the product licence is published on scne.es; for PNOA, "PNOA cedido por © Instituto Geográfico Nacional de España").
+  - The repository already credits it ("Terrace positions placed on the PNOA orthophoto © IGN (CC-BY 4.0)", and `PNOA_ATTRIBUTION` in `build.py`).
+  - CC BY allows passing the image to a processor (the Claude API) and using positions read from it, with attribution.
+  - The images themselves are cached locally and never committed or published.
+- **Not checked live:** the session that built this could not reach `www.ign.es` (blocked by its network policy). The endpoint and layer name come from IGN's published service list. The first real run will show whether they answer as expected: `OrthoFetcher` logs any answer that is not a JPEG.
+
+## Claude API (terrace proposer)
+
+- **Model:** `claude-opus-5-5` (vision, structured JSON output, adaptive thinking at effort `medium`). Requests opt in to server-side refusal fallbacks (`fallbacks: "default"`).
+- **Key:** `ANTHROPIC_API_KEY`, or any credential the Anthropic SDK finds.
+- **Cost:** about $0.026–0.056 per venue at list price. The 87 reviewed venues with a terrace decision cost about $2.30–4.90, and the 607 unreviewed ones about $16–34. The command prints the estimate and asks nothing new without `--yes` or `--limit N`.
+- **What it can see:** previous research on the same imagery is not encouraging. An open-vocabulary detector (OWLv2) reached 15 % precision on the 2019 flight and 0 % on 2025, because a table is about 3 px across and old-town terraces sit in shade, under trees or under arcades ([data-sources.md](data-sources.md), Imagery). A vision-language model can use context (parasols, rows of chairs on a plaza, pavement width), but that is a hypothesis. The trial (`--evaluate`) exists to test it before anything is shown to the owner as a one-tap proposal.
+
+## CartoCiudad geocoder (position proposer)
+
+- **Service:** `https://www.cartociudad.es/geocoder/api/geocoder/candidates` (CNIG). It is already used by `solycerveza.junta` and its answers are cached in `pipeline/.cache/cartociudad_portals.json`. The proposer adds no new requests.
+- **Licence:** CC BY 4.0 (ign.es), already credited in the app (`JUNTA_ATTRIBUTION`) and the README.
+- **Limit:** the Junta venues the build lists were placed by this same geocoder at their exact street number. Re-geocoding their address can only agree with their current position. The proposer is useful where a register row confirms an **OSM or Overture** venue whose position came from elsewhere.
+
+## Overture attributes (not-a-venue proposer)
+
+No network. It reads the attributes `solycerveza.overture.fetch_places` already keeps in the cached parquet: `confidence`, `category`, `datasets` (Meta, Microsoft and so on) and `websites`. CDLA-Permissive-2.0, as for the venues themselves.

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from solycerveza.review import Review, read_review, review_terraces, review_venues
-from solycerveza.terraces import Terrace
+from solycerveza.review import REVIEW_CSV, Review, read_review, review_terraces, review_venues
+from solycerveza.terraces import Terrace, build_terraces
 from solycerveza.venues import LatLon, Venue
 
 DAY = date(2026, 11, 23)
@@ -31,6 +31,10 @@ def record(venue_id: str, terrace: LatLon | None) -> Terrace:
         sources=["osm"],
         verified=None,
     )
+
+
+def test_shipped_reviews_are_valid() -> None:
+    assert read_review(REVIEW_CSV), "pipeline/data/venue_review.csv is missing or empty"
 
 
 def test_missing_file_means_no_reviews(tmp_path: Path) -> None:
@@ -136,6 +140,35 @@ def test_review_adds_venues_no_source_lists() -> None:
         "bar",
         LatLon(lat=38.879, lon=-6.971),
     )
+
+
+def test_added_venue_goes_through_the_whole_build() -> None:
+    added = Review(
+        venue_id="review:bar-x",
+        status="terrace",
+        name="Bar X",
+        kind="bar",
+        venue_lat=38.879,
+        venue_lon=-6.971,
+        terrace_lat=38.8791,
+        terrace_lon=-6.9711,
+        reviewed=DAY,
+    )
+    reviews = [added]
+
+    records = review_terraces(build_terraces(review_venues([], reviews), []), reviews)
+
+    assert records == [
+        Terrace(
+            id="review:bar-x",
+            name="Bar X",
+            kind="bar",
+            venue=LatLon(lat=38.879, lon=-6.971),
+            terrace=LatLon(lat=38.8791, lon=-6.9711),
+            sources=["review"],
+            verified=None,
+        )
+    ]
 
 
 def test_read_review_takes_looks_right_and_older_files(tmp_path: Path) -> None:

@@ -58,7 +58,7 @@ The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `service
 
 A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloads an open page; its next load is the new version. If a page asks for a map chunk that a deploy removed and no cache has, `LazyMapView` reloads once (guarded by `sessionStorage`, no loops) and then shows "No se pudo cargar el mapa".
 
-**Kill switch.** If the worker misbehaves, set the repository variable `SW_KILL_SWITCH` to `1` (Settings → Secrets and variables → Actions → Variables) and run the **Deploy web to GitHub Pages** workflow (or push anything to `main`). That build ships `web/sw/kill-switch.ts` as `sw.js`: browsers check `sw.js` on every visit, even when the app's own code is broken, and it deletes the site's caches and unregisters itself; the page also unregisters and clears them. Pages are not reloaded under the user. Delete the variable (or set it to `0`) and deploy again to turn caching back on. Without CI: `cd web && VITE_SW_KILL_SWITCH=1 npm run build` and publish `dist/`.
+**Kill switch.** If the worker misbehaves, set the repository variable `SW_KILL_SWITCH` to `1` (Settings → Secrets and variables → Actions → Variables) and run the **Deploy web to GitHub Pages** workflow on `main` (Actions → Run workflow). A manual run deploys `main` at once, without waiting for CI; a merge to `main` also redeploys, but only once CI passes on it (the `deploy-pages` job in `ci.yml`, after `ci-ok`). That build ships `web/sw/kill-switch.ts` as `sw.js`: browsers check `sw.js` on every visit, even when the app's own code is broken, and it deletes the site's caches and unregisters itself; the page also unregisters and clears them. Pages are not reloaded under the user. Delete the variable (or set it to `0`) and deploy again to turn caching back on. Without CI: `cd web && VITE_SW_KILL_SWITCH=1 npm run build` and publish `dist/`.
 
 To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
 
@@ -81,11 +81,17 @@ To check a rebuild:
 
 The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && node scripts/brand-images.mjs` (needs Playwright's Chromium).
 
-### Fixing a terrace
+### The admin
 
 `cd web && npm run admin` opens the dev-only admin. It needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza.obstacles` above) for the sun preview; everything else works without them.
 
 Besides terraces, its **Website prices** button lists the beer prices `python -m solycerveza.price_candidates` found on venues' own websites ([ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page: check it, then **Accept** (it becomes the venue's price, shipped with the next Publish) or **Dismiss**.
+
+- **Review queue** shows the venues without a decision one at a time, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). The list says why each one is where it is. **T** (then a click on the map, or **Enter** to keep the venue position), **N**, **X** and **Y** decide and move on; **S** skips to the end. The header shows how far you are, by count and by share of the total value.
+- **Not venues** lists Overture-only venues that are probably not a bar or restaurant (name, fast food, a duplicate of a venue from another source, far out or alone). Strong signals start ticked; **Mark N as not a venue** waits 10 s for **Undo** before it saves.
+- **Machine proposals** from `pipeline/data/venue_proposals.csv` (`venue_id,kind,lat,lon,confidence,evidence,source,generated`; `kind` is `terrace`, `no_terrace`, `position` or `not_venue`; optional) show in the venue panel with their evidence and confidence, and a dashed pin on the map for a proposed position. **Accept** (**A**) saves the usual review row; **Ignore** (**I**) hides it for good (kept in `pipeline/.cache/venue_proposals_ignored.csv`).
+
+### Fixing a terrace
 
 1. Pick **Needs a look**: terraces whose current horizon gets no sun today, on 21 Jun or on 21 Dec, or is above 60° over most of the southern half. Usually the pin is against a wall, under a tree crown or on a roof.
 2. Click one, press **T** and click (or drag the pin to) where the tables stand. The panel's **Sun at the terrace pin** updates as you go: today's hours of sun, a 24 h strip (amber sun, grey shade, light night) and the **height above ground** at the pin.
@@ -102,6 +108,21 @@ cd pipeline && uv run python -m solycerveza.price_candidates   # --refresh to do
 ```
 
 It reads the venues' own websites (never social networks, review sites or delivery apps), honouring robots.txt, and writes the caña and tercio prices it is sure about, with the page and the text they came from, to `pipeline/data/price_candidates.csv`. These are candidates: nothing reaches the app until you accept one, which copies it into `venue_prices.csv`. Menus published as PDF or image files are listed in `pipeline/.cache/menu_leads.csv` to read by hand. See [ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md).
+
+### Machine proposals for unreviewed venues
+
+```bash
+cd pipeline
+git show 164f946^:web/public/data/terraces.json > .cache/terraces_pre_review.json   # once
+uv run python -m solycerveza.proposals --evaluate --baseline .cache/terraces_pre_review.json --yes
+uv run python -m solycerveza.proposals --limit 50     # then the unreviewed venues, 50 at a time
+```
+
+Three proposers suggest answers for venues nobody has reviewed: a terrace (and where its tables are) read from the PNOA orthophoto by the Claude API (`ANTHROPIC_API_KEY`); a corrected position from the Junta register address (CartoCiudad); and "not a venue" for weak Overture places. They write `pipeline/data/venue_proposals.csv`, which the build never reads. See [ADR-0008](docs/adr/0008-machine-venue-proposals.md).
+
+1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review. Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only.
+2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
+3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
 
 Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
 

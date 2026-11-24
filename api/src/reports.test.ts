@@ -9,7 +9,13 @@ import {
   type ReportRow,
 } from './reports.ts'
 
-const move = { kind: 'move', venueId: 'osm:node/1', lat: 38.878, lon: -6.97, token: 't' }
+const move = {
+  kind: 'move',
+  venueId: 'osm:node/1',
+  lat: 38.878,
+  lon: -6.97,
+  token: 't',
+}
 const closed = { kind: 'closed', venueId: 'osm:node/1', token: 't' }
 const add = {
   kind: 'add',
@@ -35,16 +41,28 @@ describe('parseReport', () => {
     })
     expect(parseReport(add)).toEqual({
       ok: true,
-      value: { kind: 'add', name: 'Bar Nuevo', venueKind: 'bar', terrace: true, lat: 38.878, lon: -6.97 },
+      value: {
+        kind: 'add',
+        name: 'Bar Nuevo',
+        venueKind: 'bar',
+        terrace: true,
+        lat: 38.878,
+        lon: -6.97,
+      },
       token: 't',
     })
   })
 
   it('rounds positions to 6 decimals', () => {
-    const parsed = parseReport({ ...move, lat: 38.87812345678, lon: -6.9701234567 })
-    expect(parsed.ok && parsed.value.kind === 'move' && [parsed.value.lat, parsed.value.lon]).toEqual([
-      38.878123, -6.970123,
-    ])
+    const parsed = parseReport({
+      ...move,
+      lat: 38.87812345678,
+      lon: -6.9701234567,
+    })
+    expect(
+      parsed.ok &&
+        parsed.value.kind === 'move' && [parsed.value.lat, parsed.value.lon],
+    ).toEqual([38.878123, -6.970123])
   })
 
   it.each([
@@ -74,26 +92,39 @@ describe('parseReport', () => {
 
 describe('cleanName', () => {
   it('turns commas, quotes and line breaks into spaces and collapses whitespace', () => {
-    expect(cleanName('  Bar "El Patio",\n  Badajoz ')).toBe('Bar El Patio Badajoz')
+    expect(cleanName('  Bar "El Patio",\n  Badajoz ')).toBe(
+      'Bar El Patio Badajoz',
+    )
     expect(cleanName('La «Tasca» de ‘Pepe’')).toBe('La Tasca de Pepe')
   })
 
   it('counts length after cleaning', () => {
-    expect(parseReport({ ...add, name: ' "A" ' })).toEqual({ ok: false, error: 'name' })
+    expect(parseReport({ ...add, name: ' "A" ' })).toEqual({
+      ok: false,
+      error: 'name',
+    })
   })
 })
 
 describe('distanceMetres', () => {
   it('measures short distances in Badajoz', () => {
     // 0.001° of latitude is about 111 m.
-    expect(distanceMetres({ lat: 38.878, lon: -6.97 }, { lat: 38.879, lon: -6.97 })).toBeCloseTo(111.2, 0)
-    expect(distanceMetres({ lat: 38.878, lon: -6.97 }, { lat: 38.878, lon: -6.97 })).toBe(0)
+    expect(
+      distanceMetres({ lat: 38.878, lon: -6.97 }, { lat: 38.879, lon: -6.97 }),
+    ).toBeCloseTo(111.2, 0)
+    expect(
+      distanceMetres({ lat: 38.878, lon: -6.97 }, { lat: 38.878, lon: -6.97 }),
+    ).toBe(0)
   })
 
   it('separates a correction from a relocation', () => {
     const venue = { lat: 38.878, lon: -6.97 }
-    expect(distanceMetres(venue, { lat: 38.8823, lon: -6.97 })).toBeLessThan(MAX_MOVE_METRES)
-    expect(distanceMetres(venue, { lat: 38.8830, lon: -6.97 })).toBeGreaterThan(MAX_MOVE_METRES)
+    expect(distanceMetres(venue, { lat: 38.8823, lon: -6.97 })).toBeLessThan(
+      MAX_MOVE_METRES,
+    )
+    expect(distanceMetres(venue, { lat: 38.883, lon: -6.97 })).toBeGreaterThan(
+      MAX_MOVE_METRES,
+    )
   })
 })
 
@@ -117,7 +148,14 @@ describe('reportQueue', () => {
       row({ id: 9, net_hash: 'n2', created_at: '2026-11-24T09:00:00.000Z' }),
       row({ id: 3, net_hash: 'n1', created_at: '2026-11-24T10:00:00.000Z' }),
       row({ id: 10, net_hash: 'n1', created_at: '2026-11-23T10:00:00.000Z' }),
-      row({ id: 4, kind: 'move', venue_id: 'osm:node/2', lat: 38.878, lon: -6.97, created_at: '2026-11-24T08:00:00.000Z' }),
+      row({
+        id: 4,
+        kind: 'move',
+        venue_id: 'osm:node/2',
+        lat: 38.878,
+        lon: -6.97,
+        created_at: '2026-11-24T08:00:00.000Z',
+      }),
       row({
         id: 5,
         kind: 'add',
@@ -131,7 +169,13 @@ describe('reportQueue', () => {
       }),
     ])
     expect(queue).toEqual([
-      { ids: [3, 9, 10], kind: 'closed', venueId: 'osm:node/1', reporters: 2, last: '2026-11-24T10:00:00.000Z' },
+      {
+        ids: [3, 9, 10],
+        kind: 'closed',
+        venueId: 'osm:node/1',
+        reporters: 2,
+        last: '2026-11-24T10:00:00.000Z',
+      },
       {
         ids: [5],
         kind: 'add',
@@ -143,12 +187,30 @@ describe('reportQueue', () => {
         reporters: 1,
         last: '2026-11-24T11:00:00.000Z',
       },
-      { ids: [4], kind: 'move', venueId: 'osm:node/2', lat: 38.878, lon: -6.97, reporters: 1, last: '2026-11-24T08:00:00.000Z' },
+      {
+        ids: [4],
+        kind: 'move',
+        venueId: 'osm:node/2',
+        lat: 38.878,
+        lon: -6.97,
+        reporters: 1,
+        last: '2026-11-24T08:00:00.000Z',
+      },
     ])
   })
 
   it('reads terrace 0 as false and is empty for no rows', () => {
-    const [entry] = reportQueue([row({ kind: 'add', venue_id: '', name: 'Bar', venue_kind: 'pub', terrace: 0, lat: 1, lon: 2 })])
+    const [entry] = reportQueue([
+      row({
+        kind: 'add',
+        venue_id: '',
+        name: 'Bar',
+        venue_kind: 'pub',
+        terrace: 0,
+        lat: 1,
+        lon: 2,
+      }),
+    ])
     expect(entry).toMatchObject({ kind: 'add', terrace: false })
     expect(reportQueue([])).toEqual([])
   })
@@ -156,7 +218,10 @@ describe('reportQueue', () => {
 
 describe('parseResolution', () => {
   it('accepts ids and a status', () => {
-    expect(parseResolution({ ids: [3, 9], status: 'accepted' })).toEqual({ ids: [3, 9], status: 'accepted' })
+    expect(parseResolution({ ids: [3, 9], status: 'accepted' })).toEqual({
+      ids: [3, 9],
+      status: 'accepted',
+    })
   })
 
   it.each([

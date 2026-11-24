@@ -1,5 +1,10 @@
 /** Pure rules of the price suggestions API: validation and consensus. */
-import { BRANDS, ITEMS, type Brand, type Item } from '../../web/src/data/prices.ts'
+import {
+  BRANDS,
+  ITEMS,
+  type Brand,
+  type Item,
+} from '../../web/src/data/prices.ts'
 
 /** Distinct people who must suggest the same price before the app shows it. */
 export const THRESHOLD = 5
@@ -29,7 +34,11 @@ export type Suggestion = {
 }
 
 /** A price the app shows: agreed by visitors (approximate) or saved by the owner (confirmed). */
-export type CrowdPrice = Suggestion & { voters: number; last: string; confirmed: boolean }
+export type CrowdPrice = Suggestion & {
+  voters: number
+  last: string
+  confirmed: boolean
+}
 
 export const VENUE_ID =
   /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
@@ -45,8 +54,11 @@ function isBrand(value: unknown): value is Brand {
 /** The suggestion and Turnstile token in a request body, or why it is invalid. */
 export function parseSuggestion(
   body: unknown,
-): { ok: true; value: Suggestion; token: string } | { ok: false; error: string } {
-  if (typeof body !== 'object' || body === null) return { ok: false, error: 'body' }
+):
+  | { ok: true; value: Suggestion; token: string }
+  | { ok: false; error: string } {
+  if (typeof body !== 'object' || body === null)
+    return { ok: false, error: 'body' }
   const { venueId, item, brand, cents, token } = body as Record<string, unknown>
   if (typeof venueId !== 'string' || !VENUE_ID.test(venueId))
     return { ok: false, error: 'venueId' }
@@ -54,7 +66,12 @@ export function parseSuggestion(
   if (item === 'tercio' ? !isBrand(brand) : brand !== null)
     return { ok: false, error: 'brand' }
   const [min, max] = RANGE[item]
-  if (typeof cents !== 'number' || !Number.isInteger(cents) || cents < min || cents > max)
+  if (
+    typeof cents !== 'number' ||
+    !Number.isInteger(cents) ||
+    cents < min ||
+    cents > max
+  )
     return { ok: false, error: 'cents' }
   if (typeof token !== 'string' || token.length === 0 || token.length > 4096)
     return { ok: false, error: 'token' }
@@ -108,8 +125,35 @@ export function consensus(groups: readonly PriceGroup[]): CrowdPrice[] {
       ]
     })
     .sort((a, b) =>
-      `${a.venueId}|${a.item}|${a.brand ?? ''}` < `${b.venueId}|${b.item}|${b.brand ?? ''}` ? -1 : 1,
+      `${a.venueId}|${a.item}|${a.brand ?? ''}` <
+      `${b.venueId}|${b.item}|${b.brand ?? ''}`
+        ? -1
+        : 1,
     )
+}
+
+export type PriceResolution = {
+  venueId: string
+  item: Item
+  /** '' for a caña, as stored. */
+  brand: string
+  cents: number
+  status: 'accepted' | 'rejected'
+}
+
+/** An admin decision on a suggested price (`{venueId, item, brand, cents, status}`), or null. */
+export function parsePriceResolution(body: unknown): PriceResolution | null {
+  if (typeof body !== 'object' || body === null) return null
+  const { venueId, item, brand, cents, status } = body as Record<
+    string,
+    unknown
+  >
+  if (typeof venueId !== 'string' || !VENUE_ID.test(venueId) || !isItem(item))
+    return null
+  if (brand !== null && typeof brand !== 'string') return null
+  if (typeof cents !== 'number' || !Number.isInteger(cents)) return null
+  if (status !== 'accepted' && status !== 'rejected') return null
+  return { venueId, item, brand: brand ?? '', cents, status }
 }
 
 /** Constant-time string comparison, for the admin token. */
@@ -123,15 +167,32 @@ export function safeEqual(a: string, b: string): boolean {
 }
 
 /** The CORS origin to send back, or null when `origin` is not allowed. */
-export function allowedOrigin(origin: string | null, allowed: string): string | null {
+export function allowedOrigin(
+  origin: string | null,
+  allowed: string,
+): string | null {
   if (!origin) return null
-  return allowed.split(',').map((o) => o.trim()).includes(origin) ? origin : null
+  return allowed
+    .split(',')
+    .map((o) => o.trim())
+    .includes(origin)
+    ? origin
+    : null
 }
 
-export type OwnerRow = { venue_id: string; item: string; brand: string; cents: number; seen: string }
+export type OwnerRow = {
+  venue_id: string
+  item: string
+  brand: string
+  cents: number
+  seen: string
+}
 
 /** Owner prices as the app shows them; they replace visitor prices for the same item. */
-export function withOwnerPrices(crowd: readonly CrowdPrice[], owner: readonly OwnerRow[]): CrowdPrice[] {
+export function withOwnerPrices(
+  crowd: readonly CrowdPrice[],
+  owner: readonly OwnerRow[],
+): CrowdPrice[] {
   const key = (p: { venueId: string; item: string; brand: string | null }) =>
     `${p.venueId}|${p.item}|${p.brand ?? ''}`
   const byKey = new Map(crowd.map((p) => [key(p), p]))
@@ -157,14 +218,18 @@ export function parseOwnerPrice(
   body: unknown,
 ): { ok: true; value: Suggestion } | { ok: false; error: string } {
   const parsed = parseSuggestion(
-    typeof body === 'object' && body !== null ? { ...body, token: 'owner' } : body,
+    typeof body === 'object' && body !== null
+      ? { ...body, token: 'owner' }
+      : body,
   )
   return parsed.ok ? { ok: true, value: parsed.value } : parsed
 }
 
 /** Today as YYYY-MM-DD in Spain (the date a price was seen). */
 export function madridDate(now: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now)
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(
+    now,
+  )
 }
 
 /** Expands an IPv6 address to 8 hextets, or null when it isn't one. */
@@ -186,7 +251,11 @@ function ipv6Hextets(ip: string): number[] | null {
   const tail = halves.length === 2 ? parse(halves[1] ?? '') : []
   const missing = 8 - head.length - tail.length
   if (halves.length === 2 ? missing < 1 : missing !== 0) return null
-  const groups = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill('0'), ...tail]
+  const groups = [
+    ...head,
+    ...Array<string>(halves.length === 2 ? missing : 0).fill('0'),
+    ...tail,
+  ]
   if (!groups.every((g) => /^[0-9a-fA-F]{1,4}$/.test(g))) return null
   return groups.map((g) => parseInt(g, 16))
 }
@@ -206,7 +275,8 @@ function ipv4Octets(ip: string): number[] | null {
  */
 export function voterKeys(ip: string): { voter: string; network: string } {
   const v4 = ipv4Octets(ip)
-  if (v4) return { voter: v4.join('.'), network: `${v4.slice(0, 3).join('.')}.0/24` }
+  if (v4)
+    return { voter: v4.join('.'), network: `${v4.slice(0, 3).join('.')}.0/24` }
   const v6 = ipv6Hextets(ip)
   if (v6) {
     // IPv4-mapped (::ffff:a.b.c.d) is really IPv4.
@@ -214,7 +284,11 @@ export function voterKeys(ip: string): { voter: string; network: string } {
       const [hi = 0, lo = 0] = v6.slice(6)
       return voterKeys([hi >> 8, hi & 255, lo >> 8, lo & 255].join('.'))
     }
-    const prefix = (n: number) => v6.slice(0, n).map((h) => h.toString(16)).join(':')
+    const prefix = (n: number) =>
+      v6
+        .slice(0, n)
+        .map((h) => h.toString(16))
+        .join(':')
     return { voter: `${prefix(4)}::/64`, network: `${prefix(3)}::/48` }
   }
   return { voter: 'unknown', network: 'unknown' }
@@ -223,6 +297,29 @@ export function voterKeys(ip: string): { voter: string; network: string } {
 /** Turnstile's test secrets (always pass, always fail, token spent): no hostname or action. */
 export function isTestSecret(secret: string): boolean {
   return /^[123]x0{31}AA$/.test(secret)
+}
+
+/** Hostnames of a local `wrangler dev`, the only place a Turnstile test secret may pass. */
+const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]']
+
+/**
+ * Whether the request was sent to a local dev server. A test secret on a deployed
+ * Worker (a misconfiguration: it lets every bot through) fails verification instead.
+ */
+export function isLocalRequest(url: string): boolean {
+  try {
+    return LOCAL_HOSTNAMES.includes(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+/** The shortest IP_SALT the API accepts; a shorter one makes the hashes guessable. */
+export const MIN_SALT_LENGTH = 16
+
+/** Whether IP_SALT is set and long enough to hash addresses with. */
+export function saltUsable(salt: string | undefined): salt is string {
+  return typeof salt === 'string' && salt.length >= MIN_SALT_LENGTH
 }
 
 /**
@@ -255,7 +352,9 @@ export function turnstilePassed(
 export type RecentCounts = { voter: number; network: number; venue: number }
 
 /** Which limit a new suggestion would break, or null when it may go in. */
-export function limitHit(counts: RecentCounts): 'voter' | 'network' | 'venue' | null {
+export function limitHit(
+  counts: RecentCounts,
+): 'voter' | 'network' | 'venue' | null {
   if (counts.voter >= DAILY_LIMIT) return 'voter'
   if (counts.network >= NETWORK_DAILY_LIMIT) return 'network'
   if (counts.venue >= VENUE_HOURLY_LIMIT) return 'venue'
