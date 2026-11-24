@@ -6,28 +6,37 @@
  *   or IPv6 /64) per venue, item and brand, daily caps per voter and per
  *   network, an hourly cap per venue, plausible prices only, and only for
  *   venues in the data.
- * - GET /v1/prices: prices at least THRESHOLD networks agree on (shown with "~").
+ * - GET /v1/prices: prices at least THRESHOLD networks agree on (shown with "~"),
+ *   minus the ones the owner rejected; cached for PRICES_TTL_SECONDS and purged
+ *   when the owner changes a price or resolves a suggestion.
  * - GET /v1/admin/suggestions, POST /v1/admin/resolve: the review queue,
  *   for the local admin view only (bearer ADMIN_TOKEN).
  * - Owner mode (bearer OWNER_TOKEN, which can only add or remove prices):
  *   GET /v1/owner/check, PUT/DELETE /v1/owner/prices saves a confirmed price,
- *   POST /v1/owner/photo reads prices and the bar's name from a photo.
+ *   POST /v1/owner/photo reads prices and the bar's name from a photo (at most
+ *   PHOTO_DAILY_LIMIT a day).
  * - GET /v1/admin/owner-prices: owner prices, for the admin's import.
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
  *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
  *   identity and caps as suggestions. Never applied automatically.
  * - GET /v1/admin/reports, POST /v1/admin/reports/resolve: the reports queue.
+ *
+ * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
+ * that hash addresses, and a Turnstile test secret only passes on localhost.
  */
 import {
   allowedOrigin,
   consensus,
   EVENT_RETENTION_HOURS,
+  isLocalRequest,
   isTestSecret,
   limitHit,
   madridDate,
   parseOwnerPrice,
+  parsePriceResolution,
   parseSuggestion,
   safeEqual,
+  saltUsable,
   TURNSTILE_ACTION,
   turnstilePassed,
   voterKeys,
@@ -36,7 +45,12 @@ import {
   type OwnerRow,
   type PriceGroup,
 } from './logic.ts'
-import { parsePhoto, PhotoError, readPhoto } from './photo.ts'
+import {
+  parsePhoto,
+  PHOTO_DAILY_LIMIT,
+  PhotoError,
+  readPhoto,
+} from './photo.ts'
 import {
   distanceMetres,
   maxDistance,
@@ -49,20 +63,29 @@ import {
   type ReportRow,
 } from './reports.ts'
 
+/** Bindings and vars; a secret that was never set is undefined at runtime. */
 type Env = {
   DB: D1Database
   ALLOWED_ORIGINS: string
   TERRACES_URL: string
-  TURNSTILE_SECRET: string
-  ADMIN_TOKEN: string
-  IP_SALT: string
-  OWNER_TOKEN: string
-  ANTHROPIC_API_KEY: string
+  TURNSTILE_SECRET?: string
+  ADMIN_TOKEN?: string
+  IP_SALT?: string
+  OWNER_TOKEN?: string
+  ANTHROPIC_API_KEY?: string
 }
 
+/** The largest JSON body, in bytes, of every endpoint but the photo one. */
 const MAX_BODY = 8 * 1024
-/** A downscaled photo (about 0.5 MB) as base64, with room to spare. */
+/** A downscaled photo (about 0.5 MB) as base64, with room to spare, in bytes. */
 const MAX_PHOTO_BODY = 7 * 1024 * 1024
+/** How long a GET /v1/prices answer may be reused, by browsers and the Cache API. */
+const PRICES_TTL_SECONDS = 300
+/**
+ * How long one isolate reuses its last GET /v1/prices answer. Short, because a
+ * purge only reaches the isolate (and the data centre's cache) that took the write.
+ */
+const PRICES_MEMO_SECONDS = 60
 
 let venues: { ids: Map<string, LatLon>; until: number } | null = null
 
@@ -73,12 +96,19 @@ async function knownVenues(env: Env): Promise<Map<string, LatLon>> {
   if (!response.ok) throw new Error(`terraces.json: HTTP ${response.status}`)
   const data: unknown = await response.json()
   const records =
-    typeof data === 'object' && data !== null && 'terraces' in data && Array.isArray(data.terraces)
+    typeof data === 'object' &&
+    data !== null &&
+    'terraces' in data &&
+    Array.isArray(data.terraces)
       ? data.terraces
       : []
   const ids = new Map<string, LatLon>()
   for (const record of records)
-    if (typeof record === 'object' && record !== null && typeof record.id === 'string') {
+    if (
+      typeof record === 'object' &&
+      record !== null &&
+      typeof record.id === 'string'
+    ) {
       const venue: unknown = record.venue
       const position =
         typeof venue === 'object' &&
@@ -96,21 +126,43 @@ async function knownVenues(env: Env): Promise<Map<string, LatLon>> {
 }
 
 async function sha256(text: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(text),
+  )
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
-async function turnstileOk(env: Env, token: string, ip: string, action: string): Promise<boolean> {
+async function turnstileOk(
+  env: Env,
+  request: Request,
+  token: string,
+  ip: string,
+  action: string,
+): Promise<boolean> {
+  const secret = env.TURNSTILE_SECRET ?? ''
+  const testSecret = isTestSecret(secret)
+  if (testSecret && !isLocalRequest(request.url)) {
+    console.error(
+      'TURNSTILE_SECRET is a test secret on a deployed Worker: failing verification',
+    )
+    return false
+  }
   const form = new FormData()
-  form.append('secret', env.TURNSTILE_SECRET)
+  form.append('secret', secret)
   form.append('response', token)
   form.append('remoteip', ip)
-  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    body: form,
-  })
+  const response = await fetch(
+    'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+    {
+      method: 'POST',
+      body: form,
+    },
+  )
   const result: unknown = await response.json()
-  return turnstilePassed(result, env.ALLOWED_ORIGINS, isTestSecret(env.TURNSTILE_SECRET), action)
+  return turnstilePassed(result, env.ALLOWED_ORIGINS, testSecret, action)
 }
 
 const LIMIT_MESSAGES = {
@@ -119,17 +171,62 @@ const LIMIT_MESSAGES = {
   venue: 'too many suggestions for this venue right now, try later',
 } as const
 
-function json(body: unknown, status: number, headers: HeadersInit = {}): Response {
+function json(
+  body: unknown,
+  status: number,
+  headers: HeadersInit = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...headers },
   })
 }
 
-/** A small JSON body, or the error response to send. */
-async function smallBody(request: Request): Promise<{ body: unknown } | Response> {
-  const text = await request.text()
-  if (text.length > MAX_BODY) return json({ error: 'too large' }, 413)
+/**
+ * The request's body as text, or null when it is over `maxBytes`: refused on its
+ * Content-Length before reading, and the read itself stops at `maxBytes` bytes.
+ */
+async function boundedText(
+  request: Request,
+  maxBytes: number,
+): Promise<string | null> {
+  const declared = request.headers.get('Content-Length')
+  if (declared !== null && !(Number(declared) <= maxBytes)) return null
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk =
+      value instanceof Uint8Array
+        ? value
+        : new TextEncoder().encode(String(value))
+    total += chunk.byteLength
+    if (total > maxBytes) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(chunk)
+  }
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(bytes)
+}
+
+/** A JSON body of at most `maxBytes` bytes, or the error response to send. */
+async function jsonBody(
+  request: Request,
+  maxBytes = MAX_BODY,
+  tooLarge = 'too large',
+): Promise<{ body: unknown } | Response> {
+  const text = await boundedText(request, maxBytes)
+  if (text === null) return json({ error: tooLarge }, 413)
   try {
     return { body: JSON.parse(text) }
   } catch {
@@ -137,12 +234,22 @@ async function smallBody(request: Request): Promise<{ body: unknown } | Response
   }
 }
 
+/** IP_SALT, or the 503 to send when it is unset or too short to hash addresses with. */
+function ipSalt(env: Env): string | Response {
+  if (saltUsable(env.IP_SALT)) return env.IP_SALT
+  console.error('IP_SALT is unset or too short: refusing to hash addresses')
+  return json({ error: 'not configured' }, 503)
+}
+
 /** The salted voter and network hashes of a request's address. */
-async function identity(env: Env, ip: string): Promise<{ voterHash: string; netHash: string }> {
+async function identity(
+  salt: string,
+  ip: string,
+): Promise<{ voterHash: string; netHash: string }> {
   const keys = voterKeys(ip)
   return {
-    voterHash: await sha256(`${env.IP_SALT}:${keys.voter}`),
-    netHash: await sha256(`${env.IP_SALT}:net:${keys.network}`),
+    voterHash: await sha256(`${salt}:${keys.voter}`),
+    netHash: await sha256(`${salt}:net:${keys.network}`),
   }
 }
 
@@ -172,27 +279,40 @@ async function overCap(
 }
 
 /** Logs a request against the caps and prunes the log. */
-function logEvent(env: Env, voterHash: string, netHash: string, venueKey: string, now: number) {
-  const pruneBefore = new Date(now - EVENT_RETENTION_HOURS * 3600_000).toISOString()
+function logEvent(
+  env: Env,
+  voterHash: string,
+  netHash: string,
+  venueKey: string,
+  now: number,
+) {
+  const pruneBefore = new Date(
+    now - EVENT_RETENTION_HOURS * 3600_000,
+  ).toISOString()
   return [
     env.DB.prepare(
       'INSERT INTO suggestion_events (voter_hash, net_hash, venue_id, at) VALUES (?, ?, ?, ?)',
     ).bind(voterHash, netHash, venueKey, new Date(now).toISOString()),
-    env.DB.prepare('DELETE FROM suggestion_events WHERE at < ?').bind(pruneBefore),
+    env.DB.prepare('DELETE FROM suggestion_events WHERE at < ?').bind(
+      pruneBefore,
+    ),
   ]
 }
 
 async function suggest(request: Request, env: Env): Promise<Response> {
-  const read = await smallBody(request)
+  const salt = ipSalt(env)
+  if (typeof salt !== 'string') return salt
+  const read = await jsonBody(request)
   if (read instanceof Response) return read
   const parsed = parseSuggestion(read.body)
   if (!parsed.ok) return json({ error: `invalid ${parsed.error}` }, 400)
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
-  if (!(await turnstileOk(env, parsed.token, ip, TURNSTILE_ACTION))) return json({ error: 'bot check failed' }, 403)
+  if (!(await turnstileOk(env, request, parsed.token, ip, TURNSTILE_ACTION)))
+    return json({ error: 'bot check failed' }, 403)
   if (!(await knownVenues(env)).has(parsed.value.venueId))
     return json({ error: 'unknown venue' }, 400)
 
-  const { voterHash, netHash } = await identity(env, ip)
+  const { voterHash, netHash } = await identity(salt, ip)
   const { venueId, item, brand, cents } = parsed.value
   const now = Date.now()
   const capped = await overCap(env, voterHash, netHash, venueId, now)
@@ -213,12 +333,22 @@ async function suggest(request: Request, env: Env): Promise<Response> {
 }
 
 async function report(request: Request, env: Env): Promise<Response> {
-  const read = await smallBody(request)
+  const salt = ipSalt(env)
+  if (typeof salt !== 'string') return salt
+  const read = await jsonBody(request)
   if (read instanceof Response) return read
   const parsed = parseReport(read.body)
   if (!parsed.ok) return json({ error: `invalid ${parsed.error}` }, 400)
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
-  if (!(await turnstileOk(env, parsed.token, ip, REPORT_TURNSTILE_ACTION)))
+  if (
+    !(await turnstileOk(
+      env,
+      request,
+      parsed.token,
+      ip,
+      REPORT_TURNSTILE_ACTION,
+    ))
+  )
     return json({ error: 'bot check failed' }, 403)
   const value = parsed.value
   const venueKey = value.kind === 'add' ? NEW_VENUE_KEY : value.venueId
@@ -227,11 +357,15 @@ async function report(request: Request, env: Env): Promise<Response> {
     if (!published) return json({ error: 'unknown venue' }, 400)
     // A NaN position (a record without `venue`) is never within range.
     const limit = maxDistance(value)
-    if (limit !== null && 'lat' in value && !(distanceMetres(published, value) <= limit))
+    if (
+      limit !== null &&
+      'lat' in value &&
+      !(distanceMetres(published, value) <= limit)
+    )
       return json({ error: 'invalid position' }, 400)
   }
 
-  const { voterHash, netHash } = await identity(env, ip)
+  const { voterHash, netHash } = await identity(salt, ip)
   const now = Date.now()
   const capped = await overCap(env, voterHash, netHash, venueKey, now)
   if (capped) return capped
@@ -278,7 +412,9 @@ async function pendingReports(env: Env): Promise<Response> {
 }
 
 async function resolveReports(request: Request, env: Env): Promise<Response> {
-  const resolution = parseResolution(await request.json().catch(() => null))
+  const read = await jsonBody(request)
+  if (read instanceof Response) return read
+  const resolution = parseResolution(read.body)
   if (!resolution) return json({ error: 'invalid resolution' }, 400)
   const result = await env.DB.prepare(
     `UPDATE venue_reports SET status = ?
@@ -289,13 +425,53 @@ async function resolveReports(request: Request, env: Env): Promise<Response> {
   return json({ updated: result.meta.changes }, 200)
 }
 
-async function prices(env: Env): Promise<Response> {
-  const since = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString()
+/** A price the owner rejected matches this suggestion row (aliased `s`). */
+const NOT_REJECTED = `NOT EXISTS (
+  SELECT 1 FROM rejected_prices r
+  WHERE r.venue_id = s.venue_id AND r.item = s.item AND r.brand = s.brand AND r.cents = s.cents)`
+
+/** The one key GET /v1/prices is cached under: a query string can't bypass the cache. */
+function pricesCacheKey(request: Request): Request {
+  return new Request(new URL('/v1/prices', request.url).toString(), {
+    method: 'GET',
+  })
+}
+
+/** The last answer in this isolate, for hosts where the Cache API stores nothing. */
+let pricesMemo: { body: string; until: number } | null = null
+
+function pricesResponse(body: string): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, max-age=${PRICES_TTL_SECONDS}`,
+    },
+  })
+}
+
+/**
+ * GET /v1/prices. The body is cached without CORS headers (those are added per
+ * request in `fetch`), so one cached answer serves every allowed Origin.
+ */
+async function prices(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  const now = Date.now()
+  if (pricesMemo && pricesMemo.until > now)
+    return pricesResponse(pricesMemo.body)
+  const key = pricesCacheKey(request)
+  const cached = await caches.default.match(key)
+  if (cached) return pricesResponse(await cached.text())
+
+  const since = new Date(now - WINDOW_DAYS * 86400_000).toISOString()
   const { results } = await env.DB.prepare(
     `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
             MAX(created_at) AS last
-     FROM suggestions
-     WHERE status != 'rejected' AND created_at >= ?
+     FROM suggestions s
+     WHERE status != 'rejected' AND created_at >= ? AND ${NOT_REJECTED}
      GROUP BY venue_id, item, brand, cents`,
   )
     .bind(since)
@@ -303,73 +479,142 @@ async function prices(env: Env): Promise<Response> {
   const owner = await env.DB.prepare(
     'SELECT venue_id, item, brand, cents, seen FROM owner_prices',
   ).all<OwnerRow>()
-  return json({ prices: withOwnerPrices(consensus(results), owner.results) }, 200, {
-    'Cache-Control': 'public, max-age=300',
+  const body = JSON.stringify({
+    prices: withOwnerPrices(consensus(results), owner.results),
   })
+  pricesMemo = { body, until: now + PRICES_MEMO_SECONDS * 1000 }
+  ctx.waitUntil(caches.default.put(key, pricesResponse(body)))
+  return pricesResponse(body)
+}
+
+/** Drops the cached GET /v1/prices after a write that changes what it serves. */
+async function purgePrices(request: Request): Promise<void> {
+  pricesMemo = null
+  await caches.default.delete(pricesCacheKey(request))
 }
 
 async function pending(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
             MAX(created_at) AS last
-     FROM suggestions WHERE status = 'pending'
+     FROM suggestions s WHERE status = 'pending' AND ${NOT_REJECTED}
      GROUP BY venue_id, item, brand, cents
      ORDER BY voters DESC, last DESC`,
   ).all<PriceGroup>()
   return json({ suggestions: results }, 200)
 }
 
+/**
+ * Accepts or rejects a suggested price. A rejection is remembered in
+ * `rejected_prices`, so re-votes and new networks can't bring the price back;
+ * accepting the same price later lifts it (and its rejected votes count again).
+ */
 async function resolve(request: Request, env: Env): Promise<Response> {
-  const body: unknown = await request.json().catch(() => null)
-  if (typeof body !== 'object' || body === null) return json({ error: 'body' }, 400)
-  const { venueId, item, brand, cents, status } = body as Record<string, unknown>
-  if (
-    typeof venueId !== 'string' ||
-    typeof item !== 'string' ||
-    (brand !== null && typeof brand !== 'string') ||
-    typeof cents !== 'number' ||
-    (status !== 'accepted' && status !== 'rejected')
-  )
-    return json({ error: 'invalid resolution' }, 400)
-  const result = await env.DB.prepare(
-    `UPDATE suggestions SET status = ?
-     WHERE status = 'pending' AND venue_id = ? AND item = ? AND brand = ? AND cents = ?`,
-  )
-    .bind(status, venueId, item, brand ?? '', cents)
-    .run()
-  return json({ updated: result.meta.changes }, 200)
+  const read = await jsonBody(request)
+  if (read instanceof Response) return read
+  const resolution = parsePriceResolution(read.body)
+  if (!resolution) return json({ error: 'invalid resolution' }, 400)
+  const { venueId, item, brand, cents, status } = resolution
+  const match = 'venue_id = ? AND item = ? AND brand = ? AND cents = ?'
+  const remember =
+    status === 'rejected'
+      ? env.DB.prepare(
+          `INSERT INTO rejected_prices (venue_id, item, brand, cents, rejected_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (venue_id, item, brand, cents) DO UPDATE SET rejected_at = excluded.rejected_at`,
+        ).bind(venueId, item, brand, cents, new Date().toISOString())
+      : env.DB.prepare(`DELETE FROM rejected_prices WHERE ${match}`).bind(
+          venueId,
+          item,
+          brand,
+          cents,
+        )
+  const [update] = await env.DB.batch([
+    env.DB.prepare(
+      status === 'rejected'
+        ? `UPDATE suggestions SET status = 'rejected' WHERE status = 'pending' AND ${match}`
+        : `UPDATE suggestions SET status = 'accepted' WHERE status != 'accepted' AND ${match}`,
+    ).bind(venueId, item, brand, cents),
+    remember,
+  ])
+  await purgePrices(request)
+  return json({ updated: update?.meta.changes ?? 0 }, 200)
 }
 
 async function ownerPrice(request: Request, env: Env): Promise<Response> {
-  const parsed = parseOwnerPrice(await request.json().catch(() => null))
+  const read = await jsonBody(request)
+  if (read instanceof Response) return read
+  const parsed = parseOwnerPrice(read.body)
   if (!parsed.ok) return json({ error: `invalid ${parsed.error}` }, 400)
   const { venueId, item, brand, cents } = parsed.value
-  if (!(await knownVenues(env)).has(venueId)) return json({ error: 'unknown venue' }, 400)
+  if (!(await knownVenues(env)).has(venueId))
+    return json({ error: 'unknown venue' }, 400)
   if (request.method === 'DELETE') {
-    await env.DB.prepare('DELETE FROM owner_prices WHERE venue_id = ? AND item = ? AND brand = ?')
+    await env.DB.prepare(
+      'DELETE FROM owner_prices WHERE venue_id = ? AND item = ? AND brand = ?',
+    )
       .bind(venueId, item, brand ?? '')
       .run()
+    await purgePrices(request)
     return json({ ok: true }, 200)
   }
   const seen = madridDate(new Date())
-  await env.DB.prepare(
-    `INSERT INTO owner_prices (venue_id, item, brand, cents, seen) VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT (venue_id, item, brand) DO UPDATE SET cents = excluded.cents, seen = excluded.seen`,
-  )
-    .bind(venueId, item, brand ?? '', cents, seen)
-    .run()
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO owner_prices (venue_id, item, brand, cents, seen) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (venue_id, item, brand) DO UPDATE SET cents = excluded.cents, seen = excluded.seen`,
+    ).bind(venueId, item, brand ?? '', cents, seen),
+    // The owner saw this price on site: a rejection of it no longer stands.
+    env.DB.prepare(
+      'DELETE FROM rejected_prices WHERE venue_id = ? AND item = ? AND brand = ? AND cents = ?',
+    ).bind(venueId, item, brand ?? '', cents),
+  ])
+  await purgePrices(request)
   return json({ ok: true, seen }, 200)
 }
 
+/**
+ * Takes one of the day's PHOTO_DAILY_LIMIT photo readings, or returns the 429 to
+ * send. The check and the insert are one statement, so parallel requests can't
+ * both take the last one.
+ */
+async function photoAllowance(env: Env, now: number): Promise<Response | null> {
+  const dayAgo = new Date(now - 86400_000).toISOString()
+  const pruneBefore = new Date(
+    now - EVENT_RETENTION_HOURS * 3600_000,
+  ).toISOString()
+  const [taken] = await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO owner_photo_events (at)
+       SELECT ?1 WHERE (SELECT COUNT(*) FROM owner_photo_events WHERE at >= ?2) < ?3`,
+    ).bind(new Date(now).toISOString(), dayAgo, PHOTO_DAILY_LIMIT),
+    env.DB.prepare('DELETE FROM owner_photo_events WHERE at < ?').bind(
+      pruneBefore,
+    ),
+  ])
+  if (taken?.meta.changes) return null
+  const oldest = await env.DB.prepare(
+    'SELECT MIN(at) AS at FROM owner_photo_events WHERE at >= ?',
+  )
+    .bind(dayAgo)
+    .first<{ at: string | null }>()
+  const freeAt = oldest?.at ? Date.parse(oldest.at) + 86400_000 : now + 3600_000
+  return json({ error: `at most ${PHOTO_DAILY_LIMIT} photos a day` }, 429, {
+    'Retry-After': String(Math.max(1, Math.ceil((freeAt - now) / 1000))),
+  })
+}
+
 async function ownerPhoto(request: Request, env: Env): Promise<Response> {
-  const text = await request.text()
-  if (text.length > MAX_PHOTO_BODY) return json({ error: 'the photo is too large' }, 413)
+  const read = await jsonBody(request, MAX_PHOTO_BODY, 'the photo is too large')
+  if (read instanceof Response) return read
   try {
-    const photo = parsePhoto(JSON.parse(text))
-    return json(await readPhoto(env.ANTHROPIC_API_KEY, photo), 200)
+    const photo = parsePhoto(read.body)
+    const capped = await photoAllowance(env, Date.now())
+    if (capped) return capped
+    return json(await readPhoto(env.ANTHROPIC_API_KEY ?? '', photo), 200)
   } catch (error) {
-    if (error instanceof PhotoError) return json({ error: error.message }, error.status)
-    if (error instanceof SyntaxError) return json({ error: 'invalid JSON' }, 400)
+    if (error instanceof PhotoError)
+      return json({ error: error.message }, error.status)
     throw error
   }
 }
@@ -381,28 +626,49 @@ async function ownerPrices(env: Env): Promise<Response> {
   return json({ prices: results }, 200)
 }
 
-function bearer(request: Request, token: string): boolean {
-  return Boolean(token) && safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${token}`)
+function bearer(request: Request, token: string | undefined): boolean {
+  return (
+    Boolean(token) &&
+    safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${token}`)
+  )
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+async function route(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response> {
   const { pathname } = new URL(request.url)
-  if (pathname === '/v1/prices' && request.method === 'GET') return prices(env)
-  if (pathname === '/v1/suggestions' && request.method === 'POST') return suggest(request, env)
-  if (pathname === '/v1/reports' && request.method === 'POST') return report(request, env)
+  if (pathname === '/v1/prices' && request.method === 'GET')
+    return prices(request, env, ctx)
+  if (pathname === '/v1/suggestions' && request.method === 'POST')
+    return suggest(request, env)
+  if (pathname === '/v1/reports' && request.method === 'POST')
+    return report(request, env)
   if (pathname.startsWith('/v1/owner/')) {
-    if (!bearer(request, env.OWNER_TOKEN)) return json({ error: 'unauthorized' }, 401)
-    if (pathname === '/v1/owner/check' && request.method === 'GET') return json({ ok: true }, 200)
-    if (pathname === '/v1/owner/prices' && (request.method === 'PUT' || request.method === 'DELETE'))
+    if (!bearer(request, env.OWNER_TOKEN))
+      return json({ error: 'unauthorized' }, 401)
+    if (pathname === '/v1/owner/check' && request.method === 'GET')
+      return json({ ok: true }, 200)
+    if (
+      pathname === '/v1/owner/prices' &&
+      (request.method === 'PUT' || request.method === 'DELETE')
+    )
       return ownerPrice(request, env)
-    if (pathname === '/v1/owner/photo' && request.method === 'POST') return ownerPhoto(request, env)
+    if (pathname === '/v1/owner/photo' && request.method === 'POST')
+      return ownerPhoto(request, env)
   }
   if (pathname.startsWith('/v1/admin/')) {
-    if (!bearer(request, env.ADMIN_TOKEN)) return json({ error: 'unauthorized' }, 401)
-    if (pathname === '/v1/admin/owner-prices' && request.method === 'GET') return ownerPrices(env)
-    if (pathname === '/v1/admin/suggestions' && request.method === 'GET') return pending(env)
-    if (pathname === '/v1/admin/resolve' && request.method === 'POST') return resolve(request, env)
-    if (pathname === '/v1/admin/reports' && request.method === 'GET') return pendingReports(env)
+    if (!bearer(request, env.ADMIN_TOKEN))
+      return json({ error: 'unauthorized' }, 401)
+    if (pathname === '/v1/admin/owner-prices' && request.method === 'GET')
+      return ownerPrices(env)
+    if (pathname === '/v1/admin/suggestions' && request.method === 'GET')
+      return pending(env)
+    if (pathname === '/v1/admin/resolve' && request.method === 'POST')
+      return resolve(request, env)
+    if (pathname === '/v1/admin/reports' && request.method === 'GET')
+      return pendingReports(env)
     if (pathname === '/v1/admin/reports/resolve' && request.method === 'POST')
       return resolveReports(request, env)
   }
@@ -410,8 +676,15 @@ async function route(request: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const origin = allowedOrigin(request.headers.get('Origin'), env.ALLOWED_ORIGINS)
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
+    const origin = allowedOrigin(
+      request.headers.get('Origin'),
+      env.ALLOWED_ORIGINS,
+    )
     const cors: Record<string, string> = origin
       ? {
           'Access-Control-Allow-Origin': origin,
@@ -420,15 +693,17 @@ export default {
           Vary: 'Origin',
         }
       : {}
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
+    if (request.method === 'OPTIONS')
+      return new Response(null, { status: 204, headers: cors })
     let response: Response
     try {
-      response = await route(request, env)
+      response = await route(request, env, ctx)
     } catch (error) {
       console.error(error)
       response = json({ error: 'server error' }, 500)
     }
-    for (const [name, value] of Object.entries(cors)) response.headers.set(name, value)
+    for (const [name, value] of Object.entries(cors))
+      response.headers.set(name, value)
     return response
   },
 } satisfies ExportedHandler<Env>

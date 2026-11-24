@@ -18,7 +18,7 @@ Two sources:
    - **Spam:** one vote per person (a salted SHA-256 of the IP) per venue, item and brand, where a new vote replaces the old one. There is a cap of 20 suggestions per person per day. (Tightened in "Guardrails against repeat voters" below.)
    - **Validity:** prices outside plausible ranges (caña 0,50–6,00 €, tercio 0,80–8,00 €) are rejected, and so is any venue that isn't in the published data.
    - **Automatic display:** when at least 5 people agree on the same price within 12 months, `GET /v1/prices` returns it. The app shows it marked as approximate ("~1,50 €"). Rejected suggestions never count.
-   - **Review queue:** all pending suggestions show up in the admin view. Accepting one turns it into a curator price (and ships with Publish); rejecting hides it.
+   - **Review queue:** all pending suggestions show up in the admin view. Accepting one turns it into a curator price (and ships with Publish); rejecting hides it for good (see "Rejections stick" below).
 
 Cloudflare was chosen over Supabase because Turnstile, the Worker and D1 come from one account on the free tier, and a free Supabase project pauses after a week without traffic.
 
@@ -34,15 +34,29 @@ A salted IP hash alone let one person count as many: every address in an IPv6 /6
 
 Accepted risk: people sharing a network (a bar's Wi-Fi, some mobile CGNAT ranges) count as one toward consensus, and an attacker with a residential proxy pool can still reach 5. The review queue remains the backstop.
 
+### Rejections stick (2026-11-24)
+
+A rejection used to be a status on the suggestion rows, so it didn't last: a voter who voted again reset their row to pending, and new networks voting for the same price were new rows. Five people could bring a rejected price back.
+
+- Rejecting a price records its venue, item, brand and cents in `rejected_prices` (migration `0006`, which also carries over the prices already rejected). Consensus and the review queue skip every suggestion for a rejected price, whoever sent it and whenever.
+- **Undo:** accepting that price (`POST /v1/admin/resolve`, `status: accepted`) lifts the rejection and its earlier votes count again; so does saving it as an owner price at the same cents, since the owner saw it on site.
+- Other prices for the same venue and item are unaffected: rejecting 1,50 € doesn't block 1,60 €.
+
+### Hardening (2026-11-24)
+
+- `GET /v1/prices` is cached in the Worker (the Cache API for 5 minutes, isolate memory for 60 seconds) and purged by owner price writes and admin resolves, so public traffic can't use up D1's daily reads. A purge only reaches the data centre that took the write; elsewhere a change shows within 5 minutes, the same as the browser cache.
+- The API fails closed on misconfiguration: with no `IP_SALT` of at least 16 characters, the endpoints that hash addresses answer 503; a Turnstile test secret passes only on `localhost`.
+- Every JSON body is bounded in bytes (8 KB, 7 MB for a photo), on `Content-Length` and while reading.
+
 ### Owner mode (2026-11-23)
 
 The owner records prices at the bar from their phone, without the laptop.
 
 - **Unlocking:** a private link carrying `OWNER_TOKEN` turns on owner mode on the public site. The token is kept in the phone's local storage.
 - **Saving:** the venue card gets price fields, which save straight to `owner_prices` in D1 (`PUT /v1/owner/prices`). `GET /v1/prices` serves those prices as confirmed (no "~"), replacing visitor prices for the same item. They're dated with the Madrid date.
-- **Photo:** "Foto de la carta" sends a downscaled photo to `POST /v1/owner/photo`, which reads the prices and the bar's name with the Claude API, using the same prompt and price rules as the admin's photo reader (`web/src/data/photoReading.ts`). The photo isn't stored.
+- **Photo:** "Foto de la carta" sends a downscaled photo to `POST /v1/owner/photo`, which reads the prices and the bar's name with the Claude API, using the same prompt and price rules as the admin's photo reader (`web/src/data/photoReading.ts`). The photo isn't stored. At most 50 photos in any 24 hours (`PHOTO_DAILY_LIMIT`, 2026-11-24), so a leaked token can't run up unbounded API spend.
 - **Auto-save:** the app saves clear readings for a clearly matched bar and asks for anything unclear. The bar is matched by the card that's open, or, for a photo from the library, by its GPS location and the name on the menu.
-- **Scope of the token:** `OWNER_TOKEN` can only add or remove prices; it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can delete, and the token can be replaced with `wrangler secret put`.
+- **Scope of the token:** `OWNER_TOKEN` can only add or remove prices and read photos (capped); it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can delete, and the token can be replaced with `wrangler secret put`.
 - **Repo copy:** the admin's "Import phone prices" copies owner prices into `venue_prices.csv`, so the repo keeps the full record and Publish ships them as usual.
 
 ### Venue reports (2026-11-24, #200)
