@@ -33,6 +33,19 @@ const launchOptions = {
   executablePath: process.env['PW_CHROMIUM_PATH'] || undefined,
 }
 
+/**
+ * The phones: an iPhone 13 (viewport, touch, mobile user agent) drawn at 1
+ * device pixel per CSS pixel instead of its 3. Software WebGL draws every
+ * device pixel on the CPU, so at 3 each map frame cost about 4 times as much
+ * (9 times the pixels), and on CI's runners the phone tests ran out of time
+ * mid-drag (#247). Nothing in the app depends on the pixel ratio.
+ */
+const PHONE = {
+  ...devices['iPhone 13'],
+  browserName: 'chromium',
+  deviceScaleFactor: 1,
+} satisfies Project['use']
+
 type WebServer = Exclude<
   NonNullable<PlaywrightTestConfig['webServer']>,
   readonly unknown[]
@@ -73,7 +86,7 @@ const PROJECTS: [keyof typeof SERVERS, Project][] = [
     {
       name: 'phone',
       testIgnore: [OFFLINE, REPORTS],
-      use: { ...devices['iPhone 13'], browserName: 'chromium' },
+      use: PHONE,
     },
   ],
   [
@@ -95,8 +108,7 @@ const PROJECTS: [keyof typeof SERVERS, Project][] = [
       name: 'reports-phone',
       testMatch: REPORTS,
       use: {
-        ...devices['iPhone 13'],
-        browserName: 'chromium',
+        ...PHONE,
         viewport: { width: 375, height: 812 },
         baseURL: `http://localhost:${REPORTS_PORT}/`,
       },
