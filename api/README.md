@@ -1,6 +1,6 @@
 # Price suggestions API
 
-A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices that 5 people (on 5 different networks) agree on are served to the app. Visitors can also report venues that moved, closed or are missing; reports only wait for the owner's review. The design is in [ADR-0005](../docs/adr/0005-price-suggestions.md).
+A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices that 5 people (on 5 different networks) agree on are served to the app. Visitors can also report venues that moved, closed or are missing, and whether a venue has a terrace and where; reports only wait for the owner's review. The design is in [ADR-0005](../docs/adr/0005-price-suggestions.md) and, for terraces, [ADR-0009](../docs/adr/0009-terrace-reports.md).
 
 | Endpoint | Who | What |
 | --- | --- | --- |
@@ -12,11 +12,11 @@ A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices
 | `PUT` / `DELETE /v1/owner/prices` | owner mode | `{venueId, item, brand, cents}`: a confirmed price, dated today (Madrid) |
 | `POST /v1/owner/photo` | owner mode | `{image, mediaType}` → `{proposals, notes, barName}`, read by the Claude API (`ANTHROPIC_API_KEY`) |
 | `GET /v1/admin/owner-prices` | the admin view | owner prices, for the import into `venue_prices.csv` |
-| `POST /v1/reports` | the app | `{kind: move, venueId, lat, lon, token}`, `{kind: closed, venueId, token}` or `{kind: add, name, venueKind, terrace, lat, lon, token}` (Turnstile action `report`) |
-| `GET /v1/admin/reports` | the admin view | pending reports: `closed` grouped per venue (`reporters` = distinct networks), `move` and `add` one per row, most reporters first |
+| `POST /v1/reports` | the app | `{kind: move, venueId, lat, lon, token}`, `{kind: closed, venueId, token}` or `{kind: add, name, venueKind, terrace, lat, lon, token}`; for terraces `{kind: terrace, venueId, terrace: true \| false, token}` or `{kind: pin, venueId, lat, lon, token}` (Turnstile action `report`) |
+| `GET /v1/admin/reports` | the admin view | pending reports: `closed` grouped per venue and `terrace` per venue and answer (`reporters` = distinct networks), `move`, `pin` and `add` one per row, most reporters first |
 | `POST /v1/admin/reports/resolve` | the admin view | `{ids, status: accepted \| rejected}` → `{updated}` |
 
-Reports are never applied by the API: the owner accepts them in the admin view, which writes `venue_review.csv`. A `move` must be within 500 m of the venue's published position (`400 {error: "invalid position"}` otherwise). One open `move` and one open `closed` per voter and venue; a new one replaces the old one.
+Reports are never applied by the API: the owner accepts them in the admin view, which writes `venue_review.csv`. A `move` must be within 500 m and a `pin` within 150 m of the venue's published position (`400 {error: "invalid position"}` otherwise). One open report of each kind per voter and venue; a new one replaces the old one (a terrace "yes" can become a "no").
 
 ## Spam and bot guardrails
 
