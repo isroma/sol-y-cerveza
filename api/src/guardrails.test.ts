@@ -49,8 +49,8 @@ describe('turnstilePassed', () => {
   const pass = { success: true, hostname: 'isroma.github.io', action: 'suggest' }
 
   it('accepts our action on our hostname', () => {
-    expect(turnstilePassed(pass, origins, false)).toBe(true)
-    expect(turnstilePassed({ ...pass, hostname: 'localhost' }, origins, false)).toBe(true)
+    expect(turnstilePassed(pass, origins, false, 'suggest')).toBe(true)
+    expect(turnstilePassed({ ...pass, hostname: 'localhost' }, origins, false, 'suggest')).toBe(true)
   })
 
   it.each([
@@ -60,12 +60,17 @@ describe('turnstilePassed', () => {
     ['no action', { success: true, hostname: 'isroma.github.io' }],
     ['not an object', null],
   ])('refuses %s', (_, result) => {
-    expect(turnstilePassed(result, origins, false)).toBe(false)
+    expect(turnstilePassed(result, origins, false, 'suggest')).toBe(false)
+  })
+
+  it('checks the action the caller expects', () => {
+    expect(turnstilePassed({ ...pass, action: 'report' }, origins, false, 'report')).toBe(true)
+    expect(turnstilePassed(pass, origins, false, 'report')).toBe(false)
   })
 
   it('skips hostname and action for test secrets, but not success', () => {
-    expect(turnstilePassed({ success: true, hostname: 'example.com' }, origins, true)).toBe(true)
-    expect(turnstilePassed({ success: false }, origins, true)).toBe(false)
+    expect(turnstilePassed({ success: true, hostname: 'example.com' }, origins, true, 'suggest')).toBe(true)
+    expect(turnstilePassed({ success: false }, origins, true, 'suggest')).toBe(false)
   })
 
   it('recognises only the documented test secrets', () => {

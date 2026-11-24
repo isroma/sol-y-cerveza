@@ -13,7 +13,7 @@ export const NETWORK_DAILY_LIMIT = 60
 export const VENUE_HOURLY_LIMIT = 15
 /** The rate-limit log keeps this long; the longest window above is a day. */
 export const EVENT_RETENTION_HOURS = 48
-/** The Turnstile action the app's widget declares. */
+/** The Turnstile action the app's price widget declares. */
 export const TURNSTILE_ACTION = 'suggest'
 /** Plausible prices, in cents: anything outside is a typo or a joke. */
 export const RANGE: Record<Item, readonly [number, number]> = {
@@ -31,7 +31,7 @@ export type Suggestion = {
 /** A price the app shows: agreed by visitors (approximate) or saved by the owner (confirmed). */
 export type CrowdPrice = Suggestion & { voters: number; last: string; confirmed: boolean }
 
-const VENUE_ID =
+export const VENUE_ID =
   /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
 
 function isItem(value: unknown): value is Item {
@@ -226,19 +226,20 @@ export function isTestSecret(secret: string): boolean {
 }
 
 /**
- * Whether a Turnstile siteverify result is a pass for a suggestion: a success,
- * issued by our widget's action on one of our hostnames (test secrets skip those).
+ * Whether a Turnstile siteverify result is a pass: a success, issued by the
+ * widget's `expectedAction` on one of our hostnames (test secrets skip those).
  */
 export function turnstilePassed(
   result: unknown,
   allowedOrigins: string,
   testSecret: boolean,
+  expectedAction: string,
 ): boolean {
   if (typeof result !== 'object' || result === null) return false
   const { success, hostname, action } = result as Record<string, unknown>
   if (success !== true) return false
   if (testSecret) return true
-  if (action !== TURNSTILE_ACTION || typeof hostname !== 'string') return false
+  if (action !== expectedAction || typeof hostname !== 'string') return false
   return allowedOrigins
     .split(',')
     .map((origin) => {

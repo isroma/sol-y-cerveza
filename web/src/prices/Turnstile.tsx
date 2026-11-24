@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type TurnstileApi = {
   render: (
@@ -53,6 +53,8 @@ type Props = {
 /** Cloudflare's bot check; invisible unless Cloudflare wants an interaction. */
 export function Turnstile({ siteKey, onToken, action = 'suggest' }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  // Once Cloudflare is happy, its "success" box adds nothing: fold it away.
+  const [passed, setPassed] = useState(false)
   const onTokenRef = useRef(onToken)
   useEffect(() => {
     onTokenRef.current = onToken
@@ -71,8 +73,14 @@ export function Turnstile({ siteKey, onToken, action = 'suggest' }: Props) {
         widget = loaded.render(element, {
           sitekey: siteKey,
           action,
-          callback: (token) => onTokenRef.current(token),
-          'expired-callback': () => onTokenRef.current(null),
+          callback: (token) => {
+            setPassed(true)
+            onTokenRef.current(token)
+          },
+          'expired-callback': () => {
+            setPassed(false)
+            onTokenRef.current(null)
+          },
           appearance: 'interaction-only',
           language: 'es',
         })
@@ -84,5 +92,10 @@ export function Turnstile({ siteKey, onToken, action = 'suggest' }: Props) {
     }
   }, [siteKey, action])
 
-  return <div ref={ref} className="price-turnstile" />
+  return (
+    <div
+      ref={ref}
+      className={passed ? 'price-turnstile is-passed' : 'price-turnstile'}
+    />
+  )
 }

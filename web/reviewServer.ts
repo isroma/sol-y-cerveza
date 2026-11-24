@@ -21,13 +21,6 @@ import {
   type Review,
 } from './src/admin/review.ts'
 import {
-  isLoopbackHost,
-  newToken,
-  tokenAccepted,
-  TOKEN_HEADER,
-  TOKEN_PARAM,
-} from './src/admin/lanToken.ts'
-import {
   parseProbeOutput,
   parseProbeQuery,
   type Position,
@@ -147,6 +140,8 @@ function runProbe(
   return new Promise((done) => {
     const child = spawn('uv', args, {
       cwd: PIPELINE,
+      // The owner's shell sets UV_ENV_FILE globally; the pipeline needs none.
+      env: { ...process.env, UV_NO_ENV_FILE: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: PROBE_TIMEOUT_MS,
       signal,
@@ -233,44 +228,6 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
-      // LAN mode (`npm run admin:lan`, i.e. --host): the write and publish
-      // endpoints are reachable from the network, so every /__admin request
-      // needs this run's token. Localhost mode needs none.
-      const lan = !isLoopbackHost(server.config.server.host)
-      const token = lan ? newToken() : null
-      server.middlewares.use('/__admin', (req, res, next) => {
-        if (tokenAccepted(token, req.headers[TOKEN_HEADER])) return next()
-        send(res, 401, {
-          error:
-            'LAN mode: open the admin URL with the token printed by npm run admin:lan',
-        })
-      })
-      if (token) {
-        const printUrls = server.printUrls.bind(server)
-        server.printUrls = () => {
-          printUrls()
-          const urls = [
-            ...(server.resolvedUrls?.network ?? []),
-            ...(server.resolvedUrls?.local ?? []),
-          ]
-          const links = urls.map(
-            (url) => `    ${url}admin.html?${TOKEN_PARAM}=${token}`,
-          )
-          server.config.logger.info(
-            [
-              '',
-              '  Admin on your phone (same Wi-Fi), token for this run only:',
-              ...links,
-              ...(server.config.server.https
-                ? [
-                    '  The certificate is self-signed: accept the browser warning on the phone.',
-                  ]
-                : []),
-              '',
-            ].join('\n'),
-          )
-        }
-      }
       server.middlewares.use('/__admin/publish', (req, res) => {
         if (req.method === 'GET') return send(res, 200, publishStatus())
         if (req.method !== 'POST')
@@ -282,41 +239,50 @@ export function reviewServer(): Plugin {
             : send(res, 409, { error: 'a Publish is still building' }),
         )
       })
-      // The suggestions review queue, proxied to the API so the admin token
-      // (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the browser.
+      // The suggestions and reports review queues, proxied to the API so the
+      // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
+      // browser: GET reads the queue, POST resolves entries.
       const env = loadEnv(
         server.config.mode,
         server.config.envDir || process.cwd(),
         '',
       )
       const api = env['VITE_PRICES_API'] ?? ''
-      const apiToken = env['PRICES_ADMIN_TOKEN'] ?? ''
-      server.middlewares.use('/__admin/suggestions', (req, res) => {
-        if (!api || !apiToken)
-          return send(res, 503, {
-            error:
-              'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
-          })
-        const forward = async () => {
-          const path =
-            req.method === 'POST'
-              ? '/v1/admin/resolve'
-              : '/v1/admin/suggestions'
-          const init: RequestInit = {
-            method: req.method === 'POST' ? 'POST' : 'GET',
-            headers: {
-              Authorization: `Bearer ${apiToken}`,
-              'Content-Type': 'application/json',
-            },
+      const token = env['PRICES_ADMIN_TOKEN'] ?? ''
+      const proxy =
+        (getPath: string, postPath: string) =>
+        (req: IncomingMessage, res: ServerResponse) => {
+          if (!api || !token)
+            return send(res, 503, {
+              error:
+                'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
+            })
+          const forward = async () => {
+            const path = req.method === 'POST' ? postPath : getPath
+            const init: RequestInit = {
+              method: req.method === 'POST' ? 'POST' : 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+            if (req.method === 'POST')
+              init.body = JSON.stringify(await body(req))
+            const response = await fetch(`${api}${path}`, init)
+            send(res, response.status, await response.json())
           }
-          if (req.method === 'POST') init.body = JSON.stringify(await body(req))
-          const response = await fetch(`${api}${path}`, init)
-          send(res, response.status, await response.json())
+          forward().catch((error: unknown) =>
+            send(res, 502, { error: String(error) }),
+          )
         }
-        forward().catch((error: unknown) =>
-          send(res, 502, { error: String(error) }),
-        )
-      })
+      server.middlewares.use(
+        '/__admin/suggestions',
+        proxy('/v1/admin/suggestions', '/v1/admin/resolve'),
+      )
+      server.middlewares.use(
+        '/__admin/reports',
+        proxy('/v1/admin/reports', '/v1/admin/reports/resolve'),
+      )
       // Sun preview: the horizon and height above ground at a pin, from the
       // LiDAR rasters. PROBE_DSM and PROBE_DTM (e.g. in web/.env.local)
       // override the rasters in pipeline/.cache/.

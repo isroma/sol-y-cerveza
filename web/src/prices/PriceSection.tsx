@@ -16,6 +16,7 @@ import {
   useCrowdPrices,
   type SuggestResult,
 } from './crowd.ts'
+import { BeerIcon } from '../ui/icons.tsx'
 import { useOwner } from './owner.ts'
 import { OwnerPrices } from './OwnerPrices.tsx'
 import { Turnstile } from './Turnstile.tsx'
@@ -35,10 +36,12 @@ function SuggestForm({
   venueId,
   siteKey,
   onDone,
+  onCancel,
 }: {
   venueId: string
   siteKey: string
   onDone: (result: SuggestResult) => void
+  onCancel: () => void
 }) {
   const [item, setItem] = useState<Item>('cana')
   const [brand, setBrand] = useState<Brand>('cruzcampo')
@@ -64,19 +67,23 @@ function SuggestForm({
         }).then(onDone)
       }}
     >
-      <div className="price-form-row">
-        <select
-          aria-label="Bebida"
-          value={item}
-          onChange={(e) =>
-            setItem(e.target.value === 'tercio' ? 'tercio' : 'cana')
-          }
-        >
-          <option value="cana">Caña</option>
-          <option value="tercio">Tercio</option>
-        </select>
+      <div className="price-segmented" role="radiogroup" aria-label="Bebida">
+        {(['cana', 'tercio'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={item === value}
+            onClick={() => setItem(value)}
+          >
+            {LABEL[value]}
+          </button>
+        ))}
+      </div>
+      <div className="price-fields">
         {item === 'tercio' && (
           <select
+            className="price-field"
             aria-label="Marca"
             value={brand}
             onChange={(e) => {
@@ -91,19 +98,30 @@ function SuggestForm({
             ))}
           </select>
         )}
-        <input
-          aria-label="Precio en euros"
-          inputMode="decimal"
-          placeholder="1,50"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <span>€</span>
+        <label className="price-field price-amount">
+          <input
+            aria-label="Precio en euros"
+            inputMode="decimal"
+            placeholder="1,50"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <span aria-hidden="true">€</span>
+        </label>
       </div>
       <Turnstile siteKey={siteKey} onToken={setToken} />
-      <button type="submit" disabled={!valid || !token || sending}>
-        {sending ? 'Enviando…' : 'Enviar precio'}
-      </button>
+      <div className="price-actions">
+        <button type="button" className="price-cancel" onClick={onCancel}>
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          className="price-send"
+          disabled={!valid || !token || sending}
+        >
+          {sending ? 'Enviando…' : 'Enviar precio'}
+        </button>
+      </div>
     </form>
   )
 }
@@ -157,48 +175,65 @@ export function PriceSection({ venue }: { venue: Terrace }) {
         <OwnerPrices venue={venue} prices={prices} />
       ) : (
         <>
-          {prices.length > 0 ? (
-            <ul className="price-list">
-              {prices.map((p) => (
-                <li key={`${p.item}-${p.brand ?? ''}`}>
-                  <span>
-                    {LABEL[p.item]}
-                    {p.brand && ` ${BRAND_NAMES[p.brand]}`}
-                  </span>
-                  <strong
-                    title={
-                      p.approximate
-                        ? 'Precio aproximado: varias personas lo han indicado'
-                        : undefined
-                    }
-                  >
-                    {p.approximate && '~'}
-                    {formatCents(p.cents)}
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="price-empty">Aún no sabemos cuánto cuesta la caña.</p>
-          )}
+          <div className="price-row">
+            <span className="price-badge" aria-hidden="true">
+              <BeerIcon size={30} />
+            </span>
+            {prices.length > 0 ? (
+              <ul className="price-list">
+                {prices.map((p) => (
+                  <li key={`${p.item}-${p.brand ?? ''}`}>
+                    <span>
+                      {LABEL[p.item]}
+                      {p.brand && ` ${BRAND_NAMES[p.brand]}`}
+                    </span>
+                    <strong
+                      title={
+                        p.approximate
+                          ? 'Precio aproximado: varias personas lo han indicado'
+                          : undefined
+                      }
+                    >
+                      {p.approximate && '~'}
+                      {formatCents(p.cents)}
+                    </strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="price-empty">
+                <strong>Caña</strong>
+                <span>Sin precio aún</span>
+              </div>
+            )}
+            {canSuggest && !open && !result && (
+              <button
+                type="button"
+                className="price-suggest"
+                onClick={() => setOpen(true)}
+              >
+                {prices.length > 0 ? 'Corregir' : 'Sugerir'}
+              </button>
+            )}
+          </div>
           {canSuggest && TURNSTILE_SITE_KEY && (
             <>
               {result ? (
-                <p className="price-result">{RESULT_TEXT[result]}</p>
-              ) : open ? (
-                <SuggestForm
-                  venueId={venue.id}
-                  siteKey={TURNSTILE_SITE_KEY}
-                  onDone={setResult}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="price-suggest"
-                  onClick={() => setOpen(true)}
+                <p
+                  className={`price-result${result === 'ok' ? ' is-ok' : ''}`}
+                  role="status"
                 >
-                  ¿Sabes el precio? Sugiérelo
-                </button>
+                  {RESULT_TEXT[result]}
+                </p>
+              ) : (
+                open && (
+                  <SuggestForm
+                    venueId={venue.id}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onDone={setResult}
+                    onCancel={() => setOpen(false)}
+                  />
+                )
               )}
             </>
           )}
