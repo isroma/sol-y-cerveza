@@ -19,6 +19,9 @@
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
  *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
  *   identity and caps as suggestions. Never applied automatically.
+ * - POST /v1/changes: the card back's price, move and closed for one venue,
+ *   behind one bot check (action 'change'), checked and capped as the two
+ *   endpoints above would, and stored together or not at all.
  * - GET /v1/admin/reports, POST /v1/admin/reports/resolve: the reports queue.
  *
  * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
@@ -44,7 +47,9 @@ import {
   withOwnerPrices,
   type OwnerRow,
   type PriceGroup,
+  type Suggestion,
 } from './logic.ts'
+import { CHANGE_TURNSTILE_ACTION, parseChange } from './changes.ts'
 import {
   parsePhoto,
   PHOTO_DAILY_LIMIT,
@@ -60,6 +65,7 @@ import {
   REPORT_TURNSTILE_ACTION,
   reportQueue,
   type LatLon,
+  type Report,
   type ReportRow,
 } from './reports.ts'
 
@@ -299,6 +305,92 @@ function logEvent(
   ]
 }
 
+/** Stores (or replaces) one voter's price for a venue, item and brand. */
+function suggestionWrite(
+  env: Env,
+  suggestion: Suggestion,
+  voterHash: string,
+  netHash: string,
+  now: number,
+) {
+  const { venueId, item, brand, cents } = suggestion
+  return env.DB.prepare(
+    `INSERT INTO suggestions (venue_id, item, brand, cents, ip_hash, net_hash, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (ip_hash, venue_id, item, brand)
+     DO UPDATE SET cents = excluded.cents, net_hash = excluded.net_hash,
+                   created_at = excluded.created_at, status = 'pending'`,
+  ).bind(
+    venueId,
+    item,
+    brand ?? '',
+    cents,
+    voterHash,
+    netHash,
+    new Date(now).toISOString(),
+  )
+}
+
+/**
+ * Why a report about a published venue is refused (unknown venue, or a
+ * position too far from it), or null.
+ */
+function reportRefused(
+  known: Map<string, LatLon>,
+  value: Exclude<Report, { kind: 'add' }>,
+): Response | null {
+  const published = known.get(value.venueId)
+  if (!published) return json({ error: 'unknown venue' }, 400)
+  // A NaN position (a record without `venue`) is never within range.
+  const limit = maxDistance(value)
+  if (
+    limit !== null &&
+    'lat' in value &&
+    !(distanceMetres(published, value) <= limit)
+  )
+    return json({ error: 'invalid position' }, 400)
+  return null
+}
+
+/** Stores a report; it replaces the voter's pending one of the same kind for the venue. */
+function reportWrites(
+  env: Env,
+  value: Report,
+  voterHash: string,
+  netHash: string,
+  now: number,
+) {
+  const venueId = value.kind === 'add' ? '' : value.venueId
+  const replaced =
+    value.kind === 'add'
+      ? []
+      : [
+          env.DB.prepare(
+            `DELETE FROM venue_reports
+             WHERE status = 'pending' AND kind = ? AND venue_id = ? AND voter_hash = ?`,
+          ).bind(value.kind, venueId, voterHash),
+        ]
+  return [
+    ...replaced,
+    env.DB.prepare(
+      `INSERT INTO venue_reports
+         (kind, venue_id, name, venue_kind, lat, lon, terrace, voter_hash, net_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      value.kind,
+      venueId,
+      value.kind === 'add' ? value.name : '',
+      value.kind === 'add' ? value.venueKind : '',
+      'lat' in value ? value.lat : null,
+      'lon' in value ? value.lon : null,
+      'terrace' in value ? Number(value.terrace) : null,
+      voterHash,
+      netHash,
+      new Date(now).toISOString(),
+    ),
+  ]
+}
+
 async function suggest(request: Request, env: Env): Promise<Response> {
   const salt = ipSalt(env)
   if (typeof salt !== 'string') return salt
@@ -313,20 +405,13 @@ async function suggest(request: Request, env: Env): Promise<Response> {
     return json({ error: 'unknown venue' }, 400)
 
   const { voterHash, netHash } = await identity(salt, ip)
-  const { venueId, item, brand, cents } = parsed.value
+  const { venueId } = parsed.value
   const now = Date.now()
   const capped = await overCap(env, voterHash, netHash, venueId, now)
   if (capped) return capped
 
-  const at = new Date(now).toISOString()
   await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO suggestions (venue_id, item, brand, cents, ip_hash, net_hash, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (ip_hash, venue_id, item, brand)
-       DO UPDATE SET cents = excluded.cents, net_hash = excluded.net_hash,
-                     created_at = excluded.created_at, status = 'pending'`,
-    ).bind(venueId, item, brand ?? '', cents, voterHash, netHash, at),
+    suggestionWrite(env, parsed.value, voterHash, netHash, now),
     ...logEvent(env, voterHash, netHash, venueId, now),
   ])
   return json({ ok: true }, 201)
@@ -353,16 +438,8 @@ async function report(request: Request, env: Env): Promise<Response> {
   const value = parsed.value
   const venueKey = value.kind === 'add' ? NEW_VENUE_KEY : value.venueId
   if (value.kind !== 'add') {
-    const published = (await knownVenues(env)).get(value.venueId)
-    if (!published) return json({ error: 'unknown venue' }, 400)
-    // A NaN position (a record without `venue`) is never within range.
-    const limit = maxDistance(value)
-    if (
-      limit !== null &&
-      'lat' in value &&
-      !(distanceMetres(published, value) <= limit)
-    )
-      return json({ error: 'invalid position' }, 400)
+    const refused = reportRefused(await knownVenues(env), value)
+    if (refused) return refused
   }
 
   const { voterHash, netHash } = await identity(salt, ip)
@@ -370,35 +447,59 @@ async function report(request: Request, env: Env): Promise<Response> {
   const capped = await overCap(env, voterHash, netHash, venueKey, now)
   if (capped) return capped
 
-  const venueId = value.kind === 'add' ? '' : value.venueId
-  const replaced =
-    value.kind === 'add'
-      ? []
-      : [
-          env.DB.prepare(
-            `DELETE FROM venue_reports
-             WHERE status = 'pending' AND kind = ? AND venue_id = ? AND voter_hash = ?`,
-          ).bind(value.kind, venueId, voterHash),
-        ]
   await env.DB.batch([
-    ...replaced,
-    env.DB.prepare(
-      `INSERT INTO venue_reports
-         (kind, venue_id, name, venue_kind, lat, lon, terrace, voter_hash, net_hash, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(
-      value.kind,
-      venueId,
-      value.kind === 'add' ? value.name : '',
-      value.kind === 'add' ? value.venueKind : '',
-      'lat' in value ? value.lat : null,
-      'lon' in value ? value.lon : null,
-      'terrace' in value ? Number(value.terrace) : null,
-      voterHash,
-      netHash,
-      new Date(now).toISOString(),
-    ),
+    ...reportWrites(env, value, voterHash, netHash, now),
     ...logEvent(env, voterHash, netHash, venueKey, now),
+  ])
+  return json({ ok: true }, 201)
+}
+
+/**
+ * Everything a visitor suggests for one venue from the card's back (a price,
+ * a move, closed) behind one bot check, stored together or not at all. Each
+ * part counts towards the caps as its own request would.
+ */
+async function change(request: Request, env: Env): Promise<Response> {
+  const salt = ipSalt(env)
+  if (typeof salt !== 'string') return salt
+  const read = await jsonBody(request)
+  if (read instanceof Response) return read
+  const parsed = parseChange(read.body)
+  if (!parsed.ok) return json({ error: `invalid ${parsed.error}` }, 400)
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+  if (
+    !(await turnstileOk(
+      env,
+      request,
+      parsed.token,
+      ip,
+      CHANGE_TURNSTILE_ACTION,
+    ))
+  )
+    return json({ error: 'bot check failed' }, 403)
+  const { venueId, price, reports } = parsed.value
+  const published = await knownVenues(env)
+  if (!published.has(venueId)) return json({ error: 'unknown venue' }, 400)
+  for (const value of reports) {
+    if (value.kind === 'add') continue
+    const refused = reportRefused(published, value)
+    if (refused) return refused
+  }
+
+  const { voterHash, netHash } = await identity(salt, ip)
+  const now = Date.now()
+  const capped = await overCap(env, voterHash, netHash, venueId, now)
+  if (capped) return capped
+
+  const parts = (price ? 1 : 0) + reports.length
+  await env.DB.batch([
+    ...(price ? [suggestionWrite(env, price, voterHash, netHash, now)] : []),
+    ...reports.flatMap((value) =>
+      reportWrites(env, value, voterHash, netHash, now),
+    ),
+    ...Array.from({ length: parts }, () =>
+      logEvent(env, voterHash, netHash, venueId, now),
+    ).flat(),
   ])
   return json({ ok: true }, 201)
 }
@@ -643,6 +744,8 @@ async function route(
     return prices(request, env, ctx)
   if (pathname === '/v1/suggestions' && request.method === 'POST')
     return suggest(request, env)
+  if (pathname === '/v1/changes' && request.method === 'POST')
+    return change(request, env)
   if (pathname === '/v1/reports' && request.method === 'POST')
     return report(request, env)
   if (pathname.startsWith('/v1/owner/')) {
