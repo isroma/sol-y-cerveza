@@ -16,8 +16,67 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Which jobs a pull request can affect, so the others are skipped (ci-ok counts
+  # a skipped job as passed). The path mapping, from what each job reads, is in
+  # .github/scripts/ci-changes.sh:
+  #   .github/**                     all
+  #   .nvmrc                         web, e2e, api
+  #   .editorconfig                  web, api (prettier)
+  #   .gitignore                     web, api, pipeline (prettier, oxlint, ruff)
+  #   web/public/data/terraces.json  web, e2e, pipeline (pipeline/tests/test_build.py)
+  #   web/src/data/**                web, e2e, api (api/src imports from it)
+  #   web/ios/**, web/android/**     none
+  #   web/ unit tests, lint/format config   web
+  #   web/** otherwise               web, e2e
+  #   api/**                         api
+  #   pipeline/**                    pipeline
+  #   anything else (docs/, README.md, CLAUDE.md, ...)   none
+  # Pushes to main run everything. A PR is diffed as the merge commit GitHub
+  # tests (HEAD) against its first parent, the base it merges into; if that
+  # diff can't be computed, everything runs. Jobs run unless an output is
+  # exactly 'false', so a missing output also runs them.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      web: ${{ steps.paths.outputs.web }}
+      e2e: ${{ steps.paths.outputs.e2e }}
+      api: ${{ steps.paths.outputs.api }}
+      pipeline: ${{ steps.paths.outputs.pipeline }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The merge commit and its parents; only the script's files are needed.
+          fetch-depth: 2
+          sparse-checkout: .github
+      - name: List the jobs this change affects
+        id: paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        # -z: paths unquoted, whatever characters they hold. --no-renames: a
+        # rename lists both paths, and needs no file contents (sparse checkout).
+        # Any failure in the PR branch (no merge commit, git, the script) falls
+        # through to running everything.
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = pull_request ] &&
+            git rev-parse --verify --quiet 'HEAD^2' > /dev/null &&
+            result=$(git diff -z --name-only --no-renames 'HEAD^1' HEAD |
+              .github/scripts/ci-changes.sh -z); then
+            :
+          else
+            echo "No pull request diff: running every job."
+            result=$(.github/scripts/ci-changes.sh --all)
+          fi
+          printf '%s\n' "$result" | tee -a "$GITHUB_OUTPUT"
+
   web:
     name: web
+    needs: changes
+    if: needs.changes.outputs.web != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -40,6 +99,8 @@ jobs:
 
   pipeline:
     name: pipeline
+    needs: changes
+    if: needs.changes.outputs.pipeline != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -59,11 +120,25 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest
 
-  # Browser smoke tests: the real app and map in Chromium (web/e2e/).
+  # Browser smoke tests: the real app and map in Chromium (web/e2e/), one job per
+  # group of Playwright projects, each starting only the web servers it needs
+  # (E2E_PROJECTS in web/playwright.config.ts).
   e2e:
-    name: e2e
+    name: e2e (${{ matrix.group }})
+    needs: changes
+    if: needs.changes.outputs.e2e != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: phone
+            projects: phone,reports-phone
+          - group: desktop
+            projects: desktop,reports-desktop
+          - group: offline
+            projects: offline
     defaults:
       run:
         working-directory: web
@@ -90,10 +165,12 @@ jobs:
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - run: npm run e2e
+        env:
+          E2E_PROJECTS: ${{ matrix.projects }}
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.group }}
           path: |
             web/playwright-report
             web/test-results
@@ -101,6 +178,8 @@ jobs:
 
   api:
     name: api
+    needs: changes
+    if: needs.changes.outputs.api != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -130,14 +209,21 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
 
   # Single required check for the main ruleset, so jobs can be added or renamed freely.
+  # A job the changes filter skipped counts as passed on a PR; a failed or
+  # cancelled one, changes included, fails it. A failed changes job also skips
+  # the jobs after it, which is why it is listed here. On main nothing may be
+  # skipped, since ci-ok gates the deploys.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [web, e2e, pipeline, api]
+    needs: [changes, web, e2e, pipeline, api]
     runs-on: ubuntu-latest
     steps:
       - name: Fail if any required job failed or was cancelled
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - name: Fail if a job was skipped outside a pull request
+        if: github.event_name != 'pull_request' && contains(needs.*.result, 'skipped')
         run: exit 1
       - run: echo "All required jobs passed"
 
