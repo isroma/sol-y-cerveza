@@ -8,9 +8,12 @@ on:
 permissions:
   contents: read
 
+# A newer push to a PR cancels its older run. Runs for pushes to main are never
+# cancelled (one may be deploying, see deploy-* below) and each commit gets its
+# own group, so every commit on main is tested in full.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   web:
@@ -137,3 +140,24 @@ jobs:
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
       - run: echo "All required jobs passed"
+
+  # Deploys main once CI has passed on it. They run in this push-triggered
+  # workflow, so they build github.sha, the commit just tested, and no ref comes
+  # from another event. Skipped on PRs; ci-ok does not depend on them.
+  deploy-pages:
+    name: deploy-pages
+    needs: ci-ok
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-pages.yml
+
+  deploy-api:
+    name: deploy-api
+    needs: ci-ok
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-api.yml

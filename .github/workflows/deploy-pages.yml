@@ -1,39 +1,28 @@
 name: Deploy web to GitHub Pages
 
-# Deploys main only after CI has passed on that exact commit, so a combined
-# breakage on main (each PR green alone) never ships. Manual runs deploy main as
-# it is now (the README's service-worker kill switch uses them).
+# CI (ci.yml, job deploy-pages) calls this once ci-ok has passed on a push to
+# main, so it builds the commit that push brought and CI tested: github.sha, the
+# default checkout. No ref comes from another workflow's event. Manual runs
+# deploy main as it is now, at once (the README's service-worker kill switch).
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# One deploy at a time. A newer run waits instead of cancelling one mid-deploy,
-# and GitHub drops an older pending run when a newer one queues. The `latest`
-# job below skips any commit that is no longer main's tip, so an older commit
-# (a late CI run, a re-run) never overwrites a newer one.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
+  # Early skip for a commit that is no longer main's tip (a late CI run, a
+  # re-run): it does not build, and it does not queue behind the deploy lock,
+  # where it could displace the tip's pending deploy. The deploy job checks again
+  # under the lock; that second check is what guarantees the order.
   latest:
     name: latest
-    # workflow_run: only CI runs for pushes to main that passed (a fork PR from a
-    # branch named main also matches `branches`, hence the event check).
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push')
+    # Manual runs: main only. ci.yml calls it for pushes to main only.
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.tip.outputs.sha }}
       deploy: ${{ steps.tip.outputs.deploy }}
     steps:
       - name: Deploy only main's current tip
@@ -41,11 +30,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          # The commit CI tested; for a manual run, the commit it was started on.
-          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SHA: ${{ github.sha }}
         run: |
           tip=$(gh api "repos/$REPO/branches/main" -q .commit.sha)
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           if [ "$tip" = "$SHA" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           else
@@ -54,6 +41,7 @@ jobs:
           fi
 
   build:
+    name: build
     needs: latest
     if: needs.latest.outputs.deploy == 'true'
     runs-on: ubuntu-latest
@@ -64,7 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.latest.outputs.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -84,15 +71,39 @@ jobs:
           path: web/dist
 
   deploy:
+    name: deploy
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      contents: read
       pages: write
       id-token: write
+    # One Pages deploy at a time, from CI and from manual runs alike: a newer one
+    # waits instead of cancelling one mid-deploy. GitHub keeps one pending job per
+    # group and does not promise queue order, so the tip is checked again here,
+    # while holding the lock: an older commit never overwrites a newer one.
+    concurrency:
+      group: deploy-pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Still main's tip
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          tip=$(gh api "repos/$REPO/branches/main" -q .commit.sha)
+          if [ "$tip" = "$SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped $SHA: main moved to $tip while this run waited; its own run deploys it."
+          fi
       - id: deployment
+        if: steps.tip.outputs.deploy == 'true'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

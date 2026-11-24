@@ -87,7 +87,7 @@ Once deploys from GitHub are on (below), merging to `main` does both.
 
 ## Deploys from GitHub
 
-`.github/workflows/deploy-api.yml` applies the migrations (`wrangler d1 migrations apply sol-y-cerveza --remote`) and deploys the Worker (`wrangler deploy`) after CI passes on `main`, on the commit CI tested; it can also be run by hand from Actions on `main`. It runs after every green CI on `main`, whether or not `api/` changed: both steps do nothing new when nothing changed, and that never misses a change whose own CI run was cancelled by a newer merge. Only `main`'s newest commit is deployed (an older one never replaces it), and two deploys never overlap.
+`.github/workflows/deploy-api.yml` applies the migrations (`wrangler d1 migrations apply sol-y-cerveza --remote`) and deploys the Worker (`wrangler deploy`). CI calls it from its `deploy-api` job once `ci-ok` passes on a push to `main`, on the commit CI tested; it can also be run by hand from Actions on `main`. It runs after every green CI on `main`, whether or not `api/` changed: both steps do nothing new when nothing changed, and that never misses a change whose own deploy was skipped because a newer commit had already landed. Only `main`'s newest commit is deployed (an older one never replaces it), two deploys never overlap, and a newer merge never cancels a deploy between its migration and its Worker upload.
 
 It does nothing until you turn it on:
 
