@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
-import { readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
 import {
@@ -43,6 +43,13 @@ import {
   type Candidate,
   type Lead,
 } from './src/admin/priceCandidates.ts'
+import {
+  formatIgnored,
+  ignoreSchema,
+  parseIgnored,
+  parseProposalsCsv,
+  type ProposalsResponse,
+} from './src/admin/proposals.ts'
 
 const CSV = fileURLToPath(
   new URL('../pipeline/data/venue_review.csv', import.meta.url),
@@ -116,6 +123,32 @@ async function writeCandidates(candidates: readonly Candidate[]) {
   const partial = `${CANDIDATES_CSV}.part`
   await writeFile(partial, formatCandidatesCsv(candidates), 'utf-8')
   await rename(partial, CANDIDATES_CSV)
+}
+
+// Machine proposals, written by another tool (may not exist), and the ones
+// the owner ignored (kept out of git, like other local admin state).
+const PROPOSALS_CSV = fileURLToPath(
+  new URL('../pipeline/data/venue_proposals.csv', import.meta.url),
+)
+const IGNORED_CSV = fileURLToPath(
+  new URL('../pipeline/.cache/venue_proposals_ignored.csv', import.meta.url),
+)
+
+async function readProposals(): Promise<ProposalsResponse> {
+  const text = await readOptional(PROPOSALS_CSV)
+  const ignored = await readOptional(IGNORED_CSV)
+  const parsed =
+    text === null ? { proposals: [], errors: [] } : parseProposalsCsv(text)
+  return { ...parsed, ignored: ignored === null ? [] : parseIgnored(ignored) }
+}
+
+async function ignoreProposal(key: string): Promise<void> {
+  const text = await readOptional(IGNORED_CSV)
+  const keys = text === null ? [] : parseIgnored(text)
+  await mkdir(dirname(IGNORED_CSV), { recursive: true })
+  const partial = `${IGNORED_CSV}.part`
+  await writeFile(partial, formatIgnored([...keys, key]), 'utf-8')
+  await rename(partial, IGNORED_CSV)
 }
 
 const PIPELINE = fileURLToPath(new URL('../pipeline/', import.meta.url))
@@ -202,7 +235,8 @@ function send(res: ServerResponse, status: number, payload: unknown) {
 /**
  * Dev-server only: lets the admin page (admin.html) read and write
  * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
- * price candidates (price_candidates.csv), probe the sun at a pin
+ * price candidates (price_candidates.csv), read and ignore machine
+ * proposals (venue_proposals.csv), probe the sun at a pin
  * (`python -m solycerveza.probe`) and read prices from a photo
  * (pricePhotoServer.ts). Never part of the built site.
  */
@@ -355,6 +389,22 @@ export function reviewServer(): Plugin {
             const decision = decisionSchema.parse(await body(req))
             await writeCandidates(decide(await readCandidates(), decision))
             return send(res, 200, decision)
+          }
+          send(res, 405, { error: 'method not allowed' })
+        })
+        queue = run.catch((error: unknown) => {
+          send(res, 400, { error: String(error) })
+        })
+      })
+      // Machine proposals (venue_proposals.csv): read them, and ignore one.
+      // Accepting one writes a normal review row through /__admin/review.
+      server.middlewares.use('/__admin/proposals', (req, res) => {
+        const run = queue.then(async () => {
+          if (req.method === 'GET') return send(res, 200, await readProposals())
+          if (req.method === 'POST') {
+            const { key } = ignoreSchema.parse(await body(req))
+            await ignoreProposal(key)
+            return send(res, 200, { key })
           }
           send(res, 405, { error: 'method not allowed' })
         })

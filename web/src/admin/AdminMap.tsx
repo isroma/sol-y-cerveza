@@ -31,7 +31,13 @@ type Props = {
   /** The terrace pin's position while it is dragged, before onPinTerrace. */
   onDragTerrace: (at: LatLon) => void
   onMoveVenue: (at: LatLon) => void
+  /** Machine-proposed positions for the selected venue, shown as ghost pins. */
+  ghosts?: readonly Ghost[]
 }
+
+export type Ghost = { at: LatLon; kind: 'terrace' | 'position'; label: string }
+
+const NO_GHOSTS: readonly Ghost[] = []
 
 const SOURCE = 'venues'
 const DOTS = 'venues-dots'
@@ -90,11 +96,13 @@ export function AdminMap({
   onPinTerrace,
   onDragTerrace,
   onMoveVenue,
+  ghosts = NO_GHOSTS,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const venueMarker = useRef<Marker | null>(null)
   const terraceMarker = useRef<Marker | null>(null)
+  const ghostMarkers = useRef<Marker[]>([])
   const callbacks = useRef({
     onSelect,
     onMapClick,
@@ -298,6 +306,24 @@ export function AdminMap({
     })
     terraceMarker.current = marker
   }, [ready, selected, terrace, pinning])
+
+  // Ghost pins: where a machine proposal puts the terrace or the venue.
+  useEffect(() => {
+    const map = mapRef.current
+    for (const marker of ghostMarkers.current) marker.remove()
+    ghostMarkers.current = []
+    if (!map || !ready) return
+    ghostMarkers.current = ghosts.map((ghost) =>
+      new Marker({
+        element: pinElement(
+          `admin-ghost-pin admin-ghost-${ghost.kind}`,
+          ghost.label,
+        ),
+      })
+        .setLngLat([ghost.at.lon, ghost.at.lat])
+        .addTo(map),
+    )
+  }, [ready, ghosts])
 
   return (
     <div
