@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { LatLon } from '../data/terraces.ts'
-import { distanceM, formatDistance } from './nearest.ts'
 import { KINDS } from './review.ts'
 
 /**
@@ -39,6 +38,14 @@ export const reportsResponseSchema = z.object({
   reports: z.array(reportSchema),
 })
 
+/** Metres between two points; equirectangular, plenty for a city. */
+function distanceM(a: LatLon, b: LatLon): number {
+  const rad = Math.PI / 180
+  const x = (b.lon - a.lon) * rad * Math.cos(((a.lat + b.lat) / 2) * rad)
+  const y = (b.lat - a.lat) * rad
+  return Math.hypot(x, y) * 6_371_000
+}
+
 /** The venue a report is about, as the admin has it now. */
 export type ReportedVenue = { name: string; at: LatLon }
 
@@ -69,7 +76,7 @@ export function describeReport(
     }
     case 'move':
       return venue
-        ? `Moved · ${venue.name} · ${formatDistance(distanceM(venue.at, report))}`
+        ? `Moved · ${venue.name} · ${Math.round(distanceM(venue.at, report))} m`
         : `Moved · ${report.venueId} · stale: no longer in the data`
     case 'add':
       return `New · ${report.name} (${report.venueKind}${report.terrace ? ', terrace' : ''})`
