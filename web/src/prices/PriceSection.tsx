@@ -25,7 +25,8 @@ const LABEL: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
 
 const RESULT_TEXT: Record<SuggestResult, string> = {
   ok: '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
-  'rate-limited': 'Has enviado muchos precios hoy. Prueba mañana.',
+  'rate-limited':
+    'Hay demasiados precios enviados desde tu conexión o para este bar. Prueba más tarde.',
   bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
   error: 'No se ha podido enviar. Inténtalo más tarde.',
 }

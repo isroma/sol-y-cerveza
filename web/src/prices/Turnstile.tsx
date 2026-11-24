@@ -5,6 +5,8 @@ type TurnstileApi = {
     element: HTMLElement,
     options: {
       sitekey: string
+      /** Checked by the API, so a token from another page or site is refused. */
+      action: string
       callback: (token: string) => void
       'expired-callback': () => void
       appearance: 'always' | 'execute' | 'interaction-only'
@@ -66,6 +68,7 @@ export function Turnstile({ siteKey, onToken }: Props) {
         api = loaded
         widget = loaded.render(element, {
           sitekey: siteKey,
+          action: 'suggest',
           callback: (token) => onTokenRef.current(token),
           'expired-callback': () => onTokenRef.current(null),
           appearance: 'interaction-only',
