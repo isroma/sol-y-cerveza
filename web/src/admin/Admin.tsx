@@ -144,8 +144,11 @@ export function Admin() {
   const looks = useMemo(() => {
     const out = new Map<string, LookReason[]>()
     for (const item of needsALook(dataVenues, tracks)) {
-      const status = reviews.get(item.venue.id)?.status
-      if (status === 'no_terrace' || status === 'not_venue') continue
+      const review = reviews.get(item.venue.id)
+      if (review?.status === 'no_terrace' || review?.status === 'not_venue')
+        continue
+      // Checked and right as it is (Y), e.g. a narrow street with little sun.
+      if (review?.looksRight) continue
       out.set(item.venue.id, item.reasons)
     }
     return out
@@ -306,7 +309,8 @@ export function Admin() {
       change:
         | { kind: 'status'; status: Status }
         | { kind: 'terrace'; at: LatLon }
-        | { kind: 'venue'; at: LatLon },
+        | { kind: 'venue'; at: LatLon }
+        | { kind: 'looksRight' },
     ) => {
       if (!selectedId) return
       if (
@@ -331,6 +335,18 @@ export function Admin() {
     }
     setPinning(true)
   }, [selectedId, pinning, reviews, change])
+
+  // Y: right as it is. A terrace stays where it is; a venue without one is
+  // marked "no terrace". Either way it leaves "To review" and "Needs a look".
+  const hasTerrace = terrace !== null
+  const markLooksRight = useCallback(() => {
+    setPinning(false)
+    change(
+      hasTerrace
+        ? { kind: 'looksRight' }
+        : { kind: 'status', status: 'no_terrace' },
+    )
+  }, [change, hasTerrace])
 
   const nextToReview = useCallback(() => {
     const start = venues.findIndex((v) => v.id === selectedId)
@@ -363,12 +379,21 @@ export function Admin() {
       } else if (key === 'x') {
         setPinning(false)
         change({ kind: 'status', status: 'not_venue' })
-      } else return
+      } else if (key === 'y') markLooksRight()
+      else return
       event.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [change, nextToReview, adding, pinning, select, startPinning])
+  }, [
+    change,
+    nextToReview,
+    adding,
+    pinning,
+    select,
+    startPinning,
+    markLooksRight,
+  ])
 
   const startAdding = () => {
     select(null)
@@ -387,6 +412,7 @@ export function Admin() {
       venue: adding.at,
       terrace: null,
       reviewed: today(),
+      looksRight: false,
     })
     setAdding(null)
     select(venueId)
@@ -635,6 +661,7 @@ export function Admin() {
               {review?.venue &&
                 !selectedVenue.id.startsWith(ADDED_PREFIX) &&
                 ' · moved'}
+              {review?.looksRight && ' · looks right'}
             </p>
             <p className="admin-meta">
               {osm ? (
@@ -674,6 +701,14 @@ export function Admin() {
                   Not a venue <kbd>X</kbd>
                 </button>
               )}
+              <button
+                type="button"
+                aria-pressed={review?.looksRight === true}
+                title="Right as it is: keeps the terrace where it is (or no terrace) and leaves Needs a look"
+                onClick={markLooksRight}
+              >
+                Looks right <kbd>Y</kbd>
+              </button>
             </div>
             {pinning ? (
               <p className="admin-pin-mode">

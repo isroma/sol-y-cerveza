@@ -140,6 +140,8 @@ function runProbe(
   return new Promise((done) => {
     const child = spawn('uv', args, {
       cwd: PIPELINE,
+      // The owner's shell sets UV_ENV_FILE globally; the pipeline needs none.
+      env: { ...process.env, UV_NO_ENV_FILE: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: PROBE_TIMEOUT_MS,
       signal,

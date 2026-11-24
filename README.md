@@ -92,6 +92,7 @@ Besides terraces, its **Website prices** button lists the beer prices `python -m
 3. Read it:
    - **No sun** while the tables do get sun: the pin is in the shade of something the tables are not, typically tight against a façade or under a crown. Move it a few metres onto open ground, towards the middle of the tables.
    - **Height above ground** is the surface model minus the terrain under the pin. On the street it reads about 0 m. Above 2 m (the build's warning threshold) the pin sits on a roof, an awning or a tree crown, and its horizon is meaningless: move it to the pavement or square below.
+   - **The pin is right and so is the result**, e.g. a narrow street between tall buildings that really gets little or no sun: press **Y** (*Looks right*). It keeps the terrace where it is and takes it off the list for good; moving its pin later puts it back. Note the 2 m LiDAR can't see the floor of very narrow streets, so their sun may read lower than it is.
 4. **Publish** when done. The list is computed from the published `terraces.json`, so a fixed terrace leaves it after the next build ("pin moved since the build" until then).
 
 ### Prices from venue websites

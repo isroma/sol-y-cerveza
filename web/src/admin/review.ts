@@ -15,7 +15,11 @@ export const REVIEW_COLUMNS = [
   'terrace_lat',
   'terrace_lon',
   'reviewed',
+  'looks_right',
 ] as const
+
+/** Files written before `looks_right` existed. */
+const LEGACY_HEADER = REVIEW_COLUMNS.slice(0, -1).join(',')
 
 export const STATUSES = ['terrace', 'no_terrace', 'not_venue'] as const
 export type Status = (typeof STATUSES)[number]
@@ -43,6 +47,11 @@ export const reviewSchema = z
     venue: latLonSchema.nullable(),
     terrace: latLonSchema.nullable(),
     reviewed: z.iso.date(),
+    // Checked and right as it is (the admin's Y): leaves "Needs a look".
+    looksRight: z.boolean().default(false),
+  })
+  .refine((r) => !r.looksRight || r.status === 'terrace', {
+    message: 'looks_right is only for a terrace',
   })
   .refine((r) => r.terrace === null || r.status === 'terrace', {
     message: 'a terrace position needs status terrace',
@@ -83,7 +92,7 @@ function pair(lat: string | undefined, lon: string | undefined) {
 
 export function parseReviewCsv(text: string): Review[] {
   const [header, ...lines] = text.split(/\r?\n/).filter((line) => line !== '')
-  if (header !== REVIEW_COLUMNS.join(',')) {
+  if (header !== REVIEW_COLUMNS.join(',') && header !== LEGACY_HEADER) {
     throw new Error(
       `venue_review.csv: header must be ${REVIEW_COLUMNS.join(',')}`,
     )
@@ -92,8 +101,18 @@ export function parseReviewCsv(text: string): Review[] {
     if (line.includes('"')) {
       throw new Error(`venue_review.csv:${index + 2}: quotes are not supported`)
     }
-    const [venueId, status, name, kind, vLat, vLon, tLat, tLon, reviewed] =
-      line.split(',')
+    const [
+      venueId,
+      status,
+      name,
+      kind,
+      vLat,
+      vLon,
+      tLat,
+      tLon,
+      reviewed,
+      looksRight,
+    ] = line.split(',')
     const parsed = reviewSchema.safeParse({
       venueId,
       status: status || null,
@@ -102,6 +121,7 @@ export function parseReviewCsv(text: string): Review[] {
       venue: pair(vLat, vLon),
       terrace: pair(tLat, tLon),
       reviewed,
+      looksRight: looksRight === 'yes',
     })
     if (!parsed.success) {
       throw new Error(`venue_review.csv:${index + 2}: ${parsed.error.message}`)
@@ -127,6 +147,7 @@ export function formatReviewCsv(reviews: readonly Review[]): string {
         r.terrace?.lat ?? null,
         r.terrace?.lon ?? null,
         r.reviewed,
+        r.looksRight ? 'yes' : null,
       ]
         .map(cell)
         .join(','),
@@ -155,7 +176,8 @@ export function nextReview(
   change:
     | { kind: 'status'; status: Status }
     | { kind: 'terrace'; at: LatLon }
-    | { kind: 'venue'; at: LatLon },
+    | { kind: 'venue'; at: LatLon }
+    | { kind: 'looksRight' },
   today: string,
 ): Review {
   const base: Review = current ?? {
@@ -166,6 +188,7 @@ export function nextReview(
     venue: null,
     terrace: null,
     reviewed: today,
+    looksRight: false,
   }
   switch (change.kind) {
     case 'status':
@@ -174,11 +197,21 @@ export function nextReview(
         status: change.status,
         terrace: change.status === 'terrace' ? base.terrace : null,
         reviewed: today,
+        looksRight: false,
       }
     case 'terrace':
-      return { ...base, status: 'terrace', terrace: change.at, reviewed: today }
+      return {
+        ...base,
+        status: 'terrace',
+        terrace: change.at,
+        reviewed: today,
+        looksRight: false,
+      }
     case 'venue':
-      return { ...base, venue: change.at, reviewed: today }
+      return { ...base, venue: change.at, reviewed: today, looksRight: false }
+    case 'looksRight':
+      // Right as it is: a terrace where it is now (moving it later clears this).
+      return { ...base, status: 'terrace', reviewed: today, looksRight: true }
   }
 }
 

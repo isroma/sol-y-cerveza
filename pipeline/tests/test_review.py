@@ -136,3 +136,25 @@ def test_review_adds_venues_no_source_lists() -> None:
         "bar",
         LatLon(lat=38.879, lon=-6.971),
     )
+
+
+def test_read_review_takes_looks_right_and_older_files(tmp_path: Path) -> None:
+    new = tmp_path / "new.csv"
+    new.write_text(
+        HEADER.rstrip("\n") + ",looks_right\n" + "osm:node/1,terrace,,,,,,,2026-11-24,yes\n",
+        encoding="utf-8",
+    )
+    assert read_review(new)[0].looks_right is True
+    old = tmp_path / "old.csv"
+    old.write_text(HEADER + "osm:node/1,terrace,,,,,,,2026-11-24\n", encoding="utf-8")
+    assert read_review(old)[0].looks_right is False
+
+
+def test_looks_right_is_only_for_a_terrace(tmp_path: Path) -> None:
+    path = tmp_path / "review.csv"
+    path.write_text(
+        HEADER.rstrip("\n") + ",looks_right\n" + "osm:node/1,no_terrace,,,,,,,2026-11-24,yes\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="only for a terrace"):
+        read_review(path)
