@@ -217,7 +217,11 @@ export function SuggestChange({
               <span aria-hidden="true">Ya no existe</span>
               <Toggle
                 checked={closed}
-                onChange={setClosed}
+                onChange={(on) => {
+                  setClosed(on)
+                  // A fresh check when it is turned on again.
+                  if (!on) setReportToken(null)
+                }}
                 label="Ya no existe"
               />
             </label>
@@ -227,21 +231,22 @@ export function SuggestChange({
               Escribe un precio entre 0,50 € y 8,00 €.
             </p>
           )}
-          {/* Both checks start as the back opens, so their tokens are
-              ready by the time the visitor has typed a price. */}
+          {/* The price check starts as the back opens, so its token is ready
+              by the time a price is typed. The report's check starts only
+              with "Ya no existe": two at once can show two Cloudflare boxes. */}
           {TURNSTILE_SITE_KEY && (
-            <>
-              <Turnstile
-                siteKey={TURNSTILE_SITE_KEY}
-                action="suggest"
-                onToken={setPriceToken}
-              />
-              <Turnstile
-                siteKey={TURNSTILE_SITE_KEY}
-                action="report"
-                onToken={setReportToken}
-              />
-            </>
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              action="suggest"
+              onToken={setPriceToken}
+            />
+          )}
+          {TURNSTILE_SITE_KEY && closed && (
+            <Turnstile
+              siteKey={TURNSTILE_SITE_KEY}
+              action="report"
+              onToken={setReportToken}
+            />
           )}
           <button
             type="submit"
