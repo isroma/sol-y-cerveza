@@ -7,13 +7,24 @@
   font-size: 14px;
 }
 
-.price-row {
+/* One quiet line: mug, then "Caña 1,50 €" (more items wrap). */
+.price-inline {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: 14px;
-  background: var(--field);
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 14px;
+  list-style: none;
+}
+
+.price-inline strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
 
 .price-badge {

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
-import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
+import { BeerIcon, EditIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
+import { CAN_SUGGEST } from '../prices/crowd.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
+import { useOwner } from '../prices/owner.ts'
 import { shareUrl } from '../urlState.ts'
 
 type Props = {
@@ -117,6 +119,10 @@ function ShareButton({
 export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
+  const { token } = useOwner()
+  // Which venue's price form is open: switching venues closes it.
+  const [formFor, setFormFor] = useState<string | null>(null)
+  const formOpen = formFor === venue.id
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
@@ -128,6 +134,18 @@ export function PinCard({ status, minutes }: Props) {
         <Shoulder side="right" />
       </div>
       <div className="pin-card-body">
+        {CAN_SUGGEST && !token && (
+          <button
+            type="button"
+            className="icon-button pin-card-edit"
+            aria-label={`Sugerir precio de ${venue.name}`}
+            aria-expanded={formOpen}
+            title="Sugerir precio"
+            onClick={() => setFormFor(formOpen ? null : venue.id)}
+          >
+            <EditIcon size={20} />
+          </button>
+        )}
         <ShareButton
           name={venue.name}
           id={venue.id}
@@ -151,7 +169,11 @@ export function PinCard({ status, minutes }: Props) {
         {status.timeline && (
           <SunCountdown timeline={status.timeline} minutes={minutes} />
         )}
-        <PriceSection venue={venue} />
+        <PriceSection
+          venue={venue}
+          open={formOpen}
+          onOpenChange={(open) => setFormFor(open ? venue.id : null)}
+        />
       </div>
     </div>
   )

@@ -131,3 +131,6 @@ export async function suggestPrice(suggestion: {
     return 'error'
   }
 }
+
+/** True when visitors can suggest prices (the API and bot check are set up). */
+export const CAN_SUGGEST = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
