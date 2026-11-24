@@ -145,3 +145,12 @@ export async function suggestPrice(suggestion: {
 
 /** True when visitors can suggest prices (the API and bot check are set up). */
 export const CAN_SUGGEST = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
+
+/** What a visitor sees after suggesting a price. */
+export const PRICE_RESULT_TEXT: Record<SuggestResult, string> = {
+  ok: '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
+  'rate-limited':
+    'Hay demasiados precios enviados desde tu conexión o para este bar. Prueba más tarde.',
+  bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
+  error: 'No se ha podido enviar. Inténtalo más tarde.',
+}

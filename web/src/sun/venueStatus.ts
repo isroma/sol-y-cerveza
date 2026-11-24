@@ -130,3 +130,11 @@ export function sunRuns(timeline: readonly SunState[]): [number, number][] {
     runs.push([start * STEP_MINUTES, timeline.length * STEP_MINUTES])
   return runs
 }
+
+/** The sun spell `minutes` falls in, or null in shade or at night. */
+export function currentSunRun(
+  timeline: readonly SunState[],
+  minutes: number,
+): [number, number] | null {
+  return sunRuns(timeline).find(([a, b]) => a <= minutes && minutes < b) ?? null
+}

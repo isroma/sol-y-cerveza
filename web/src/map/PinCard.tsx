@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
-import { BeerIcon, EditIcon, ShareIcon } from '../ui/icons.tsx'
+import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
 import { CAN_SUGGEST } from '../prices/crowd.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useOwner } from '../prices/owner.ts'
-import { ReportSection } from '../reports/ReportSection.tsx'
+import { SuggestChange } from '../reports/SuggestChange.tsx'
+import { currentSunRun } from '../sun/venueStatus.ts'
 import { shareUrl } from '../urlState.ts'
 
 type Props = {
@@ -54,9 +55,10 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
 
 /**
  * Shares a link to the venue at the chosen day and time: the system share
- * sheet where there is one, else the link goes to the clipboard.
+ * sheet where there is one, else the link goes to the clipboard. Not on the
+ * card for now (issue #233); kept, with its tests, to bring back.
  */
-function ShareButton({
+export function ShareButton({
   name,
   id,
   text,
@@ -121,9 +123,22 @@ export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
   const { token } = useOwner()
-  // Which venue's price form is open: switching venues closes it.
-  const [formFor, setFormFor] = useState<string | null>(null)
-  const formOpen = formFor === venue.id
+  // Which venue's card shows its back: switching venues turns it round.
+  const [backFor, setBackFor] = useState<string | null>(null)
+  const showBack = backFor === venue.id
+  const bar =
+    status.timeline !== null && currentSunRun(status.timeline, minutes) !== null
+
+  const suggest =
+    CAN_SUGGEST && !token ? (
+      <button
+        type="button"
+        className={bar ? 'card-suggest' : 'card-suggest card-suggest--alone'}
+        onClick={() => setBackFor(venue.id)}
+      >
+        Sugerir un cambio
+      </button>
+    ) : null
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
@@ -135,47 +150,35 @@ export function PinCard({ status, minutes }: Props) {
         <Shoulder side="right" />
       </div>
       <div className="pin-card-body">
-        {CAN_SUGGEST && !token && (
-          <button
-            type="button"
-            className="icon-button pin-card-edit"
-            aria-label={`Sugerir precio de ${venue.name}`}
-            aria-expanded={formOpen}
-            title="Sugerir precio"
-            onClick={() => setFormFor(formOpen ? null : venue.id)}
-          >
-            <EditIcon size={20} />
-          </button>
+        {showBack ? (
+          <SuggestChange venue={venue} onBack={() => setBackFor(null)} />
+        ) : (
+          <>
+            <div className="pin-card-title">
+              <strong>{venue.name}</strong>
+              <span>
+                {KIND_LABELS[venue.kind]}
+                {status.hasTerrace && ' · Terraza'}
+              </span>
+            </div>
+            <div className="pin-card-sun">
+              <CategoryIcon category={status.category} size={30} />
+              <div>
+                <strong>{box.title}</strong>
+                {box.detail && <span>{box.detail}</span>}
+              </div>
+            </div>
+            {status.timeline && bar && (
+              <SunCountdown
+                timeline={status.timeline}
+                minutes={minutes}
+                middle={suggest}
+              />
+            )}
+            <PriceSection venue={venue} />
+            {!bar && suggest}
+          </>
         )}
-        <ShareButton
-          name={venue.name}
-          id={venue.id}
-          text={`${venue.name}: ${box.title}`}
-          minutes={minutes}
-        />
-        <div className="pin-card-title">
-          <strong>{venue.name}</strong>
-          <span>
-            {KIND_LABELS[venue.kind]}
-            {status.hasTerrace && ' · Terraza'}
-          </span>
-        </div>
-        <div className="pin-card-sun">
-          <CategoryIcon category={status.category} size={30} />
-          <div>
-            <strong>{box.title}</strong>
-            {box.detail && <span>{box.detail}</span>}
-          </div>
-        </div>
-        {status.timeline && (
-          <SunCountdown timeline={status.timeline} minutes={minutes} />
-        )}
-        <PriceSection
-          venue={venue}
-          open={formOpen}
-          onOpenChange={(open) => setFormFor(open ? venue.id : null)}
-        />
-        <ReportSection key={venue.id} venue={venue} />
       </div>
     </div>
   )

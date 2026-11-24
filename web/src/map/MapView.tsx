@@ -67,33 +67,75 @@ const FIT_GAP = 8
 
 /**
  * Pan so the open card sits fully inside the map and clear of the floating
- * controls (city, buttons, legend). If it is taller than the free space, cap
- * its height (`--card-max`) so the card body scrolls instead.
+ * controls (city, buttons, legend). A card too tall for the space below the
+ * side buttons moves sideways past them, if it fits, to use the full height.
+ * If it is still taller than the free space, cap its height (`--card-max`)
+ * so the card body scrolls instead.
  */
 function fitCard(map: MapLibreMap, card: HTMLElement, wrap: HTMLElement) {
   const box = wrap.getBoundingClientRect()
   const cardRect = card.querySelector('.pin-card')?.getBoundingClientRect()
   if (!cardRect || cardRect.width === 0) return
-  let top = box.top + FIT_MARGIN
-  let bottom = box.bottom - FIT_MARGIN
-  for (const el of wrap.querySelectorAll(
-    '.map-city, .map-buttons, .map-legend',
-  )) {
-    const r = el.getBoundingClientRect()
-    if (r.width === 0 || r.right <= cardRect.left || r.left >= cardRect.right)
-      continue
-    if (r.top + r.height / 2 < box.top + box.height / 2)
-      top = Math.max(top, r.bottom + FIT_GAP)
-    else bottom = Math.min(bottom, r.top - FIT_GAP)
+  const controls = [
+    ...wrap.querySelectorAll('.map-city, .map-buttons, .map-legend'),
+  ].map((el) => el.getBoundingClientRect())
+
+  // The free band for the card's column, moved `shift` px sideways.
+  const space = (shift: number) => {
+    let top = box.top + FIT_MARGIN
+    let bottom = box.bottom - FIT_MARGIN
+    for (const r of controls) {
+      if (
+        r.width === 0 ||
+        r.right <= cardRect.left + shift ||
+        r.left >= cardRect.right + shift
+      )
+        continue
+      if (r.top + r.height / 2 < box.top + box.height / 2)
+        top = Math.max(top, r.bottom + FIT_GAP)
+      else bottom = Math.min(bottom, r.top - FIT_GAP)
+    }
+    return { top, bottom }
   }
+
+  // The card's full height, even while its body is capped and scrolling.
+  const body = card.querySelector('.pin-card-body')
+  const natural = body
+    ? cardRect.height - body.clientHeight + body.scrollHeight
+    : cardRect.height
+  let shift = 0
+  let { top, bottom } = space(0)
+  if (natural > bottom - top) {
+    for (const r of controls) {
+      const past =
+        r.left > box.left + box.width / 2
+          ? r.left - FIT_GAP - cardRect.right
+          : r.right + FIT_GAP - cardRect.left
+      if (
+        past === 0 ||
+        cardRect.left + past < box.left + FIT_MARGIN ||
+        cardRect.right + past > box.right - FIT_MARGIN
+      )
+        continue
+      const moved = space(past)
+      if (moved.bottom - moved.top > bottom - top) {
+        shift = past
+        top = moved.top
+        bottom = moved.bottom
+      }
+    }
+  }
+
   const scale = Number(card.style.getPropertyValue('--card-scale')) || 1
   card.style.setProperty('--card-max', `${(bottom - top) / scale}px`)
   const fresh =
     card.querySelector('.pin-card')?.getBoundingClientRect() ?? cardRect
   const left = box.left + FIT_MARGIN
   const right = box.right - FIT_MARGIN
-  const dx =
-    fresh.left < left
+  // Panning by +x moves the map, and the card on it, x px to the left.
+  const dx = shift
+    ? -shift
+    : fresh.left < left
       ? fresh.left - left
       : fresh.right > right
         ? fresh.right - right
