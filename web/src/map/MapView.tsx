@@ -312,6 +312,18 @@ export function MapView({
               ?.classList.remove('maplibregl-compact-show')
           map.once('load', collapse)
           map.once('idle', collapse)
+          // Once the visitor opens or closes it themselves, leave it be: the
+          // first idle can come after a quick tap and would close it again.
+          slot
+            .querySelector('.maplibregl-ctrl-attrib-button')
+            ?.addEventListener(
+              'click',
+              () => {
+                map?.off('load', collapse)
+                map?.off('idle', collapse)
+              },
+              { once: true },
+            )
         }
         map.touchPitch.disable()
         map.on('move', () => {
