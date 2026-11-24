@@ -119,8 +119,8 @@ test('reports a closed venue from the back of its card', async ({
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
   await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
   await expect(card.locator('.change-title')).toBeFocused()
-  // The check loads with the back, and runs only once something is edited.
-  expect(await checks(page)).toBe(0)
+  // The check runs as soon as the back opens.
+  await expect.poll(() => checks(page)).toBe(1)
   await shot(page, '2-card-back')
   await card.getByRole('switch', { name: 'Ya no existe' }).check()
   await card.getByRole('button', { name: 'Enviar' }).click()
