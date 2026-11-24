@@ -1,10 +1,12 @@
 /**
  * Price suggestions API (Cloudflare Worker + D1).
  *
- * - POST /v1/suggestions: a visitor suggests a price. Turnstile-verified,
- *   one vote per person (salted IP hash) per venue, item and brand, a daily
- *   cap per person, plausible prices only, and only for venues in the data.
- * - GET /v1/prices: prices at least THRESHOLD people agree on (shown with "~").
+ * - POST /v1/suggestions: a visitor suggests a price. Turnstile-verified (our
+ *   hostname and action), one vote per voter (salted hash of the IPv4 address
+ *   or IPv6 /64) per venue, item and brand, daily caps per voter and per
+ *   network, an hourly cap per venue, plausible prices only, and only for
+ *   venues in the data.
+ * - GET /v1/prices: prices at least THRESHOLD networks agree on (shown with "~").
  * - GET /v1/admin/suggestions, POST /v1/admin/resolve: the review queue,
  *   for the local admin view only (bearer ADMIN_TOKEN).
  * - Owner mode (bearer OWNER_TOKEN, which can only add or remove prices):
@@ -15,11 +17,15 @@
 import {
   allowedOrigin,
   consensus,
-  DAILY_LIMIT,
+  EVENT_RETENTION_HOURS,
+  isTestSecret,
+  limitHit,
   madridDate,
   parseOwnerPrice,
   parseSuggestion,
   safeEqual,
+  turnstilePassed,
+  voterKeys,
   WINDOW_DAYS,
   withOwnerPrices,
   type OwnerRow,
@@ -77,8 +83,14 @@ async function turnstileOk(env: Env, token: string, ip: string): Promise<boolean
     body: form,
   })
   const result: unknown = await response.json()
-  return typeof result === 'object' && result !== null && 'success' in result && result.success === true
+  return turnstilePassed(result, env.ALLOWED_ORIGINS, isTestSecret(env.TURNSTILE_SECRET))
 }
+
+const LIMIT_MESSAGES = {
+  voter: 'too many suggestions today',
+  network: 'too many suggestions from this network today',
+  venue: 'too many suggestions for this venue right now, try later',
+} as const
 
 function json(body: unknown, status: number, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -103,31 +115,49 @@ async function suggest(request: Request, env: Env): Promise<Response> {
   if (!(await knownVenues(env)).has(parsed.value.venueId))
     return json({ error: 'unknown venue' }, 400)
 
-  const ipHash = await sha256(`${env.IP_SALT}:${ip}`)
-  const since = new Date(Date.now() - 86400_000).toISOString()
-  const recent = await env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM suggestions WHERE ip_hash = ? AND created_at >= ?',
-  )
-    .bind(ipHash, since)
-    .first<{ n: number }>()
-  if ((recent?.n ?? 0) >= DAILY_LIMIT) return json({ error: 'too many suggestions today' }, 429)
-
+  const keys = voterKeys(ip)
+  const voterHash = await sha256(`${env.IP_SALT}:${keys.voter}`)
+  const netHash = await sha256(`${env.IP_SALT}:net:${keys.network}`)
   const { venueId, item, brand, cents } = parsed.value
-  await env.DB.prepare(
-    `INSERT INTO suggestions (venue_id, item, brand, cents, ip_hash, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (ip_hash, venue_id, item, brand)
-     DO UPDATE SET cents = excluded.cents, created_at = excluded.created_at, status = 'pending'`,
+  const now = Date.now()
+  const dayAgo = new Date(now - 86400_000).toISOString()
+  const hourAgo = new Date(now - 3600_000).toISOString()
+  const counts = await env.DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM suggestion_events WHERE voter_hash = ?1 AND at >= ?4) AS voter,
+       (SELECT COUNT(*) FROM suggestion_events WHERE net_hash = ?2 AND at >= ?4) AS network,
+       (SELECT COUNT(*) FROM suggestion_events WHERE venue_id = ?3 AND at >= ?5) AS venue`,
   )
-    .bind(venueId, item, brand ?? '', cents, ipHash, new Date().toISOString())
-    .run()
+    .bind(voterHash, netHash, venueId, dayAgo, hourAgo)
+    .first<{ voter: number; network: number; venue: number }>()
+  const hit = limitHit(counts ?? { voter: 0, network: 0, venue: 0 })
+  if (hit)
+    return json({ error: LIMIT_MESSAGES[hit] }, 429, {
+      'Retry-After': hit === 'venue' ? '3600' : '86400',
+    })
+
+  const at = new Date(now).toISOString()
+  const pruneBefore = new Date(now - EVENT_RETENTION_HOURS * 3600_000).toISOString()
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO suggestions (venue_id, item, brand, cents, ip_hash, net_hash, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (ip_hash, venue_id, item, brand)
+       DO UPDATE SET cents = excluded.cents, net_hash = excluded.net_hash,
+                     created_at = excluded.created_at, status = 'pending'`,
+    ).bind(venueId, item, brand ?? '', cents, voterHash, netHash, at),
+    env.DB.prepare(
+      'INSERT INTO suggestion_events (voter_hash, net_hash, venue_id, at) VALUES (?, ?, ?, ?)',
+    ).bind(voterHash, netHash, venueId, at),
+    env.DB.prepare('DELETE FROM suggestion_events WHERE at < ?').bind(pruneBefore),
+  ])
   return json({ ok: true }, 201)
 }
 
 async function prices(env: Env): Promise<Response> {
   const since = new Date(Date.now() - WINDOW_DAYS * 86400_000).toISOString()
   const { results } = await env.DB.prepare(
-    `SELECT venue_id, item, brand, cents, COUNT(DISTINCT ip_hash) AS voters,
+    `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
             MAX(created_at) AS last
      FROM suggestions
      WHERE status != 'rejected' AND created_at >= ?
@@ -145,7 +175,8 @@ async function prices(env: Env): Promise<Response> {
 
 async function pending(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT venue_id, item, brand, cents, COUNT(*) AS voters, MAX(created_at) AS last
+    `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
+            MAX(created_at) AS last
      FROM suggestions WHERE status = 'pending'
      GROUP BY venue_id, item, brand, cents
      ORDER BY voters DESC, last DESC`,
