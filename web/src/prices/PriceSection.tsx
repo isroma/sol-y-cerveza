@@ -9,7 +9,7 @@ import {
 } from '../data/prices.ts'
 import type { Terrace } from '../data/terraces.ts'
 import {
-  PRICES_API,
+  CAN_SUGGEST,
   shownPrices,
   suggestPrice,
   TURNSTILE_SITE_KEY,
@@ -126,11 +126,21 @@ function SuggestForm({
   )
 }
 
-/** Beer prices on the venue card, and a way for visitors to suggest one. */
-export function PriceSection({ venue }: { venue: Terrace }) {
+/**
+ * Beer prices on the venue card, as one compact line, and the form to
+ * suggest one. The form is opened from the card's edit button (`open`).
+ */
+export function PriceSection({
+  venue,
+  open,
+  onOpenChange,
+}: {
+  venue: Terrace
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const crowd = useCrowdPrices()
   const { token } = useOwner()
-  const [open, setOpen] = useState(false)
   const [result, setResult] = useState<SuggestResult | null>(null)
 
   // The card is a map marker: the map's own listeners see events before
@@ -166,8 +176,7 @@ export function PriceSection({ venue }: { venue: Terrace }) {
   })
 
   const prices = shownPrices(venue.id, venue.prices ?? [], crowd)
-  const canSuggest = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
-  if (prices.length === 0 && !canSuggest && !token) return null
+  if (!token && prices.length === 0 && !open && !result) return null
 
   return (
     <div className="price-section" ref={sectionRef}>
@@ -175,48 +184,30 @@ export function PriceSection({ venue }: { venue: Terrace }) {
         <OwnerPrices venue={venue} prices={prices} />
       ) : (
         <>
-          <div className="price-row">
-            <span className="price-badge" aria-hidden="true">
-              <BeerIcon size={30} />
-            </span>
-            {prices.length > 0 ? (
-              <ul className="price-list">
-                {prices.map((p) => (
-                  <li key={`${p.item}-${p.brand ?? ''}`}>
-                    <span>
-                      {LABEL[p.item]}
-                      {p.brand && ` ${BRAND_NAMES[p.brand]}`}
-                    </span>
-                    <strong
-                      title={
-                        p.approximate
-                          ? 'Precio aproximado: varias personas lo han indicado'
-                          : undefined
-                      }
-                    >
-                      {p.approximate && '~'}
-                      {formatCents(p.cents)}
-                    </strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="price-empty">
-                <strong>Caña</strong>
-                <span>Sin precio aún</span>
-              </div>
-            )}
-            {canSuggest && !open && !result && (
-              <button
-                type="button"
-                className="price-suggest"
-                onClick={() => setOpen(true)}
-              >
-                {prices.length > 0 ? 'Corregir' : 'Sugerir'}
-              </button>
-            )}
-          </div>
-          {canSuggest && TURNSTILE_SITE_KEY && (
+          {prices.length > 0 && (
+            <ul className="price-inline" aria-label="Precios">
+              <li className="price-badge" aria-hidden="true">
+                <BeerIcon size={18} />
+              </li>
+              {prices.map((p) => (
+                <li key={`${p.item}-${p.brand ?? ''}`}>
+                  {LABEL[p.item]}
+                  {p.brand && ` ${BRAND_NAMES[p.brand]}`}{' '}
+                  <strong
+                    title={
+                      p.approximate
+                        ? 'Precio aproximado: varias personas lo han indicado'
+                        : undefined
+                    }
+                  >
+                    {p.approximate && '~'}
+                    {formatCents(p.cents)}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          )}
+          {CAN_SUGGEST && TURNSTILE_SITE_KEY && (
             <>
               {result ? (
                 <p
@@ -230,8 +221,11 @@ export function PriceSection({ venue }: { venue: Terrace }) {
                   <SuggestForm
                     venueId={venue.id}
                     siteKey={TURNSTILE_SITE_KEY}
-                    onDone={setResult}
-                    onCancel={() => setOpen(false)}
+                    onDone={(value) => {
+                      setResult(value)
+                      onOpenChange(false)
+                    }}
+                    onCancel={() => onOpenChange(false)}
                   />
                 )
               )}

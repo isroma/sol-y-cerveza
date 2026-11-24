@@ -1342,6 +1342,20 @@ body,
   color: var(--text-soft);
 }
 
+.pin-card-edit {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+
+.pin-card-edit[aria-expanded='true'] {
+  background: var(--highlight);
+  color: var(--sun-dark);
+}
+
 /* "Enlace copiado": a brief pill under the share button. */
 .pin-card-share-note {
   position: absolute;
