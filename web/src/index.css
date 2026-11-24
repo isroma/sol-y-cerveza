@@ -1304,10 +1304,28 @@ body,
   }
 }
 
+/* Closing: it shrinks back into the badge (CARD_CLOSE_MS in MapView). */
+.pin-card-marker.is-closing .pin-card {
+  animation: pin-card-close 0.18s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes pin-card-close {
+  to {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pin-card,
   .pin-card-body > * {
     transition: none;
+    animation: none;
+  }
+
+  .pin-card-marker.is-closing .pin-card {
+    visibility: hidden;
     animation: none;
   }
 }

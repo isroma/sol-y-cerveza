@@ -7,7 +7,7 @@ import {
 } from 'maplibre-gl'
 import './maplibre.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
@@ -152,6 +152,9 @@ function onCard(event: Event): boolean {
       (node) => node instanceof Element && node.classList.contains('pin-card'),
     )
 }
+
+/** How long the card takes to shrink back into its badge (see .is-closing). */
+const CARD_CLOSE_MS = 180
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
@@ -514,18 +517,32 @@ export function MapView({
 
   const selectedStatus = statuses.find((s) => s.venue.id === selectedId) ?? null
 
+  // The last card shown stays a moment after deselecting, to shrink back
+  // into its badge.
+  const [lastCard, setLastCard] = useState<VenueStatus | null>(null)
+  if (selectedStatus && selectedStatus !== lastCard) setLastCard(selectedStatus)
+  const cardStatus = selectedStatus ?? lastCard
+  const closing = !selectedStatus && lastCard !== null
+
+  useLayoutEffect(() => {
+    cardEl.classList.toggle('is-closing', closing)
+    if (!closing) return
+    const timer = setTimeout(() => setLastCard(null), CARD_CLOSE_MS)
+    return () => clearTimeout(timer)
+  }, [closing, cardEl])
+
   // Place the card so its badge tab sits exactly on the selected badge (or dot).
   useEffect(() => {
     const map = mapRef.current
-    if (!ready || !map || !selectedStatus) {
+    if (!ready || !map || !cardStatus) {
       cardMarkerRef.current?.remove()
       cardMarkerRef.current = null
       return
     }
-    const position = selectedStatus.venue.terrace ?? selectedStatus.venue.venue
+    const position = cardStatus.venue.terrace ?? cardStatus.venue.venue
     // The tab's badge centre is 41 px below the card's top; a terrace badge
     // centre is 27 px above its point, a dot is centred on it.
-    const offset: [number, number] = [0, selectedStatus.hasTerrace ? -68 : -41]
+    const offset: [number, number] = [0, cardStatus.hasTerrace ? -68 : -41]
     if (!cardMarkerRef.current) {
       cardMarkerRef.current = new Marker({
         element: cardEl,
@@ -539,7 +556,7 @@ export function MapView({
         .setOffset(offset)
         .setLngLat([position.lon, position.lat])
     }
-  }, [ready, selectedStatus, cardEl])
+  }, [ready, cardStatus, cardEl])
 
   // Bring the selected venue into view when the selection changes. A venue
   // from a shared link may be selected before the data arrives: wait for it.
@@ -601,11 +618,11 @@ export function MapView({
         leafOffTrees={leafOffTrees}
         attributionSlot={attributionSlotRef}
       />
-      {selectedStatus &&
+      {cardStatus &&
         createPortal(
           <PinCard
-            key={selectedStatus.venue.id}
-            status={selectedStatus}
+            key={cardStatus.venue.id}
+            status={cardStatus}
             minutes={minutes}
             sunset={sunset}
           />,
