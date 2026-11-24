@@ -1281,13 +1281,10 @@ body,
 }
 
 /* Opening: the card grows out of the selected badge, the reverse of the
-   fold above, and its contents settle in just after. */
+   fold above. A plain ease-out, no bounce; the fade finishes early so the
+   card is solid while it grows. */
 .pin-card {
-  animation: pin-card-open 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15);
-}
-
-.pin-card-body > * {
-  animation: pin-card-content 0.3s ease-out 0.08s backwards;
+  animation: pin-card-open 0.36s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes pin-card-open {
@@ -1295,22 +1292,26 @@ body,
     opacity: 0;
     transform: scale(0.4);
   }
-}
 
-@keyframes pin-card-content {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
+  40% {
+    opacity: 1;
   }
 }
 
-/* Closing: it shrinks back into the badge (CARD_CLOSE_MS in MapView). */
+/* Closing: it shrinks back into the badge (CARD_CLOSE_MS in MapView),
+   staying solid until the last stretch. */
 .pin-card-marker.is-closing .pin-card {
-  animation: pin-card-close 0.18s ease-in forwards;
+  animation: pin-card-close 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
   pointer-events: none;
 }
 
 @keyframes pin-card-close {
+  40% {
+    opacity: 1;
+    /* The fade runs evenly; the shrink keeps the curve above. */
+    animation-timing-function: linear;
+  }
+
   to {
     opacity: 0;
     transform: scale(0.4);
@@ -1318,8 +1319,7 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pin-card,
-  .pin-card-body > * {
+  .pin-card {
     transition: none;
     animation: none;
   }

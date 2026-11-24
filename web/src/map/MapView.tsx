@@ -154,7 +154,7 @@ function onCard(event: Event): boolean {
 }
 
 /** How long the card takes to shrink back into its badge (see .is-closing). */
-const CARD_CLOSE_MS = 180
+const CARD_CLOSE_MS = 220
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
