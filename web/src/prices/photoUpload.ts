@@ -1,4 +1,3 @@
-import { gps } from 'exifr'
 import { fitWithin } from '../data/photoReading.ts'
 import type { LatLon } from '../data/terraces.ts'
 
@@ -10,7 +9,10 @@ import type { LatLon } from '../data/terraces.ts'
 export async function preparePhoto(
   file: File,
 ): Promise<{ image: string; mediaType: 'image/jpeg'; at: LatLon | null }> {
-  const at = await gps(file)
+  // Loaded on first use: only venue owners upload photos, so exifr stays
+  // out of every visitor's entry chunk.
+  const at = await import('exifr')
+    .then(({ gps }) => gps(file))
     .then((g) =>
       g && Number.isFinite(g.latitude) && Number.isFinite(g.longitude)
         ? { lat: g.latitude, lon: g.longitude }

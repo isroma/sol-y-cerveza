@@ -94,9 +94,14 @@ const registrations = (page: Page) =>
     return all.map((r) => r.scope)
   })
 
-/** The map chunk the page's index.html preloads (one per build). */
+/**
+ * The map chunk the page's index.html preloads (one per build). Not the only
+ * modulepreload: the bundler's shared runtime chunk is preloaded too.
+ */
 const mapChunk = (page: Page) =>
-  page.locator('link[rel="modulepreload"]').getAttribute('href')
+  page
+    .locator('link[rel="modulepreload"][href*="/MapView-"]')
+    .getAttribute('href')
 
 /** The fixture data with the first venue renamed. */
 function renamedData(name: string) {

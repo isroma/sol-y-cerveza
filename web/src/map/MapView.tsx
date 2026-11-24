@@ -4,7 +4,6 @@ import {
   Marker,
   setWorkerUrl,
   type GeoJSONSource,
-  type StyleSpecification,
 } from 'maplibre-gl'
 import './maplibre.css'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
@@ -19,11 +18,12 @@ import {
   pitchForZoom,
   SHADOW_OPACITY,
 } from './camera.ts'
+import { dotsData, dotsUpdate } from './dots.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
-import { sunLight, sunlitStyle } from './mapStyle.ts'
+import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { shadowCollection } from './shadowLayer.ts'
 
@@ -147,26 +147,6 @@ function onCard(event: Event): boolean {
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
-function dotsData(statuses: readonly VenueStatus[], selectedId: string | null) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: statuses
-      .filter((s) => !s.hasTerrace)
-      .map((s) => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [s.venue.venue.lon, s.venue.venue.lat],
-        },
-        properties: {
-          id: s.venue.id,
-          selected: s.venue.id === selectedId,
-          name: s.venue.name,
-        },
-      })),
-  }
-}
-
 export function MapView({
   statuses,
   selectedId,
@@ -188,6 +168,8 @@ export function MapView({
   const attributionSlotRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const pinsRef = useRef(new Map<string, PinEntry>())
+  /** What the dots source holds now (see dotsUpdate). */
+  const dotsKeyRef = useRef<string | null>(null)
   const onSelectRef = useRef(onSelect)
   const sunRef = useRef(sun)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
@@ -217,7 +199,11 @@ export function MapView({
     const pins = pinsRef.current
 
     fetch(BASEMAP_STYLE_URL)
-      .then((response) => response.json() as Promise<StyleSpecification>)
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(`basemap style: HTTP ${response.status}`)
+        return parseBasemapStyle(await response.json())
+      })
       .then((base) => {
         if (cancelled) return
         map = new MapLibreMap({
@@ -314,6 +300,7 @@ export function MapView({
             type: 'geojson',
             data: dotsData([], null),
           })
+          dotsKeyRef.current = null
           map.addLayer({
             id: DOTS_LAYER,
             type: 'circle',
@@ -429,13 +416,23 @@ export function MapView({
     if (ready) nightSwitchRef.current?.(depth)
   }, [ready, depth])
 
-  // Pins for terraces, grey dots for the rest.
+  // Grey dots for venues without a terrace, sent only when they change (not
+  // on every step of the time slider).
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map) return
-    void map
-      .getSource<GeoJSONSource>(DOTS_SOURCE)
-      ?.setData(dotsData(statuses, selectedId))
+    const update = dotsUpdate(dotsKeyRef.current, statuses, selectedId)
+    if (!update) return
+    const source = map.getSource<GeoJSONSource>(DOTS_SOURCE)
+    if (!source) return
+    void source.setData(update.data)
+    dotsKeyRef.current = update.key
+  }, [ready, statuses, selectedId])
+
+  // Pins for terraces.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
 
     const pins = pinsRef.current
     const wanted = new Map(

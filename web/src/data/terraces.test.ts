@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import shippedFile from '../../public/data/terraces.json?raw'
 import { sampleFile } from '../test/fixtures.ts'
-import { terracesFileSchema } from './terraces.ts'
+import { parseTerracesFile, terracesFileSchema } from './terraces.ts'
 
 function withTerrace(overrides: Record<string, unknown>): unknown {
   return {
@@ -11,10 +11,12 @@ function withTerrace(overrides: Record<string, unknown>): unknown {
 }
 
 describe('terracesFileSchema', () => {
-  it('accepts the file shipped in public/data', () => {
-    expect(terracesFileSchema.safeParse(JSON.parse(shippedFile)).success).toBe(
-      true,
-    )
+  it('accepts the file shipped in public/data, every record of it', () => {
+    const json: unknown = JSON.parse(shippedFile)
+    expect(terracesFileSchema.safeParse(json).error).toBeUndefined()
+    const { file, dropped } = parseTerracesFile(json)
+    expect(dropped).toBe(0)
+    expect(file.terraces.length).toBeGreaterThan(0)
   })
 
   it('accepts a venue without a known terrace', () => {
@@ -54,5 +56,55 @@ describe('terracesFileSchema', () => {
     ['a malformed verified date', withTerrace({ verified: '20/11/2026' })],
   ])('rejects %s', (_label, file) => {
     expect(terracesFileSchema.safeParse(file).success).toBe(false)
+  })
+})
+
+describe('parseTerracesFile', () => {
+  it('keeps a valid file as it is', () => {
+    expect(parseTerracesFile(sampleFile)).toEqual({
+      file: sampleFile,
+      dropped: 0,
+    })
+  })
+
+  it.each([
+    ['an unknown kind', { kind: 'disco' }],
+    [
+      'an unknown price brand',
+      {
+        prices: [
+          { item: 'tercio', brand: 'nueva', cents: 250, seen: '2026-11-20' },
+        ],
+      },
+    ],
+    ['a horizon with 359 bins', { horizon: Array(359).fill(0) }],
+  ])('drops a record with %s and keeps the rest', (_label, overrides) => {
+    const [first, ...rest] = sampleFile.terraces
+    const { file, dropped } = parseTerracesFile({
+      ...sampleFile,
+      terraces: [{ ...first, ...overrides }, ...rest],
+    })
+    expect(dropped).toBe(1)
+    expect(file.terraces).toEqual(rest)
+    expect(file.attribution).toEqual(sampleFile.attribution)
+  })
+
+  it('drops records that are not objects', () => {
+    const { file, dropped } = parseTerracesFile({
+      ...sampleFile,
+      terraces: [null, 'x', ...sampleFile.terraces],
+    })
+    expect(dropped).toBe(2)
+    expect(file.terraces).toEqual(sampleFile.terraces)
+  })
+
+  it.each([
+    ['an old version', { ...sampleFile, version: 1 }],
+    ['a missing attribution', { ...sampleFile, attribution: undefined }],
+    ['a non-UTC timestamp', { ...sampleFile, generated: '22/11/2026' }],
+    ['terraces that are not a list', { ...sampleFile, terraces: {} }],
+    ['not an object', []],
+  ])('still rejects the whole file with %s', (_label, json) => {
+    expect(() => parseTerracesFile(json)).toThrow()
   })
 })

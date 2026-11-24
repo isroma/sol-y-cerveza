@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { shownPrices, type CrowdPrice } from './crowd.ts'
+import { parseCrowdPrices, shownPrices, type CrowdPrice } from './crowd.ts'
 
 const visitor = (p: Partial<CrowdPrice>): CrowdPrice => ({
   venueId: 'osm:node/1',
@@ -55,5 +55,42 @@ describe('shownPrices', () => {
     expect(shown).toEqual([
       { item: 'cana', brand: null, cents: 170, approximate: false },
     ])
+  })
+})
+
+describe('parseCrowdPrices', () => {
+  const price = {
+    venueId: 'osm:node/1',
+    item: 'tercio',
+    brand: 'cruzcampo',
+    cents: 250,
+    voters: 5,
+    last: '2026-11-20T12:00:00Z',
+  }
+
+  it('reads the prices, unconfirmed unless the answer says so', () => {
+    expect(
+      parseCrowdPrices({ prices: [price, { ...price, confirmed: true }] }),
+    ).toEqual([
+      { ...price, confirmed: false },
+      { ...price, confirmed: true },
+    ])
+  })
+
+  it('drops a price it cannot read and keeps the rest', () => {
+    const cana = { ...price, item: 'cana', brand: null, cents: 150 }
+    expect(
+      parseCrowdPrices({
+        prices: [{ ...price, brand: 'nueva' }, cana, { ...price, cents: 2.5 }],
+      }),
+    ).toEqual([{ ...cana, confirmed: false }])
+  })
+
+  it.each([
+    ['no prices list', {}],
+    ['prices that are not a list', { prices: 'none' }],
+    ['not an object', null],
+  ])('rejects an answer with %s', (_label, body) => {
+    expect(() => parseCrowdPrices(body)).toThrow()
   })
 })
