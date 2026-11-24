@@ -2,7 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { sunBox } from '../ui/categoryStyle.ts'
-import { PinCard } from './PinCard.tsx'
+import { PinCard, ShareButton } from './PinCard.tsx'
+
+vi.mock('../prices/crowd.ts', async (original) => ({
+  ...(await original<typeof import('../prices/crowd.ts')>()),
+  PRICES_API: 'https://api.test',
+  TURNSTILE_SITE_KEY: 'site-key',
+  CAN_SUGGEST: true,
+  useCrowdPrices: () => [],
+}))
 
 function status(patch: Partial<VenueStatus>): VenueStatus {
   return {
@@ -74,6 +82,19 @@ describe('PinCard', () => {
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
   })
 
+  it('turns round to suggest a change, and back', () => {
+    render(<PinCard status={status({})} minutes={at} sunset={18 * 60} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sugerir un cambio' }))
+    expect(screen.queryByText('Café · Terraza')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
+    expect(screen.getByText('Café · Terraza')).toBeInTheDocument()
+  })
+
+  it('has no share button', () => {
+    render(<PinCard status={status({})} minutes={at} sunset={18 * 60} />)
+    expect(screen.queryByRole('button', { name: /Compartir/ })).toBeNull()
+  })
+
   it('has no bar without sun', () => {
     const { container } = render(
       <PinCard status={status({})} minutes={at} sunset={18 * 60} />,
@@ -82,9 +103,16 @@ describe('PinCard', () => {
   })
 })
 
-describe('PinCard share button', () => {
-  const sunny = () =>
-    status({ category: 'sun', sunUntil: 16 * 60 + 37, timeline: null })
+// Not on the card for now (issue #233), but kept to bring back.
+describe('ShareButton', () => {
+  const button = () => (
+    <ShareButton
+      name="Café La Plaza"
+      id="curated:x"
+      text="Café La Plaza: 2 h 5 min de sol"
+      minutes={at}
+    />
+  )
 
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -94,7 +122,7 @@ describe('PinCard share button', () => {
   it('opens the share sheet with the venue, its sun and a link', async () => {
     const share = vi.fn(async () => undefined)
     vi.stubGlobal('navigator', { ...navigator, share })
-    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+    render(button())
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Compartir Café La Plaza' }),
@@ -116,7 +144,7 @@ describe('PinCard share button', () => {
       clipboard: { writeText },
     })
     window.history.replaceState(null, '', '/?utm=x')
-    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+    render(button())
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Compartir Café La Plaza' }),
@@ -137,7 +165,7 @@ describe('PinCard share button', () => {
         },
       },
     })
-    render(<PinCard status={sunny()} minutes={at} sunset={18 * 60} />)
+    render(button())
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Compartir Café La Plaza' }),

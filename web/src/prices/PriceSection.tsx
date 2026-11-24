@@ -1,147 +1,21 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  BRAND_NAMES,
-  BRANDS,
-  formatCents,
-  parseEuros,
-  type Brand,
-  type Item,
-} from '../data/prices.ts'
+import { useEffect, useRef } from 'react'
+import { BRAND_NAMES, formatCents, type Item } from '../data/prices.ts'
 import type { Terrace } from '../data/terraces.ts'
-import {
-  CAN_SUGGEST,
-  shownPrices,
-  suggestPrice,
-  TURNSTILE_SITE_KEY,
-  useCrowdPrices,
-  type SuggestResult,
-} from './crowd.ts'
+import { shownPrices, useCrowdPrices } from './crowd.ts'
 import { BeerIcon } from '../ui/icons.tsx'
 import { useOwner } from './owner.ts'
 import { OwnerPrices } from './OwnerPrices.tsx'
-import { Turnstile } from './Turnstile.tsx'
 import './prices.css'
 
 const LABEL: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
 
-const RESULT_TEXT: Record<SuggestResult, string> = {
-  ok: '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
-  'rate-limited':
-    'Hay demasiados precios enviados desde tu conexión o para este bar. Prueba más tarde.',
-  bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
-  error: 'No se ha podido enviar. Inténtalo más tarde.',
-}
-
-function SuggestForm({
-  venueId,
-  siteKey,
-  onDone,
-  onCancel,
-}: {
-  venueId: string
-  siteKey: string
-  onDone: (result: SuggestResult) => void
-  onCancel: () => void
-}) {
-  const [item, setItem] = useState<Item>('cana')
-  const [brand, setBrand] = useState<Brand>('cruzcampo')
-  const [text, setText] = useState('')
-  const [token, setToken] = useState<string | null>(null)
-  const [sending, setSending] = useState(false)
-  const cents = parseEuros(text)
-  const valid = cents !== null && cents >= 50 && cents <= 800
-
-  return (
-    <form
-      className="price-form"
-      onSubmit={(event) => {
-        event.preventDefault()
-        if (!valid || !token || cents === null) return
-        setSending(true)
-        void suggestPrice({
-          venueId,
-          item,
-          brand: item === 'tercio' ? brand : null,
-          cents,
-          token,
-        }).then(onDone)
-      }}
-    >
-      <div className="price-segmented" role="radiogroup" aria-label="Bebida">
-        {(['cana', 'tercio'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="radio"
-            aria-checked={item === value}
-            onClick={() => setItem(value)}
-          >
-            {LABEL[value]}
-          </button>
-        ))}
-      </div>
-      <div className="price-fields">
-        {item === 'tercio' && (
-          <select
-            className="price-field"
-            aria-label="Marca"
-            value={brand}
-            onChange={(e) => {
-              const picked = BRANDS.find((b) => b === e.target.value)
-              if (picked) setBrand(picked)
-            }}
-          >
-            {BRANDS.map((b) => (
-              <option key={b} value={b}>
-                {BRAND_NAMES[b]}
-              </option>
-            ))}
-          </select>
-        )}
-        <label className="price-field price-amount">
-          <input
-            aria-label="Precio en euros"
-            inputMode="decimal"
-            placeholder="1,50"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <span aria-hidden="true">€</span>
-        </label>
-      </div>
-      <Turnstile siteKey={siteKey} onToken={setToken} />
-      <div className="price-actions">
-        <button type="button" className="price-cancel" onClick={onCancel}>
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="price-send"
-          disabled={!valid || !token || sending}
-        >
-          {sending ? 'Enviando…' : 'Enviar precio'}
-        </button>
-      </div>
-    </form>
-  )
-}
-
 /**
- * Beer prices on the venue card, as one compact line, and the form to
- * suggest one. The form is opened from the card's edit button (`open`).
+ * Beer prices on the venue card, as one compact line (the owner edits them
+ * here). Visitors suggest prices from the card's back (SuggestChange).
  */
-export function PriceSection({
-  venue,
-  open,
-  onOpenChange,
-}: {
-  venue: Terrace
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
+export function PriceSection({ venue }: { venue: Terrace }) {
   const crowd = useCrowdPrices()
   const { token } = useOwner()
-  const [result, setResult] = useState<SuggestResult | null>(null)
 
   // The card is a map marker: the map's own listeners see events before
   // React does, so stop drags, scrolls and keys natively, or they would pan or
@@ -176,62 +50,36 @@ export function PriceSection({
   })
 
   const prices = shownPrices(venue.id, venue.prices ?? [], crowd)
-  if (!token && prices.length === 0 && !open && !result) return null
+  if (!token && prices.length === 0) return null
 
   return (
     <div className="price-section" ref={sectionRef}>
       {token ? (
         <OwnerPrices venue={venue} prices={prices} />
       ) : (
-        <>
-          {prices.length > 0 && (
-            <ul className="price-inline" aria-label="Precios">
-              <li className="price-badge" aria-hidden="true">
-                <BeerIcon size={18} />
-              </li>
-              {prices.map((p) => (
-                <li key={`${p.item}-${p.brand ?? ''}`}>
-                  {LABEL[p.item]}
-                  {p.brand && ` ${BRAND_NAMES[p.brand]}`}{' '}
-                  <strong
-                    title={
-                      p.approximate
-                        ? 'Precio aproximado: varias personas lo han indicado'
-                        : undefined
-                    }
-                  >
-                    {p.approximate && '~'}
-                    {formatCents(p.cents)}
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          )}
-          {CAN_SUGGEST && TURNSTILE_SITE_KEY && (
-            <>
-              {result ? (
-                <p
-                  className={`price-result${result === 'ok' ? ' is-ok' : ''}`}
-                  role="status"
+        prices.length > 0 && (
+          <ul className="price-inline" aria-label="Precios">
+            <li className="price-badge" aria-hidden="true">
+              <BeerIcon size={18} />
+            </li>
+            {prices.map((p) => (
+              <li key={`${p.item}-${p.brand ?? ''}`}>
+                {LABEL[p.item]}
+                {p.brand && ` ${BRAND_NAMES[p.brand]}`}{' '}
+                <strong
+                  title={
+                    p.approximate
+                      ? 'Precio aproximado: varias personas lo han indicado'
+                      : undefined
+                  }
                 >
-                  {RESULT_TEXT[result]}
-                </p>
-              ) : (
-                open && (
-                  <SuggestForm
-                    venueId={venue.id}
-                    siteKey={TURNSTILE_SITE_KEY}
-                    onDone={(value) => {
-                      setResult(value)
-                      onOpenChange(false)
-                    }}
-                    onCancel={() => onOpenChange(false)}
-                  />
-                )
-              )}
-            </>
-          )}
-        </>
+                  {p.approximate && '~'}
+                  {formatCents(p.cents)}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        )
       )}
     </div>
   )

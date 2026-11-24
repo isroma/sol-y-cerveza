@@ -1,4 +1,5 @@
-import { sunRuns } from '../sun/venueStatus.ts'
+import type { ReactNode } from 'react'
+import { currentSunRun } from '../sun/venueStatus.ts'
 import type { SunState } from '../sun/sunState.ts'
 import { formatClock, formatDuration } from '../time/madrid.ts'
 
@@ -7,6 +8,8 @@ type Props = {
   timeline: readonly SunState[]
   /** The chosen minute of the day. */
   minutes: number
+  /** Sits centred between the start and end times. */
+  middle?: ReactNode
 }
 
 const clock = (m: number) => formatClock(m % (24 * 60))
@@ -17,8 +20,8 @@ const clock = (m: number) => formatClock(m % (24 * 60))
  * doesn't look draggable.
  * Shows nothing outside a sun spell.
  */
-export function SunCountdown({ timeline, minutes }: Props) {
-  const run = sunRuns(timeline).find(([a, b]) => a <= minutes && minutes < b)
+export function SunCountdown({ timeline, minutes, middle }: Props) {
+  const run = currentSunRun(timeline, minutes)
   if (!run) return null
   const [start, end] = run
   const left = end - minutes
@@ -44,6 +47,7 @@ export function SunCountdown({ timeline, minutes }: Props) {
       </div>
       <div className="sun-countdown-ticks">
         <span>{clock(start)}</span>
+        {middle}
         <strong>{clock(end)}</strong>
       </div>
     </div>

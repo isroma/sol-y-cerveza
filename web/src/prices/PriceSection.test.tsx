@@ -21,10 +21,8 @@ const venue: Terrace = {
 }
 
 describe('PriceSection', () => {
-  it('shows nothing while a bar has no price and the form is closed', () => {
-    const { container } = render(
-      <PriceSection venue={venue} open={false} onOpenChange={() => {}} />,
-    )
+  it('shows nothing while a bar has no price', () => {
+    const { container } = render(<PriceSection venue={venue} />)
     expect(container).toBeEmptyDOMElement()
   })
 
@@ -37,8 +35,6 @@ describe('PriceSection', () => {
             { item: 'cana', brand: null, cents: 150, seen: '2026-11-20' },
           ],
         }}
-        open={false}
-        onOpenChange={() => {}}
       />,
     )
     const line = screen.getByRole('list', { name: 'Precios' })

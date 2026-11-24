@@ -47,6 +47,13 @@ const test = base.extend<{ reports: unknown[] }>({
           })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/prices')
           return route.fulfill({ json: { prices: [] } })
+        if (
+          url.hostname === 'prices.test' &&
+          url.pathname === '/v1/suggestions'
+        ) {
+          reports.push({ suggestion: request.postDataJSON() })
+          return route.fulfill({ status: 201, json: { ok: true } })
+        }
         if (url.hostname === 'prices.test' && url.pathname === '/v1/reports') {
           reports.push(request.postDataJSON())
           return route.fulfill({ status: 201, json: { ok: true } })
@@ -90,19 +97,17 @@ async function openCard(page: Page, name: string) {
   await settled(page)
 }
 
-test('reports a closed venue from its card', async ({ page, reports }) => {
+test('reports a closed venue from the back of its card', async ({
+  page,
+  reports,
+}) => {
   await openCard(page, 'Bar Sol Uno')
   const card = page.locator('.pin-card')
-  await card.getByRole('button', { name: '¿Algo está mal?' }).click()
-  await expect(
-    card.getByRole('button', { name: 'Está en otro sitio' }),
-  ).toBeVisible()
-  await shot(page, '2-choices')
-  await card.getByRole('button', { name: 'Ya no existe' }).click()
-  await expect(
-    card.getByText('¿Seguro que ha cerrado o ya no existe?'),
-  ).toBeVisible()
-  await shot(page, '2b-confirm-closed')
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(card.locator('.change-title')).toBeFocused()
+  await shot(page, '2-card-back')
+  await card.getByRole('switch', { name: 'Ya no existe' }).check()
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -113,11 +118,45 @@ test('reports a closed venue from its card', async ({ page, reports }) => {
   ])
 })
 
+test('sends a price from the back of the card, then goes back', async ({
+  page,
+  reports,
+}) => {
+  await openCard(page, 'Bar Sol Uno')
+  const card = page.locator('.pin-card')
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await card.getByRole('radio', { name: 'Tercio' }).click()
+  await card
+    .getByRole('textbox', { name: 'Precio del tercio en euros' })
+    .fill('2,20')
+  await shot(page, '2b-card-back-tercio')
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
+    '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
+  )
+  expect(reports).toEqual([
+    {
+      suggestion: {
+        venueId: 'test:0',
+        item: 'tercio',
+        brand: 'cruzcampo',
+        cents: 220,
+        token: 'test-token',
+      },
+    },
+  ])
+  await card.getByRole('button', { name: 'Volver' }).click()
+  await expect(card).toContainText('Bar Sol Uno')
+  await expect(
+    card.getByRole('button', { name: 'Sugerir un cambio' }),
+  ).toBeVisible()
+})
+
 test('moves a venue with the centre pin', async ({ page, reports }) => {
   await openCard(page, 'Bar Sol Uno')
-  await shot(page, '1-card-link')
-  await page.getByRole('button', { name: '¿Algo está mal?' }).click()
-  await page.getByRole('button', { name: 'Está en otro sitio' }).click()
+  await shot(page, '1-card-front')
+  await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await page.getByRole('button', { name: /Ubicación/ }).click()
   const bar = page.getByRole('region', { name: 'Mover Bar Sol Uno' })
   await expect(bar).toBeFocused()
   await expect(page.locator('.pin-card')).toHaveCount(0)
@@ -196,8 +235,8 @@ test('adds a missing venue from the menu', async ({ page, reports }) => {
 
 test('Escape cancels the picker', async ({ page, reports }) => {
   await openCard(page, 'Bar Sol Uno')
-  await page.getByRole('button', { name: '¿Algo está mal?' }).click()
-  await page.getByRole('button', { name: 'Está en otro sitio' }).click()
+  await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await page.getByRole('button', { name: /Ubicación/ }).click()
   await expect(page.getByRole('region', { name: /^Mover/ })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: /^Mover/ })).toHaveCount(0)
