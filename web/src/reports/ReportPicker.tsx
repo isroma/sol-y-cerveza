@@ -10,6 +10,7 @@ import {
   distanceMetres,
   insideBadajoz,
   MAX_MOVE_M,
+  MAX_PIN_M,
   MIN_MOVE_M,
   reportVenue,
   RESULT_TEXT,
@@ -66,16 +67,22 @@ export function ReportPicker({ picking, center, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Move: from where its badge is; the API measures from the venue's position.
-  const venue = picking.kind === 'move' ? picking.venue : null
+  // Move and pin: from where its badge is; the API measures from the venue's
+  // position. Tables right at the door of a venue without a terrace are a
+  // fine answer, so that pin needn't move.
+  const venue = picking.kind === 'add' ? null : picking.venue
   const start = venue ? (venue.terrace ?? venue.venue) : null
+  const mustMove =
+    picking.kind === 'move' || (picking.kind === 'pin' && !!venue?.terrace)
   const moved =
+    !mustMove ||
     start === null ||
     (center !== null && distanceMetres(start, center) > MIN_MOVE_M)
+  const maxM = picking.kind === 'pin' ? MAX_PIN_M : MAX_MOVE_M
   const tooFar =
     venue !== null &&
     center !== null &&
-    distanceMetres(venue.venue, center) > MAX_MOVE_M
+    distanceMetres(venue.venue, center) > maxM
   const outside = center !== null && !insideBadajoz(center)
   const ready =
     center !== null &&
@@ -83,14 +90,14 @@ export function ReportPicker({ picking, center, onClose }: Props) {
     moved &&
     !tooFar &&
     !outside &&
-    (picking.kind === 'move' || validName(name))
+    (picking.kind !== 'add' || validName(name))
 
   const send = () => {
     if (!ready || center === null || token === null) return
     setSending(true)
     const sent = venue
       ? reportVenue({
-          kind: 'move',
+          kind: picking.kind === 'pin' ? 'pin' : 'move',
           venueId: venue.id,
           lat: center.lat,
           lon: center.lon,
@@ -111,7 +118,11 @@ export function ReportPicker({ picking, center, onClose }: Props) {
     })
   }
 
-  const label = venue ? `Mover ${venue.name}` : 'Añadir un bar'
+  const label = !venue
+    ? 'Añadir un bar'
+    : picking.kind === 'pin'
+      ? `Terraza de ${venue.name}`
+      : `Mover ${venue.name}`
 
   return (
     <>
@@ -157,8 +168,12 @@ export function ReportPicker({ picking, center, onClose }: Props) {
               {outside
                 ? 'Ese sitio está fuera de Badajoz.'
                 : tooFar
-                  ? 'Está a más de 500 m. Solo podemos corregir posiciones cercanas.'
-                  : 'Mueve el mapa hasta el sitio correcto'}
+                  ? picking.kind === 'pin'
+                    ? `La terraza tiene que estar a menos de ${MAX_PIN_M} m del bar.`
+                    : 'Está a más de 500 m. Solo podemos corregir posiciones cercanas.'
+                  : picking.kind === 'pin'
+                    ? 'Mueve el mapa hasta las mesas'
+                    : 'Mueve el mapa hasta el sitio correcto'}
             </p>
             {picking.kind === 'add' && (
               <>

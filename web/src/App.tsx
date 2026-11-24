@@ -12,7 +12,11 @@ import {
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
 import { OwnerBar } from './prices/OwnerBar.tsx'
-import { StartMoveContext, type Picking } from './reports/picking.ts'
+import {
+  StartMoveContext,
+  StartPinContext,
+  type Picking,
+} from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
 import { CAN_REPORT } from './reports/reports.ts'
 import { mixHex, nightDepth } from './map/night.ts'
@@ -166,6 +170,10 @@ export function App() {
     setSelectedId(null)
     setPicking({ kind: 'move', venue })
   }, [])
+  const startPin = useCallback((venue: Terrace) => {
+    setSelectedId(null)
+    setPicking({ kind: 'pin', venue })
+  }, [])
   const startAdd = useCallback(() => {
     setMenuOpen(false)
     setSelectedId(null)
@@ -177,7 +185,7 @@ export function App() {
   }, [])
   const flyTo = useMemo(
     () =>
-      picking?.kind === 'move'
+      picking && picking.kind !== 'add'
         ? (picking.venue.terrace ?? picking.venue.venue)
         : null,
     [picking],
@@ -253,22 +261,28 @@ export function App() {
       </aside>
       <main className="map-area">
         <StartMoveContext value={startMove}>
-          <MapView
-            statuses={visible}
-            selectedId={selectedId}
-            onSelect={picking ? ignoreSelect : setSelectedId}
-            sun={sun}
-            minutes={minutes}
-            sunset={times?.sunset ?? null}
-            attribution={load.status === 'ready' ? load.file.attribution : []}
-            leafOffTrees={leafOffTrees}
-            onCenterChange={picking ? setCenter : undefined}
-            flyTo={flyTo}
-          />
+          <StartPinContext value={startPin}>
+            <MapView
+              statuses={visible}
+              selectedId={selectedId}
+              onSelect={picking ? ignoreSelect : setSelectedId}
+              sun={sun}
+              minutes={minutes}
+              sunset={times?.sunset ?? null}
+              attribution={load.status === 'ready' ? load.file.attribution : []}
+              leafOffTrees={leafOffTrees}
+              onCenterChange={picking ? setCenter : undefined}
+              flyTo={flyTo}
+            />
+          </StartPinContext>
         </StartMoveContext>
         {picking && (
           <ReportPicker
-            key={picking.kind === 'move' ? picking.venue.id : 'add'}
+            key={
+              picking.kind === 'add'
+                ? 'add'
+                : `${picking.kind}:${picking.venue.id}`
+            }
             picking={picking}
             center={center}
             onClose={stopPicking}

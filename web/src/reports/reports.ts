@@ -6,7 +6,8 @@ import {
 } from '../prices/crowd.ts'
 
 /**
- * Visitors' reports of a moved, closed or missing venue (issue #201). They go
+ * Visitors' reports of a moved, closed or missing venue (issue #201), and
+ * whether a venue has a terrace and where (#210, ADR-0009). They go
  * to the same API as price suggestions and wait for the owner's review, so
  * nothing changes on the map when one is sent.
  */
@@ -19,6 +20,8 @@ const BADAJOZ = { south: 38.84, west: -7.04, north: 38.92, east: -6.92 }
 
 /** The API refuses moves further than this from the published position. */
 export const MAX_MOVE_M = 500
+/** The API refuses a terrace further than this from the venue's position. */
+export const MAX_PIN_M = 150
 /** Below this, the pin hasn't really moved. */
 export const MIN_MOVE_M = 5
 
@@ -27,6 +30,8 @@ export type AddKind = Exclude<Terrace['kind'], 'biergarten'>
 export type Report =
   | { kind: 'move'; venueId: string; lat: number; lon: number; token: string }
   | { kind: 'closed'; venueId: string; token: string }
+  | { kind: 'terrace'; venueId: string; terrace: boolean; token: string }
+  | { kind: 'pin'; venueId: string; lat: number; lon: number; token: string }
   | {
       kind: 'add'
       name: string
@@ -76,7 +81,7 @@ const round6 = (value: number) => Math.round(value * 1e6) / 1e6
 export async function reportVenue(report: Report): Promise<SuggestResult> {
   if (!PRICES_API) return 'error'
   const body =
-    report.kind === 'closed'
+    report.kind === 'closed' || report.kind === 'terrace'
       ? report
       : { ...report, lat: round6(report.lat), lon: round6(report.lon) }
   try {

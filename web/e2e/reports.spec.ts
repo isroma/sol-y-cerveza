@@ -203,3 +203,61 @@ test('Escape cancels the picker', async ({ page, reports }) => {
   await expect(page.getByRole('region', { name: /^Mover/ })).toHaveCount(0)
   expect(reports).toEqual([])
 })
+
+// Terrace reports (#210, ADR-0009).
+
+test('answers "¿Tiene terraza?" in one tap, then places the tables', async ({
+  page,
+  reports,
+}) => {
+  // A shared link opens the card of a venue without a known terrace.
+  await page.goto('./?v=test%3A8')
+  await page.waitForFunction(() => window.__map !== undefined)
+  const card = page.locator('.pin-card')
+  await expect(card).toContainText('Bar Sin Terraza', { timeout: 15_000 })
+  await settled(page)
+  await card.getByRole('button', { name: '¿Tiene terraza?' }).click()
+  await shot(page, '6-terrace-choices')
+  await card.getByRole('button', { name: 'Sí, tiene terraza' }).click()
+  await expect(card.getByRole('status')).toContainText(
+    'Lo revisaremos antes de publicarlo.',
+  )
+  expect(reports).toEqual([
+    { kind: 'terrace', venueId: 'test:8', terrace: true, token: 'test-token' },
+  ])
+
+  await card
+    .getByRole('button', { name: 'Marcar dónde están las mesas' })
+    .click()
+  const bar = page.getByRole('region', { name: 'Terraza de Bar Sin Terraza' })
+  await expect(bar).toContainText('Mueve el mapa hasta las mesas')
+  await settled(page)
+  await shot(page, '7-terrace-picker')
+  // No terrace yet: the pin may stay at the door.
+  await bar.getByRole('button', { name: 'Enviar' }).click()
+  await expect(bar.getByRole('status')).toContainText('Gracias')
+  expect(reports[1]).toMatchObject({ kind: 'pin', venueId: 'test:8' })
+})
+
+test('moves a known terrace with the centre pin', async ({ page, reports }) => {
+  await openCard(page, 'Bar Sol Uno')
+  const card = page.locator('.pin-card')
+  await card.getByRole('button', { name: '¿Algo está mal?' }).click()
+  await card.getByRole('button', { name: 'Mover la terraza' }).click()
+  const bar = page.getByRole('region', { name: 'Terraza de Bar Sol Uno' })
+  await settled(page)
+  const send = bar.getByRole('button', { name: 'Enviar' })
+  await expect(send).toBeDisabled()
+  const map = page.getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
+  const box = await map.boundingBox()
+  if (!box) throw new Error('no map')
+  await page.mouse.move(box.x + 60, box.y + 120)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 80, box.y + 160, { steps: 8 })
+  await page.mouse.up()
+  await expect(send).toBeEnabled()
+  await send.click()
+  await expect(bar.getByRole('status')).toContainText('Gracias')
+  expect(reports).toHaveLength(1)
+  expect(reports[0]).toMatchObject({ kind: 'pin', venueId: 'test:0' })
+})

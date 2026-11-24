@@ -121,6 +121,65 @@ describe('ReportPicker', () => {
     })
   })
 
+  it('places the tables of a venue, within 150 m', async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ ok: true }, { status: 201 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const picking: Picking = { kind: 'pin', venue }
+    const { rerender } = render(
+      <ReportPicker picking={picking} center={venue.venue} onClose={vi.fn()} />,
+    )
+    expect(
+      screen.getByRole('region', { name: 'Terraza de Bar Uno' }),
+    ).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mueve el mapa hasta las mesas',
+    )
+    // No terrace yet: tables right at the door are a fine answer.
+    expect(send()).toBeEnabled()
+
+    // About 220 m north: too far for a terrace.
+    rerender(
+      <ReportPicker
+        picking={picking}
+        center={{ lat: 38.88, lon: -6.97 }}
+        onClose={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('menos de 150 m')
+    expect(send()).toBeDisabled()
+
+    rerender(
+      <ReportPicker
+        picking={picking}
+        center={{ lat: 38.8781, lon: -6.97 }}
+        onClose={vi.fn()}
+      />,
+    )
+    fireEvent.click(send())
+    expect(await screen.findByText(/Gracias/)).toBeInTheDocument()
+    expect(sentBody(fetchMock)).toEqual({
+      kind: 'pin',
+      venueId: 'osm:node/1',
+      lat: 38.8781,
+      lon: -6.97,
+      token: 'token',
+    })
+  })
+
+  it('moving a known terrace needs the pin to move', () => {
+    const withTerrace = { ...venue, terrace: { lat: 38.878, lon: -6.97 } }
+    render(
+      <ReportPicker
+        picking={{ kind: 'pin', venue: withTerrace }}
+        center={withTerrace.venue}
+        onClose={vi.fn()}
+      />,
+    )
+    expect(send()).toBeDisabled()
+  })
+
   it('refuses a place outside Badajoz and cancels on Escape', () => {
     const onClose = vi.fn()
     render(

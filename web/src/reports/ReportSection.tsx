@@ -2,22 +2,27 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import type { Terrace } from '../data/terraces.ts'
 import { TURNSTILE_SITE_KEY, type SuggestResult } from '../prices/crowd.ts'
 import { Turnstile } from '../prices/Turnstile.tsx'
-import { StartMoveContext } from './picking.ts'
-import { CAN_REPORT, reportVenue, RESULT_TEXT } from './reports.ts'
+import { StartMoveContext, StartPinContext } from './picking.ts'
+import { CAN_REPORT, reportVenue, RESULT_TEXT, type Report } from './reports.ts'
 import './reports.css'
 
 type Step = 'idle' | 'choose' | 'closed'
 
 /**
- * "¿Algo está mal?" on the venue card: report that the venue is somewhere
- * else (opens the map picker) or no longer exists (confirmed here).
+ * The card's one way to correct a venue: a quiet link ("¿Tiene terraza?" when
+ * the terrace is unconfirmed, else "¿Algo está mal?") that opens the choices.
+ * Terrace answers send in one tap; "Está en otro sitio" and "Mover la terraza"
+ * open the map picker; "Ya no existe" is confirmed here.
  */
 export function ReportSection({ venue }: { venue: Terrace }) {
   const startMove = useContext(StartMoveContext)
+  const startPin = useContext(StartPinContext)
   const [step, setStep] = useState<Step>('idle')
   const [token, setToken] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<SuggestResult | null>(null)
+  // A sent "Sí, tiene terraza" offers to place the tables.
+  const [saidYes, setSaidYes] = useState(false)
 
   // The card is a map marker: stop drags, scrolls and keys natively so they
   // don't pan or zoom the map (as PriceSection does). Clicks reach React;
@@ -57,18 +62,45 @@ export function ReportSection({ venue }: { venue: Terrace }) {
   }
 
   if (!CAN_REPORT || !TURNSTILE_SITE_KEY) return null
+  const hasTerrace = venue.terrace !== null
 
   const back = () => {
     go('idle')
     setToken(null)
   }
 
+  const send = (report: Report) => {
+    setSending(true)
+    void reportVenue(report)
+      .then((sent) => {
+        moveFocus.current = true
+        setSaidYes(sent === 'ok' && report.kind === 'terrace' && report.terrace)
+        setResult(sent)
+      })
+      .finally(() => setSending(false))
+  }
+
+  const answer = (terrace: boolean) => {
+    if (token) send({ kind: 'terrace', venueId: venue.id, terrace, token })
+  }
+
   return (
     <div className="report-section" ref={sectionRef}>
       {result ? (
-        <p className="report-result" role="status" tabIndex={-1} data-focus>
-          {RESULT_TEXT[result]}
-        </p>
+        <>
+          <p className="report-result" role="status" tabIndex={-1} data-focus>
+            {RESULT_TEXT[result]}
+          </p>
+          {saidYes && startPin && (
+            <button
+              type="button"
+              className="report-link"
+              onClick={() => startPin(venue)}
+            >
+              Marcar dónde están las mesas
+            </button>
+          )}
+        </>
       ) : step === 'idle' ? (
         <button
           type="button"
@@ -76,25 +108,56 @@ export function ReportSection({ venue }: { venue: Terrace }) {
           data-focus
           onClick={() => go('choose')}
         >
-          ¿Algo está mal?
+          {hasTerrace ? '¿Algo está mal?' : '¿Tiene terraza?'}
         </button>
       ) : step === 'choose' ? (
         <div className="report-choices">
           <div className="report-row">
-            {startMove && (
-              <button type="button" onClick={() => startMove(venue)} data-focus>
-                Está en otro sitio
+            {hasTerrace ? (
+              startPin && (
+                <button type="button" onClick={() => startPin(venue)}>
+                  Mover la terraza
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                disabled={!token || sending}
+                onClick={() => answer(true)}
+              >
+                Sí, tiene terraza
               </button>
             )}
             <button
               type="button"
-              onClick={() => go('closed')}
-              data-focus={startMove ? undefined : true}
+              disabled={!token || sending}
+              onClick={() => answer(false)}
             >
+              No tiene terraza
+            </button>
+          </div>
+          <div className="report-row">
+            {startMove && (
+              <button type="button" onClick={() => startMove(venue)}>
+                Está en otro sitio
+              </button>
+            )}
+            <button type="button" onClick={() => go('closed')}>
               Ya no existe
             </button>
           </div>
-          <button type="button" className="report-link" onClick={back}>
+          <Turnstile
+            siteKey={TURNSTILE_SITE_KEY}
+            action="report"
+            onToken={setToken}
+          />
+          {/* Focus lands on Volver: the answers wait for the bot check. */}
+          <button
+            type="button"
+            className="report-link"
+            onClick={back}
+            data-focus
+          >
             Volver
           </button>
         </div>
@@ -117,14 +180,7 @@ export function ReportSection({ venue }: { venue: Terrace }) {
               className="report-send"
               disabled={!token || sending}
               onClick={() => {
-                if (!token) return
-                setSending(true)
-                void reportVenue({ kind: 'closed', venueId: venue.id, token })
-                  .then((sent) => {
-                    moveFocus.current = true
-                    setResult(sent)
-                  })
-                  .finally(() => setSending(false))
+                if (token) send({ kind: 'closed', venueId: venue.id, token })
               }}
             >
               {sending ? 'Enviando…' : 'Enviar'}
