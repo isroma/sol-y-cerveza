@@ -6,8 +6,12 @@ venue's name and kind. The answer is JSON (structured output) validated by `Visi
 evidence. The prompt states what an aerial photo cannot show, so "no" is used sparingly.
 
 Answers are cached in `.cache/vision/`, keyed by model, prompt version and image, so a re-run
-or an evaluation costs nothing. Only `ClaudeAsker` touches the network; the key comes from
-`ANTHROPIC_API_KEY` (or any credential the Anthropic SDK finds).
+or an evaluation costs nothing. A request the model answered without a usable answer (a refusal,
+`max_tokens`, an answer that does not validate, "yes" without a pixel) was paid for too, so it is
+cached as `Unanswered` with its reason and not asked again. Transient failures (5xx, 429, a lost
+connection) are not cached; errors that would fail every request (authentication, permission,
+billing, a bad request, an unknown model) stop the run. Only `ClaudeAsker` touches the network;
+the key comes from `ANTHROPIC_API_KEY` (or any credential the Anthropic SDK finds).
 """
 
 import base64
@@ -134,27 +138,63 @@ class CachedAnswer:
     asked: date
 
 
-def read_answer(key: str, cache_dir: Path = VISION_CACHE) -> CachedAnswer | None:
+@dataclass(frozen=True)
+class Unanswered:
+    """A paid request that gave no usable answer; cached so a re-run does not pay again."""
+
+    reason: str
+    asked: date
+
+
+@dataclass(frozen=True)
+class NoAnswer:
+    """What an `Asker` returns when the model answered but with nothing usable."""
+
+    reason: str
+
+
+def read_answer(key: str, cache_dir: Path = VISION_CACHE) -> CachedAnswer | Unanswered | None:
     path = cache_dir / f"{key}.json"
     if not path.exists():
         return None
     raw = json.loads(path.read_text(encoding="utf-8"))
-    return CachedAnswer(
-        answer=VisionAnswer.model_validate(raw["answer"]), asked=date.fromisoformat(raw["asked"])
-    )
+    asked = date.fromisoformat(raw["asked"])
+    if "unanswered" in raw:
+        return Unanswered(reason=str(raw["unanswered"]), asked=asked)
+    return CachedAnswer(answer=VisionAnswer.model_validate(raw["answer"]), asked=asked)
 
 
-def write_answer(key: str, cached: CachedAnswer, cache_dir: Path = VISION_CACHE) -> None:
+def write_answer(
+    key: str, cached: CachedAnswer | Unanswered, cache_dir: Path = VISION_CACHE
+) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / f"{key}.json"
-    record = {"answer": cached.answer.model_dump(mode="json"), "asked": cached.asked.isoformat()}
+    record: dict[str, str | dict[str, Any]]
+    if isinstance(cached, Unanswered):
+        record = {"unanswered": cached.reason, "asked": cached.asked.isoformat()}
+    else:
+        record = {
+            "answer": cached.answer.model_dump(mode="json"),
+            "asked": cached.asked.isoformat(),
+        }
     partial = path.with_suffix(".part")
     partial.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding="utf-8")
     partial.replace(path)
 
 
-# (image JPEG, prompt) -> the model's raw JSON text, or None when it gave no usable answer.
-Asker = Callable[[bytes, str], str | None]
+# (image JPEG, prompt) -> the model's raw JSON text, `NoAnswer` when the model answered with
+# nothing usable (cached), or None after a transient failure of this one request (not cached).
+Asker = Callable[[bytes, str], str | NoAnswer | None]
+
+# Errors that would fail every request alike (credentials, permissions, billing, a malformed
+# request or an unknown model): the run stops instead of logging one per venue.
+FATAL_API_ERRORS: tuple[type[anthropic.APIStatusError], ...] = (
+    anthropic.AuthenticationError,
+    anthropic.PermissionDeniedError,
+    anthropic.PaymentRequiredError,
+    anthropic.BadRequestError,
+    anthropic.NotFoundError,
+)
 
 
 class ClaudeAsker:
@@ -163,7 +203,7 @@ class ClaudeAsker:
     def __init__(self, client: anthropic.Anthropic | None = None) -> None:
         self.client = client or anthropic.Anthropic()
 
-    def __call__(self, image: bytes, prompt: str) -> str | None:
+    def __call__(self, image: bytes, prompt: str) -> str | NoAnswer | None:
         data = base64.standard_b64encode(image).decode("ascii")
         try:
             response = self.client.beta.messages.create(
@@ -197,30 +237,40 @@ class ClaudeAsker:
             )
         except anthropic.RateLimitError, anthropic.APIConnectionError:
             raise  # the SDK already retried; stop the run rather than skip venues
+        except FATAL_API_ERRORS:
+            raise  # every other request would fail the same way
         except anthropic.APIStatusError as error:
+            # This request only (a 5xx after the SDK's retries, a timeout, a too-large image):
+            # skip the venue and ask again next run.
             logger.warning("Claude API: HTTP %d %s", error.status_code, error.message)
             return None
         if response.stop_reason in ("refusal", "max_tokens"):
             logger.warning("Claude API: stopped with %s", response.stop_reason)
-            return None
+            return NoAnswer(f"stop_reason {response.stop_reason}")
         return "".join(block.text for block in response.content if block.type == "text")
 
 
 def ask(
     asker: Asker, name: str, kind: str, crop: Crop, image: bytes, today: date
-) -> CachedAnswer | None:
-    """Ask once and validate; None when the answer is missing or malformed."""
+) -> CachedAnswer | Unanswered | None:
+    """Ask once and validate.
+
+    `Unanswered` when the model answered with nothing usable (worth caching: it was paid for),
+    None when the request failed transiently (ask again next run).
+    """
     text = asker(image, prompt_text(name, kind, crop))
     if text is None:
         return None
+    if isinstance(text, NoAnswer):
+        return Unanswered(reason=text.reason, asked=today)
     try:
         answer = VisionAnswer.model_validate_json(text)
     except ValidationError as error:
         logger.warning("%s: answer does not validate: %s", name, error)
-        return None
+        return Unanswered(reason=f"invalid answer: {error.error_count()} errors", asked=today)
     if answer.terrace == "yes" and (
         answer.x is None or answer.y is None or answer.x >= crop.size_px or answer.y >= crop.size_px
     ):
         logger.warning("%s: 'yes' without a pixel inside the image", name)
-        return None
+        return Unanswered(reason="'yes' without a pixel inside the image", asked=today)
     return CachedAnswer(answer=answer, asked=today)

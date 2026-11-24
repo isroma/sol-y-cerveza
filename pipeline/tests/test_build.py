@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from rasterio.transform import from_origin
 
 from solycerveza.build import (
+    OUTPUT,
     PNOA_ATTRIBUTION,
     TerracesFile,
     add_horizons,
@@ -18,6 +19,7 @@ from solycerveza.build import (
     raster_attribution,
     render,
 )
+from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
 
@@ -241,3 +243,16 @@ def test_raster_attribution_requires_the_source_tag(tmp_path: Path) -> None:
     path = _raster(tmp_path / "dsm.tif", {})
     with pytest.raises(ValueError, match="SOURCE"):
         raster_attribution(path)
+
+
+def test_shipped_terraces_json_is_valid_and_rendered_by_the_pipeline() -> None:
+    text = OUTPUT.read_text(encoding="utf-8")
+    shipped = TerracesFile.model_validate_json(text)
+    assert render(shipped) == text, "terraces.json was edited by hand: rebuild it"
+
+
+def test_shipped_terraces_json_has_the_prices_in_venue_prices_csv() -> None:
+    shipped = TerracesFile.model_validate_json(OUTPUT.read_text(encoding="utf-8"))
+    expected = prices_by_venue(read_prices(PRICES_CSV), {t.id for t in shipped.terraces})
+    wrong = sorted(t.id for t in shipped.terraces if t.prices != expected.get(t.id, []))
+    assert wrong == [], "venue_prices.csv changed without a rebuild of terraces.json"

@@ -11,8 +11,19 @@ import {
 
 // Terrace reports (#210, ADR-0009): `terrace` yes/no and `pin`.
 
-const answer = { kind: 'terrace', venueId: 'osm:node/1', terrace: false, token: 't' }
-const pin = { kind: 'pin', venueId: 'osm:node/1', lat: 38.87812345678, lon: -6.97, token: 't' }
+const answer = {
+  kind: 'terrace',
+  venueId: 'osm:node/1',
+  terrace: false,
+  token: 't',
+}
+const pin = {
+  kind: 'pin',
+  venueId: 'osm:node/1',
+  lat: 38.87812345678,
+  lon: -6.97,
+  token: 't',
+}
 
 const row = (fields: Partial<ReportRow>): ReportRow => ({
   id: 1,
@@ -36,7 +47,10 @@ describe('parseReport for terraces', () => {
       token: 't',
     })
     // A stray position on an answer is ignored, as for closed.
-    expect(parseReport({ ...answer, lat: 1, lon: 2 })).toMatchObject({ ok: true, value: { kind: 'terrace' } })
+    expect(parseReport({ ...answer, lat: 1, lon: 2 })).toMatchObject({
+      ok: true,
+      value: { kind: 'terrace' },
+    })
     expect(parseReport(pin)).toEqual({
       ok: true,
       value: { kind: 'pin', venueId: 'osm:node/1', lat: 38.878123, lon: -6.97 },
@@ -57,12 +71,22 @@ describe('parseReport for terraces', () => {
 
 describe('maxDistance', () => {
   it('keeps a pin within 150 m of the venue and a move within 500 m', () => {
-    expect(maxDistance({ kind: 'pin', venueId: 'osm:node/1', lat: 0, lon: 0 })).toBe(MAX_PIN_METRES)
-    expect(maxDistance({ kind: 'move', venueId: 'osm:node/1', lat: 0, lon: 0 })).toBe(MAX_MOVE_METRES)
-    expect(maxDistance({ kind: 'terrace', venueId: 'osm:node/1', terrace: true })).toBeNull()
+    expect(
+      maxDistance({ kind: 'pin', venueId: 'osm:node/1', lat: 0, lon: 0 }),
+    ).toBe(MAX_PIN_METRES)
+    expect(
+      maxDistance({ kind: 'move', venueId: 'osm:node/1', lat: 0, lon: 0 }),
+    ).toBe(MAX_MOVE_METRES)
+    expect(
+      maxDistance({ kind: 'terrace', venueId: 'osm:node/1', terrace: true }),
+    ).toBeNull()
     const venue = { lat: 38.878, lon: -6.97 }
-    expect(distanceMetres(venue, { lat: 38.8793, lon: -6.97 })).toBeLessThan(MAX_PIN_METRES)
-    expect(distanceMetres(venue, { lat: 38.8794, lon: -6.97 })).toBeGreaterThan(MAX_PIN_METRES)
+    expect(distanceMetres(venue, { lat: 38.8793, lon: -6.97 })).toBeLessThan(
+      MAX_PIN_METRES,
+    )
+    expect(distanceMetres(venue, { lat: 38.8794, lon: -6.97 })).toBeGreaterThan(
+      MAX_PIN_METRES,
+    )
   })
 })
 
@@ -73,7 +97,14 @@ describe('reportQueue for terraces', () => {
       row({ id: 2, net_hash: 'b', created_at: '2026-11-24T12:00:00.000Z' }),
       row({ id: 3, net_hash: 'b' }),
       row({ id: 4, terrace: 0, net_hash: 'c' }),
-      row({ id: 5, kind: 'pin', terrace: null, lat: 38.878, lon: -6.97, created_at: '2026-11-24T09:00:00.000Z' }),
+      row({
+        id: 5,
+        kind: 'pin',
+        terrace: null,
+        lat: 38.878,
+        lon: -6.97,
+        created_at: '2026-11-24T09:00:00.000Z',
+      }),
     ])
     expect(queue).toEqual([
       {

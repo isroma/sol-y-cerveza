@@ -12,7 +12,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useRef, useState } from 'react'
 import { BADAJOZ_CENTER, BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
-import { sunlitStyle } from '../map/mapStyle.ts'
+import { parseBasemapStyle, sunlitStyle } from '../map/mapStyle.ts'
 import { STATE_COLORS, type MapVenue } from './mapState.ts'
 
 setWorkerUrl(workerUrl)
@@ -134,7 +134,11 @@ export function AdminMap({
     let cancelled = false
     let map: MapLibreMap | null = null
     void fetch(BASEMAP_STYLE_URL)
-      .then((response) => response.json() as Promise<StyleSpecification>)
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(`basemap style: HTTP ${response.status}`)
+        return parseBasemapStyle(await response.json())
+      })
       .then((base) => {
         if (cancelled) return
         const m = new MapLibreMap({
@@ -248,7 +252,7 @@ export function AdminMap({
   const selectedId = selected?.id ?? null
   useEffect(() => {
     const source = mapRef.current?.getSource<GeoJSONSource>(SOURCE)
-    source?.setData(collection(venues, selectedId))
+    void source?.setData(collection(venues, selectedId))
   }, [ready, venues, selectedId])
 
   // Fly to a newly selected venue, close enough to place a pin.

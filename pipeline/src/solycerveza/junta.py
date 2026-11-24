@@ -229,7 +229,10 @@ class Geocoder:
 
     def save(self) -> None:
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-        self.cache_file.write_text(json.dumps(self.cache, sort_keys=True), encoding="utf-8")
+        # Atomic: an interrupted save must not leave a truncated cache that fails to parse.
+        partial = self.cache_file.with_suffix(".part")
+        partial.write_text(json.dumps(self.cache, sort_keys=True), encoding="utf-8")
+        partial.replace(self.cache_file)
 
 
 def register_id(row: RegisterRow) -> str:
@@ -278,7 +281,9 @@ def load_register(
             response = client.get(REGISTER_URL)
             response.raise_for_status()
             csv_path.parent.mkdir(parents=True, exist_ok=True)
-            csv_path.write_bytes(response.content)
+            partial = csv_path.with_suffix(".part")
+            partial.write_bytes(response.content)
+            partial.replace(csv_path)
         rows = parse_register(csv_path.read_bytes().decode("latin-1"))
         geocoder = Geocoder(cache_dir / "cartociudad_portals.json", client)
         located: list[tuple[RegisterRow, LatLon]] = []

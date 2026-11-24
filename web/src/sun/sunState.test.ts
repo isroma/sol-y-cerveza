@@ -1,24 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import type { LatLon } from '../data/terraces.ts'
 import {
   calleMenacho,
   horizonFromRuns,
   paseoSanFrancisco,
   plazaAlta,
 } from '../test/fixtures.ts'
-import { fromMadridLocal, MINUTES_PER_DAY } from '../time/madrid.ts'
-import {
-  horizonBin,
-  minutesOfSunLeft,
-  sunPosition,
-  sunState,
-} from './sunState.ts'
+import { fromMadridLocal } from '../time/madrid.ts'
+import { horizonBin, sunPosition, sunState } from './sunState.ts'
 
 const madrid = (date: string, time: string) => {
   const [hours = 0, minutes = 0] = time.split(':').map(Number)
   return fromMadridLocal(date, hours * 60 + minutes)
 }
-const endOfDay = (date: string) => fromMadridLocal(date, MINUTES_PER_DAY)
 
 describe('sunPosition', () => {
   it('returns a compass azimuth: east in the morning, south at noon, west in the evening', () => {
@@ -98,42 +91,5 @@ describe('sunState', () => {
   ])('on %s at %s, %s is %s', (date, time, terrace, expected) => {
     const position = sunPosition(madrid(date, time), terrace.terrace)
     expect(sunState(terrace.horizon, position)).toBe(expected)
-  })
-})
-
-describe('minutesOfSunLeft', () => {
-  const left = (
-    date: string,
-    time: string,
-    terrace: { horizon: number[] | null; terrace: LatLon },
-  ) =>
-    minutesOfSunLeft(
-      terrace.horizon,
-      terrace.terrace,
-      madrid(date, time),
-      endOfDay(date),
-    )
-
-  it('counts 5-minute samples of sun until the end of the day', () => {
-    expect(left('2026-06-21', '14:00', plazaAlta)).toBe(425) // until 21:05
-    expect(left('2026-12-21', '14:00', plazaAlta)).toBe(195) // until 17:15
-    expect(left('2026-12-21', '14:00', calleMenacho)).toBe(45) // until 14:45
-    expect(left('2026-12-21', '14:00', paseoSanFrancisco)).toBe(0)
-  })
-
-  it('counts the whole day before sunrise and nothing after sunset', () => {
-    expect(left('2026-12-21', '00:00', calleMenacho)).toBe(155) // 12:10–14:45
-    expect(left('2026-06-21', '23:00', plazaAlta)).toBe(0)
-  })
-
-  it('is null when the horizon is unknown', () => {
-    expect(
-      minutesOfSunLeft(
-        null,
-        plazaAlta.terrace,
-        madrid('2026-06-21', '14:00'),
-        endOfDay('2026-06-21'),
-      ),
-    ).toBeNull()
   })
 })

@@ -149,6 +149,8 @@ async function fetchReviews(): Promise<Map<string, Review>> {
 
 export function Admin() {
   const [dataVenues, setVenues] = useState<Terrace[]>([])
+  // Records of terraces.json this client can't read, so not on the map.
+  const [dropped, setDropped] = useState(0)
   const [adding, setAdding] = useState<Adding | null>(null)
   const [reviews, setReviews] = useState(new Map<string, Review>())
   const [prices, setPrices] = useState(new Map<string, VenuePrice>())
@@ -208,8 +210,9 @@ export function Admin() {
 
   useEffect(() => {
     Promise.all([loadTerraces(), fetchReviews(), fetchPrices()])
-      .then(([file, rows, priceRows]) => {
+      .then(([{ file, dropped }, rows, priceRows]) => {
         setVenues(file.terraces)
+        setDropped(dropped)
         setReviews(rows)
         setPrices(priceRows)
         setMessage('')
@@ -357,6 +360,7 @@ export function Admin() {
               })
             : await fetch(`${API}?venue_id=${encodeURIComponent(venueId)}`, {
                 method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
               })
           if (!response.ok) throw new Error(await response.text())
         }
@@ -395,6 +399,7 @@ export function Admin() {
             })
           : await fetch(`${PRICES_API}?key=${encodeURIComponent(key)}`, {
               method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
             })
         if (!response.ok) throw new Error(await response.text())
         setMessage('Saved')
@@ -663,7 +668,12 @@ export function Admin() {
 
   const runPublish = async () => {
     try {
-      const response = await fetch(PUBLISH_API, { method: 'POST' })
+      // JSON, like every admin write (adminGuard.ts); the body is unused.
+      const response = await fetch(PUBLISH_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      })
       const parsed = publishStatusSchema.safeParse(await response.json())
       if (parsed.success) setPublish(parsed.data)
       else
@@ -834,6 +844,13 @@ export function Admin() {
           </div>
           <p>
             {reviewed} of {venues.length} reviewed
+            {dropped > 0 && (
+              <span className="admin-message" role="alert">
+                {' '}
+                · {dropped} invalid {dropped === 1 ? 'record' : 'records'} in
+                terraces.json left out
+              </span>
+            )}
             {message && <span className="admin-message"> · {message}</span>}
           </p>
           <div className="admin-publish" aria-live="polite">

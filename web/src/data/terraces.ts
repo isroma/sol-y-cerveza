@@ -45,17 +45,24 @@ const terraceSchema = z.object({
   prices: z.array(priceSchema).optional(),
 })
 
+/** One record, with the rules that span its fields. */
+const terraceRecordSchema = terraceSchema.refine(
+  (t) => t.horizon !== null || (t.horizon_winter ?? null) === null,
+  { message: 'horizon_winter needs a horizon' },
+)
+
+/** The whole file, every record valid (what the pipeline must produce). */
 export const terracesFileSchema = z.object({
   version: z.literal(2),
   generated: z.iso.datetime(),
   sample: z.boolean(),
   attribution: z.array(z.string()),
-  terraces: z.array(
-    terraceSchema.refine(
-      (t) => t.horizon !== null || (t.horizon_winter ?? null) === null,
-      { message: 'horizon_winter needs a horizon' },
-    ),
-  ),
+  terraces: z.array(terraceRecordSchema),
+})
+
+/** The file around its records: checked strictly, the records one by one. */
+const terracesEnvelopeSchema = terracesFileSchema.extend({
+  terraces: z.array(z.unknown()),
 })
 
 export type LatLon = z.infer<typeof latLonSchema>
@@ -63,10 +70,31 @@ export type Price = z.infer<typeof priceSchema>
 export type Terrace = z.infer<typeof terraceSchema>
 export type TerracesFile = z.infer<typeof terracesFileSchema>
 
-export async function loadTerraces(): Promise<TerracesFile> {
+/** A loaded file, and how many of its records were invalid and left out. */
+export type LoadedTerraces = { file: TerracesFile; dropped: number }
+
+/**
+ * Validates a terraces.json. A wrong version or top-level shape throws; an
+ * invalid record (e.g. a `kind` or price brand this client doesn't know yet)
+ * is left out and counted, so one bad record never blanks the whole map.
+ */
+export function parseTerracesFile(json: unknown): LoadedTerraces {
+  const envelope = terracesEnvelopeSchema.parse(json)
+  const terraces: Terrace[] = []
+  for (const record of envelope.terraces) {
+    const parsed = terraceRecordSchema.safeParse(record)
+    if (parsed.success) terraces.push(parsed.data)
+  }
+  return {
+    file: { ...envelope, terraces },
+    dropped: envelope.terraces.length - terraces.length,
+  }
+}
+
+export async function loadTerraces(): Promise<LoadedTerraces> {
   const response = await fetch(TERRACES_URL)
   if (!response.ok) {
     throw new Error(`Failed to load ${TERRACES_URL}: HTTP ${response.status}`)
   }
-  return terracesFileSchema.parse(await response.json())
+  return parseTerracesFile(await response.json())
 }

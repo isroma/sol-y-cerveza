@@ -59,8 +59,24 @@ export default defineConfig({
   // MapLibre's worker is an ES module.
   worker: { format: 'es' },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
     exclude: ['**/node_modules/**', '**/.git/**', 'e2e/**'],
+    // Chosen by file name, so no test runs in the wrong one: components
+    // (*.test.tsx) get a DOM, everything else (*.test.ts) runs in plain Node,
+    // which starts much faster.
+    projects: [
+      {
+        extends: true,
+        test: { name: 'node', include: ['**/*.test.ts'], environment: 'node' },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          include: ['**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+        },
+      },
+    ],
   },
 })

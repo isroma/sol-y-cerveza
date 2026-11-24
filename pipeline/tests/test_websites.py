@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import duckdb
@@ -67,11 +67,12 @@ def fetcher(
     *,
     refresh: bool = False,
     max_bytes: int = 1_000_000,
+    today: date = TODAY,
 ) -> Fetcher:
     clock = clock or Clock()
     return Fetcher(
         client=httpx.Client(transport=httpx.MockTransport(site)),
-        today=TODAY,
+        today=today,
         cache_dir=tmp_path,
         sleep=clock.sleep,
         clock=clock,
@@ -347,3 +348,60 @@ def test_network_failures_are_not_cached(tmp_path: Path) -> None:
 
     crawl_site(fetcher(Site({"https://bar.es/robots.txt": down}), tmp_path), "https://bar.es/")
     assert list(tmp_path.iterdir()) == []
+
+
+def test_server_errors_are_not_cached(tmp_path: Path) -> None:
+    answers = iter([httpx.Response(503), httpx.Response(404)])
+    routes: dict[str, httpx.Response | Callable[[], httpx.Response]] = {
+        "https://bar.es/robots.txt": lambda: next(answers),
+        "https://bar.es/": page("<p>Caña 1,50 €</p>"),
+    }
+    # A 5xx robots.txt keeps us out for this run...
+    first = Site(routes)
+    assert crawl_site(fetcher(first, tmp_path), "https://bar.es/").pages == []
+    assert list(tmp_path.iterdir()) == []
+    # ...but not for good: the next run asks again.
+    second = Site(routes)
+    assert [p.url for p in crawl_site(fetcher(second, tmp_path), "https://bar.es/").pages] == [
+        "https://bar.es/"
+    ]
+    assert second.urls == ["https://bar.es/robots.txt", "https://bar.es/"]
+
+
+def test_cached_robots_expires_after_30_days(tmp_path: Path) -> None:
+    rules = iter(["User-agent: *\nDisallow: /\n", "User-agent: *\nAllow: /\n"])
+    routes: dict[str, httpx.Response | Callable[[], httpx.Response]] = {
+        "https://bar.es/robots.txt": lambda: httpx.Response(200, text=next(rules)),
+        "https://bar.es/": page("<p>Caña 1,50 €</p>"),
+    }
+    assert crawl_site(fetcher(Site(routes), tmp_path), "https://bar.es/").pages == []
+
+    # 29 days on, the cached rules still apply and nothing is fetched.
+    soon = Site(routes)
+    later = TODAY + timedelta(days=29)
+    assert crawl_site(fetcher(soon, tmp_path, today=later), "https://bar.es/").pages == []
+    assert soon.requests == []
+
+    # At 30 days robots.txt is fetched again, and the site's new rules let us in.
+    expired = Site(routes)
+    month = TODAY + timedelta(days=30)
+    result = crawl_site(fetcher(expired, tmp_path, today=month), "https://bar.es/")
+    assert [p.url for p in result.pages] == ["https://bar.es/"]
+    assert expired.urls == ["https://bar.es/robots.txt", "https://bar.es/"]
+    assert result.pages[0].fetched == month
+
+
+def test_expired_robots_that_cannot_be_fetched_means_keep_out(tmp_path: Path) -> None:
+    routes: dict[str, httpx.Response | Callable[[], httpx.Response]] = {
+        "https://bar.es/robots.txt": httpx.Response(404),
+        "https://bar.es/": page("<p>x</p>"),
+    }
+    crawl_site(fetcher(Site(routes), tmp_path), "https://bar.es/")
+
+    def down() -> httpx.Response:
+        raise httpx.ConnectError("down")
+
+    site = Site({"https://bar.es/robots.txt": down, "https://bar.es/": page("<p>x</p>")})
+    month = TODAY + timedelta(days=30)
+    assert crawl_site(fetcher(site, tmp_path, today=month), "https://bar.es/").pages == []
+    assert site.urls == ["https://bar.es/robots.txt"]

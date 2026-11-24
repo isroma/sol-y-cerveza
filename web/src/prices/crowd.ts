@@ -8,22 +8,33 @@ export const PRICES_API: string | null = import.meta.env.VITE_PRICES_API || null
 export const TURNSTILE_SITE_KEY: string | null =
   import.meta.env.VITE_TURNSTILE_SITE_KEY || null
 
-const crowdSchema = z.object({
-  prices: z.array(
-    z.object({
-      venueId: z.string(),
-      item: z.enum(ITEMS),
-      brand: z.enum(BRANDS).nullable(),
-      cents: z.number().int(),
-      voters: z.number().int(),
-      last: z.string(),
-      // Saved by the owner (owner mode): shown as confirmed, no "~".
-      confirmed: z.boolean().default(false),
-    }),
-  ),
+const crowdPriceSchema = z.object({
+  venueId: z.string(),
+  item: z.enum(ITEMS),
+  brand: z.enum(BRANDS).nullable(),
+  cents: z.number().int(),
+  voters: z.number().int(),
+  last: z.string(),
+  // Saved by the owner (owner mode): shown as confirmed, no "~".
+  confirmed: z.boolean().default(false),
 })
 
-export type CrowdPrice = z.infer<typeof crowdSchema>['prices'][number]
+/** The answer's shape is checked strictly, each price on its own. */
+const crowdSchema = z.object({ prices: z.array(z.unknown()) })
+
+export type CrowdPrice = z.infer<typeof crowdPriceSchema>
+
+/**
+ * The prices in an API answer. A price this client can't read (e.g. a brand
+ * it doesn't know yet) is left out instead of discarding all of them; an
+ * answer of the wrong shape throws.
+ */
+export function parseCrowdPrices(body: unknown): CrowdPrice[] {
+  return crowdSchema.parse(body).prices.flatMap((price) => {
+    const parsed = crowdPriceSchema.safeParse(price)
+    return parsed.success ? [parsed.data] : []
+  })
+}
 
 /** A price line on the card: confirmed by a curator, or agreed by visitors (~). */
 export type ShownPrice = {
@@ -44,7 +55,7 @@ function fetchPrices(fresh: boolean): Promise<CrowdPrice[]> {
   const mine = ++requests
   return fetch(`${PRICES_API}/v1/prices`, fresh ? { cache: 'no-store' } : {})
     .then((response) => response.json())
-    .then((body) => crowdSchema.parse(body).prices)
+    .then(parseCrowdPrices)
     .catch(() => latest)
     .then((prices) => {
       // An older, slower answer never replaces a newer one.

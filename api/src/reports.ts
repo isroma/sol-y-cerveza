@@ -14,8 +14,19 @@ export const MAX_MOVE_METRES = 500
 /** A terrace sits by its venue: a `pin` at most this far from the published venue position. */
 export const MAX_PIN_METRES = 150
 /** Reports must point inside Badajoz. */
-export const BOX = { south: 38.84, west: -7.04, north: 38.92, east: -6.92 } as const
-export const VENUE_KINDS = ['bar', 'pub', 'cafe', 'restaurant', 'biergarten'] as const
+export const BOX = {
+  south: 38.84,
+  west: -7.04,
+  north: 38.92,
+  east: -6.92,
+} as const
+export const VENUE_KINDS = [
+  'bar',
+  'pub',
+  'cafe',
+  'restaurant',
+  'biergarten',
+] as const
 
 export type VenueKind = (typeof VENUE_KINDS)[number]
 export type LatLon = { lat: number; lon: number }
@@ -23,7 +34,14 @@ export type LatLon = { lat: number; lon: number }
 export type Report =
   | { kind: 'move'; venueId: string; lat: number; lon: number }
   | { kind: 'closed'; venueId: string }
-  | { kind: 'add'; name: string; venueKind: VenueKind; terrace: boolean; lat: number; lon: number }
+  | {
+      kind: 'add'
+      name: string
+      venueKind: VenueKind
+      terrace: boolean
+      lat: number
+      lon: number
+    }
   | { kind: 'terrace'; venueId: string; terrace: boolean }
   | { kind: 'pin'; venueId: string; lat: number; lon: number }
 
@@ -39,7 +57,13 @@ function isVenueKind(value: unknown): value is VenueKind {
 }
 
 function coordinate(value: unknown, min: number, max: number): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) return null
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < min ||
+    value > max
+  )
+    return null
   return Math.round(value * 1e6) / 1e6
 }
 
@@ -55,20 +79,32 @@ export function cleanName(name: string): string {
 export function parseReport(
   body: unknown,
 ): { ok: true; value: Report; token: string } | { ok: false; error: string } {
-  if (typeof body !== 'object' || body === null) return { ok: false, error: 'body' }
-  const { kind, venueId, lat, lon, name, venueKind, terrace, token } = body as Record<
-    string,
-    unknown
-  >
-  if (kind !== 'move' && kind !== 'closed' && kind !== 'add' && kind !== 'terrace' && kind !== 'pin')
+  if (typeof body !== 'object' || body === null)
+    return { ok: false, error: 'body' }
+  const { kind, venueId, lat, lon, name, venueKind, terrace, token } =
+    body as Record<string, unknown>
+  if (
+    kind !== 'move' &&
+    kind !== 'closed' &&
+    kind !== 'add' &&
+    kind !== 'terrace' &&
+    kind !== 'pin'
+  )
     return { ok: false, error: 'kind' }
-  if (kind !== 'add' && (typeof venueId !== 'string' || !VENUE_ID.test(venueId)))
+  if (
+    kind !== 'add' &&
+    (typeof venueId !== 'string' || !VENUE_ID.test(venueId))
+  )
     return { ok: false, error: 'venueId' }
-  const point = { lat: coordinate(lat, BOX.south, BOX.north), lon: coordinate(lon, BOX.west, BOX.east) }
+  const point = {
+    lat: coordinate(lat, BOX.south, BOX.north),
+    lon: coordinate(lon, BOX.west, BOX.east),
+  }
   const placed = kind === 'move' || kind === 'add' || kind === 'pin'
   if (placed && point.lat === null) return { ok: false, error: 'lat' }
   if (placed && point.lon === null) return { ok: false, error: 'lon' }
-  if (kind === 'terrace' && typeof terrace !== 'boolean') return { ok: false, error: 'terrace' }
+  if (kind === 'terrace' && typeof terrace !== 'boolean')
+    return { ok: false, error: 'terrace' }
   const cleaned = typeof name === 'string' ? cleanName(name) : ''
   if (kind === 'add') {
     if (cleaned.length < 2 || cleaned.length > 60 || /http|www/i.test(cleaned))
@@ -81,9 +117,16 @@ export function parseReport(
 
   const id = typeof venueId === 'string' ? venueId : ''
   const position = { lat: point.lat ?? 0, lon: point.lon ?? 0 }
-  if (kind === 'closed') return { ok: true, value: { kind, venueId: id }, token }
-  if (kind === 'move' || kind === 'pin') return { ok: true, value: { kind, venueId: id, ...position }, token }
-  if (kind === 'terrace') return { ok: true, value: { kind, venueId: id, terrace: terrace === true }, token }
+  if (kind === 'closed')
+    return { ok: true, value: { kind, venueId: id }, token }
+  if (kind === 'move' || kind === 'pin')
+    return { ok: true, value: { kind, venueId: id, ...position }, token }
+  if (kind === 'terrace')
+    return {
+      ok: true,
+      value: { kind, venueId: id, terrace: terrace === true },
+      token,
+    }
   return {
     ok: true,
     value: {
@@ -103,7 +146,8 @@ export function distanceMetres(a: LatLon, b: LatLon): number {
   const dLat = (b.lat - a.lat) * rad
   const dLon = (b.lon - a.lon) * rad
   const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2
   return 2 * 6_371_000 * Math.asin(Math.sqrt(h))
 }
 
@@ -122,7 +166,13 @@ export type ReportRow = {
 }
 
 export type QueueEntry =
-  | { ids: number[]; kind: 'closed'; venueId: string; reporters: number; last: string }
+  | {
+      ids: number[]
+      kind: 'closed'
+      venueId: string
+      reporters: number
+      last: string
+    }
   | {
       ids: number[]
       kind: 'move' | 'pin'
@@ -143,7 +193,14 @@ export type QueueEntry =
       reporters: number
       last: string
     }
-  | { ids: number[]; kind: 'terrace'; venueId: string; terrace: boolean; reporters: number; last: string }
+  | {
+      ids: number[]
+      kind: 'terrace'
+      venueId: string
+      terrace: boolean
+      reporters: number
+      last: string
+    }
 
 type Group = { ids: number[]; nets: Set<string>; last: string }
 
@@ -156,7 +213,10 @@ type Group = { ids: number[]; nets: Set<string>; last: string }
  */
 export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
   const closed = new Map<string, Group>()
-  const answers = new Map<string, Group & { venueId: string; terrace: boolean }>()
+  const answers = new Map<
+    string,
+    Group & { venueId: string; terrace: boolean }
+  >()
   const entries: QueueEntry[] = []
   const join = (group: Group, row: ReportRow) => {
     group.ids.push(row.id)
@@ -165,7 +225,11 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
   }
   for (const row of rows) {
     if (row.kind === 'closed') {
-      const group = closed.get(row.venue_id) ?? { ids: [], nets: new Set(), last: '' }
+      const group = closed.get(row.venue_id) ?? {
+        ids: [],
+        nets: new Set(),
+        last: '',
+      }
       join(group, row)
       closed.set(row.venue_id, group)
       continue
@@ -173,13 +237,26 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
     if (row.kind === 'terrace') {
       const terrace = row.terrace === 1
       const key = `${row.venue_id}|${terrace}`
-      const group = answers.get(key) ?? { ids: [], nets: new Set(), last: '', venueId: row.venue_id, terrace }
+      const group = answers.get(key) ?? {
+        ids: [],
+        nets: new Set(),
+        last: '',
+        venueId: row.venue_id,
+        terrace,
+      }
       join(group, row)
       answers.set(key, group)
       continue
     }
-    const base = { ids: [row.id], lat: row.lat ?? 0, lon: row.lon ?? 0, reporters: 1, last: row.created_at }
-    if (row.kind === 'move' || row.kind === 'pin') entries.push({ ...base, kind: row.kind, venueId: row.venue_id })
+    const base = {
+      ids: [row.id],
+      lat: row.lat ?? 0,
+      lon: row.lon ?? 0,
+      reporters: 1,
+      last: row.created_at,
+    }
+    if (row.kind === 'move' || row.kind === 'pin')
+      entries.push({ ...base, kind: row.kind, venueId: row.venue_id })
     if (row.kind === 'add')
       entries.push({
         ...base,
@@ -207,7 +284,13 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
       last: group.last,
     })
   return entries.sort((a, b) =>
-    b.reporters !== a.reporters ? b.reporters - a.reporters : a.last < b.last ? 1 : a.last > b.last ? -1 : 0,
+    b.reporters !== a.reporters
+      ? b.reporters - a.reporters
+      : a.last < b.last
+        ? 1
+        : a.last > b.last
+          ? -1
+          : 0,
   )
 }
 

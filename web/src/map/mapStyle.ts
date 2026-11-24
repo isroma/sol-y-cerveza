@@ -4,8 +4,32 @@ import type {
   LightSpecification,
   StyleSpecification,
 } from 'maplibre-gl'
+import { z } from 'zod'
 import type { SunPosition } from '../sun/sunState.ts'
 import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
+
+/**
+ * The minimal shape of a MapLibre style, checked before the basemap's JSON
+ * reaches MapLibre. MapLibre validates the rest itself. Only a check: the
+ * JSON itself goes on, with all its keys. (catchall rather than z.record or
+ * z.looseObject, which would add ~4.6 kB of zod to the entry chunk.)
+ */
+const basemapStyleSchema = z.object({
+  version: z.literal(8),
+  sources: z.object({}).catchall(z.object({ type: z.string() })),
+  layers: z.array(z.object({ id: z.string(), type: z.string() })),
+})
+
+function isStyleSpecification(value: unknown): value is StyleSpecification {
+  return basemapStyleSchema.safeParse(value).success
+}
+
+/** The basemap style from its JSON; throws when it isn't a style. */
+export function parseBasemapStyle(json: unknown): StyleSpecification {
+  if (!isStyleSpecification(json))
+    throw new Error('the basemap style is not a MapLibre style')
+  return json
+}
 
 /** Dropped: POI icons (the venue pins are the points of interest) and road clutter. */
 const DROPPED_LAYERS = new Set([

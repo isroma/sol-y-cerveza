@@ -8,8 +8,9 @@ later stage computes it.
 Curated list (`pipeline/data/curated_terraces.csv`, UTF-8, one row per terrace, header required):
 
 - `id`: stable slug (`[a-z0-9]` words joined by `-`), e.g. `plaza-alta-la-terraza`.
-- `venue_id`: optional link to a venue: OSM (`osm:node/123`, `osm:way/456`) or Overture
-  (`overture:<GERS id>`). A linked record keeps that id; an unlinked one becomes `curated:<id>`.
+- `venue_id`: optional link to a venue: OSM (`osm:node/123`, `osm:way/456`), Overture
+  (`overture:<GERS id>`), the Junta register (`junta:<hash>`) or the admin view (`review:<slug>`).
+  A linked record keeps that id and its source; an unlinked one becomes `curated:<id>`.
   A link to a venue missing from the downloads is an error, so ids never change silently.
 - `name`, `kind`: optional when `venue_id` is set (the venue's values are used), required
   otherwise. When given they override the venue's. `kind` is one of bar, pub, cafe,
@@ -43,6 +44,7 @@ from solycerveza.overture import distance_m, name_similarity
 from solycerveza.prices import Price
 from solycerveza.venues import (
     CACHE_DIR,
+    VENUE_ID_ALTERNATIVES,
     VENUE_ID_PATTERN,
     Kind,
     Lat,
@@ -51,6 +53,7 @@ from solycerveza.venues import (
     SeatingArea,
     Venue,
     load_venues,
+    venue_source,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,10 +71,8 @@ CURATED_COLUMNS = (
     "notes",
 )
 SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
-TERRACE_ID_PATTERN = (
-    r"^(osm:(node|way)/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}"
-    r"|(curated|sample):[a-z0-9]+(-[a-z0-9]+)*)$"
-)
+# Every venue id, plus unlinked curated rows and sample data.
+TERRACE_ID_PATTERN = rf"^({VENUE_ID_ALTERNATIVES}|(curated|sample):[a-z0-9]+(-[a-z0-9]+)*)$"
 
 Horizon = Annotated[
     list[Annotated[int, Field(ge=0, le=900)]], Field(min_length=360, max_length=360)
@@ -230,7 +231,7 @@ def _linked(venue: Venue, row: CuratedTerrace) -> Terrace:
         kind=row.kind or venue.kind,
         venue=venue.location,
         terrace=row.terrace,
-        sources=["curated", "osm"],
+        sources=sorted({"curated", venue_source(venue.id)}),
         verified=row.verified,
     )
 
@@ -244,7 +245,7 @@ def _osm_only(venue: Venue, name: str) -> Terrace:
         kind=venue.kind,
         venue=venue.location,
         terrace=venue.location if has_terrace else None,
-        sources=[venue.id.split(":", 1)[0]],  # "osm", "overture" or "junta"
+        sources=[venue_source(venue.id)],
         verified=None,
     )
 

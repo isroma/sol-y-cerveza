@@ -14,8 +14,10 @@ from it whose link text or address looks like a menu (`MENU_WORDS`). It is polit
 - HTML only. Menus published as PDF or image files are never downloaded: their links are
   returned as leads for the owner to read by hand.
 
-Every answer (not network failures) is cached in `.cache/websites/`, one JSON file per URL,
-so re-running the extraction needs no network. Only `Fetcher` touches the network.
+Every answer except network failures and 5xx errors (both usually transient) is cached in
+`.cache/websites/`, one JSON file per URL, so re-running the extraction needs no network. A cached
+robots.txt is fetched again once it is `ROBOTS_MAX_AGE` old, so a site's new rules are seen. Only
+`Fetcher` touches the network.
 """
 
 import hashlib
@@ -27,7 +29,7 @@ import unicodedata
 import urllib.robotparser
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -49,6 +51,8 @@ MAX_REDIRECTS = 3
 DEFAULT_DELAY_S = 2.0
 MAX_DELAY_S = 30.0
 TIMEOUT = httpx.Timeout(15.0, connect=10.0)
+# A cached robots.txt older than this is fetched again.
+ROBOTS_MAX_AGE = timedelta(days=30)
 
 # Platforms that are not the venue's own site: their terms forbid scraping, or the page is a
 # profile on someone else's service. A host matches when it equals an entry or ends with
@@ -338,6 +342,15 @@ def cache_file(cache_dir: Path, url: str) -> Path:
     return cache_dir / f"{hashlib.sha256(url.encode()).hexdigest()[:24]}.json"
 
 
+def is_robots(url: str) -> bool:
+    return urlsplit(url).path == "/robots.txt"
+
+
+def is_cacheable(status: int) -> bool:
+    """An answer worth keeping: not a network failure (0) or a server error (5xx)."""
+    return 0 < status < 500
+
+
 @dataclass
 class Fetcher:
     """One request at a time, cached, with robots.txt and a per-host delay."""
@@ -358,12 +371,13 @@ class Fetcher:
     def response(self, url: str) -> Response:
         """The response for `url`, from the cache or the network.
 
-        Answers are cached, whatever their status; network failures are not.
+        Answers are cached; network failures and 5xx errors are not (try again next run), and a
+        cached robots.txt is fetched again once it is `ROBOTS_MAX_AGE` old (by `today`).
         """
         path = cache_file(self.cache_dir, url)
         if not self.refresh and path.exists():
             raw = json.loads(path.read_text(encoding="utf-8"))
-            return Response(
+            cached = Response(
                 url=raw["url"],
                 status=raw["status"],
                 content_type=raw["content_type"],
@@ -371,9 +385,13 @@ class Fetcher:
                 fetched=date.fromisoformat(raw["fetched"]),
                 body=raw["body"],
             )
+            stale = is_robots(url) and self.today - cached.fetched >= ROBOTS_MAX_AGE
+            # A 5xx cached by an older version is not an answer either.
+            if is_cacheable(cached.status) and not stale:
+                return cached
         response = self._download(url)
-        if response.status == 0:
-            return response  # a network failure is not an answer: try again next run
+        if not is_cacheable(response.status):
+            return response
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         record = {
             "url": response.url,

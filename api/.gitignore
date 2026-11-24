@@ -1,0 +1,4 @@
+# Build output (npm run build:dry) and local Worker state (wrangler dev, migrate:local)
+dist/
+.wrangler/
+.dev.vars

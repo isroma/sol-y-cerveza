@@ -12,10 +12,12 @@ from solycerveza.junta import RegisterRow, register_id
 from solycerveza.ortho import Crop, OrthoFetcher, cached_crop
 from solycerveza.overture import distance_m
 from solycerveza.proposals import (
+    AskAll,
     OvertureAttrs,
     Proposal,
     ask_vision,
     keep_dates,
+    main,
     not_venue_score,
     overture_proposals,
     plan_vision,
@@ -24,6 +26,7 @@ from solycerveza.proposals import (
     read_proposals,
     read_records,
     vision_proposals,
+    vision_to_ask,
     write_proposals,
 )
 from solycerveza.terrace_vision import (
@@ -31,6 +34,8 @@ from solycerveza.terrace_vision import (
     MODEL,
     CachedAnswer,
     ClaudeAsker,
+    NoAnswer,
+    Unanswered,
     VisionAnswer,
     ask,
     estimate_usd,
@@ -110,10 +115,19 @@ def test_ortho_fetcher_caches_images_and_rejects_wms_errors(tmp_path: Path) -> N
 def test_ask_validates_the_answer() -> None:
     crop = Crop(CENTRE)
     good = ask(lambda _i, _p: answer_json("yes", 420, 380), "Bar", "bar", crop, b"x", TODAY)
-    assert good is not None and good.answer.terrace == "yes" and good.asked == TODAY
-    assert ask(lambda _i, _p: "not json", "Bar", "bar", crop, b"x", TODAY) is None
-    assert ask(lambda _i, _p: answer_json("yes"), "Bar", "bar", crop, b"x", TODAY) is None
-    assert ask(lambda _i, _p: answer_json("yes", 900, 10), "Bar", "bar", crop, b"x", TODAY) is None
+    assert isinstance(good, CachedAnswer)
+    assert good.answer.terrace == "yes" and good.asked == TODAY
+    # Paid for but unusable: an `Unanswered` marker, which the caller caches.
+    for unusable in ("not json", answer_json("yes"), answer_json("yes", 900, 10)):
+
+        def asker(_image: bytes, _prompt: str, text: str = unusable) -> str:
+            return text
+
+        bad = ask(asker, "Bar", "bar", crop, b"x", TODAY)
+        assert isinstance(bad, Unanswered) and bad.asked == TODAY
+    refused = ask(lambda _i, _p: NoAnswer("stop_reason refusal"), "Bar", "bar", crop, b"x", TODAY)
+    assert refused == Unanswered(reason="stop_reason refusal", asked=TODAY)
+    # A transient failure: nothing to cache.
     assert ask(lambda _i, _p: None, "Bar", "bar", crop, b"x", TODAY) is None
 
 
@@ -153,7 +167,7 @@ def test_claude_asker_sends_image_schema_and_fallback() -> None:
         api_key="test", http_client=httpx2.Client(transport=httpx2.MockTransport(handler))
     )
     text = ClaudeAsker(client)(b"jpeg", "prompt")
-    assert text is not None and VisionAnswer.model_validate_json(text).terrace == "no"
+    assert isinstance(text, str) and VisionAnswer.model_validate_json(text).terrace == "no"
     body = sent[0]
     assert body["model"] == "claude-opus-5-5"
     assert body["fallbacks"] == "default"
@@ -163,6 +177,59 @@ def test_claude_asker_sends_image_schema_and_fallback() -> None:
     }
     content = body["messages"][0]["content"]  # type: ignore[index]
     assert content[0]["source"]["media_type"] == "image/jpeg"
+
+
+def message_client(status: int, body: dict[str, object]) -> anthropic.Anthropic:
+    def handler(_request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(status, json=body)
+
+    return anthropic.Anthropic(
+        api_key="test",
+        max_retries=0,
+        http_client=httpx2.Client(transport=httpx2.MockTransport(handler)),
+    )
+
+
+def test_claude_asker_gives_no_answer_for_a_refusal() -> None:
+    client = message_client(
+        200,
+        {
+            "id": "msg_1",
+            "type": "message",
+            "role": "assistant",
+            "model": MODEL,
+            "content": [],
+            "stop_reason": "refusal",
+            "stop_sequence": None,
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+        },
+    )
+    assert ClaudeAsker(client)(b"jpeg", "prompt") == NoAnswer("stop_reason refusal")
+
+
+def error_body(kind: str) -> dict[str, object]:
+    return {"type": "error", "error": {"type": kind, "message": "nope"}}
+
+
+@pytest.mark.parametrize(
+    ("status", "kind", "error"),
+    [
+        (400, "invalid_request_error", anthropic.BadRequestError),
+        (401, "authentication_error", anthropic.AuthenticationError),
+        (403, "permission_error", anthropic.PermissionDeniedError),
+        (404, "not_found_error", anthropic.NotFoundError),
+    ],
+)
+def test_claude_asker_stops_the_run_on_errors_every_request_would_hit(
+    status: int, kind: str, error: type[Exception]
+) -> None:
+    with pytest.raises(error):
+        ClaudeAsker(message_client(status, error_body(kind)))(b"jpeg", "prompt")
+
+
+def test_claude_asker_skips_a_venue_on_a_server_error() -> None:
+    client = message_client(500, error_body("api_error"))
+    assert ClaudeAsker(client)(b"jpeg", "prompt") is None
 
 
 def test_estimate_scales_with_calls() -> None:
@@ -220,6 +287,47 @@ def test_plan_and_ask_vision_use_the_caches(tmp_path: Path) -> None:
     assert list(answers) == ["osm:node/1"] and len(asked) == 1
     again = plan_vision(targets, ortho, vision)
     assert list(again.cached) == ["osm:node/1"] and again.to_ask == []
+
+
+def test_paid_requests_without_an_answer_are_cached_and_transient_failures_are_not(
+    tmp_path: Path,
+) -> None:
+    ortho, vision = tmp_path / "ortho", tmp_path / "vision"
+    refused = record("osm:node/1", sources=["osm"], name="Bar Uno")
+    failed = record("osm:node/2", sources=["osm"], name="Bar Dos")
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"content-type": "image/jpeg"}, content=b"jpeg")
+
+    def asker(_image: bytes, prompt: str) -> NoAnswer | None:
+        return NoAnswer("stop_reason refusal") if "Bar Uno" in prompt else None
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        fetcher = OrthoFetcher(client=client, cache_dir=ortho, sleep=lambda _: None)
+        answers = ask_vision([refused, failed], fetcher, asker, TODAY, vision)
+    assert answers == {}
+
+    plan = plan_vision([refused, failed], ortho, vision)
+    assert plan.cached == {}
+    assert plan.unanswered == {"osm:node/1": Unanswered(reason="stop_reason refusal", asked=TODAY)}
+    assert [t.id for t in plan.to_ask] == ["osm:node/2"]  # only this one costs again
+
+
+def test_vision_call_budget() -> None:
+    targets = [record(f"osm:node/{i}", sources=["osm"]) for i in range(3)]
+    assert vision_to_ask(targets, None) == []
+    assert vision_to_ask(targets, 0) == []
+    assert [t.id for t in vision_to_ask(targets, 2)] == ["osm:node/0", "osm:node/1"]
+    assert vision_to_ask(targets, AskAll()) == targets
+    with pytest.raises(ValueError, match="negative"):
+        vision_to_ask(targets, -1)
+
+
+@pytest.mark.parametrize("limit", ["-1", "-5", "two"])
+def test_limit_must_be_a_non_negative_number(limit: str) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--limit", limit])
+    assert exit_info.value.code == 2
 
 
 # --- Overture proposer --------------------------------------------------------------------

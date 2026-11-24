@@ -6,17 +6,26 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "build:dry": "wrangler deploy --dry-run --outdir dist",
     "migrate:local": "wrangler d1 migrations apply sol-y-cerveza --local",
     "migrate:remote": "wrangler d1 migrations apply sol-y-cerveza --remote",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "lint": "oxlint --deny-warnings",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.13.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261118.1",
+    "@types/node": "^26.6.6",
+    "esbuild": "0.28.2",
+    "miniflare": "5.20261117.0-beta",
+    "oxlint": "^1.95.0",
+    "prettier": "^3.10.1",
     "typescript": "~7.0.2",
     "vitest": "^5.1.1",
     "wrangler": "4.164.0"

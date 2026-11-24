@@ -2,8 +2,10 @@ import { spawn } from 'node:child_process'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { dirname, resolve } from 'node:path'
+import { TLSSocket } from 'node:tls'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
+import { adminRequestRefusal } from './adminGuard.ts'
 import {
   answerPhoto,
   claudeReader,
@@ -262,6 +264,17 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
+      // First, so it covers every /__admin route below: refuses state-changing
+      // requests that aren't same-origin JSON (adminGuard.ts).
+      server.middlewares.use('/__admin', (req, res, next) => {
+        const refusal = adminRequestRefusal({
+          method: req.method,
+          headers: req.headers,
+          secure: req.socket instanceof TLSSocket,
+        })
+        if (refusal === null) return next()
+        send(res, 403, { error: refusal })
+      })
       server.middlewares.use('/__admin/publish', (req, res) => {
         if (req.method === 'GET') return send(res, 200, publishStatus())
         if (req.method !== 'POST')

@@ -73,12 +73,20 @@ def cache_path(cache_dir: Path = CACHE_DIR) -> Path:
     return cache_dir / f"overture_places_{RELEASE}.parquet"
 
 
-def fetch_places(bbox: BoundingBox = BADAJOZ_BBOX, cache_dir: Path = CACHE_DIR) -> Path:
-    """Download the places of `bbox` from Overture's public S3 bucket into a parquet file."""
+def fetch_places(
+    bbox: BoundingBox = BADAJOZ_BBOX, cache_dir: Path = CACHE_DIR, *, source: str = PLACES
+) -> Path:
+    """Download the places of `bbox` from Overture's public S3 bucket into a parquet file.
+
+    It is written to a `.part` file first and renamed when complete, because callers trust the
+    file once it exists: an interrupted download must not leave a truncated cache behind.
+    """
     path = cache_path(cache_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_suffix(".part")
     con = duckdb.connect()
-    con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2';")
+    if source.startswith("s3://"):
+        con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2';")
     con.execute(
         f"""
         COPY (
@@ -88,13 +96,15 @@ def fetch_places(bbox: BoundingBox = BADAJOZ_BBOX, cache_dir: Path = CACHE_DIR) 
                  taxonomy.primary AS category, taxonomy.hierarchy AS hierarchy,
                  list_transform(sources, lambda s: s.dataset) AS datasets,
                  websites
-          FROM read_parquet('{PLACES}', hive_partitioning = 1)
+          FROM read_parquet('{source}', hive_partitioning = 1)
           WHERE bbox.xmin >= ? AND bbox.xmax <= ? AND bbox.ymin >= ? AND bbox.ymax <= ?
           ORDER BY id
-        ) TO '{path}' (FORMAT parquet)
+        ) TO '{partial}' (FORMAT parquet)
         """,
         [bbox.west, bbox.east, bbox.south, bbox.north],
     )
+    con.close()
+    partial.replace(path)
     return path
 
 
