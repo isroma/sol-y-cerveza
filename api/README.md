@@ -12,6 +12,25 @@ A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices
 | `PUT` / `DELETE /v1/owner/prices` | owner mode | `{venueId, item, brand, cents}`: a confirmed price, dated today (Madrid) |
 | `POST /v1/owner/photo` | owner mode | `{image, mediaType}` → `{proposals, notes, barName}`, read by the Claude API (`ANTHROPIC_API_KEY`) |
 | `GET /v1/admin/owner-prices` | the admin view | owner prices, for the import into `venue_prices.csv` |
+| `POST /v1/reports` | the app | a venue report ([ADR-0008](../docs/adr/0008-visitor-venue-reports.md)), with a Turnstile token for the action `report`; see below |
+| `GET /v1/admin/reports` | the admin view | pending reports, most reporters first |
+| `POST /v1/admin/reports/resolve` | the admin view | `{ids, status: accepted \| rejected}` → `{updated}` |
+
+### Venue reports
+
+```json
+{ "kind": "terrace", "venueId": "osm:node/1", "terrace": true, "token": "…" }
+{ "kind": "pin",     "venueId": "osm:node/1", "lat": 38.878, "lon": -6.970, "token": "…" }
+{ "kind": "move",    "venueId": "osm:node/1", "lat": 38.878, "lon": -6.970, "token": "…" }
+{ "kind": "closed",  "venueId": "osm:node/1", "token": "…" }
+{ "kind": "add", "name": "Bar Nuevo", "venueKind": "bar", "terrace": true, "lat": 38.878, "lon": -6.970, "token": "…" }
+```
+
+- Positions inside the Badajoz box (south 38.84, west −7.04, north 38.92, east −6.92), rounded to 6 decimals. `pin` at most 150 m and `move` at most 500 m from the published venue; venue reports need a venue in the published data.
+- `name` (new venues only): 2–60 characters after cleaning, at least one letter, no links. It is the only free text stored.
+- One open report per voter, venue and kind; a new one replaces the old one. Reports count against the same caps as prices (new venues share the venue key `new`).
+- Responses: `201 {ok: true}`, `400 {error: "invalid <field>"}`, `unknown venue` or `invalid position: …`, `403` bot check, `413`, `429` with `Retry-After`.
+- The queue groups `closed` per venue and `terrace` per venue and answer (`reporters` = distinct networks); `move`, `pin` and `add` are one entry each. Nothing applies automatically.
 
 ## Spam and bot guardrails
 

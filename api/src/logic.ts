@@ -226,19 +226,21 @@ export function isTestSecret(secret: string): boolean {
 }
 
 /**
- * Whether a Turnstile siteverify result is a pass for a suggestion: a success,
- * issued by our widget's action on one of our hostnames (test secrets skip those).
+ * Whether a Turnstile siteverify result is a pass: a success, issued by our
+ * widget's action (`suggest` for prices, `report` for venue reports) on one of
+ * our hostnames (test secrets skip those).
  */
 export function turnstilePassed(
   result: unknown,
   allowedOrigins: string,
   testSecret: boolean,
+  expectedAction: string = TURNSTILE_ACTION,
 ): boolean {
   if (typeof result !== 'object' || result === null) return false
   const { success, hostname, action } = result as Record<string, unknown>
   if (success !== true) return false
   if (testSecret) return true
-  if (action !== TURNSTILE_ACTION || typeof hostname !== 'string') return false
+  if (action !== expectedAction || typeof hostname !== 'string') return false
   return allowedOrigins
     .split(',')
     .map((origin) => {
