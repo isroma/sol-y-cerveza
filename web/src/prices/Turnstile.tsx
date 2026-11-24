@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import './prices.css'
 
 type TurnstileApi = {
   render: (
@@ -9,6 +10,9 @@ type TurnstileApi = {
       action: string
       callback: (token: string) => void
       'expired-callback': () => void
+      /** Cloudflare wants the visitor to tick its box: it shows. */
+      'before-interactive-callback': () => void
+      'error-callback': () => void
       appearance: 'always' | 'execute' | 'interaction-only'
       /** 'execute': the widget loads, and its check waits for execute(). */
       execution?: 'render' | 'execute'
@@ -58,7 +62,14 @@ type Props = {
   run?: boolean
 }
 
-/** Cloudflare's bot check; invisible unless Cloudflare wants an interaction. */
+/** Where the check is: running unseen, showing its box, passed, or failed. */
+type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
+
+/**
+ * Cloudflare's bot check; invisible unless Cloudflare wants an interaction.
+ * Every mount needs a new check (each turn of the card), and the first in a
+ * session also loads Cloudflare's script: while one runs, "Verificando…".
+ */
 export function Turnstile({
   siteKey,
   onToken,
@@ -66,8 +77,7 @@ export function Turnstile({
   run = true,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  // Once Cloudflare is happy, its "success" box adds nothing: fold it away.
-  const [passed, setPassed] = useState(false)
+  const [state, setState] = useState<CheckState>('checking')
   const onTokenRef = useRef(onToken)
   useEffect(() => {
     onTokenRef.current = onToken
@@ -101,13 +111,18 @@ export function Turnstile({
           sitekey: siteKey,
           action,
           callback: (token) => {
-            setPassed(true)
+            setState('passed')
             onTokenRef.current(token)
           },
           'expired-callback': () => {
             // A deferred check runs again when `run` next turns true.
             executed.current = false
-            setPassed(false)
+            setState('checking')
+            onTokenRef.current(null)
+          },
+          'before-interactive-callback': () => setState('interactive'),
+          'error-callback': () => {
+            setState('failed')
             onTokenRef.current(null)
           },
           appearance: 'interaction-only',
@@ -121,7 +136,11 @@ export function Turnstile({
           loaded.execute(widget)
         }
       })
-      .catch(() => onTokenRef.current(null))
+      .catch(() => {
+        if (cancelled) return
+        setState('failed')
+        onTokenRef.current(null)
+      })
     return () => {
       cancelled = true
       widgetRef.current = null
@@ -131,9 +150,21 @@ export function Turnstile({
   }, [siteKey, action])
 
   return (
-    <div
-      ref={ref}
-      className={passed ? 'price-turnstile is-passed' : 'price-turnstile'}
-    />
+    <>
+      {/* Only while a check runs: a deferred one waits for `run`. */}
+      {run && state === 'checking' && (
+        <p className="turnstile-checking" role="status">
+          <span className="turnstile-spinner" aria-hidden="true" />
+          Verificando…
+        </p>
+      )}
+      {/* Once Cloudflare is happy, its "success" box adds nothing: fold it away. */}
+      <div
+        ref={ref}
+        className={
+          state === 'passed' ? 'price-turnstile is-passed' : 'price-turnstile'
+        }
+      />
+    </>
   )
 }
