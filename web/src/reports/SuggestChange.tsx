@@ -21,8 +21,8 @@ const TOKEN_TTL_MS = 240_000
 /**
  * The back of the venue card: every change a visitor can suggest on one
  * card (a beer price, a new location, "Ya no existe"), sent as one request
- * behind one bot check. The check's widget loads as the back opens and runs
- * on the first edit, so at most one Cloudflare box shows, and only then.
+ * behind one bot check. The check runs as soon as the back opens (the
+ * owner's call), so its token is usually ready by the first edit.
  * "Ubicación" hands over to the map picker, which brings the spot back here.
  */
 export function SuggestChange({
@@ -243,7 +243,7 @@ export function SuggestChange({
             <Turnstile
               siteKey={TURNSTILE_SITE_KEY}
               action="change"
-              run={edited && token === null}
+              run={token === null}
               onToken={keepToken}
             />
           )}

@@ -83,19 +83,18 @@ const send = () => screen.getByRole('button', { name: 'Enviar' })
 const check = () => screen.getByTestId('turnstile')
 
 describe('SuggestChange', () => {
-  it('starts on the title, with one check waiting for an edit', () => {
+  it('starts on the title, with one check running at once', () => {
     const onBack = vi.fn()
     render(<Back onBack={onBack} />)
     expect(screen.getByText('Sugerir un cambio').parentElement).toHaveFocus()
     expect(screen.getAllByTestId('turnstile')).toHaveLength(1)
     expect(check()).toHaveTextContent('change')
-    expect(check()).toHaveAttribute('data-run', 'false')
     expect(send()).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: 'Volver' }))
     expect(onBack).toHaveBeenCalledOnce()
   })
 
-  it('runs the check on the first edit, once', () => {
+  it('needs no new check once the token is in', () => {
     render(<Back />)
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Precio de la caña en euros' }),
