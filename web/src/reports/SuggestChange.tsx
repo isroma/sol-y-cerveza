@@ -1,22 +1,12 @@
 import { useContext, useEffect, useRef, useState } from 'react'
-import {
-  BRAND_NAMES,
-  BRANDS,
-  parseEuros,
-  type Brand,
-  type Item,
-} from '../data/prices.ts'
+import { BRAND_NAMES, BRANDS, parseEuros, type Item } from '../data/prices.ts'
 import type { Terrace } from '../data/terraces.ts'
-import {
-  PRICE_RESULT_TEXT,
-  suggestPrice,
-  TURNSTILE_SITE_KEY,
-  type SuggestResult,
-} from '../prices/crowd.ts'
+import { PRICE_RESULT_TEXT, TURNSTILE_SITE_KEY } from '../prices/crowd.ts'
 import { Turnstile } from '../prices/Turnstile.tsx'
 import { Toggle } from '../ui/Toggle.tsx'
 import { StartMoveContext } from './picking.ts'
-import { reportVenue, RESULT_TEXT } from './reports.ts'
+import type { ChangeDraft } from './draft.ts'
+import { distanceMetres, RESULT_TEXT, sendChange } from './reports.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
@@ -25,26 +15,40 @@ const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
 const MIN_CENTS = 50
 const MAX_CENTS = 800
 
+/** Turnstile tokens last 300 s; one older than this is dropped for a new check. */
+const TOKEN_TTL_MS = 240_000
+
 /**
  * The back of the venue card: every change a visitor can suggest on one
- * card, sent with one Enviar. A beer price and "Ya no existe" go to their own
- * endpoints, each with its own bot check (a Turnstile token works once, for
- * one action). "Ubicación" hands over to the map picker.
+ * card (a beer price, a new location, "Ya no existe"), sent as one request
+ * behind one bot check. The check's widget loads as the back opens and runs
+ * on the first edit, so at most one Cloudflare box shows, and only then.
+ * "Ubicación" hands over to the map picker, which brings the spot back here.
  */
 export function SuggestChange({
   venue,
+  draft,
+  onChange,
   onBack,
 }: {
   venue: Terrace
+  /** What the visitor has filled in; App keeps it across the picker. */
+  draft: ChangeDraft
+  onChange: (patch: Partial<ChangeDraft>) => void
   onBack: () => void
 }) {
   const startMove = useContext(StartMoveContext)
-  const [item, setItem] = useState<Item>('cana')
-  const [brand, setBrand] = useState<Brand>('cruzcampo')
-  const [text, setText] = useState('')
-  const [closed, setClosed] = useState(false)
-  const [priceToken, setPriceToken] = useState<string | null>(null)
-  const [reportToken, setReportToken] = useState<string | null>(null)
+  const { item, brand, text, closed, move } = draft
+  // A token from before the trip to the map is used if still fresh.
+  const [token, setToken] = useState(() =>
+    draft.token !== null && Date.now() - draft.tokenAt < TOKEN_TTL_MS
+      ? draft.token
+      : null,
+  )
+  const keepToken = (fresh: string | null) => {
+    setToken(fresh)
+    onChange({ token: fresh, tokenAt: Date.now() })
+  }
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
@@ -80,31 +84,35 @@ export function SuggestChange({
   const cents = parseEuros(text)
   const hasPrice = text.trim() !== ''
   const priceOk = cents !== null && cents >= MIN_CENTS && cents <= MAX_CENTS
-  const ready =
-    (hasPrice || closed) &&
-    (!hasPrice || (priceOk && priceToken !== null)) &&
-    (!closed || reportToken !== null)
+  const edited = hasPrice || closed || move !== null
+  const ready = edited && (!hasPrice || priceOk) && token !== null
+  // How far from its badge the visitor placed it.
+  const moved = move
+    ? Math.round(distanceMetres(venue.terrace ?? venue.venue, move))
+    : null
 
   const send = async () => {
-    if (!ready) return
+    if (!ready || token === null) return
     setSending(true)
-    const price =
-      hasPrice && cents !== null && priceToken
-        ? suggestPrice({
-            venueId: venue.id,
-            item,
-            brand: item === 'tercio' ? brand : null,
-            cents,
-            token: priceToken,
-          })
-        : null
-    const report =
-      closed && reportToken
-        ? reportVenue({ kind: 'closed', venueId: venue.id, token: reportToken })
-        : null
-    const [priceResult, reportResult] = await Promise.all([price, report])
+    const answer = await sendChange({
+      venueId: venue.id,
+      token,
+      ...(hasPrice && cents !== null
+        ? {
+            price: {
+              item,
+              brand: item === 'tercio' ? brand : null,
+              cents,
+            },
+          }
+        : {}),
+      ...(move ? { move } : {}),
+      ...(closed ? { closed: true as const } : {}),
+    })
     setSending(false)
-    setResult(summary(priceResult, reportResult))
+    // A price alone waits for agreement; anything else for review.
+    const priceOnly = hasPrice && !closed && move === null
+    setResult((priceOnly ? PRICE_RESULT_TEXT : RESULT_TEXT)[answer])
   }
 
   return (
@@ -162,7 +170,7 @@ export function SuggestChange({
                     type="button"
                     role="radio"
                     aria-checked={item === value}
-                    onClick={() => setItem(value)}
+                    onClick={() => onChange({ item: value })}
                   >
                     {ITEMS[value]}
                   </button>
@@ -177,7 +185,7 @@ export function SuggestChange({
                   value={brand}
                   onChange={(e) => {
                     const picked = BRANDS.find((b) => b === e.target.value)
-                    if (picked) setBrand(picked)
+                    if (picked) onChange({ brand: picked })
                   }}
                 >
                   {BRANDS.map((b) => (
@@ -196,7 +204,7 @@ export function SuggestChange({
                   inputMode="decimal"
                   placeholder="—"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => onChange({ text: e.target.value })}
                 />
                 <span aria-hidden="true">€</span>
               </span>
@@ -210,18 +218,18 @@ export function SuggestChange({
                 onClick={() => startMove(venue)}
               >
                 <span>Ubicación</span>
-                <span className="change-hint">Mover en el mapa ›</span>
+                <span className="change-hint">
+                  {moved === null
+                    ? 'Mover en el mapa ›'
+                    : `Movida ${moved} m ›`}
+                </span>
               </button>
             )}
             <label className="change-row">
               <span aria-hidden="true">Ya no existe</span>
               <Toggle
                 checked={closed}
-                onChange={(on) => {
-                  setClosed(on)
-                  // A fresh check when it is turned on again.
-                  if (!on) setReportToken(null)
-                }}
+                onChange={(on) => onChange({ closed: on })}
                 label="Ya no existe"
               />
             </label>
@@ -231,21 +239,12 @@ export function SuggestChange({
               Escribe un precio entre 0,50 € y 8,00 €.
             </p>
           )}
-          {/* The price check starts as the back opens, so its token is ready
-              by the time a price is typed. The report's check starts only
-              with "Ya no existe": two at once can show two Cloudflare boxes. */}
           {TURNSTILE_SITE_KEY && (
             <Turnstile
               siteKey={TURNSTILE_SITE_KEY}
-              action="suggest"
-              onToken={setPriceToken}
-            />
-          )}
-          {TURNSTILE_SITE_KEY && closed && (
-            <Turnstile
-              siteKey={TURNSTILE_SITE_KEY}
-              action="report"
-              onToken={setReportToken}
+              action="change"
+              run={edited && token === null}
+              onToken={keepToken}
             />
           )}
           <button
@@ -259,14 +258,4 @@ export function SuggestChange({
       )}
     </div>
   )
-}
-
-/** One line for what was sent: the first failure, else the thanks. */
-function summary(
-  price: SuggestResult | null,
-  report: SuggestResult | null,
-): string {
-  if (report && report !== 'ok') return RESULT_TEXT[report]
-  if (price && price !== 'ok') return PRICE_RESULT_TEXT[price]
-  return report ? RESULT_TEXT.ok : PRICE_RESULT_TEXT.ok
 }
