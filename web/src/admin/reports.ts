@@ -119,15 +119,22 @@ export type ReviewChange = Parameters<typeof nextReview>[2]
  * `closed` → not a venue, `move` → the venue position, `terrace` → terrace or
  * no terrace, `pin` → a terrace at that position. (A `closed` on an added
  * `review:` venue deletes the row instead; the caller handles that.)
+ *
+ * A `move` on a venue with a terrace moves the terrace instead: the badge the
+ * visitor dragged from in the app sits on the terrace, not on the venue.
  */
 export function reportChange(
   report: Exclude<VenueReport, { kind: 'add' }>,
+  hasTerrace = false,
 ): ReviewChange {
   switch (report.kind) {
     case 'closed':
       return { kind: 'status', status: 'not_venue' }
     case 'move':
-      return { kind: 'venue', at: { lat: report.lat, lon: report.lon } }
+      return {
+        kind: hasTerrace ? 'terrace' : 'venue',
+        at: { lat: report.lat, lon: report.lon },
+      }
     case 'terrace':
       return {
         kind: 'status',

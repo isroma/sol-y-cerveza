@@ -723,9 +723,15 @@ export function Admin() {
     } else if (r.kind === 'closed' && r.venueId.startsWith(ADDED_PREFIX)) {
       saved = await save(r.venueId, null)
     } else {
+      const current = reviews.get(r.venueId)
+      const data = venues.find((v) => v.id === r.venueId)?.terrace
+      // Same rule as the selected venue's terrace pin above.
+      const hasTerrace = current?.status
+        ? current.status === 'terrace' && !!(current.terrace ?? data)
+        : !!data
       saved = await save(
         r.venueId,
-        nextReview(reviews.get(r.venueId), r.venueId, reportChange(r), today()),
+        nextReview(current, r.venueId, reportChange(r, hasTerrace), today()),
       )
     }
     if (saved) setProposed(null)

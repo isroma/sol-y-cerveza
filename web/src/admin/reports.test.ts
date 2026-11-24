@@ -168,5 +168,10 @@ describe('terrace reports (#210)', () => {
       kind: 'status',
       status: 'not_venue',
     })
+    // The app's badge sits on the terrace, so that is what a move moves.
+    expect(reportChange(move, true)).toEqual({
+      kind: 'terrace',
+      at: { lat: 38.878, lon: -6.97 },
+    })
   })
 })
