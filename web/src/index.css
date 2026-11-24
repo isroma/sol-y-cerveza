@@ -1298,6 +1298,41 @@ body,
   }
 }
 
+/* Turning round to the back ("Sugerir un cambio") and back again: the
+   card turns edge-on, swaps sides (FLIP_HALF_MS in PinCard), then turns
+   face-on again. */
+.pin-card {
+  perspective: 900px;
+}
+
+.pin-card-flip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.pin-card-flip.is-turning-out {
+  animation: pin-card-turn-out 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+.pin-card-flip.is-turning-in {
+  animation: pin-card-turn-in 0.2s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes pin-card-turn-out {
+  to {
+    rotate: y 90deg;
+  }
+}
+
+@keyframes pin-card-turn-in {
+  from {
+    rotate: y -90deg;
+  }
+}
+
 /* Closing: it shrinks back into the badge (CARD_CLOSE_MS in MapView),
    staying solid until the last stretch. */
 .pin-card-marker.is-closing .pin-card {
@@ -1319,6 +1354,10 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pin-card-flip {
+    animation: none;
+  }
+
   .pin-card {
     transition: none;
     animation: none;
