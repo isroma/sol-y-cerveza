@@ -1266,9 +1266,35 @@ body,
   pointer-events: none;
 }
 
+/* Opening: the card grows out of the selected badge, the reverse of the
+   fold above, and its contents settle in just after. */
+.pin-card {
+  animation: pin-card-open 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+.pin-card-body > * {
+  animation: pin-card-content 0.3s ease-out 0.08s backwards;
+}
+
+@keyframes pin-card-open {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@keyframes pin-card-content {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pin-card {
+  .pin-card,
+  .pin-card-body > * {
     transition: none;
+    animation: none;
   }
 }
 

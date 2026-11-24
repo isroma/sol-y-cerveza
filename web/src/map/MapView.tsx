@@ -566,7 +566,12 @@ export function MapView({
       />
       {selectedStatus &&
         createPortal(
-          <PinCard status={selectedStatus} minutes={minutes} sunset={sunset} />,
+          <PinCard
+            key={selectedStatus.venue.id}
+            status={selectedStatus}
+            minutes={minutes}
+            sunset={sunset}
+          />,
           cardEl,
         )}
     </div>
