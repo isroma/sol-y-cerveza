@@ -1,16 +1,22 @@
 import numpy as np
+import pytest
 from affine import Affine
 from pyproj import Transformer
+from shapely import affinity
 from shapely.geometry import Polygon, box
 
 from solycerveza.buildings import (
     DEFAULT_M,
+    HEIGHT_STEP_M,
+    MERLON_HEIGHT_M,
     Building,
     Measured,
+    crenellate,
     dissolve,
     footprints,
     measure,
     parse_levels,
+    straighten,
     tall_parts,
 )
 from solycerveza.obstacles import Grid
@@ -143,3 +149,55 @@ def test_dissolve_merges_touching_buildings_of_similar_height_only() -> None:
     ]
     out = sorted((top, round(polygon.area)) for _, top, polygon in dissolve(rows))
     assert out == [(10.0, 100), (10.5, 200), (12.0, 100)]
+
+
+def part(osm_id: str, footprint: Polygon, height: float = 30.0) -> Measured:
+    return Measured(Building(osm_id, footprint, None), height, "lidar-part")
+
+
+def test_straighten_squares_stepped_parts_but_not_listed_domes_or_ragged_ones(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("solycerveza.buildings.KEEP_SHAPE", frozenset({"way/3#part"}))
+    # A 10 m square, turned 30°, with a 2 m step cut from one corner: 96 % of its rectangle.
+    stepped = affinity.rotate(Polygon([(0, 0), (10, 0), (10, 8), (8, 8), (8, 10), (0, 10)]), 30)
+    # An L: 64 % of its bounding square.
+    ragged = Polygon([(0, 0), (10, 0), (10, 4), (4, 4), (4, 10), (0, 10)])
+    dome = box(0, 0, 9, 9).buffer(1)
+    assert isinstance(stepped, Polygon) and isinstance(dome, Polygon)
+    out = straighten(
+        [part("way/1#part", stepped), part("way/2#part", ragged), part("way/3#part", dome)]
+    )
+    assert out[0].building.footprint.area == pytest.approx(100.0)
+    assert out[0].height == 30.0
+    assert out[1].building.footprint.equals(ragged)
+    assert out[2].building.footprint.equals(dome)
+
+
+def test_straighten_and_crenellate_fail_when_a_listed_part_is_gone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("solycerveza.buildings.KEEP_SHAPE", frozenset({"way/9#part"}))
+    monkeypatch.setattr("solycerveza.buildings.CRENELLATED", frozenset({"way/9#part"}))
+    with pytest.raises(ValueError, match="way/9#part"):
+        straighten([part("way/1#part", box(0, 0, 4, 4))])
+    with pytest.raises(ValueError, match="way/9#part"):
+        crenellate([part("way/1#part", box(0, 0, 4, 4))])
+
+
+def test_crenellate_sinks_the_tower_and_stands_merlons_on_its_walls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("solycerveza.buildings.CRENELLATED", frozenset({"way/1#part"}))
+    tower = box(0, 0, 12, 12)
+    other = part("way/2#part", box(20, 0, 24, 4))
+    parts, merlons = crenellate([part("way/1#part", tower, 34.6), other])
+    assert parts[1] is other
+    top = parts[0].height
+    assert top == 33.5 and top % HEIGHT_STEP_M == 0
+    assert len(merlons) == 4 * 4  # 10.8 m of wall per side: four merlons each
+    for base, height, merlon in merlons:
+        assert (base, height) == (top, top + MERLON_HEIGHT_M)
+        assert merlon.area == pytest.approx(1.44)
+        assert tower.contains(merlon)
+        assert merlon.exterior.distance(tower.exterior) == pytest.approx(0.0, abs=1e-9)

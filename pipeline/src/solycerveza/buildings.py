@@ -19,11 +19,14 @@ flight, or the footprint is off), the height is ``building:levels`` x ``LEVEL_M`
 One height per footprint flattens a tall part into the rest: the cathedral's 36 m tower became
 a 15 m block. So inside each LiDAR-measured footprint, connected areas of at least
 ``PART_MIN_M2`` that stand ``PART_RISE_M`` or more above the building's height are drawn as their
-own blocks at their own height (``tall_parts``).
+own blocks at their own height (``tall_parts``). A part traced from the 2 m grid has
+stair-stepped edges, so one that fills at least ``STRAIGHTEN_FILL`` of its minimum rotated
+rectangle becomes that rectangle (``straighten``), except the round domes in ``KEEP_SHAPE``.
+The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``).
 
 Touching buildings whose heights are within ``DISSOLVE_M`` of each other are merged, and the
 outlines are simplified by ``SIMPLIFY_M``, to keep the file small. Output: the compact format of
-``trees.encode`` (every base 0), decoded by ``web/src/map/extrusionCodec.ts``.
+``trees.encode`` (base 0, except the battlements), decoded by ``web/src/map/extrusionCodec.ts``.
 """
 
 import argparse
@@ -32,6 +35,7 @@ import json
 import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -46,7 +50,7 @@ from rasterio.windows import Window, from_bounds
 from rasterio.windows import transform as window_transform
 from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
-from shapely.ops import polygonize, unary_union
+from shapely.ops import polygonize, substring, unary_union
 
 from solycerveza.geo import BADAJOZ_BBOX
 from solycerveza.leafoff import structures_query
@@ -66,6 +70,22 @@ SIMPLIFY_M = 0.5
 HEIGHT_STEP_M = 0.5
 PART_RISE_M = 4.0  # how much higher than its building a part must stand
 PART_MIN_M2 = 16.0  # four 2 m cells: a tower or a dome, not a chimney or an antenna
+STRAIGHTEN_FILL = 0.7  # a disc fills 0.79 of its square: round parts must be listed below
+# Round domes, which stay as traced. Every straightened part was checked against the PNOA
+# aerial photos (2026-11-25, #434); these four are the ones a rectangle got wrong.
+KEEP_SHAPE = frozenset(
+    {
+        "way/569684034#part",
+        "way/570762638#part",
+        "relation/9340606#part",
+        "way/568389126#part",
+    }
+)
+CRENELLATED = frozenset({"relation/9755446#part"})  # the cathedral's tower
+MERLON_M = 1.2  # side of each merlon
+MERLON_EVERY_M = 2.4
+MERLON_HEIGHT_M = 1.8
+MERLON_SINK_M = 1.0  # the walls stop this far below the LiDAR height; the merlons rise above it
 OUT_PATH = Path("../web/public/data/buildings.json")
 
 FloatArray = npt.NDArray[np.float64]
@@ -219,6 +239,61 @@ def tall_parts(measured: Sequence[Measured], heights: FloatArray, grid: Grid) ->
     return out
 
 
+def straighten(parts: Sequence[Measured]) -> list[Measured]:
+    """Each part as its minimum rotated rectangle when it fills at least ``STRAIGHTEN_FILL`` of
+    it, except those in ``KEEP_SHAPE``, which must all be among ``parts``."""
+    ids = {p.building.osm_id for p in parts}
+    if missing := sorted(KEEP_SHAPE - ids):
+        raise ValueError(f"KEEP_SHAPE parts not found: {missing}")
+    out: list[Measured] = []
+    for p in parts:
+        footprint = p.building.footprint
+        rectangle = footprint.minimum_rotated_rectangle
+        if (
+            p.building.osm_id not in KEEP_SHAPE
+            and isinstance(rectangle, Polygon)
+            and footprint.area >= STRAIGHTEN_FILL * rectangle.area
+        ):
+            p = Measured(Building(p.building.osm_id, rectangle, None), p.height, p.source)
+        out.append(p)
+    return out
+
+
+def crenellate(
+    parts: Sequence[Measured],
+) -> tuple[list[Measured], list[tuple[float, float, Polygon]]]:
+    """``parts`` with each ``CRENELLATED`` one sunk ``MERLON_SINK_M``, and its merlons as bands:
+    squares of ``MERLON_M`` about every ``MERLON_EVERY_M`` along its outline. Every
+    ``CRENELLATED`` id must be among ``parts``."""
+    ids = {p.building.osm_id for p in parts}
+    if missing := sorted(CRENELLATED - ids):
+        raise ValueError(f"CRENELLATED parts not found: {missing}")
+    out: list[Measured] = []
+    merlons: list[tuple[float, float, Polygon]] = []
+    for p in parts:
+        if p.building.osm_id not in CRENELLATED:
+            out.append(p)
+            continue
+        # On dissolve's height steps, so the merlons sit exactly on the walls.
+        top = round((p.height - MERLON_SINK_M) / HEIGHT_STEP_M) * HEIGHT_STEP_M
+        out.append(Measured(p.building, top, p.source))
+        half = MERLON_M / 2
+        # Centres half a merlon in, so each stands on the wall, flush with its face.
+        ring = p.building.footprint.buffer(-half, join_style="mitre")
+        corners = list(ring.exterior.coords) if isinstance(ring, Polygon) else []
+        for a, b in pairwise(corners):
+            edge = LineString([a, b])
+            count = max(2, int(edge.length // MERLON_EVERY_M))
+            for i in range(count):
+                # A square turned with the wall: a merlon-long stretch of it, widened.
+                middle = (i + 0.5) / count * edge.length
+                stretch = substring(edge, middle - half, middle + half)
+                merlon = stretch.buffer(half, cap_style="flat", join_style="mitre")
+                if isinstance(merlon, Polygon):
+                    merlons.append((top, top + MERLON_HEIGHT_M, merlon))
+    return out, merlons
+
+
 def dissolve(measured: Sequence[Measured]) -> list[tuple[float, float, Polygon]]:
     """(0, height, outline): touching buildings merged while their heights stay within
     ``DISSOLVE_M``, each group at its area-weighted height, outlines simplified."""
@@ -283,8 +358,9 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, An
     to_grid = Transformer.from_crs("EPSG:4326", grid.crs, always_xy=True)
     heights = surface - terrain
     measured = measure(footprints(raw, to_grid), heights, grid)
-    measured = [*measured, *tall_parts(measured, heights, grid)]
-    return encode(dissolve(measured), grid.crs), measured
+    parts, merlons = crenellate(straighten(tall_parts(measured, heights, grid)))
+    measured = [*measured, *parts]
+    return encode([*dissolve(measured), *merlons], grid.crs), measured
 
 
 def write_sources(measured: Sequence[Measured], path: Path) -> None:
