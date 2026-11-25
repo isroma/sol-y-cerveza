@@ -18,7 +18,7 @@ Precision over recall: anything else is dropped. Each result keeps the segment a
 """
 
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from solycerveza.prices import Brand, Item
@@ -157,8 +157,3 @@ def extract_prices(lines: Sequence[str]) -> list[FoundPrice]:
             if price is not None and price not in found:
                 found.append(price)
     return found
-
-
-def extract_from_pages(pages: Iterable[tuple[str, Sequence[str]]]) -> list[tuple[str, FoundPrice]]:
-    """(page URL, price) for every price on every page."""
-    return [(url, price) for url, lines in pages for price in extract_prices(lines)]
