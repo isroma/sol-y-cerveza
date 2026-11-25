@@ -38,7 +38,7 @@ afterEach(() => {
 describe('Turnstile', () => {
   it('shows the spinner until the check passes', async () => {
     const onToken = vi.fn()
-    render(<Turnstile siteKey="key" onToken={onToken} />)
+    render(<Turnstile siteKey="key" action="change" onToken={onToken} />)
     expect(
       screen.getByRole('status', { name: 'Verificando' }),
     ).toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('Turnstile', () => {
   })
 
   it('hides it when Cloudflare shows its own box', async () => {
-    render(<Turnstile siteKey="key" onToken={vi.fn()} />)
+    render(<Turnstile siteKey="key" action="change" onToken={vi.fn()} />)
     const check = await rendered()
     act(() => check['before-interactive-callback']())
     expect(screen.queryByRole('status')).toBeNull()
@@ -57,7 +57,7 @@ describe('Turnstile', () => {
 
   it('hides it when the check fails', async () => {
     const onToken = vi.fn()
-    render(<Turnstile siteKey="key" onToken={onToken} />)
+    render(<Turnstile siteKey="key" action="change" onToken={onToken} />)
     const check = await rendered()
     act(() => check['error-callback']())
     expect(screen.queryByRole('status')).toBeNull()
@@ -66,18 +66,18 @@ describe('Turnstile', () => {
 
   it('waits for `run` to show it: a deferred check has not started', async () => {
     const { rerender } = render(
-      <Turnstile siteKey="key" onToken={vi.fn()} run={false} />,
+      <Turnstile siteKey="key" action="change" onToken={vi.fn()} run={false} />,
     )
     await rendered()
     expect(screen.queryByRole('status')).toBeNull()
-    rerender(<Turnstile siteKey="key" onToken={vi.fn()} run />)
+    rerender(<Turnstile siteKey="key" action="change" onToken={vi.fn()} run />)
     expect(
       screen.getByRole('status', { name: 'Verificando' }),
     ).toBeInTheDocument()
   })
 
   it('shows it again while an expired token is renewed', async () => {
-    render(<Turnstile siteKey="key" onToken={vi.fn()} />)
+    render(<Turnstile siteKey="key" action="change" onToken={vi.fn()} />)
     const check = await rendered()
     act(() => check.callback('token'))
     act(() => check['expired-callback']())

@@ -90,13 +90,6 @@ export const SearchIcon = (p: IconProps) => (
   </Icon>
 )
 
-export const CalendarIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
-    <path d="M3.5 10h17M8 3v4M16 3v4" />
-  </Icon>
-)
-
 export const ClockIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8.5" />
@@ -152,18 +145,6 @@ export const BeerIcon = (p: IconProps) => (
   </Icon>
 )
 
-export const StarIcon = (p: IconProps) => (
-  <Icon {...p} fill="currentColor" strokeWidth={1}>
-    <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
-  </Icon>
-)
-
-export const StarOutlineIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
-  </Icon>
-)
-
 /** Table under a parasol. */
 export const TerraceIcon = (p: IconProps) => (
   <Icon {...p}>
@@ -180,23 +161,9 @@ export const ShareIcon = (p: IconProps) => (
   </Icon>
 )
 
-/** Pencil: suggest or correct a value. */
-export const EditIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" />
-    <path d="M13.5 6.5l4 4" />
-  </Icon>
-)
-
 export const ChevronDownIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m6 9 6 6 6-6" />
-  </Icon>
-)
-
-export const ChevronRightIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="m9 6 6 6-6 6" />
   </Icon>
 )
 
