@@ -41,14 +41,15 @@ const BASEMAP_CACHE = `${PREFIX}basemap-v1`
 const PRICES_CACHE = `${PREFIX}prices-v1`
 
 /**
- * The data the map needs, seeded at install: the venues, and the LiDAR
+ * The data the map needs, seeded at install: the venues, the LiDAR
  * buildings and tree crowns the shadows are cast from (deployed from the
- * height-tiles branch, about 0.5 MB gzipped together).
+ * height-tiles branch, about 0.5 MB gzipped together) and the bridge mesh.
  */
 const DATA_FILES = [
   'data/terraces.json',
   'data/buildings.json',
   'data/trees.json',
+  'data/bridge-mesh.json',
 ]
 
 /** How long to wait for the network before falling back to the cache. */
@@ -95,8 +96,9 @@ async function precacheAssets(): Promise<void> {
 
 /**
  * So the app opens offline from the second visit on: the first visit loaded
- * the page, the data and the basemap style before this worker existed.
- * Best effort; when offline, the page fills the caches as it loads.
+ * the page, the data, the prices and the basemap style before this worker
+ * existed (the page registers it once the map has drawn). Best effort; when
+ * offline, the page fills the caches as it loads.
  */
 async function seed(): Promise<void> {
   const pages = [
@@ -107,6 +109,7 @@ async function seed(): Promise<void> {
     ...pages.map((url) =>
       fetchAndStore(PAGES_CACHE, url, { cache: 'no-cache' }),
     ),
+    PRICES_URL ? fetchAndStore(PRICES_CACHE, PRICES_URL) : null,
     seedBasemap(),
   ])
 }

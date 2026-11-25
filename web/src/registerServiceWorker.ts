@@ -33,10 +33,41 @@ export function serviceWorkerAction(
 }
 
 /**
- * After the page has loaded, registers ./sw.js for the app's own directory,
- * so it works under /sol-y-cerveza/ on GitHub Pages and at / in a preview.
- * A new worker takes over silently: the page is never reloaded under the
- * user, and the next load gets the new version.
+ * Longest wait after the page's load event for the map's first view before
+ * registering anyway (a map that never draws: no WebGL, its chunk missing).
+ */
+const MAP_WAIT_MS = 15_000
+
+let resolveMapDrawn: () => void = () => {}
+const mapDrawn = new Promise<void>((resolve) => {
+  resolveMapDrawn = resolve
+})
+
+/**
+ * The map has drawn its first view, or given up (MapView). The worker's
+ * install fetches the LiDAR files (about 0.5 MB gzipped) and the map's
+ * worker: from now on only, so on a first visit they don't share a slow line
+ * with the basemap's first tiles. By then the map has asked for them itself,
+ * so the install mostly revalidates what the HTTP cache already holds.
+ */
+export function markMapDrawn(): void {
+  resolveMapDrawn()
+}
+
+/** Resolves on the page's load event. */
+function pageLoaded(): Promise<void> {
+  if (document.readyState === 'complete') return Promise.resolve()
+  return new Promise((resolve) =>
+    window.addEventListener('load', () => resolve(), { once: true }),
+  )
+}
+
+/**
+ * Once the page has loaded and the map has drawn (markMapDrawn), registers
+ * ./sw.js for the app's own directory, so it works under /sol-y-cerveza/ on
+ * GitHub Pages and at / in a preview. A new worker takes over silently: the
+ * page is never reloaded under the user, and the next load gets the new
+ * version. The kill switch doesn't wait for the map.
  */
 export function registerServiceWorker(): void {
   const action = serviceWorkerAction({
@@ -47,18 +78,26 @@ export function registerServiceWorker(): void {
     pathname: window.location.pathname,
   })
   if (action === 'none') return
-  window.addEventListener('load', () => {
-    const { serviceWorker } = navigator
-    const done =
-      action === 'register'
-        ? serviceWorker
-            .register('./sw.js', { scope: './', updateViaCache: 'none' })
-            .then(() => undefined)
-        : removeServiceWorker(serviceWorker)
-    done.catch((error: unknown) => {
-      // Offline caching is an extra: the app works without it.
-      console.warn('Service worker:', error)
-    })
+  const { serviceWorker } = navigator
+  const done =
+    action === 'register'
+      ? pageLoaded()
+          .then(() =>
+            Promise.race([
+              mapDrawn,
+              new Promise((resolve) => setTimeout(resolve, MAP_WAIT_MS)),
+            ]),
+          )
+          .then(() =>
+            serviceWorker.register('./sw.js', {
+              scope: './',
+              updateViaCache: 'none',
+            }),
+          )
+      : pageLoaded().then(() => removeServiceWorker(serviceWorker))
+  done.catch((error: unknown) => {
+    // Offline caching is an extra: the app works without it.
+    console.warn('Service worker:', error)
   })
 }
 
