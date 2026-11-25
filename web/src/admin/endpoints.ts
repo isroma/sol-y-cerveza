@@ -10,8 +10,6 @@ export const ADMIN_ENDPOINTS = {
   publish: '/__admin/publish',
   /** venue_prices.csv: GET, PUT a row, DELETE ?key= */
   prices: '/__admin/prices',
-  /** Prices from a photo of the price board (web/plugins/admin/pricePhotoServer.ts). */
-  pricePhoto: '/__admin/prices/photo',
   /** Website price candidates: GET, POST a decision (ADR-0006). */
   priceCandidates: '/__admin/price-candidates',
   /** Machine proposals: GET, POST one to ignore (ADR-0008). */

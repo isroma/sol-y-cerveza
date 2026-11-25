@@ -5,6 +5,8 @@ import type { Review } from './review.ts'
 import type { ReviewChange } from './useAdminData.ts'
 
 type Options = {
+  /** "To review" with no search: the list is the queue, and decisions move on. */
+  queueMode: boolean
   venues: readonly Terrace[]
   reviews: ReadonlyMap<string, Review>
   /** Every venue with its queue score (scoreVenues). */
@@ -18,10 +20,11 @@ type Options = {
 }
 
 /**
- * The review queue: venues one at a time, best value first (queueScore.ts),
- * and the decisions that move on to the next one while it is open.
+ * The review queue: the "To review" list, best value first (queueScore.ts),
+ * and the decisions that move on to the next venue while it is shown.
  */
 export function useReviewQueue({
+  queueMode,
   venues,
   reviews,
   scored,
@@ -31,10 +34,7 @@ export function useReviewQueue({
   setPinning,
   markLooksRight,
 }: Options) {
-  const [queueMode, setQueueMode] = useState(false)
   const [skipped, setSkipped] = useState<string[]>([])
-  // The venues without a decision when the queue was opened, for progress.
-  const [queueBase, setQueueBase] = useState<ReadonlySet<string>>(new Set())
 
   const queue = useMemo(
     () => queueOrder(scored, reviews, skipped),
@@ -78,13 +78,6 @@ export function useReviewQueue({
     if (queueMode) advance(selectedId)
   }, [selectedId, markLooksRight, queueMode, advance])
 
-  /** Opens the queue on its best venue. */
-  const startQueue = () => {
-    setQueueMode(true)
-    setQueueBase(new Set(queue.map((s) => s.venue.id)))
-    select(queue[0]?.venue.id ?? null)
-  }
-
   const nextToReview = useCallback(() => {
     const start = venues.findIndex((v) => v.id === selectedId)
     const order = [...venues.slice(start + 1), ...venues.slice(0, start + 1)]
@@ -92,43 +85,16 @@ export function useReviewQueue({
     if (next) select(next.id)
   }, [venues, reviews, selectedId, select])
 
-  // Queue progress over the venues that were open when it was opened; the
-  // value share weighs each by its current score.
-  const progress = useMemo(() => {
-    let done = 0
-    let doneValue = 0
-    let allValue = 0
-    for (const s of scored) {
-      if (!queueBase.has(s.venue.id)) continue
-      const value = Math.max(0, s.score)
-      allValue += value
-      if (reviews.get(s.venue.id)?.status) {
-        done++
-        doneValue += value
-      }
-    }
-    const total = queueBase.size
-    return {
-      done,
-      total,
-      percent: total ? Math.floor((done / total) * 100) : 0,
-      value: allValue ? Math.floor((doneValue / allValue) * 100) : 0,
-    }
-  }, [scored, queueBase, reviews])
   const queueItem = queue.find((s) => s.venue.id === selectedId) ?? null
 
   return {
-    queueMode,
-    setQueueMode,
     skipped,
     queue,
     queueItem,
-    progress,
     advance,
     skip,
     decide,
     looksRightAndGo,
-    startQueue,
     nextToReview,
   }
 }

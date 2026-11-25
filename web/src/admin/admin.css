@@ -54,6 +54,47 @@ body {
   font: inherit;
 }
 
+/* Search, with + to add a venue no source lists. */
+.admin-search {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.admin-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-search button {
+  flex: none;
+  width: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-search button:hover {
+  background: #f6eee2;
+}
+
+/* The Inbox: its tabs and the open tab's list, above the search. */
+.admin-inbox {
+  margin-top: 10px;
+  padding-top: 2px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-head p.admin-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
 .admin-filters {
   display: flex;
   flex-wrap: wrap;
@@ -277,8 +318,11 @@ body {
 }
 
 .admin-publish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -382,13 +426,6 @@ body {
   cursor: pointer;
 }
 
-.admin-title-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
 .admin-queue {
   display: flex;
   flex-direction: column;
@@ -424,7 +461,7 @@ body {
   margin-top: 4px;
 }
 
-.admin-title-actions button[aria-pressed='true'] {
+.admin-title button[aria-pressed='true'] {
   background: var(--accent);
   border-color: var(--accent);
 }
@@ -512,108 +549,7 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* Read prices from a photo (PricePhoto.tsx). */
-.admin-photo {
-  margin-top: 4px;
-}
-
-.admin-photo-pick {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: white;
-  color: var(--ink);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.admin-photo-pick input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.admin-photo-pick:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.admin-photo-off {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.admin-photo-error {
-  margin: 6px 0 0;
-  color: #c0392b;
-  font-size: 12px;
-}
-
-.admin-photo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.admin-photo-list .admin-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.admin-photo-low {
-  color: #c0392b;
-  font-size: 11px;
-}
-
-.admin-photo-accept {
-  padding: 2px 8px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  background: var(--accent);
-  color: white;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.admin-photo-notes {
-  margin: 6px 0 0;
-  padding-left: 16px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 /* Review queue (Admin.tsx, queueScore.ts). */
-.admin-progress {
-  margin-top: 12px;
-}
-
-.admin-progress p {
-  margin: 0 0 6px;
-  color: var(--ink);
-  font-size: 13px;
-}
-
-.admin-progress-bar {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--line);
-}
-
-.admin-progress-bar span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
 
 .admin-rank {
   flex: none;
@@ -630,18 +566,6 @@ body {
   font-size: 11px;
   font-weight: 400;
   text-overflow: ellipsis;
-}
-
-.admin-queue-head {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.admin-queue-head .admin-reason {
-  display: block;
-  font-size: 12px;
 }
 
 .admin-actions-big {

@@ -6,13 +6,6 @@ import { TLSSocket } from 'node:tls'
 import { loadEnv, type Plugin } from 'vite'
 import { repoPath } from '../paths.ts'
 import { adminRequestRefusal, latestOnly } from './adminGuard.ts'
-import {
-  answerPhoto,
-  claudeReader,
-  PHOTO_MAX_BODY,
-  photoStatus,
-  readJsonCapped,
-} from './pricePhotoServer.ts'
 import { publishStatus, startPublish } from './publish.ts'
 import {
   formatReviewCsv,
@@ -228,8 +221,7 @@ function send(res: ServerResponse, status: number, payload: unknown) {
  * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
  * price candidates (price_candidates.csv), read and ignore machine
  * proposals (venue_proposals.csv), probe the sun at a pin
- * (`python -m solycerveza.probe`) and read prices from a photo
- * (pricePhotoServer.ts). Never part of the built site.
+ * (`python -m solycerveza.probe`). Never part of the built site.
  */
 export function reviewServer(): Plugin {
   // Writes run one after another so two quick clicks never lose a row.
@@ -350,31 +342,6 @@ export function reviewServer(): Plugin {
             send(res, status, body)
           },
         )
-      })
-      // Prices from a photo of the price board, read by the Claude API with
-      // ANTHROPIC_API_KEY (web/.env.local). Before ADMIN_ENDPOINTS.prices,
-      // which would otherwise match this path too.
-      const anthropicKey = env['ANTHROPIC_API_KEY'] ?? ''
-      server.middlewares.use(ADMIN_ENDPOINTS.pricePhoto, (req, res) => {
-        if (req.method === 'GET')
-          return send(res, 200, photoStatus(anthropicKey))
-        if (req.method !== 'POST')
-          return send(res, 405, { error: 'method not allowed' })
-        void readJsonCapped(req, PHOTO_MAX_BODY).then(async (read) => {
-          if (!read.ok)
-            return send(res, read.status, {
-              error:
-                read.status === 413
-                  ? 'the photo is larger than 5 MB'
-                  : 'not JSON',
-            })
-          const answer = await answerPhoto(
-            read.json,
-            anthropicKey,
-            claudeReader(anthropicKey),
-          )
-          send(res, answer.status, answer.body)
-        })
       })
       server.middlewares.use(ADMIN_ENDPOINTS.prices, (req, res) => {
         const run = queue.then(async () => {

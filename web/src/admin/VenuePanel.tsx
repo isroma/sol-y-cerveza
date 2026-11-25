@@ -13,8 +13,6 @@ type Props = {
   state: MapState
   review: Review | undefined
   queueMode: boolean
-  /** Review queue progress, shown in the queue. */
-  progress: { done: number; total: number }
   /** Why the queue ranks this venue where it is, if it is in the queue. */
   queueReason: string | null
   proposals: readonly Proposal[]
@@ -47,7 +45,6 @@ export function VenuePanel({
   state,
   review,
   queueMode,
-  progress,
   queueReason,
   proposals,
   onAcceptProposal,
@@ -67,30 +64,22 @@ export function VenuePanel({
   const osm = osmUrl(venue.id)
   return (
     <section className="admin-panel" aria-label="Selected venue">
-      {queueMode && (
-        <p className="admin-queue-head">
-          Review queue · {Math.min(progress.done + 1, progress.total)} of{' '}
-          {progress.total}
-          {queueReason !== null && (
-            <span className="admin-reason"> {queueReason}</span>
-          )}
-        </p>
-      )}
       <h2>{venue.name}</h2>
       <p className="admin-meta">
-        {venue.kind} · {venue.sources.join(', ')} · {STATE_LABELS[state]}
+        {venue.kind} · {STATE_LABELS[state]}
         {review?.venue && !venue.id.startsWith(ADDED_PREFIX) && ' · moved'}
-        {review?.looksRight && ' · looks right'}
-      </p>
-      <p className="admin-meta">
+        {review?.looksRight && ' · looks right'} ·{' '}
         {osm ? (
-          <a href={osm} target="_blank" rel="noreferrer">
-            {venue.id}
+          <a href={osm} target="_blank" rel="noreferrer" title={venue.id}>
+            {venue.sources.join(', ')}
           </a>
         ) : (
-          venue.id
+          <span title={venue.id}>{venue.sources.join(', ')}</span>
         )}
       </p>
+      {queueMode && queueReason !== null && (
+        <p className="admin-meta admin-reason">{queueReason}</p>
+      )}
       <ProposalBox
         proposals={proposals}
         onAccept={onAcceptProposal}
@@ -157,20 +146,9 @@ export function VenuePanel({
             '. Esc cancels.'
           )}
         </p>
-      ) : queueMode ? (
-        <p className="admin-help">
-          Each decision moves on to the next venue. T then a click on the map
-          pins the terrace; Y keeps what the data says; Skip puts the venue at
-          the end.
-        </p>
-      ) : (
-        <p className="admin-help">
-          T marks a terrace and lets you place its pin with one click; press T
-          again to move it. Drag the dark pin to fix the venue position.
-        </p>
-      )}
+      ) : null}
       {preview && <SunPreview at={preview} />}
-      <h3 className="admin-subhead">Beer prices</h3>
+      <h3 className="admin-subhead">Prices</h3>
       <PricesEditor
         key={venue.id}
         venueId={venue.id}
