@@ -75,6 +75,8 @@ Colour carries meaning here: **yellow means sun**. Keep it for sun and for the o
 
 Every badge is a 160° gradient, light to deep, with a 2 px white ring.
 
+The line icons for `sun` and `soon` (legend, list, filters, card) fill their disc with their own colour at 50 %, so the yellow and orange read at small sizes; `nosun` stays an outline.
+
 | State     | Copy                  | Solid     | Badge gradient                      | Size                                       |
 | --------- | --------------------- | --------- | ----------------------------------- | ------------------------------------------ |
 | `sun`     | Con sol ahora         | `#F59E0B` | `#FFC53D → #F59E0B`                 | 100 % (highlighted when zoomed out: 112 %) |
