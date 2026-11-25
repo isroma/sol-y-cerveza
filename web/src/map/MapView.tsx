@@ -29,6 +29,7 @@ import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
+import { HeightShadowLayer } from './heightShadows.ts'
 import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
@@ -40,6 +41,11 @@ setWorkerUrl(workerUrl)
 prewarm()
 
 const SHADOWS = 'building-shadows'
+
+/** Prototype: `?shade=gpu` draws shadows from the LiDAR heights (heightShadows.ts). */
+const GPU_SHADOWS =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('shade') === 'gpu'
 
 /** Close enough to place a venue within a few metres (the report picker). */
 const PICK_ZOOM = 18
@@ -70,6 +76,7 @@ const SHADOW_THROTTLE_MS = 120
 
 /** Shows the building shadows when new buildings or a new sun changed them. */
 function castShadows(map: MapLibreMap, sun: SunPosition, cache: ShadowCache) {
+  if (GPU_SHADOWS) return
   const change = cache.update(map, sun)
   const source = map.getSource<GeoJSONSource>(SHADOWS)
   if (!change || !source) return
@@ -109,6 +116,7 @@ export function MapView({
   const onSelectRef = useRef(onSelect)
   const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
+  const heightLayerRef = useRef<HeightShadowLayer | null>(null)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -182,8 +190,12 @@ export function MapView({
             data: { type: 'FeatureCollection', features: [] },
           })
           shadowCacheRef.current = new ShadowCache()
+          if (GPU_SHADOWS) {
+            heightLayerRef.current = new HeightShadowLayer(SHADOWS)
+            heightLayerRef.current.setSun(sunRef.current)
+          }
           map.addLayer(
-            {
+            heightLayerRef.current ?? {
               id: SHADOWS,
               // A paper-thin extrusion rather than a fill: MapLibre draws an
               // extrusion layer in one pass and fades the layer as a whole,
@@ -272,6 +284,7 @@ export function MapView({
     const map = mapRef.current
     if (!ready || !map) return
     map.setLight(sunLight(sun))
+    heightLayerRef.current?.setSun(sun)
     castShadows(map, sun, shadowCacheRef.current)
   }, [ready, sun])
 

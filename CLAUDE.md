@@ -100,4 +100,4 @@ Parked: not now. They may come back later, but don't propose or start them unles
 - OSM data is ODbL. Keep "© OpenStreetMap contributors" visible in the app. Derived data that contains OSM data stays ODbL.
 - IGN/CNIG (PNOA LiDAR) and Catastro data require attribution: credit them in the app and in the README.
 - Do not use sources whose terms forbid storing or redistributing their data (e.g. Google Places) in the public dataset.
-- Never commit secrets, rasters or raw downloads.
+- Never commit secrets, rasters or raw downloads. One exception (owner, 2026-11-25): the shadow height tiles, on the orphan `height-tiles` branch only, never on `main` ([docs/pipeline.md](docs/pipeline.md#shadow-height-tiles)).
