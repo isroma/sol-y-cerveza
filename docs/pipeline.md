@@ -50,6 +50,20 @@ To check a rebuild:
 3. Pick 3–5 terraces you know: some under plane trees or mulberries (they should gain a winter horizon), and some under orange trees, palms or pines (they should not). Run the app with the clock in January (or the admin probe) and compare.
 4. If evergreens come out as bare, raise `WINTER_DROP_MIN_NDVI` in `pipeline/src/solycerveza/leafoff.py`. If plane-tree squares are missed, lower it, or `SUMMER_MIN_NDVI`. Say what you changed in the PR.
 
+## Shadow height tiles
+
+The map's prototype sun shadows (`?shade=gpu`, `web/src/map/heightShadows.ts`) march from each ground pixel towards the sun through the same DSM and DTM the terrace horizons use, so trees and terrain cast shadows and the map agrees with the list. `python -m solycerveza.heightmap` reprojects both rasters to Web Mercator zoom-15 tiles of 512 px (about 1.9 m a pixel) and writes PNGs to `web/public/data/heights/{x}/{y}.png` (gitignored: rasters are never committed). Each pixel packs the surface elevation in decimetres (R, G) and its height above the terrain in quarter metres (B). The city is 110 tiles, about 14 MB.
+
+Rasters stay off `main`: the tiles live on the orphan branch `height-tiles` (`{x}/{y}.png` at its root), and the Pages deploy copies it into the site's `data/heights/` (`.github/workflows/deploy-pages.yml`). The dev server reads them from `web/public/data/heights`. Regenerate only when the DSM or DTM changes, then replace the branch's tiles in one commit:
+
+```sh
+git worktree add ../height-tiles height-tiles
+rm -rf ../height-tiles/[0-9]* && cp -R web/public/data/heights/* ../height-tiles/
+cd ../height-tiles && git add -A && git commit -m "data: regenerate shadow height tiles" && git push
+```
+
+The next deploy of `main` picks them up (or run **Deploy web to GitHub Pages** by hand).
+
 ## Prices from venue websites
 
 ```bash

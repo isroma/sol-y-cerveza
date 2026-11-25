@@ -28,6 +28,7 @@ const EYE_HEIGHT_M = 1.2
 const SHADOW_RGB = [0x6b / 255, 0x58 / 255, 0x48 / 255]
 const MAX_OPACITY = 0.6
 
+/** Deployed from the height-tiles branch; in dev, written by the pipeline (heightmap.py). */
 export const HEIGHTS_URL = './data/heights'
 
 const VERTEX = `#version 300 es
@@ -98,7 +99,9 @@ export function centreTile(lng: number, lat: number): [number, number] {
   const r = (lat * Math.PI) / 180
   return [
     Math.floor(((lng + 180) / 360) * n),
-    Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n),
+    Math.floor(
+      ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n,
+    ),
   ]
 }
 
@@ -139,7 +142,16 @@ export class HeightShadowLayer implements CustomLayerInterface {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer)
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array([0, 0, MOSAIC_PX, 0, 0, MOSAIC_PX, MOSAIC_PX, MOSAIC_PX]),
+      new Float32Array([
+        0,
+        0,
+        MOSAIC_PX,
+        0,
+        0,
+        MOSAIC_PX,
+        MOSAIC_PX,
+        MOSAIC_PX,
+      ]),
       gl.STATIC_DRAW,
     )
   }
@@ -262,14 +274,24 @@ export class HeightShadowLayer implements CustomLayerInterface {
     const altitude = (this.sun.altitude * Math.PI) / 180
 
     gl.useProgram(this.program)
-    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, 'u_matrix'), false, matrix)
+    gl.uniformMatrix4fv(
+      gl.getUniformLocation(this.program, 'u_matrix'),
+      false,
+      matrix,
+    )
     gl.uniform2f(
       gl.getUniformLocation(this.program, 'u_dir'),
       Math.sin(azimuth),
       -Math.cos(azimuth),
     )
-    gl.uniform1f(gl.getUniformLocation(this.program, 'u_tan_alt'), Math.tan(altitude))
-    gl.uniform1f(gl.getUniformLocation(this.program, 'u_px_per_m'), 1 / metresPerPx)
+    gl.uniform1f(
+      gl.getUniformLocation(this.program, 'u_tan_alt'),
+      Math.tan(altitude),
+    )
+    gl.uniform1f(
+      gl.getUniformLocation(this.program, 'u_px_per_m'),
+      1 / metresPerPx,
+    )
     gl.uniform1f(gl.getUniformLocation(this.program, 'u_eye'), EYE_HEIGHT_M)
     gl.uniform3fv(gl.getUniformLocation(this.program, 'u_color'), SHADOW_RGB)
     gl.uniform1f(gl.getUniformLocation(this.program, 'u_opacity'), opacity)
