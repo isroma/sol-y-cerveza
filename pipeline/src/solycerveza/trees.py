@@ -10,13 +10,14 @@ trees cast shade the basemap never draws. This finds them in the same model: cel
 (``leafoff.load_structures``, buffered by ``BUILDING_BUFFER_CELLS``). Shapes narrower than
 three cells (walls, fences, lamp posts, cables) are opened away. What is left is cut into height
 bands (``BANDS_M``), and each band becomes smoothed polygons extruded from the band below it,
-so a crown reads as a stepped dome.
+so a crown reads as a stepped dome. Each polygon's top is its own crown's height (95th percentile
+of its cells), capped where the next band takes over, so no crown is drawn taller than it is.
 
 Unmapped buildings, kiosks and awnings that pass the filters are drawn as trees too.
 
-Output: a GeoJSON FeatureCollection, each feature with ``b`` (base, m) and ``h`` (top, m),
-coordinates in WGS84 rounded to 5 decimals (about 1 m), ordered by band then position
-(deterministic).
+Output: a compact JSON (``encode``), decoded in the app's map workers by
+``web/src/map/treeCodec.ts``; coordinates in WGS84 rounded to 1e-5 degrees (about 1 m),
+ordered by band then position (deterministic).
 """
 
 import argparse
@@ -31,8 +32,8 @@ import numpy.typing as npt
 import rasterio
 import shapely
 from pyproj import Transformer
-from rasterio.features import shapes
-from shapely.geometry import MultiPolygon, Polygon, shape
+from rasterio.features import rasterize, shapes
+from shapely.geometry import LinearRing, MultiPolygon, Polygon, shape
 
 from solycerveza.leafoff import dilate, load_structures, structures_mask
 from solycerveza.obstacles import Grid
@@ -40,10 +41,11 @@ from solycerveza.venues import CACHE_DIR
 
 MIN_HEIGHT_M = 2.5
 BUILDING_BUFFER_CELLS = 2  # 4 m: OSM outlines are often 1-3 m off the LiDAR
-BANDS_M = (2.5, 6.0, 11.0, 17.0)
+BANDS_M = (2.5, 7.0, 13.0)
 SMOOTH_M = 1.5
-SIMPLIFY_M = 1.0
-MIN_AREA_M2 = 16.0
+SIMPLIFY_M = 1.5
+MIN_AREA_M2 = 30.0
+UNIT = 100_000  # coordinates in 1e-5 degrees, about 1 m
 OUT_PATH = Path("../web/public/data/trees.json")
 
 BoolArray = npt.NDArray[np.bool_]
@@ -82,48 +84,98 @@ def band_polygons(
     """(base, top, polygon in grid CRS) for every band, bottom band first."""
     out: list[tuple[float, float, Polygon]] = []
     for index, low in enumerate(BANDS_M):
-        top = BANDS_M[index + 1] if index + 1 < len(BANDS_M) else float(np.nanmax(heights))
+        above = BANDS_M[index + 1] if index + 1 < len(BANDS_M) else None
         mask = crowns & (heights >= low)
         if not mask.any():
             break
-        geoms = [
-            shape(geom)
-            for geom, value in shapes(mask.astype(np.uint8), mask=mask, transform=grid.transform)
-            if value == 1
-        ]
         base = 0.0 if index == 0 else BANDS_M[index - 1] + (low - BANDS_M[index - 1]) / 2
-        for geom in geoms:
+        for geom, top in band_shapes(mask, heights, grid, above):
             smooth = geom.buffer(SMOOTH_M).buffer(-SMOOTH_M).simplify(SIMPLIFY_M)
             parts = smooth.geoms if isinstance(smooth, MultiPolygon) else [smooth]
             for part in parts:
                 if isinstance(part, Polygon) and part.area >= MIN_AREA_M2:
-                    out.append((round(base, 1), round(max(top, low + 1.0), 1), part))
+                    out.append((round(base, 1), float(round(max(top, low + 1.0))), part))
     return out
 
 
-def feature_collection(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str, Any]:
-    """GeoJSON in WGS84, coordinates rounded, ordered by band and then by position."""
+def band_shapes(
+    mask: BoolArray, heights: FloatArray, grid: Grid, above: float | None
+) -> list[tuple[Polygon, float]]:
+    """Each connected shape of ``mask`` with its top: the crown's own height (95th percentile
+    of its cells), up to ``above``, where the next band takes over."""
+    geoms: list[Polygon] = []
+    for geom, value in shapes(mask.astype(np.uint8), mask=mask, transform=grid.transform):
+        polygon = shape(geom)
+        if value == 1 and isinstance(polygon, Polygon):
+            geoms.append(polygon)
+    if not geoms:
+        return []
+    labels = rasterize(
+        ((geom, i + 1) for i, geom in enumerate(geoms)),
+        out_shape=mask.shape,
+        transform=grid.transform,
+        dtype="int32",
+    )
+    labels[~mask] = 0
+    flat = labels.ravel()
+    order = np.argsort(flat, kind="stable")
+    sorted_labels = flat[order]
+    values = heights.ravel()[order]
+    starts = np.searchsorted(sorted_labels, np.arange(1, len(geoms) + 2))
+    out: list[tuple[Polygon, float]] = []
+    for i, geom in enumerate(geoms):
+        cells = values[starts[i] : starts[i + 1]]
+        top = float(np.percentile(cells, 95)) if len(cells) else 0.0
+        out.append((geom, min(top, above) if above is not None else top))
+    return out
+
+
+def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str, Any]:
+    """The crowns in the compact format ``web/src/map/treeCodec.ts`` decodes.
+
+    ``{"v": 1, "g": [[base, top, polygons], ...]}``, one group per (base, top), in order. A
+    polygon is a list of rings; a ring is a flat list of ``x, y`` steps in ``UNIT`` degrees
+    (WGS84), open (the closing point is implied). Each step is from the previous point, and a
+    ring's first point is from the first point of the ring before it. Within a group, polygons
+    are ordered by position, so the output is deterministic and the steps small.
+    """
     to_wgs84 = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
-    features: list[tuple[tuple[float, float, float], dict[str, Any]]] = []
+    groups: dict[
+        tuple[float, float], list[tuple[tuple[int, int], list[npt.NDArray[np.int64]]]]
+    ] = {}
     for base, top, polygon in bands:
         geom = shapely.transform(
             polygon, lambda xy: np.column_stack(to_wgs84.transform(xy[:, 0], xy[:, 1]))
         )
-        rings = [geom.exterior.coords, *(ring.coords for ring in geom.interiors)]
-        coordinates = [[[round(x, 5), round(y, 5)] for x, y in ring] for ring in rings]
+        rings = [
+            ring for ring in map(grid_ring, [geom.exterior, *geom.interiors]) if ring is not None
+        ]
+        if not rings:
+            continue
         point = geom.representative_point()
-        features.append(
-            (
-                (base, round(point.y, 6), round(point.x, 6)),
-                {
-                    "type": "Feature",
-                    "properties": {"b": base, "h": top},
-                    "geometry": {"type": "Polygon", "coordinates": coordinates},
-                },
-            )
-        )
-    features.sort(key=lambda item: item[0])
-    return {"type": "FeatureCollection", "features": [f for _, f in features]}
+        key = (round(point.y * UNIT), round(point.x * UNIT))
+        groups.setdefault((base, top), []).append((key, rings))
+    out: list[list[Any]] = []
+    first = np.zeros(2, dtype=np.int64)
+    for (base, top), polygons in sorted(groups.items()):
+        encoded: list[list[list[int]]] = []
+        for _, rings in sorted(polygons, key=lambda item: item[0]):
+            steps_per_ring: list[list[int]] = []
+            for ring in rings:
+                steps = np.diff(ring, axis=0, prepend=first[np.newaxis, :])
+                first = ring[0]
+                steps_per_ring.append([int(v) for v in steps.ravel()])
+            encoded.append(steps_per_ring)
+        out.append([base, top, encoded])
+    return {"v": 1, "g": out}
+
+
+def grid_ring(ring: LinearRing) -> npt.NDArray[np.int64] | None:
+    """A ring's points in whole ``UNIT`` degrees, open, without repeats; None if it collapses."""
+    points = np.rint(np.asarray(ring.coords)[:-1] * UNIT).astype(np.int64)
+    keep = np.any(points != np.roll(points, 1, axis=0), axis=1)
+    points = points[keep]
+    return points if len(points) >= 3 else None
 
 
 def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> dict[str, Any]:
@@ -137,7 +189,7 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> dict[str, Any]:
     heights = smoothed(surface - terrain)
     structures = structures_mask(load_structures(cache_dir=cache_dir), grid)
     crowns = crown_cells(heights, structures)
-    return feature_collection(band_polygons(crowns, heights, grid), grid.crs)
+    return encode(band_polygons(crowns, heights, grid), grid.crs)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -145,10 +197,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=OUT_PATH)
     parser.add_argument("--cache", type=Path, default=CACHE_DIR)
     args = parser.parse_args(argv)
-    collection = build(args.cache / "badajoz_dsm.tif", args.cache / "badajoz_dtm.tif", args.cache)
+    crowns = build(args.cache / "badajoz_dsm.tif", args.cache / "badajoz_dtm.tif", args.cache)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(collection, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(f"wrote {len(collection['features'])} crown polygons to {args.out}")
+    args.out.write_text(json.dumps(crowns, separators=(",", ":")) + "\n", encoding="utf-8")
+    count = sum(len(polygons) for _, _, polygons in crowns["g"])
+    print(f"wrote {count} crown polygons to {args.out}")
     return 0
 
 

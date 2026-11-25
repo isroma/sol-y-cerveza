@@ -15,6 +15,7 @@ const layers = [
   { id: 'building', type: 'fill', source: 's' },
   { id: 'landuse_residential', type: 'fill', source: 's' },
   { id: 'building-3d', type: 'fill-extrusion', source: 's' },
+  { id: 'tree-crowns', type: 'fill-extrusion', source: 's' },
   { id: 'waterway_river', type: 'line', source: 's' },
   { id: 'road_primary', type: 'line', source: 's' },
   { id: 'label_city', type: 'symbol', source: 's' },
@@ -29,7 +30,7 @@ describe('nightPaint', () => {
         .map((patch) => [patch.property, patch.value]),
     )
 
-  it('darkens the ground, water, greenery and buildings', () => {
+  it('darkens the ground, water, greenery, buildings and tree crowns', () => {
     expect(byLayer('background')['background-color']).toBe('#10131D')
     expect(byLayer('water')['fill-color']).toBe('#16263D')
     expect(byLayer('park')['fill-color']).toBe('#152019')
@@ -39,6 +40,7 @@ describe('nightPaint', () => {
     })
     expect(byLayer('landuse_residential')['fill-color']).toBe('#161A26')
     expect(byLayer('building-3d')['fill-extrusion-color']).toBe('#2B3144')
+    expect(byLayer('tree-crowns')['fill-extrusion-color']).toBe('#22302A')
   })
 
   it('fades patterned areas, which ignore the fill colour', () => {
