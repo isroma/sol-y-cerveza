@@ -90,20 +90,21 @@ These are candidates, not prices: the build never reads that file, and nothing r
 cd pipeline
 git show 164f946^:web/public/data/terraces.json > .cache/terraces_pre_review.json   # once
 uv run python -m solycerveza.proposals --evaluate --baseline .cache/terraces_pre_review.json --yes
+uv run python -m solycerveza.proposals --evaluate --baseline .cache/terraces_pre_review.json --only position   # opt-in
 uv run python -m solycerveza.proposals --limit 50     # then the unreviewed venues, 50 at a time
 ```
 
 Three proposers suggest answers for venues nobody has reviewed (not in `venue_review.csv`), each optional and cached in `pipeline/.cache/`:
 
 - a terrace (and where its tables are) read from a PNOA orthophoto crop by the Claude API (`ANTHROPIC_API_KEY`);
-- a corrected position from the Junta register address, through its CartoCiudad portal;
+- a corrected position from a street address, through its CartoCiudad portal: the Junta register row that matches the venue (`junta+cartociudad`), the venue's own OSM `addr:street` + `addr:housenumber` (`osm-addr+cartociudad`) or its Overture `addresses` line (`overture-addr+cartociudad`). The trial scores each of the three apart. Overture parquets downloaded before #350 have no `addresses` column: re-run `uv run python -m solycerveza.overture`. The first run geocodes the new addresses (about one CartoCiudad request per address, cached in `.cache/cartociudad_portals_v2.json` with the register's). The trial on 2026-11-25 found no position source reaching 90 % precision (0 right out of 20), so this proposer is **opt-in**: it runs only when named (`--only position`, also for `--evaluate`) and a plain run leaves it out ([ADR-0008](adr/0008-machine-venue-proposals.md), Consequences);
 - "not a venue" for weak Overture places, from their attributes.
 
 They write `pipeline/data/venue_proposals.csv` (`venue_id,kind,lat,lon,confidence,evidence,source,generated`; `kind` is `terrace`, `no_terrace`, `position` or `not_venue`). These are proposals, not data: the build never reads the file, and the owner confirms each one in the admin ([admin guide](admin.md#machine-proposals)). See [ADR-0008](adr/0008-machine-venue-proposals.md).
 
 1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review (`164f946`, PR #78, the first venue review on `main`). Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only and makes no new calls.
 2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
-3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
+3. **Then generate proposals** for the unreviewed venues (`--only` picks proposers, by default `vision,overture`; add `position` only when a new trial trusts it; `--min-confidence` sets the cut) and confirm them one by one in the admin.
 
 ### Vision answers from a Claude Code session (no API key)
 

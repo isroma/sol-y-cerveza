@@ -3,6 +3,7 @@
 - Status: accepted (2026-11-24)
 - Date: 2026-11-24
 - Amended (2026-11-25): the proposers and the trial shipped in #214, and the admin shows proposals with Accept and Ignore in #216. The trial has not been run yet: its numbers must come from the owner's machine (Consequences), so no kind has a measured threshold. The admin shows every row the CSV holds, highest confidence first; until the trial runs, the only filter is `--min-confidence` when the file is written.
+- Amended (2026-11-25, #350): the position proposer also geocodes each venue's own OSM `addr:*` or Overture `addresses` line, as two more sources (`osm-addr+cartociudad`, `overture-addr+cartociudad`) that the trial scores apart from the register (Decision 3 and 5). The position trial was run (Consequences): **no position source reaches 90 % precision, so all three stay off**; none of their 20 proposals on reviewed venues was right, so `position` is opt-in: not in the default `--only` set, it runs (and is scored) only when named. CartoCiudad matches must now be in the city's postcodes (the municipality's villages share street names).
 - Amended (2026-11-25, #388): vision answers can also come from a Claude Code session that looks at the crops itself, with no API key (`solycerveza.vision_session`, source `pnoa-ortho+claude-session`, cached apart from API answers). Its blind trial ran on the 109 venues that then had a terrace decision, and **no kind reached 90 % precision** (Consequences, "Vision trial"), so the session's vision proposals stay off.
 - Issue: #211
 
@@ -36,6 +37,11 @@ Earlier research on the PNOA orthophoto found automatic table detection unusable
    - **Position from the register address** (`junta+cartociudad`):
      - Every venue a geocoded Junta register row matches (its own row, or `same_venue`) gets a `position` proposal when the CartoCiudad portal is more than 25 m from the venue's current position.
      - Junta venues already sit at their own portal, so this mostly helps OSM and Overture venues the register confirms.
+   - **Position from the venue's own address** (`osm-addr+cartociudad`, `overture-addr+cartociudad`; #350):
+     - The OSM `addr:street` + `addr:housenumber`, or the first Overture `addresses` line with a street and a number, is cut with the register's parser and geocoded by the same CartoCiudad `Geocoder` and cache, exact street number only. The same 25 m rule applies.
+     - The address is the venue's own, so there is no name matching. The hand-set confidence is 0.80 (OSM) or 0.70 (Overture), less 0.15 for a move over 150 m and less 0.15 when three or more venues share the portal.
+     - 338 of the 452 Overture venues have such an address (298 of them unreviewed; counted on release `2026-11-18.0`). The register helps only venues a register row matches, so this is where most new proposals would come from, if the trial trusts them.
+     - When sources disagree, the CSV keeps the most confident proposal per venue; the trial reports each source and that combination.
    - **Not a venue** (`overture-attributes`):
      - A transparent additive score from what Overture gives: confidence, the number of source datasets, no website, a generic name, and a category outside the bar and restaurant ones.
      - The weights are set by hand and are only tested by the trial.
@@ -45,14 +51,30 @@ Earlier research on the PNOA orthophoto found automatic table detection unusable
    - The report gives:
      - precision and recall for terrace yes/no and for not a venue;
      - the median and 90th-percentile distance of proposed terrace pins and positions from the owner's, next to the "do nothing" distance;
-     - the lowest confidence threshold at which precision reaches 90 %, if any.
+     - the lowest confidence threshold at which precision reaches 90 %, if any;
+     - for positions, all of these per address source (register, OSM, Overture), over the venues that source has an address for, and for the most confident proposal per venue.
    - It is deterministic and goes to stdout and `pipeline/.cache/proposals_eval.md`.
    - The vision trial covers only the 87 venues with a terrace decision.
 6. **A proposer reaches the admin only after its trial.** A kind is shown as a one-tap proposal only above the threshold its trial found, and only if one exists. A proposer whose trial finds no such threshold stays off.
 
 ## Consequences
 
-- The trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
+- The API vision and not-a-venue trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
+- **Position trial (2026-11-25, #350).** Run with `--evaluate --only position` on the pre-review baseline (`164f946^`), Overture release `2026-11-18.0`, and the Overpass, Junta and CartoCiudad answers of that day. A proposal is right within 15 m of the owner's position.
+
+  | Source                      | Venues with an address (moved by the owner) | Proposals | Right | Recall of moved | 90 % threshold | Distance from the owner's position (median, p90) |
+  | --------------------------- | ------------------------------------------- | --------- | ----- | --------------- | -------------- | ------------------------------------------------ |
+  | `junta+cartociudad`         | 106 looked at (14)                          | 7         | 0     | 0/14            | none           | 46 m, 190 m                                      |
+  | `osm-addr+cartociudad`      | 6 (1)                                       | 2         | 0     | 0/1             | none           | 26 m, 115 m                                      |
+  | `overture-addr+cartociudad` | 48 (6)                                      | 11        | 0     | 0/6             | none           | 382 m, 821 m                                     |
+  | most confident per venue    | 106 looked at (14)                          | 20        | 0     | 0/14            | none           | 137 m, 821 m                                     |
+  - The pre-review position was 0 m from the owner's for every venue proposed for except one (the only moved venue with a proposal: the owner moved it 14 m, and the register portal was 26 m from their position, farther than doing nothing). Doing nothing was within 15 m every time.
+  - Why: the owner's 14 moves are small, 3 to 33 m (median 12 m), and 13 of them are under the 25 m rule, so no address proposer could catch them. The portals, in turn, land 25 to 821 m from venues the owner left in place. Overture's addresses are the worst: five venues listed on "Avenida de Elvas" got portals 311 to 821 m from where the owner keeps them.
+  - The first run also found Overture addresses matched to Valdebótoa, a village 12 km away with the same street name. `pick_portal` now keeps only city postcodes (06000 to 06012), and the portal cache moved to `cartociudad_portals_v2.json`, so the register is geocoded again on the next build. Of the 90 Junta venues in `terraces.json` on 2026-11-25, the filter changes 2, both unreviewed and both placed in a village today: "Vintage Cafe" (San Isidro 3, now in Gévora) moves 6.1 km to the city portal, and "Taperia Lega" (Luis Álvarez Lencero 1, now in Valdebótoa) has no city portal at that number, so it leaves the build. Two more (both reviewed, so the owner's position wins) would get a portal 21 and 24 m away because CartoCiudad's own data changed since they were first geocoded.
+  - Confidences and penalties are left as they were: with no right proposal there is nothing to fit them to. The sample is thin (20 proposals, 14 moves), but 0 right out of 20 gives no reason to show any of these.
+  - Unreviewed venues on the same day: 298 Overture and 35 OSM venues have a usable address; 195 of these geocode to a city portal. That would give 101 `position` proposals at the default 0.5 cut (59 Overture, 38 register, 4 OSM), all from sources the trial says to ignore.
+  - The owner's own check of a position is what fixes venues today; a future position proposer would need metre-level evidence (the orthophoto, an entrance in OSM), not a street address.
+
 - **Vision trial, session answers (2026-11-25, #388).** Crops from the pre-review baseline (`164f946^`) for the 109 venues with a terrace decision (54 terrace, 55 no terrace), judged blind by subagents of a Claude Code session with the API's prompt; each saw only the crop, the venue's name and kind, and none read the review, the curated terraces or `terraces.json`. Measured by `--vision session --evaluate`:
   - 91 of 109 answers were "unsure" (no proposal); 12 "yes", 6 "no".
   - `terrace`: precision 67 % (8/12), recall 15 % (8/54). The most confident "yes" (0.80) was wrong, so no confidence threshold gives 90 % precision.

@@ -5,16 +5,18 @@
 The owner confirms or rejects each one in the admin, which records the decision in
 `venue_review.csv` as usual.
 
-Three proposers, each optional (`--only`) and each cached in `.cache/`:
+Three proposers, each optional (`--only`) and each cached in `.cache/`. `position` is opt-in
+(not in `DEFAULT_PROPOSERS`): its trial found no right proposal (ADR-0008).
 
 - `vision`: a terrace read from the PNOA orthophoto by the Claude API (`solycerveza.ortho`,
   `solycerveza.terrace_vision`). Proposes `terrace` (with the tables' position) or
   `no_terrace`. Costs money: it prints an estimate and asks nothing new without `--yes` or
   `--limit N`. With `--vision session` it reads the answers a Claude Code session recorded
   instead (`solycerveza.vision_session`, no API key) and never calls the API.
-- `position`: the Junta register address geocoded by CartoCiudad (`solycerveza.junta`), for every
-  venue a register row matches. Proposes `position` when the portal is more than
-  `MIN_MOVE_M` from the venue's current position.
+- `position`: a street address geocoded by CartoCiudad, from three origins scored apart: the
+  Junta register (`solycerveza.junta`), for every venue a register row matches; and the venue's
+  own OSM `addr:*` tags or Overture `addresses` (`solycerveza.addresses`). Proposes `position`
+  when the portal is more than `MIN_MOVE_M` from the venue's current position.
 - `overture`: `not_venue` for Overture-only places, scored from Overture's own attributes
   (confidence, sources, website, generic name). No network.
 
@@ -31,7 +33,8 @@ proposal:
 - `confidence`: 0.00 to 1.00, two decimals.
 - `evidence`: one short English sentence.
 - `source`: what produced it: `pnoa-ortho+claude` (API), `pnoa-ortho+claude-session` (a Claude
-  Code session), `junta+cartociudad` or `overture-attributes`.
+  Code session), `junta+cartociudad`, `osm-addr+cartociudad`, `overture-addr+cartociudad` or
+  `overture-attributes`.
 - `generated`: YYYY-MM-DD the evidence was produced (a re-run keeps the date of an unchanged row).
 """
 
@@ -50,6 +53,7 @@ import duckdb
 import httpx
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from solycerveza.addresses import Address, Origin, collect_addresses, locate_addresses
 from solycerveza.csvfile import blank_to_none, read_rows
 from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, load_register, register_id
@@ -59,6 +63,7 @@ from solycerveza.overture import (
     cache_path,
     name_similarity,
     normalize_name,
+    read_addresses,
     same_venue,
 )
 from solycerveza.review import read_review
@@ -79,7 +84,17 @@ from solycerveza.terrace_vision import (
     write_answer,
 )
 from solycerveza.terraces import Terrace, build_terraces, read_curated
-from solycerveza.venues import CACHE_DIR, VENUE_ID_PATTERN, Lat, LatLon, Lon, Venue, load_seating
+from solycerveza.venues import (
+    CACHE_DIR,
+    VENUE_ID_PATTERN,
+    Lat,
+    LatLon,
+    Lon,
+    OverpassError,
+    Venue,
+    load_addresses,
+    load_seating,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +104,32 @@ EVAL_REPORT = CACHE_DIR / "proposals_eval.md"
 EVAL_CSV = CACHE_DIR / "proposals_eval.csv"
 COLUMNS = ("venue_id", "kind", "lat", "lon", "confidence", "evidence", "source", "generated")
 PROPOSERS = ("vision", "position", "overture")
-SOURCES = {
-    "vision": MODELS[MODEL],
-    "position": "junta+cartociudad",
-    "overture": "overture-attributes",
+#: Run without `--only`. `position` is opt-in: its trial (2026-11-25, #350) found 0 of 20
+#: proposals right on every address source, so it must not fill the admin's queue by default.
+DEFAULT_PROPOSERS = ("vision", "overture")
+OPT_IN_REASONS = {
+    "position": "opt-in: its trial found 0 of 20 proposals right (ADR-0008, Consequences)",
+}
+VISION_SOURCE = MODELS[MODEL]
+JUNTA_SOURCE = "junta+cartociudad"
+ADDRESS_SOURCES: dict[Origin, str] = {
+    "osm": "osm-addr+cartociudad",
+    "overture": "overture-addr+cartociudad",
+}
+NOT_VENUE_SOURCE = "overture-attributes"
+#: Proposer -> the sources it writes, in the order the trial reports them.
+SOURCES: dict[str, tuple[str, ...]] = {
+    "vision": (VISION_SOURCE,),
+    "position": (JUNTA_SOURCE, *ADDRESS_SOURCES.values()),
+    "overture": (NOT_VENUE_SOURCE,),
 }
 MIN_MOVE_M = 25.0
+# Own-address confidence: hand-set, not fitted; `--evaluate` measures it (ADR-0008).
+ADDRESS_CONFIDENCE: dict[Origin, float] = {"osm": 0.8, "overture": 0.7}
+FAR_MOVE_M = 150.0
+FAR_MOVE_PENALTY = 0.15
+SHARED_PORTAL_VENUES = 3
+SHARED_PORTAL_PENALTY = 0.15
 DEFAULT_MIN_CONFIDENCE = 0.5
 
 ProposalKind = Literal["terrace", "no_terrace", "position", "not_venue"]
@@ -278,7 +313,7 @@ def overture_proposals(
                 kind="not_venue",
                 confidence=score,
                 evidence="; ".join(reasons) + ".",
-                source=SOURCES["overture"],
+                source=NOT_VENUE_SOURCE,
                 generated=today,
             )
         )
@@ -339,11 +374,83 @@ def position_proposals(
                     f"The Junta register lists {row.name} at {row.street} {row.number}; "
                     f"CartoCiudad puts that portal {d:.0f} m from the current position."
                 ),
-                source=SOURCES["position"],
+                source=JUNTA_SOURCE,
                 generated=today,
             )
         )
     return proposals
+
+
+def address_score(address: Address, moved_m: float, sharing: int) -> tuple[float, list[str]]:
+    """A transparent 0-1 confidence for a venue's own geocoded address, and why it is lower.
+
+    The address is the venue's own, so the doubt is whether it is right and precise: a long move
+    or a portal many venues share (a shopping centre, a block) makes it less likely.
+    """
+    score = ADDRESS_CONFIDENCE[address.origin]
+    reasons: list[str] = []
+    if moved_m > FAR_MOVE_M:
+        score -= FAR_MOVE_PENALTY
+        reasons.append(f"a move over {FAR_MOVE_M:.0f} m")
+    if sharing >= SHARED_PORTAL_VENUES:
+        score -= SHARED_PORTAL_PENALTY
+        reasons.append(f"{sharing} venues share that portal")
+    return (round(score, 2), reasons)
+
+
+def address_proposals(
+    records: Sequence[Terrace],
+    located: Iterable[tuple[Address, LatLon]],
+    today: date,
+    min_move_m: float = MIN_MOVE_M,
+) -> list[Proposal]:
+    """`position` where a venue's own OSM or Overture address is over `min_move_m` away."""
+    pairs = sorted(located, key=lambda pair: (pair[0].venue_id, pair[0].origin))
+    sharing: dict[tuple[str, str], set[str]] = {}
+    for address, _ in pairs:
+        sharing.setdefault((address.street, address.number), set()).add(address.venue_id)
+    by_id = {t.id: t for t in records}
+    proposals: list[Proposal] = []
+    for address, portal in pairs:
+        record = by_id.get(address.venue_id)
+        if record is None:
+            continue
+        d = distance_m(record.venue, portal)
+        if d <= min_move_m:
+            continue
+        score, reasons = address_score(address, d, len(sharing[(address.street, address.number)]))
+        where = "OSM tags" if address.origin == "osm" else "Overture lists"
+        doubts = f" Less sure: {', '.join(reasons)}." if reasons else ""
+        proposals.append(
+            Proposal(
+                venue_id=address.venue_id,
+                kind="position",
+                lat=portal.lat,
+                lon=portal.lon,
+                confidence=score,
+                evidence=(
+                    f"{where} its address as {address.text[:80]}; CartoCiudad puts "
+                    f"{address.street} {address.number} {d:.0f} m from the current position."
+                    f"{doubts}"
+                ),
+                source=ADDRESS_SOURCES[address.origin],
+                generated=today,
+            )
+        )
+    return proposals
+
+
+def own_addresses(records: Sequence[Terrace], cache_dir: Path = CACHE_DIR) -> list[Address]:
+    """The usable OSM and Overture address of each record, from the cached sources."""
+    try:
+        osm = load_addresses(cache_dir=cache_dir)  # the fetch stage: the cached Overpass answer
+    except (OverpassError, httpx.HTTPError) as error:
+        logger.warning("position: no OSM addresses, Overpass failed (%r)", error)
+        osm = {}
+    places = cache_path(cache_dir)
+    if not places.exists():
+        logger.warning("position: no Overture addresses: run `python -m solycerveza.overture`")
+    return collect_addresses((t.id for t in records), osm, read_addresses(places))
 
 
 # --- Proposer: terrace from the orthophoto --------------------------------------------------
@@ -414,7 +521,7 @@ def ask_vision(
 
 
 def vision_proposals(
-    targets: Iterable[Terrace], answers: dict[str, CachedAnswer], source: str = SOURCES["vision"]
+    targets: Iterable[Terrace], answers: dict[str, CachedAnswer], source: str = VISION_SOURCE
 ) -> list[Proposal]:
     """`terrace` for "yes" (at the pixel it named), `no_terrace` for "no"; "unsure" is skipped."""
     proposals: list[Proposal] = []
@@ -506,6 +613,17 @@ def run_proposers(
             logger.warning("position: the Junta register or CartoCiudad failed (%r)", error)
         else:
             proposals += position_proposals(targets.position, located, today)
+            ran[JUNTA_SOURCE] = sorted(t.id for t in targets.position)
+        addresses = own_addresses(targets.position)
+        try:
+            found = locate_addresses(addresses)  # cached in .cache/ like the register's
+        except httpx.HTTPError as error:
+            logger.warning("position: CartoCiudad failed for the venues' addresses (%r)", error)
+        else:
+            proposals += address_proposals(targets.position, found, today)
+            for origin, source in ADDRESS_SOURCES.items():
+                ran[source] = sorted({a.venue_id for a in addresses if a.origin == origin})
+        if any(source in ran for source in SOURCES["position"]):
             ran["position"] = sorted(t.id for t in targets.position)
 
     if "vision" in only and vision_model == SESSION_MODEL:
@@ -549,12 +667,22 @@ def _non_negative(text: str) -> int:
     return value
 
 
+def selected_proposers(text: str) -> set[str]:
+    """The proposers an `--only` value names (`position` runs only when named)."""
+    only = {name.strip() for name in text.split(",") if name.strip()}
+    unknown = only - set(PROPOSERS)
+    if unknown:
+        raise ValueError(f"unknown proposers: {', '.join(sorted(unknown))}")
+    return only
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Proposals for unreviewed venues (ADR-0008).")
     parser.add_argument(
         "--only",
-        default=",".join(PROPOSERS),
-        help=f"comma-separated proposers to run (default: {','.join(PROPOSERS)})",
+        default=",".join(DEFAULT_PROPOSERS),
+        help=f"comma-separated proposers to run, of {','.join(PROPOSERS)} (default: "
+        f"{','.join(DEFAULT_PROPOSERS)}; position is {OPT_IN_REASONS['position']})",
     )
     budget = parser.add_mutually_exclusive_group()
     budget.add_argument("--yes", action="store_true", help="make every Claude API call needed")
@@ -587,10 +715,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    only = {name.strip() for name in args.only.split(",") if name.strip()}
-    unknown = only - set(PROPOSERS)
-    if unknown:
-        parser.error(f"unknown proposers: {', '.join(sorted(unknown))}")
+    try:
+        only = selected_proposers(args.only)
+    except ValueError as error:
+        parser.error(str(error))
     ask_limit: AskBudget = AskAll() if args.yes else args.limit
     vision_model = SESSION_MODEL if args.vision == "session" else MODEL
     today = date.today()
@@ -626,8 +754,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     kept = [p for p in proposals if p.confidence >= args.min_confidence]
     # Proposers that did not run this time keep their earlier rows.
     old = read_proposals()
-    sources = SOURCES | {"vision": MODELS[vision_model]}
-    rerun = {sources[name] for name in only}
+    sources = SOURCES | {"vision": (MODELS[vision_model],)}
+    rerun = {source for name in only for source in sources[name]}
     rows = [p for p in old if p.source not in rerun and p.venue_id not in reviewed]
     rows += keep_dates(old, kept)
     write_proposals(rows)

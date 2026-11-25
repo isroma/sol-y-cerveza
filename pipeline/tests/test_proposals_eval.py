@@ -38,13 +38,22 @@ def review(venue_id: str, status: str | None, **extra: float) -> Review:
     return Review.model_validate({"venue_id": venue_id, "status": status, "reviewed": DAY, **extra})
 
 
-def proposal(venue_id: str, kind: str, confidence: float, at: LatLon | None = None) -> Proposal:
-    source = {
-        "terrace": "pnoa-ortho+claude",
-        "no_terrace": "pnoa-ortho+claude",
-        "position": "junta+cartociudad",
-        "not_venue": "overture-attributes",
-    }[kind]
+def proposal(
+    venue_id: str,
+    kind: str,
+    confidence: float,
+    at: LatLon | None = None,
+    source: str | None = None,
+) -> Proposal:
+    source = (
+        source
+        or {
+            "terrace": "pnoa-ortho+claude",
+            "no_terrace": "pnoa-ortho+claude",
+            "position": "junta+cartociudad",
+            "not_venue": "overture-attributes",
+        }[kind]
+    )
     return Proposal.model_validate(
         {
             "venue_id": venue_id,
@@ -125,10 +134,12 @@ def test_evaluate_report() -> None:
     ran = {
         "vision": ["osm:node/1", "osm:node/2", "osm:node/3", "junta:0123456789ab"],
         "position": [t.id for t in BASELINE],
+        "junta+cartociudad": [t.id for t in BASELINE],
         "overture": ["overture:a", "overture:b"],
     }
     report = evaluate(proposals, ran, BASELINE, REVIEWS)
     assert report == evaluate(proposals, ran, BASELINE, REVIEWS)
+    assert "### The venue's OSM address (osm-addr+cartociudad)\n\nNot run." in report
     assert (
         "Answer key: 6 reviewed venues (3 terrace, 2 no terrace, 1 not a venue, 1 moved)." in report
     )
@@ -144,6 +155,34 @@ def test_evaluate_report() -> None:
         in report
     )
     assert "At confidence >= 0.80: precision 100% (1/1), recall 100% (1/1)." in report
+
+
+def test_evaluate_scores_each_address_source_apart() -> None:
+    proposals = [
+        proposal("overture:b", "position", 0.6, north(80), "junta+cartociudad"),  # wrong
+        proposal("overture:b", "position", 0.7, north(28), "overture-addr+cartociudad"),  # right
+        proposal("osm:node/1", "position", 0.8, north(40), "osm-addr+cartociudad"),  # wrong
+    ]
+    ran = {
+        "position": [t.id for t in BASELINE],
+        "junta+cartociudad": [t.id for t in BASELINE],
+        "osm-addr+cartociudad": ["osm:node/1", "osm:node/2"],
+        "overture-addr+cartociudad": ["overture:b"],
+    }
+    report = evaluate(proposals, ran, BASELINE, REVIEWS)
+    osm = report.split("(osm-addr+cartociudad)")[1].split("###")[0]
+    assert "- 2 venues with an address, 0 of them moved by the owner." in osm
+    assert "precision 0% (0/1), recall n/a of moved venues." in osm
+    assert "No confidence threshold gives 90% precision." in osm
+    assert "median 40 m, p90 40 m; the pre-review position was median 0 m" in osm
+    overture = report.split("(overture-addr+cartociudad)")[1].split("###")[0]
+    assert "- 1 venues with an address, 1 of them moved by the owner." in overture
+    assert "precision 100% (1/1), recall 100% (1/1) of moved venues." in overture
+    assert "At confidence >= 0.70: precision 100% (1/1)." in overture
+    assert "median 2 m, p90 2 m; the pre-review position was median 30 m" in overture
+    combined = report.split("as `venue_proposals.csv` keeps them")[1]
+    # The most confident per venue: OSM for osm:node/1 (wrong), Overture for overture:b (right).
+    assert "- **position**: 2 proposals; precision 50% (1/2), recall 100% (1/1)" in combined
 
 
 @pytest.mark.parametrize("missing", ["vision", "position", "overture"])

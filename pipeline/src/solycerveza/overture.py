@@ -94,7 +94,7 @@ def fetch_places(
                  confidence, operating_status,
                  taxonomy.primary AS category, taxonomy.hierarchy AS hierarchy,
                  list_transform(sources, lambda s: s.dataset) AS datasets,
-                 websites
+                 websites, addresses
           FROM read_parquet('{source}', hive_partitioning = 1)
           WHERE bbox.xmin >= ? AND bbox.xmax <= ? AND bbox.ymin >= ? AND bbox.ymax <= ?
           ORDER BY id
@@ -176,6 +176,32 @@ def read_websites(path: Path) -> dict[str, list[str]]:
         [str(path)],
     ).fetchall()
     return {f"overture:{place_id}": [str(url) for url in urls] for place_id, urls in rows}
+
+
+def read_addresses(path: Path) -> dict[str, list[str]]:
+    """Venue id -> the place's `addresses[].freeform` lines, from a parquet by `fetch_places`.
+
+    Parquets downloaded before addresses were kept have no such column: re-run
+    `python -m solycerveza.overture` to get them.
+    """
+    if not path.exists():
+        return {}
+    con = duckdb.connect()
+    columns = {
+        row[0]
+        for row in con.execute("DESCRIBE SELECT * FROM read_parquet(?)", [str(path)]).fetchall()
+    }
+    if "addresses" not in columns:
+        logger.warning("%s has no addresses: re-run `python -m solycerveza.overture`", path)
+        return {}
+    rows = con.execute(
+        "SELECT id, list_filter(list_transform(addresses, lambda a: a.freeform), "
+        "lambda f: f IS NOT NULL) FROM read_parquet(?) WHERE len(addresses) > 0 ORDER BY id",
+        [str(path)],
+    ).fetchall()
+    return {
+        f"overture:{place_id}": [str(line) for line in lines] for place_id, lines in rows if lines
+    }
 
 
 # Words that say what a venue is, not which one it is.
