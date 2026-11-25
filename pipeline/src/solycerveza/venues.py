@@ -49,6 +49,15 @@ def is_kind(value: object) -> TypeIs[Kind]:
     return value in KINDS
 
 
+# OSM amenities listed as one of our kinds: fast food places have terraces and serve beer too.
+AMENITY_KINDS: dict[str, Kind] = {**{kind: kind for kind in KINDS}, "fast_food": "restaurant"}
+
+
+def amenity_kind(amenity: object) -> Kind | None:
+    """Our kind for an OSM `amenity` value, or None if we don't list it."""
+    return AMENITY_KINDS.get(amenity) if isinstance(amenity, str) else None
+
+
 def _round6(value: float) -> float:
     return round(value, 6)
 
@@ -84,7 +93,7 @@ class OverpassError(RuntimeError):
 
 def build_query(bbox: BoundingBox) -> str:
     """Overpass QL for every venue and outdoor-seating area in `bbox`, with tags and centres."""
-    amenity = f'["amenity"~"^({"|".join(KINDS)})$"]'
+    amenity = f'["amenity"~"^({"|".join(AMENITY_KINDS)})$"]'
     seating = '["leisure"="outdoor_seating"]'
     return (
         "[out:json][timeout:90];\n"
@@ -228,8 +237,11 @@ def parse_venues(data: dict[str, Any]) -> list[Venue]:
     venues: list[Venue] = []
     for raw in data.get("elements", []):
         element = _Element.model_validate(raw)
-        kind = element.tags.get("amenity")
-        if not is_kind(kind):
+        kind = amenity_kind(element.tags.get("amenity"))
+        # Unnamed fast food is mostly kiosks and stalls, not a place to sit.
+        if kind is None or (
+            element.tags.get("amenity") == "fast_food" and not element.tags.get("name")
+        ):
             continue
         if element.center is not None:
             lat, lon = element.center.lat, element.center.lon
@@ -266,7 +278,7 @@ def parse_addresses(data: dict[str, Any]) -> dict[str, StreetAddress]:
         element = _Element.model_validate(raw)
         street = element.tags.get("addr:street", "").strip()
         number = element.tags.get("addr:housenumber", "").strip()
-        if not is_kind(element.tags.get("amenity")) or not street or not number:
+        if amenity_kind(element.tags.get("amenity")) is None or not street or not number:
             continue
         addresses[f"osm:{element.type}/{element.id}"] = StreetAddress(
             street=street, housenumber=number

@@ -34,7 +34,7 @@ Overture places, release `2026-11-18.0` (latest on 2026-11-22), read with DuckDB
 | With an address / with a website or social link | 859 / 662 |
 | Matched to an OSM venue (similar name within 100 m, or within 20 m) | 68 Overture ↔ 61 of 157 OSM |
 
-- Mapping: `taxonomy.hierarchy[2]` in `restaurant` or `alcoholic_beverage_venue` (except `winery`), plus `taxonomy.primary` in `tapas_bar`, `gastropub`, `cafe`, `coffee_shop`, `tea_room`, `bistro`. Bakeries, ice cream and fast food are excluded, as in the OSM query.
+- Mapping: `taxonomy.hierarchy[2]` in `restaurant` or `alcoholic_beverage_venue` (except `winery`), plus `taxonomy.primary` in `tapas_bar`, `gastropub`, `cafe`, `coffee_shop`, `tea_room`, `bistro`. Bakeries and ice cream are excluded, as in the OSM query. Fast food (fast-food, burger, chicken, hot-dog, sandwich and döner categories) is listed as a restaurant since #447; delivery-only pizza and food trucks are not, and a "McCafé" within 50 m of a McDonald's is dropped (it is that McDonald's café counter).
 - Overlap is small: about 96 OSM venues have no Overture match, and about 754 Overture venues are not in OSM. Neither source contains the other. The match is a heuristic, so read these numbers as approximate.
 - **No outdoor-seating attribute.** The [place schema](https://docs.overturemaps.org/schema/reference/places/place/) has names, `basic_category`/`taxonomy`, contact fields, brand, addresses, `confidence` and `operating_status`, and nothing about amenities or hours. `categories` was removed in the September 2026 release ([guide](https://docs.overturemaps.org/guides/places/)). Only 6 names contain "terraz".
 - Sources in the bbox: Meta (648 venues), BrightQuery (460), Microsoft (15), Foursquare (10), AllThePlaces (5). Overture places contain no OSM data.
@@ -193,5 +193,5 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
 - **OSM edits:** changeset [192357025](https://www.openstreetmap.org/changeset/192357025) added `outdoor_seating=yes` to 8 existing venues and created 22 venue nodes that OSM lacked.
 - **Positions:** a venue node sits on its building, so a terrace placed there reads as a rooftop in the LiDAR (6–19 m up) and gets an all-shade horizon. The confirmed terraces have curated rows at the open ground nearest the venue instead.
   - Carmen, Siente La Dehesa and La Cascada are on narrow old-town streets that the 2 m LiDAR reads as covered, with no open ground within 24 m, so they show shade all day.
-  - Domino's Pizza is tagged `amenity=fast_food` in OSM, which is not an app venue kind, so its curated row links the Overture record.
+  - Domino's Pizza is tagged `amenity=fast_food` in OSM, which was not an app venue kind then (it is listed as a restaurant since #447), so its curated row links the Overture record.
 - **Result:** 41 terraces in the app, up from 13.

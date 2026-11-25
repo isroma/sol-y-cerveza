@@ -56,18 +56,23 @@ PRIMARY_KINDS: dict[str, Kind] = {
     "cafeteria": "cafe",
     "bistro": "restaurant",
 }
-NOT_VENUES = frozenset(
+# Fast food is listed (as restaurants): these places have terraces and serve beer too.
+FAST_FOOD = frozenset(
     {
         "fast_food_restaurant",
         "burger_restaurant",
         "chicken_restaurant",
         "hot_dog_restaurant",
         "sandwich_shop",
-        "food_truck_stand",
         "doner_kebab_restaurant",
-        "pizza_delivery",
     }
 )
+# Not places to sit: delivery-only pizza and food trucks.
+NOT_VENUES = frozenset({"food_truck_stand", "pizza_delivery"})
+# Overture lists the café counter in a McDonald's as a "McCafé" coffee shop of its own.
+COUNTER_NAME = "mccafe"
+COUNTER_HOST = "mcdonalds"
+COUNTER_M = 50.0
 
 
 def cache_path(cache_dir: Path = CACHE_DIR) -> Path:
@@ -115,6 +120,8 @@ def overture_kind(category: str | None, hierarchy: Sequence[str] | None) -> Kind
         return None
     if category in PRIMARY_KINDS:
         return PRIMARY_KINDS[category]
+    if category in FAST_FOOD:
+        return "restaurant"
     path = list(hierarchy or [])
     if len(path) > 1 and path[0] == "food_and_drink" and path[1] == "restaurant":
         return "restaurant"
@@ -154,7 +161,23 @@ def read_places(path: Path) -> list[Venue]:
                 outdoor_seating=None,
             )
         )
-    return venues
+    return drop_counters(venues)
+
+
+def drop_counters(venues: list[Venue]) -> list[Venue]:
+    """``venues`` without each McCafé within ``COUNTER_M`` of a McDonald's: it is that
+    McDonald's café counter, not a place of its own."""
+
+    def key(venue: Venue) -> str:
+        return normalize_name(venue.name).replace(" ", "")
+
+    hosts = [v for v in venues if key(v) == COUNTER_HOST]
+    return [
+        v
+        for v in venues
+        if key(v) != COUNTER_NAME
+        or not any(distance_m(v.location, h.location) <= COUNTER_M for h in hosts)
+    ]
 
 
 def read_websites(path: Path) -> dict[str, list[str]]:
