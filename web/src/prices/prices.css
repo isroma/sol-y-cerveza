@@ -77,21 +77,17 @@
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+  /* Centred on the name's lowercase letters, not its line box: "Sol y
+     Cerveza" is mostly lowercase, so the line's middle reads 3 px high. */
+  transform: translateY(3px);
 }
 
-/* Phones: the pill sits midway between the name and the menu icon, which has
-   10 px of space inside its 44 px button. The header's spacing stays as it is
-   without the pill, so only the pill appears. */
+/* Phones: a size smaller, right after the name as on desktop. */
 @media (max-width: 899px) {
   .admin-pill {
     height: 26px;
-    margin-inline: auto;
     padding: 0 8px;
     font-size: 12px;
-  }
-
-  .admin-pill + .menu-button {
-    margin-left: -10px;
   }
 }
 
@@ -172,4 +168,33 @@
 .admin-panel-actions button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* The password field with its show / hide button inside, on the right. */
+.admin-password {
+  position: relative;
+  display: block;
+}
+
+.admin-panel .admin-password input {
+  padding-right: var(--control);
+}
+
+.admin-password button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: var(--control);
+  height: var(--control);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.admin-password button:hover {
+  color: var(--ink);
 }

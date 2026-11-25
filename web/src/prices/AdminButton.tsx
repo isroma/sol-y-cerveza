@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { EyeIcon, EyeOffIcon } from '../ui/icons.tsx'
 import { refreshCrowdPrices } from './crowd.ts'
 import { logIn, logOut, useOwner, type LoginResult } from './owner.ts'
 import './prices.css'
@@ -23,6 +24,7 @@ export function AdminButton() {
   const [open, setOpen] = useState(wantsLogin)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -65,6 +67,7 @@ export function AdminButton() {
     setBusy(false)
     if (result !== 'ok') return setError(LOGIN_TEXT[result])
     setPassword('')
+    setShowPassword(false)
     setOpen(false)
   }
 
@@ -128,14 +131,31 @@ export function AdminButton() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-                <input
-                  aria-label="Contraseña"
-                  placeholder="Contraseña"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <span className="admin-password">
+                  <input
+                    aria-label="Contraseña"
+                    placeholder="Contraseña"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                    }
+                    title={
+                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                    }
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </span>
                 {error && <p role="alert">{error}</p>}
                 <div className="admin-panel-actions">
                   <button type="button" onClick={() => setOpen(false)}>
