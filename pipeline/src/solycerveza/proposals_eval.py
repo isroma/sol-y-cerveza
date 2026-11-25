@@ -10,7 +10,9 @@ their proposals are compared with what the owner decided:
 - terrace pins: distance from the owner's terrace position (their pin, else the terrace or
   venue position they accepted), next to the distance of the pre-review position ("do nothing").
 - position: a proposal is right when it is within `POSITION_OK_M` of the owner's venue position
-  (the moved one, or the original when they kept it); recall counts the venues they moved.
+  (the moved one, or the original when they kept it); recall counts the venues they moved. Each
+  address source (Junta register, OSM `addr:*`, Overture `addresses`) is scored on its own, over
+  the venues it has an address for, and then all together as the CSV keeps them.
 - For each, the lowest confidence threshold at which precision reaches `TARGET_PRECISION`.
 
 The report is Markdown, with no dates or timings, so the same inputs give the same bytes.
@@ -21,13 +23,26 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from solycerveza.geo import distance_m
-from solycerveza.proposals import Proposal, Targets, overture_only
+from solycerveza.proposals import (
+    ADDRESS_SOURCES,
+    JUNTA_SOURCE,
+    SOURCES,
+    Proposal,
+    Targets,
+    overture_only,
+    sort_key,
+)
 from solycerveza.review import Review
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
 
 POSITION_OK_M = 15.0
 TARGET_PRECISION = 0.9
+POSITION_TITLES = {
+    JUNTA_SOURCE: "Junta register address",
+    ADDRESS_SOURCES["osm"]: "The venue's OSM address",
+    ADDRESS_SOURCES["overture"]: "The venue's Overture address",
+}
 
 
 @dataclass(frozen=True)
@@ -130,6 +145,41 @@ def _classification(
     return lines
 
 
+def _position_lines(
+    mine: Sequence[Proposal],
+    looked_at: Sequence[str],
+    truth: dict[str, Truth],
+    by_id: dict[str, Terrace],
+) -> list[str]:
+    """Lines for one set of `position` proposals over the venues it could propose for."""
+    moved = sum(truth[v].moved for v in looked_at)
+    far = [distance_m(p.location, truth[p.venue_id].venue) for p in mine if p.location is not None]
+    before = [distance_m(by_id[p.venue_id].venue, truth[p.venue_id].venue) for p in mine]
+    scored = [(p.confidence, d <= POSITION_OK_M) for p, d in zip(mine, far, strict=True)]
+    right = sum(ok for _, ok in scored)
+    right_moved = sum(
+        ok and truth[p.venue_id].moved for p, (_, ok) in zip(mine, scored, strict=True)
+    )
+    lines = [
+        f"- {len(looked_at)} venues with an address, {moved} of them moved by the owner.",
+        f"- **position**: {len(mine)} proposals; precision {_ratio(right, len(mine))}, "
+        f"recall {_ratio(right_moved, moved)} of moved venues.",
+    ]
+    threshold = threshold_for(scored)
+    if threshold is None:
+        lines.append(f"  - No confidence threshold gives {TARGET_PRECISION:.0%} precision.")
+    else:
+        lines.append(
+            f"  - At confidence >= {threshold.confidence:.2f}: precision "
+            f"{threshold.precision:.0%} ({threshold.right}/{threshold.kept})."
+        )
+    lines.append(
+        f"- **Distance from the owner's position**: {_distances(far)}; the pre-review position "
+        f"was {_distances(before)}."
+    )
+    return lines
+
+
 def evaluate(
     proposals: Sequence[Proposal],
     ran: dict[str, list[str]],
@@ -193,46 +243,42 @@ def evaluate(
         )
     lines.append("")
 
-    lines.append("## Position from the register address (junta+cartociudad)")
+    lines.append("## Position from a street address (CartoCiudad)")
     lines.append("")
     if "position" not in ran:
         lines.append("Not run.")
     else:
         evaluated = ran["position"]
-        mine = [p for p in proposals if p.kind == "position" and p.venue_id in set(evaluated)]
-        far = [
-            distance_m(p.location, truth[p.venue_id].venue) for p in mine if p.location is not None
-        ]
-        scored = [(p.confidence, d <= POSITION_OK_M) for p, d in zip(mine, far, strict=True)]
-        right = sum(ok for _, ok in scored)
         moved = sum(truth[v].moved for v in evaluated)
-        right_moved = sum(
-            ok and truth[p.venue_id].moved for p, (_, ok) in zip(mine, scored, strict=True)
-        )
         lines.append(
             f"{len(evaluated)} venues looked at, {moved} of them moved by the owner; "
             f"a proposal is right within {POSITION_OK_M:.0f} m of the owner's position."
         )
+        positions = [p for p in proposals if p.kind == "position" and p.venue_id in set(evaluated)]
+        for source in SOURCES["position"]:
+            lines.append("")
+            lines.append(f"### {POSITION_TITLES[source]} ({source})")
+            lines.append("")
+            if source not in ran:
+                lines.append("Not run.")
+                continue
+            with_address = ran[source]
+            mine = [p for p in positions if p.source == source]
+            lines += _position_lines(mine, with_address, truth, by_id)
+            if source == JUNTA_SOURCE:
+                junta = [v for v in evaluated if v.startswith("junta:")]
+                lines.append(
+                    f"- Junta venues looked at: {len(junta)}, proposals for them: "
+                    f"{sum(p.venue_id.startswith('junta:') for p in mine)} (they already sit at "
+                    "their own CartoCiudad portal)."
+                )
         lines.append("")
-        lines.append(
-            f"- **position**: {len(mine)} proposals; precision {_ratio(right, len(mine))}, "
-            f"recall {_ratio(right_moved, moved)} of moved venues."
-        )
-        threshold = threshold_for(scored)
-        if threshold is None:
-            lines.append(f"  - No confidence threshold gives {TARGET_PRECISION:.0%} precision.")
-        else:
-            lines.append(
-                f"  - At confidence >= {threshold.confidence:.2f}: precision "
-                f"{threshold.precision:.0%} ({threshold.right}/{threshold.kept})."
-            )
-        lines.append(f"- **Distance from the owner's position**: {_distances(far)}.")
-        junta = [v for v in evaluated if v.startswith("junta:")]
-        lines.append(
-            f"- Junta venues looked at: {len(junta)}, proposals for them: "
-            f"{sum(p.venue_id.startswith('junta:') for p in mine)} (they already sit at their "
-            "own CartoCiudad portal)."
-        )
+        lines.append("### All sources, as `venue_proposals.csv` keeps them (the most confident)")
+        lines.append("")
+        best: dict[str, Proposal] = {}
+        for p in sorted(positions, key=sort_key):
+            best.setdefault(p.venue_id, p)
+        lines += _position_lines(list(best.values()), evaluated, truth, by_id)
     lines.append("")
 
     lines.append("## Not a venue, from Overture attributes (overture-attributes)")

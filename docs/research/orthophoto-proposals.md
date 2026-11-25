@@ -26,9 +26,15 @@ The sources behind `python -m solycerveza.proposals` ([ADR-0008](../adr/0008-mac
 
 ## CartoCiudad geocoder (position proposer)
 
-- **Service:** `https://www.cartociudad.es/geocoder/api/geocoder/candidates` (CNIG). It is already used by `solycerveza.junta` and its answers are cached in `pipeline/.cache/cartociudad_portals.json`. The proposer adds no new requests.
+- **Service:** `https://www.cartociudad.es/geocoder/api/geocoder/candidates` (CNIG). It is already used by `solycerveza.junta` and its answers are cached in `pipeline/.cache/cartociudad_portals.json`. The register addresses need no new requests; the venues' own OSM and Overture addresses (#350) do, one per address not yet cached, through the same `Geocoder` (0.25 s apart, backoff on 5xx).
 - **Licence:** CC BY 4.0 (ign.es), already credited in the app (`JUNTA_ATTRIBUTION`) and the README.
 - **Limit:** the Junta venues the build lists were placed by this same geocoder at their exact street number. Re-geocoding their address can only agree with their current position. The proposer is useful where a register row confirms an **OSM or Overture** venue whose position came from elsewhere.
+
+## Venues' own addresses (position proposer, #350)
+
+- **Overture `addresses`:** each place has a list of `{freeform, locality, postcode, region, country}`; the pipeline now keeps the column in its parquet. Counted on 2026-11-25 from release `2026-11-18.0` (read from the public S3 bucket, bbox filter): all 452 Overture venues in `terraces.json` have an address, and 338 of them have a line `split_address` cuts to a street and a number (298 unreviewed; 40 reviewed, 6 of them moved by the owner). The other 114 are "s/n", a shopping centre or a bare "Badajoz". Typical lines: "Av. de Elvas, 5", "Avenida De Elvas 7", "Calle Nevero 13, Calle Nevero Trece, 26". Licence as for the places (CDLA-Permissive-2.0); the address only picks the portal, and the position comes from CartoCiudad.
+- **OSM `addr:*`:** `addr:street` and `addr:housenumber` from the cached Overpass answer (the query already returns all tags). Not counted: Overpass was blocked from the session that built this. ODbL, like the venues.
+- **Hand-set confidence:** 0.80 for an OSM address, 0.70 for an Overture one, minus 0.15 for a move over 150 m and minus 0.15 when three or more venues' addresses share the portal (a shopping centre or a block). The trial decides whether either source is trusted.
 
 ## Overture attributes (not-a-venue proposer)
 

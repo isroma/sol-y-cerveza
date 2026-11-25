@@ -8,6 +8,7 @@ import httpx
 import httpx2
 import pytest
 
+from solycerveza.addresses import Address
 from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, register_id
 from solycerveza.ortho import Crop, OrthoFetcher, cached_crop
@@ -15,6 +16,9 @@ from solycerveza.proposals import (
     AskAll,
     OvertureAttrs,
     Proposal,
+    Targets,
+    address_proposals,
+    address_score,
     ask_vision,
     keep_dates,
     main,
@@ -25,6 +29,7 @@ from solycerveza.proposals import (
     read_overture_attrs,
     read_proposals,
     read_records,
+    run_proposers,
     vision_proposals,
     vision_to_ask,
     write_proposals,
@@ -405,6 +410,100 @@ def test_position_proposals_for_matched_venues_far_from_their_portal() -> None:
     assert p.location == portal
     assert p.confidence == 0.95
     assert "CALLE MAYOR 1" in p.evidence and "40 m" in p.evidence
+
+
+def own(venue_id: str, origin: str = "osm", street: str = "CALLE MAYOR") -> Address:
+    assert origin in ("osm", "overture")
+    return Address(
+        venue_id=venue_id,
+        origin="osm" if origin == "osm" else "overture",
+        text="Calle Mayor 1",
+        street=street,
+        number="1",
+    )
+
+
+def test_address_score_is_lower_for_long_moves_and_shared_portals() -> None:
+    assert address_score(own("osm:node/1"), 40, 1) == (0.8, [])
+    assert address_score(own("overture:a", "overture"), 40, 1) == (0.7, [])
+    score, reasons = address_score(own("overture:a", "overture"), 400, 3)
+    assert score == 0.4
+    assert reasons == ["a move over 150 m", "3 venues share that portal"]
+
+
+def test_address_proposals_per_origin_far_from_the_portal() -> None:
+    portal = CENTRE
+    records = [
+        record("osm:node/1", sources=["osm"], at=offset(portal, 40)),
+        record("osm:node/2", sources=["osm"], at=offset(portal, 10)),  # close enough
+        record("overture:a", sources=["overture"], at=offset(portal, 200)),
+    ]
+    located = [
+        (own("overture:a", "overture", street="CALLE SOL"), portal),
+        (own("osm:node/2", street="CALLE LUNA"), portal),
+        (own("osm:node/1"), portal),
+        (own("osm:node/9", street="CALLE RIO"), portal),  # not a target
+    ]
+    proposals = address_proposals(records, located, TODAY)
+    assert [(p.venue_id, p.source, p.confidence) for p in proposals] == [
+        ("osm:node/1", "osm-addr+cartociudad", 0.8),
+        ("overture:a", "overture-addr+cartociudad", 0.55),
+    ]
+    assert all(p.location == portal for p in proposals)
+    assert proposals[0].evidence == (
+        "OSM tags its address as Calle Mayor 1; CartoCiudad puts CALLE MAYOR 1 40 m from the "
+        "current position."
+    )
+    assert proposals[1].evidence.endswith("Less sure: a move over 150 m.")
+    assert all(len(p.evidence) <= 300 for p in proposals)
+
+
+def test_run_proposers_scores_each_address_source_apart(monkeypatch: pytest.MonkeyPatch) -> None:
+    portal = CENTRE
+    records = [
+        record("osm:node/1", sources=["osm"], at=offset(portal, 40)),
+        record("overture:a", sources=["overture"], at=offset(portal, 60), name="Bar Luna"),
+    ]
+    addresses = [own("osm:node/1"), own("overture:a", "overture")]
+    monkeypatch.setattr("solycerveza.proposals.load_register", lambda: [(row("Bar Luna"), portal)])
+    monkeypatch.setattr("solycerveza.proposals.own_addresses", lambda _records: addresses)
+    monkeypatch.setattr(
+        "solycerveza.proposals.locate_addresses", lambda found: [(a, portal) for a in found]
+    )
+    targets = Targets(vision=[], position=records, overture=[])
+    proposals, ran = run_proposers(targets, {"position"}, ask_limit=None, today=TODAY)
+    assert sorted((p.venue_id, p.source) for p in proposals) == [
+        ("osm:node/1", "osm-addr+cartociudad"),
+        ("overture:a", "junta+cartociudad"),
+        ("overture:a", "overture-addr+cartociudad"),
+    ]
+    assert ran == {
+        "junta+cartociudad": ["osm:node/1", "overture:a"],
+        "osm-addr+cartociudad": ["osm:node/1"],
+        "overture-addr+cartociudad": ["overture:a"],
+        "position": ["osm:node/1", "overture:a"],
+    }
+
+
+def test_run_proposers_keeps_the_addresses_when_the_register_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def down() -> None:
+        raise httpx.ConnectError("blocked")
+
+    monkeypatch.setattr("solycerveza.proposals.load_register", down)
+    monkeypatch.setattr("solycerveza.proposals.own_addresses", lambda _records: [own("osm:node/1")])
+    monkeypatch.setattr(
+        "solycerveza.proposals.locate_addresses", lambda found: [(a, CENTRE) for a in found]
+    )
+    targets = Targets(
+        vision=[],
+        position=[record("osm:node/1", sources=["osm"], at=offset(CENTRE, 40))],
+        overture=[],
+    )
+    proposals, ran = run_proposers(targets, {"position"}, ask_limit=None, today=TODAY)
+    assert [p.source for p in proposals] == ["osm-addr+cartociudad"]
+    assert "junta+cartociudad" not in ran and "position" in ran
 
 
 # --- The CSV ------------------------------------------------------------------------------

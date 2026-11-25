@@ -250,6 +250,30 @@ def parse_venues(data: dict[str, Any]) -> list[Venue]:
     return sorted(venues, key=lambda venue: venue.id)
 
 
+class StreetAddress(BaseModel):
+    """An OSM `addr:street` and `addr:housenumber` pair, as tagged."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    street: str
+    housenumber: str
+
+
+def parse_addresses(data: dict[str, Any]) -> dict[str, StreetAddress]:
+    """Venue id -> its `addr:street` and `addr:housenumber`, for venues tagged with both."""
+    addresses: dict[str, StreetAddress] = {}
+    for raw in data.get("elements", []):
+        element = _Element.model_validate(raw)
+        street = element.tags.get("addr:street", "").strip()
+        number = element.tags.get("addr:housenumber", "").strip()
+        if not is_kind(element.tags.get("amenity")) or not street or not number:
+            continue
+        addresses[f"osm:{element.type}/{element.id}"] = StreetAddress(
+            street=street, housenumber=number
+        )
+    return dict(sorted(addresses.items()))
+
+
 def load_venues(
     bbox: BoundingBox = BADAJOZ_BBOX,
     cache_dir: Path = CACHE_DIR,
@@ -275,3 +299,15 @@ def load_seating(
     query = build_query(bbox)
     with httpx.Client(timeout=httpx.Timeout(120.0, connect=15.0)) as client:
         return parse_seating(cached_overpass(query, cache_dir, refresh=refresh, client=client))
+
+
+def load_addresses(
+    bbox: BoundingBox = BADAJOZ_BBOX,
+    cache_dir: Path = CACHE_DIR,
+    *,
+    refresh: bool = False,
+) -> dict[str, StreetAddress]:
+    """OSM venues' street addresses, from the same cached Overpass response as the venues."""
+    query = build_query(bbox)
+    with httpx.Client(timeout=httpx.Timeout(120.0, connect=15.0)) as client:
+        return parse_addresses(cached_overpass(query, cache_dir, refresh=refresh, client=client))

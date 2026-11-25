@@ -10,6 +10,7 @@ from solycerveza.overture import (
     merge_venues,
     name_similarity,
     overture_kind,
+    read_addresses,
     read_places,
     same_venue,
 )
@@ -107,7 +108,9 @@ def overture_release_file(path: Path) -> None:
                  {{'xmin': -6.97, 'xmax': -6.97, 'ymin': 38.88, 'ymax': 38.88}} AS bbox,
                  0.9 AS confidence, 'open' AS operating_status,
                  {{'primary': 'bar', 'hierarchy': ['food_and_drink', 'bar']}} AS taxonomy,
-                 [{{'dataset': 'meta'}}] AS sources, ['https://barsol.es'] AS websites
+                 [{{'dataset': 'meta'}}] AS sources, ['https://barsol.es'] AS websites,
+                 [{{'freeform': 'Calle Mayor, 1', 'locality': 'Badajoz', 'postcode': '06001',
+                    'region': 'BA', 'country': 'ES'}}] AS addresses
         ) TO '{path}' (FORMAT parquet)
         """
     )
@@ -123,6 +126,20 @@ def test_fetch_places_writes_the_cache_only_when_complete(tmp_path: Path) -> Non
     assert path == cache_path(cache)
     assert [v.id for v in read_places(path)] == ["overture:a"]
     assert sorted(p.name for p in cache.iterdir()) == [path.name]  # no `.part` left behind
+    assert read_addresses(path) == {"overture:a": ["Calle Mayor, 1"]}
+
+
+def test_read_addresses_without_the_column_or_the_file(tmp_path: Path) -> None:
+    old = tmp_path / "old.parquet"
+    duckdb.execute(f"COPY (SELECT 'a' AS id) TO '{old}' (FORMAT parquet)")
+    assert read_addresses(old) == {}
+    assert read_addresses(tmp_path / "missing.parquet") == {}
+    empty = tmp_path / "empty.parquet"
+    duckdb.execute(
+        f"""COPY (SELECT 'a' AS id, [{{'freeform': NULL}}] AS addresses
+                  UNION ALL SELECT 'b', []) TO '{empty}' (FORMAT parquet)"""
+    )
+    assert read_addresses(empty) == {}
 
 
 def test_failed_fetch_places_leaves_no_cache(tmp_path: Path) -> None:

@@ -10,10 +10,12 @@ from solycerveza.venues import (
     USER_AGENT,
     LatLon,
     OverpassError,
+    StreetAddress,
     Venue,
     build_query,
     fetch_overpass,
     load_venues,
+    parse_addresses,
     parse_venues,
 )
 
@@ -171,3 +173,41 @@ def test_load_refresh_downloads_again(tmp_path: Path) -> None:
 
     assert len(fake.requests) == 2
     assert len(refreshed) == 6
+
+
+def test_parse_addresses_keeps_venues_with_a_street_and_a_number() -> None:
+    data = {
+        "elements": [
+            {
+                "type": "node",
+                "id": 2,
+                "lat": 38.88,
+                "lon": -6.97,
+                "tags": {"amenity": "bar", "addr:street": "Calle Mayor", "addr:housenumber": "1A"},
+            },
+            {
+                "type": "way",
+                "id": 1,
+                "center": {"lat": 38.88, "lon": -6.97},
+                "tags": {"amenity": "cafe", "addr:street": " Plaza Alta ", "addr:housenumber": "4"},
+            },
+            {  # no number
+                "type": "node",
+                "id": 3,
+                "lat": 38.88,
+                "lon": -6.97,
+                "tags": {"amenity": "pub", "addr:street": "Calle Arco Agüero"},
+            },
+            {  # not a venue
+                "type": "node",
+                "id": 4,
+                "lat": 38.88,
+                "lon": -6.97,
+                "tags": {"shop": "bakery", "addr:street": "Calle Mayor", "addr:housenumber": "2"},
+            },
+        ]
+    }
+    assert parse_addresses(data) == {
+        "osm:node/2": StreetAddress(street="Calle Mayor", housenumber="1A"),
+        "osm:way/1": StreetAddress(street="Plaza Alta", housenumber="4"),
+    }
