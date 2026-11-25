@@ -40,6 +40,15 @@ export function distanceMetres(a: LatLon, b: LatLon): number {
 }
 
 /**
+ * The north–south part of distanceMetres, which is never more than the whole
+ * (less 1 m for rounding): a cheap test to skip far pairs before the full
+ * distance.
+ */
+export function latitudeGapMetres(a: LatLon, b: LatLon): number {
+  return Math.abs(b.lat - a.lat) * (Math.PI / 180) * 6_371_000 - 1
+}
+
+/**
  * A visitor's venue name as the API stores it: commas, quotes and line breaks
  * become spaces, whitespace is collapsed.
  */
