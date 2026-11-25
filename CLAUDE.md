@@ -47,7 +47,7 @@ Parked: not now. They may come back later, but don't propose or start them unles
 3. Keep PRs small, with one logical change each. The PR title is a Conventional Commit, `type(scope): description` (≤72 chars), because it becomes the squash commit on `main`.
    - Types: feat, fix, test, refactor, chore, docs, ci, style, perf. Research issues land as `docs(...)`.
    - Scopes: web, pipeline, mobile, data, ci.
-4. Fill in the PR template and include `Closes #<issue>`. Tick only the checks you actually ran.
+4. Fill in the PR template and include `Closes #<issue>`. Tick only the checks you actually ran. A PR that changes how the app looks carries before/after screenshots at desktop and phone width (headless, pushed to the `pr-screenshots` branch; see CONTRIBUTING.md).
 5. Run the quality gates below before pushing.
 6. `main` is protected:
    - A PR is required, and `ci-ok` and `pr-title` must pass.

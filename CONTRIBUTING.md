@@ -15,6 +15,7 @@ Thanks for your interest in Sol y Cerveza. [CLAUDE.md](CLAUDE.md) is the full gu
 - The PR title is a Conventional Commit, `type(scope): description`, at most 72 characters (types and scopes are in CLAUDE.md, "Workflow"). PRs are squash-merged, so the title becomes the commit.
 - Run the quality gates before pushing: `scripts/check.sh` (web, api and pipeline) and `scripts/check.sh e2e` for map, layout or venue card changes. They run the same commands as CI.
 - Fill in the PR template and tick only the checks you ran. UI changes are checked at desktop and phone width.
+- When a PR changes how the app looks, add before and after screenshots at desktop and phone width to the PR's "Screenshots" section. Agents, which can't upload images through the GitHub web UI, commit them to the `pr-screenshots` branch under `<issue>/` (`before-desktop.png`, `after-phone.png`, ...) and link them from `https://raw.githubusercontent.com/isroma/sol-y-cerveza/pr-screenshots/<issue>/`. Skip the section for changes nothing on screen shows.
 - Repo text is in English; the app's UI is in Spanish.
 
 **Data and licensing:** never add data from sources whose terms forbid storing or redistributing it (for example Google Places, Google Maps or Street View). The dataset is ODbL and credits every source; see CLAUDE.md, "Data and licensing", and [docs/adr/](docs/adr/).
