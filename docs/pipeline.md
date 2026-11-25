@@ -107,6 +107,25 @@ They write `pipeline/data/venue_proposals.csv` (`venue_id,kind,lat,lon,confidenc
 2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
 3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
 
+### Vision answers from a Claude Code session (no API key)
+
+A Claude Code session can look at the crops itself instead of the API:
+
+```bash
+cd pipeline
+uv run python -m solycerveza.vision_session export --evaluate --baseline .cache/terraces_pre_review.json
+# (or, for unreviewed venues: export --limit 50)
+# the session answers each task in .cache/vision-session/tasks.json and saves a JSON list
+uv run python -m solycerveza.vision_session import answers.json
+uv run python -m solycerveza.proposals --vision session --evaluate --baseline .cache/terraces_pre_review.json
+```
+
+`export` fetches the crops still without a session answer and writes a task file holding only what the judge may see: an opaque key, the venue's name and kind, the crop and the API's own prompt (no venue id, no decision). `import` checks the whole file (known keys, no duplicates, the `VisionAnswer` shape, a pixel inside the image for "yes") and caches nothing unless every answer is valid. Answers are cached under the model label `claude-code-session` and give proposals with the source `pnoa-ortho+claude-session`, so they never mix with API answers; `--vision session` reads them and never calls the API.
+
+For a blind trial, have subagents judge the crops, each given only its share of the task file and told not to read `pipeline/data/` or `terraces.json`.
+
+**Trial result (2026-11-25, #388):** on the 109 venues with a terrace decision, 91 answers were "unsure"; `terrace` reached 67 % precision (8/12) and 15 % recall, `no_terrace` 50 % (3/6) and 5 %, and no confidence threshold gives 90 % precision for either, so neither kind is trusted. The right pins were a median 10 m (p90 48 m) from the owner's, against 9 m (p90 27 m) for the pre-review position. Details in [ADR-0008](adr/0008-machine-venue-proposals.md#consequences).
+
 ## OSM write-back
 
 ```bash
