@@ -55,6 +55,16 @@ const terraceSchema = z.object({
   // The same with deciduous trees bare, used from 1 Dec to 15 Mar
   // (ADR-0007). Null or absent: same as `horizon`.
   horizon_winter: z.optional(z.nullable(horizonSchema)),
+  // Lowest and highest obstacle per bin over ground points across the
+  // terrace ("Sol parcial"), packed as 360 characters in whole degrees
+  // (docs/data-contract.md). Null or absent: every point sees `horizon`.
+  // Only the string type is checked here; `unpackEnvelope` checks the rest,
+  // and only when the app shows partial sun, so without it they cost nothing.
+  horizon_low: z.optional(z.nullable(z.string())),
+  horizon_high: z.optional(z.nullable(z.string())),
+  // The same in the leaf-off period. Null or absent: same as the envelope above.
+  horizon_low_winter: z.optional(z.nullable(z.string())),
+  horizon_high_winter: z.optional(z.nullable(z.string())),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.optional(z.array(priceSchema)),
 })

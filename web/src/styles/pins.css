@@ -94,6 +94,7 @@
 }
 
 .pin--sun,
+.pin--partial,
 .pin--soon {
   --pin-ring: #ffc53d;
 }
@@ -104,6 +105,11 @@
 
 .pin--sun .pin-icon {
   background: linear-gradient(160deg, #ffc53d, #f59e0b);
+}
+
+/* Sol parcial: the badge half sun, half no sun. */
+.pin--partial .pin-icon {
+  background: linear-gradient(160deg, #ffc53d 0 50%, #8b919c 50% 100%);
 }
 
 .pin--soon .pin-icon {

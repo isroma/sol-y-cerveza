@@ -124,6 +124,7 @@
 }
 
 .pin-card--sun,
+.pin-card--partial,
 .pin-card--soon {
   --card-accent: var(--sun-soft);
 }
@@ -231,6 +232,10 @@
   background: linear-gradient(160deg, #ffc53d, #f59e0b);
 }
 
+.pin-card--partial .pin-card-badge {
+  background: linear-gradient(160deg, #ffc53d 0 50%, #8b919c 50% 100%);
+}
+
 .pin-card--soon .pin-card-badge {
   background: linear-gradient(160deg, #fff1b8, #f7c948);
   color: #a16207;
@@ -316,6 +321,15 @@
 
 .sun-day-part.is-sun {
   background: linear-gradient(to right, #ffc53d, #f59e0b);
+}
+
+/* Part of the terrace in sun: sun and shade stripes. */
+.sun-day-part.is-partial {
+  background: repeating-linear-gradient(
+    135deg,
+    #ffc53d 0 3px,
+    var(--toggle-off) 3px 6px
+  );
 }
 
 .sun-day-part.is-shade {

@@ -4,6 +4,8 @@
 2. Surface and terrain rasters: run `python -m solycerveza.obstacles` once beforehand.
 3. One horizon profile per terrace (`solycerveza.horizon`), plus a leaf-off one
    (`horizon_winter`, ADR-0007) when `python -m solycerveza.leafoff` has written its surface model.
+4. A horizon envelope across each terrace (`horizon_low`/`horizon_high` and their leaf-off twins,
+   `solycerveza.envelope`): the lowest and highest obstacle over ground points round the pin.
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
 venues from Overpass instead of using the cache.
@@ -23,8 +25,17 @@ import rasterio
 from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
+from solycerveza.envelope import (
+    LatLonPair,
+    Structures,
+    envelope,
+    ground_points,
+    pack_high,
+    pack_low,
+    sample_points,
+)
 from solycerveza.horizon import terrace_horizon
-from solycerveza.leafoff import LEAFOFF_DSM_PATH
+from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.sources import load_all_venues
@@ -51,6 +62,7 @@ OVERTURE_ATTRIBUTION = (
 MAX_HEIGHT_ABOVE_GROUND_M = 2.0
 
 HorizonFn = Callable[[float, float], list[int]]
+PointsFn = Callable[[float, float], list[LatLonPair]]
 
 
 class TerracesFile(BaseModel):
@@ -73,11 +85,19 @@ def add_horizons(
     terraces: Sequence[Terrace],
     horizon_for: HorizonFn,
     winter_for: HorizonFn | None = None,
+    points_for: PointsFn | None = None,
 ) -> list[Terrace]:
     """Return copies of `terraces` with `horizon` computed at each terrace position.
 
     With `winter_for`, also sets `horizon_winter` (ADR-0007), but only where it differs from
     `horizon`: null means "same as horizon", which keeps the file small.
+
+    With `points_for`, which gives the ground points across the terrace (`solycerveza.envelope`),
+    also sets the envelope `horizon_low`/`horizon_high` over them (packed, see
+    `solycerveza.envelope`), and its leaf-off twin with
+    `winter_for`. Each is null where it adds nothing to what the app would use without it: the
+    summer envelope when every point sees `horizon`, the winter one when it equals the summer
+    envelope (or, without one, `horizon_winter` at every point).
 
     Venues without a terrace are returned unchanged. Re-validates every record, so a malformed
     profile fails here rather than in the app.
@@ -87,17 +107,29 @@ def add_horizons(
         if t.terrace is None:
             result.append(t)
             continue
-        horizon = horizon_for(t.terrace.lat, t.terrace.lon)
-        winter = None if winter_for is None else winter_for(t.terrace.lat, t.terrace.lon)
-        result.append(
-            Terrace.model_validate(
-                {
-                    **t.model_dump(),
-                    "horizon": horizon,
-                    "horizon_winter": None if winter == horizon else winter,
-                }
-            )
-        )
+        pin = (t.terrace.lat, t.terrace.lon)
+        horizon = horizon_for(*pin)
+        winter = None if winter_for is None else winter_for(*pin)
+        record = {
+            **t.model_dump(),
+            "horizon": horizon,
+            "horizon_winter": None if winter == horizon else winter,
+        }
+        points = [] if points_for is None else points_for(*pin)
+        if points:
+            low, high = envelope([horizon if p == pin else horizon_for(*p) for p in points])
+            summer = (pack_low(low), pack_high(high))
+            if (low, high) != (horizon, horizon):
+                record["horizon_low"], record["horizon_high"] = summer
+            if winter_for is not None and winter is not None:
+                low, high = envelope([winter if p == pin else winter_for(*p) for p in points])
+                leafoff = (pack_low(low), pack_high(high))
+                fallback = (
+                    summer if "horizon_low" in record else (pack_low(winter), pack_high(winter))
+                )
+                if leafoff != fallback:
+                    record["horizon_low_winter"], record["horizon_high_winter"] = leafoff
+        result.append(Terrace.model_validate(record))
     return result
 
 
@@ -164,7 +196,10 @@ def attribution_lines(
 
 
 def render(file: TerracesFile) -> str:
-    """Serialize per the contract: 2-space indent, each horizon on one line, trailing newline."""
+    """Serialize per the contract: 2-space indent, each horizon on one line, trailing newline.
+
+    Null envelope keys are left out (`Terrace`; the contract makes them optional).
+    """
     text = json.dumps(file.model_dump(mode="json"), ensure_ascii=False, indent=2)
     text = re.sub(
         r'"(horizon|horizon_winter)": \[([^\]]*)\]',
@@ -213,7 +248,21 @@ def build(
     else:
         logger.info("no leaf-off surface model: horizon_winter stays null (ADR-0007)")
 
-    terraces = add_horizons(terraces, horizon_for, winter_for)
+    structures = Structures(load_structures())
+
+    def points_for(lat: float, lon: float) -> list[LatLonPair]:
+        return ground_points(
+            sample_points(lat, lon),
+            partial(height_above_ground, dsm_path=dsm_path, dtm_path=dtm_path),
+            structures.contains,
+        )
+
+    terraces = add_horizons(terraces, horizon_for, winter_for, points_for)
+    logger.info(
+        "%d terraces get a sun envelope (partial sun), %d a leaf-off one",
+        sum(t.horizon_low is not None for t in terraces),
+        sum(t.horizon_low_winter is not None for t in terraces),
+    )
     if leafoff is not None:
         logger.info(
             "%d terraces get a winter horizon (bare deciduous trees)",

@@ -98,6 +98,16 @@ export const SunIcon = (p: IconProps) => (
   </Icon>
 )
 
+/** Half-filled sun with its right rays faded: "sol parcial". */
+export const SunPartialIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 8a4 4 0 0 0 0 8z" fill="currentColor" />
+    <path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M2.5 12h2M4.6 19.4 6 18" />
+    <path d="M18 18l1.4 1.4M19.5 12h2M18 6l1.4-1.4" opacity="0.55" />
+  </Icon>
+)
+
 /** Sun behind the horizon line: "sol en breve". */
 export const SunSoonIcon = (p: IconProps) => (
   <Icon {...p}>

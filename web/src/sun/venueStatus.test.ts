@@ -3,6 +3,7 @@ import type { Terrace } from '../data/terraces.ts'
 import {
   calleMenacho,
   horizonFromRuns,
+  packedFlat,
   paseoSanFrancisco,
   plazaAlta,
   withoutHorizon,
@@ -137,5 +138,88 @@ describe('sunRuns', () => {
 
   it('closes a run that lasts until midnight', () => {
     expect(sunRuns(['shade', 'sun', 'sun'])).toEqual([[5, 15]])
+  })
+})
+
+describe('venueStatus with an envelope (Sol parcial)', () => {
+  const flat = (value: number) => new Array<number>(360).fill(value)
+  // The pin sees 8.3°; across the terrace the obstacles run from 0° to 30°.
+  const mixed: Terrace = {
+    ...plazaAlta,
+    horizon_low: packedFlat(0),
+    horizon_high: packedFlat(30),
+  }
+  const partialAt = (venue: Terrace, track: typeof winter, clock: string) => {
+    const minutes = parseClock(clock)
+    if (minutes === null) throw new Error(clock)
+    return venueStatus(venueDay(venue, track, { partial: true }), minutes)
+  }
+  /** First minute from `from` at which the sun is above `tenths`. */
+  const firstAbove = (track: typeof winter, tenths: number, from = 0) =>
+    track.positions.findIndex(
+      (p, i) => i * 5 >= from && p.altitude * 10 > tenths,
+    ) * 5
+  const lastAbove = (track: typeof winter, tenths: number) =>
+    (track.positions.findLastIndex((p) => p.altitude * 10 > tenths) + 1) * 5
+
+  it('ignores the envelope without the flag', () => {
+    expect(at(mixed, summer, '09:00')).toEqual({
+      ...at(plazaAlta, summer, '09:00'),
+      venue: mixed,
+    })
+    expect(at(mixed, summer, '09:00').category).toBe('sun')
+  })
+
+  it('is partial while the sun is between the lowest and highest obstacle', () => {
+    const status = partialAt(mixed, summer, '08:30')
+    expect(status.state).toBe('partial')
+    expect(status.category).toBe('partial')
+    expect(partialAt(mixed, summer, '14:30').category).toBe('sun')
+  })
+
+  it('ends "Sol hasta" at the last sun anywhere on the terrace', () => {
+    const sunset = lastAbove(summer, 0)
+    expect(partialAt(mixed, summer, '14:30').sunUntil).toBe(sunset)
+    expect(partialAt(mixed, summer, '08:30').sunUntil).toBe(sunset)
+  })
+
+  it('starts "Sol en" at the first sun anywhere on the terrace', () => {
+    const late: Terrace = {
+      ...plazaAlta,
+      horizon_low: packedFlat(15),
+      horizon_high: packedFlat(30),
+    }
+    const status = partialAt(late, summer, '08:00')
+    expect(status.category).not.toBe('sun')
+    expect(status.nextSun).toBe(
+      firstAbove(summer, 150, parseClock('08:00') ?? 0),
+    )
+  })
+
+  it('counts partial minutes as sun left', () => {
+    const status = partialAt(mixed, summer, '08:30')
+    expect(status.minutesLeft).toBe(
+      partialAt({ ...plazaAlta, horizon: flat(0) }, summer, '08:30')
+        .minutesLeft,
+    )
+  })
+
+  it('sorts partial after full sun and before sun soon', () => {
+    const sun = partialAt(mixed, summer, '14:30')
+    const partial = partialAt(mixed, summer, '08:30')
+    const soon = { ...partial, category: 'soon' as const }
+    expect([soon, partial, sun].sort(compareStatus)).toEqual([
+      sun,
+      partial,
+      soon,
+    ])
+  })
+
+  it('takes partial stretches into the sun spells', () => {
+    const { timeline } = venueDay(mixed, summer, { partial: true })
+    expect(timeline).not.toBeNull()
+    expect(sunRuns(timeline ?? [])).toEqual([
+      [firstAbove(summer, 0), lastAbove(summer, 0)],
+    ])
   })
 })

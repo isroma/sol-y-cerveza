@@ -13,7 +13,11 @@ type Props = {
   middle?: ReactNode
 }
 
-type Stretch = { state: 'sun' | 'shade' | 'night'; from: number; to: number }
+type Stretch = {
+  state: 'sun' | 'partial' | 'shade' | 'night'
+  from: number
+  to: number
+}
 
 const percent = (minute: number) =>
   ((minute - SLIDER_START) / (SLIDER_END - SLIDER_START)) * 100
@@ -23,7 +27,8 @@ function stretches(timeline: readonly SunState[]): Stretch[] {
   const out: Stretch[] = []
   for (let m = SLIDER_START; m < SLIDER_END; m += STEP_MINUTES) {
     const raw = timeline[m / STEP_MINUTES]
-    const state = raw === 'sun' || raw === 'night' ? raw : 'shade'
+    const state =
+      raw === 'sun' || raw === 'partial' || raw === 'night' ? raw : 'shade'
     const last = out.at(-1)
     if (last?.state === state) last.to = m + STEP_MINUTES
     else out.push({ state, from: m, to: m + STEP_MINUTES })
@@ -33,7 +38,7 @@ function stretches(timeline: readonly SunState[]): Stretch[] {
 
 /**
  * The venue's day at a glance, over the time bar's hours (08:00–22:00): sun,
- * shade and night as stretches of a strip, with a line at the chosen time
+ * partial sun, shade and night as stretches of a strip, with a line at the chosen time
  * that moves with it. Not a control, so no knob.
  */
 export function SunDay({ timeline, minutes, middle }: Props) {
