@@ -16,6 +16,11 @@ Where the LiDAR finds less than ``MIN_LIDAR_M`` (the building is newer than the 
 flight, or the footprint is off), the height is ``building:levels`` x ``LEVEL_M``, or else
 ``DEFAULT_M``. ``--sources`` writes each building's height and its source for review.
 
+One height per footprint flattens a tall part into the rest: the cathedral's 36 m tower became
+a 15 m block. So inside each LiDAR-measured footprint, connected areas of at least
+``PART_MIN_M2`` that stand ``PART_RISE_M`` or more above the building's height are drawn as their
+own blocks at their own height (``tall_parts``).
+
 Touching buildings whose heights are within ``DISSOLVE_M`` of each other are merged, and the
 outlines are simplified by ``SIMPLIFY_M``, to keep the file small. Output: the compact format of
 ``trees.encode`` (every base 0), decoded by ``web/src/map/extrusionCodec.ts``.
@@ -36,7 +41,9 @@ import numpy.typing as npt
 import rasterio
 import shapely
 from pyproj import Transformer
-from rasterio.features import rasterize
+from rasterio.features import geometry_mask, rasterize, shapes
+from rasterio.windows import Window, from_bounds
+from rasterio.windows import transform as window_transform
 from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import polygonize, unary_union
@@ -57,6 +64,8 @@ DISSOLVE_M = 1.5
 TOUCH_M = 0.3
 SIMPLIFY_M = 0.5
 HEIGHT_STEP_M = 0.5
+PART_RISE_M = 4.0  # how much higher than its building a part must stand
+PART_MIN_M2 = 16.0  # four 2 m cells: a tower or a dome, not a chimney or an antenna
 OUT_PATH = Path("../web/public/data/buildings.json")
 
 FloatArray = npt.NDArray[np.float64]
@@ -75,7 +84,7 @@ class Building:
 class Measured:
     building: Building
     height: float
-    source: str  # "lidar", "levels" or "default"
+    source: str  # "lidar", "levels", "default" or "lidar-part"
 
 
 def parse_levels(value: str | None) -> float | None:
@@ -166,6 +175,50 @@ def measure(buildings: Sequence[Building], heights: FloatArray, grid: Grid) -> l
     return out
 
 
+def tall_parts(measured: Sequence[Measured], heights: FloatArray, grid: Grid) -> list[Measured]:
+    """The parts of each LiDAR-measured building that stand ``PART_RISE_M`` above its height:
+    connected cells inside the footprint (``INSET_M`` in), at least ``PART_MIN_M2``, each at the
+    ``PERCENTILE`` of its own cells."""
+    out: list[Measured] = []
+    cell_area = abs(grid.transform.a * grid.transform.e)
+    for m in measured:
+        if m.source != "lidar":
+            continue
+        inner = m.building.footprint.buffer(-INSET_M)
+        if inner.is_empty or inner.area < PART_MIN_M2:
+            continue
+        window = (
+            from_bounds(*inner.bounds, transform=grid.transform).round_offsets().round_lengths()
+        )
+        row, col = int(window.row_off), int(window.col_off)
+        rows, cols = int(window.height) + 1, int(window.width) + 1
+        if row < 0 or col < 0 or rows <= 0 or cols <= 0:
+            continue
+        block = heights[row : row + rows, col : col + cols]
+        if block.size == 0:
+            continue
+        transform = window_transform(Window(col, row, cols, rows), grid.transform)
+        inside = geometry_mask([inner], out_shape=block.shape, transform=transform, invert=True)
+        tall = inside & np.isfinite(block) & (block >= m.height + PART_RISE_M)
+        if tall.sum() * cell_area < PART_MIN_M2:
+            continue
+        for geom, _ in shapes(tall.astype("uint8"), mask=tall, transform=transform):
+            part = shapely.geometry.shape(geom).intersection(inner)
+            for piece in polygons(part):
+                if piece.area < PART_MIN_M2:
+                    continue
+                cells = block[
+                    geometry_mask([piece], out_shape=block.shape, transform=transform, invert=True)
+                    & tall
+                ]
+                if len(cells) == 0:
+                    continue
+                height = float(np.percentile(cells, PERCENTILE))
+                part_building = Building(f"{m.building.osm_id}#part", piece, None)
+                out.append(Measured(part_building, height, "lidar-part"))
+    return out
+
+
 def dissolve(measured: Sequence[Measured]) -> list[tuple[float, float, Polygon]]:
     """(0, height, outline): touching buildings merged while their heights stay within
     ``DISSOLVE_M``, each group at its area-weighted height, outlines simplified."""
@@ -228,7 +281,9 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, An
                 data[data == nodata] = np.nan
     raw = load_osm(cache_dir)
     to_grid = Transformer.from_crs("EPSG:4326", grid.crs, always_xy=True)
-    measured = measure(footprints(raw, to_grid), surface - terrain, grid)
+    heights = surface - terrain
+    measured = measure(footprints(raw, to_grid), heights, grid)
+    measured = [*measured, *tall_parts(measured, heights, grid)]
     return encode(dissolve(measured), grid.crs), measured
 
 
@@ -254,7 +309,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.sources:
         write_sources(measured, args.sources)
     count = sum(len(polygons) for _, _, polygons in data["g"])
-    by_source = {s: sum(m.source == s for m in measured) for s in ("lidar", "levels", "default")}
+    by_source = {
+        s: sum(m.source == s for m in measured)
+        for s in ("lidar", "levels", "default", "lidar-part")
+    }
     print(f"wrote {count} outlines ({len(measured)} buildings, {by_source}) to {args.out}")
     return 0
 
