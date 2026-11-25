@@ -120,29 +120,6 @@ function pick(p: { item: Item; brand: Brand | null; cents: number }) {
 
 export type SuggestResult = 'ok' | 'rate-limited' | 'bot' | 'error'
 
-export async function suggestPrice(suggestion: {
-  venueId: string
-  item: Item
-  brand: Brand | null
-  cents: number
-  token: string
-}): Promise<SuggestResult> {
-  if (!PRICES_API) return 'error'
-  try {
-    const response = await fetch(`${PRICES_API}/v1/suggestions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(suggestion),
-    })
-    if (response.ok) return 'ok'
-    if (response.status === 429) return 'rate-limited'
-    if (response.status === 403) return 'bot'
-    return 'error'
-  } catch {
-    return 'error'
-  }
-}
-
 /** True when visitors can suggest prices (the API and bot check are set up). */
 export const CAN_SUGGEST = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
 

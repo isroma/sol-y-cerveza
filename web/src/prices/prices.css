@@ -35,66 +35,6 @@
   color: var(--sun);
 }
 
-.price-empty,
-.price-list {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.price-empty strong {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.price-empty span {
-  color: var(--muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.price-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.price-list strong {
-  font-size: 15px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Small amber pill, like the app's other secondary actions. */
-.price-suggest,
-.price-cancel {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  border: 1.5px solid var(--sun-soft);
-  border-radius: 999px;
-  background: var(--bg);
-  color: var(--sun-dark);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.price-suggest:hover,
-.price-cancel:hover {
-  background: var(--highlight);
-}
-
-.price-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 /* Caña / Tercio as a segmented control. */
 .price-segmented {
   display: flex;
@@ -120,57 +60,6 @@
   background: var(--bg);
   color: var(--ink);
   box-shadow: 0 1px 3px rgba(31, 35, 40, 0.15);
-}
-
-.price-fields {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.price-field {
-  min-width: 0;
-  height: 40px;
-  padding: 0 12px;
-  border: 1.5px solid transparent;
-  border-radius: 12px;
-  background: var(--field);
-  color: var(--ink);
-  font: inherit;
-}
-
-.price-field:focus-within,
-.price-field:focus {
-  border-color: var(--sun-soft);
-  outline: none;
-}
-
-select.price-field {
-  flex: 1;
-}
-
-.price-amount {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 4px;
-}
-
-.price-amount input {
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 16px;
-  font-weight: 700;
-  outline: none;
-}
-
-.price-amount span {
-  color: var(--muted);
-  font-weight: 700;
 }
 
 /* Cloudflare's check: only takes space while it needs the visitor. */
@@ -205,43 +94,6 @@ select.price-field {
   .turnstile-spinner {
     animation-duration: 2.4s;
   }
-}
-
-.price-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
-.price-send {
-  padding: 8px 18px;
-  border: 0;
-  border-radius: 999px;
-  background: linear-gradient(160deg, #ffc53d, #f59e0b);
-  color: #fff;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.price-send:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.price-result {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border-radius: 14px;
-  background: var(--field);
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.price-result.is-ok {
-  background: var(--highlight);
-  color: var(--ink);
 }
 
 /* Owner mode (ADR-0005): the owner's own editor in the card, and a bar on the map. */
