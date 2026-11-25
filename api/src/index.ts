@@ -17,6 +17,9 @@
  *   change (a price shows at once; a move or closed waits for the admin's next
  *   Publish, applied without review), POST /v1/owner/reports adds a missing
  *   venue the same way. No bot check and no caps.
+ * - POST /v1/login: the owner's username and password for OWNER_TOKEN, at most
+ *   LOGIN_NETWORK_LIMIT attempts per network in 15 minutes and
+ *   LOGIN_HOURLY_LIMIT from everyone in an hour.
  * - GET /v1/admin/owner-prices: owner prices, for the admin's import.
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
  *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
@@ -38,6 +41,7 @@ import {
   ownerPrices,
   ownerReport,
 } from './routes/owner.ts'
+import { login } from './routes/login.ts'
 import { pending, prices, resolve, suggest } from './routes/prices.ts'
 import {
   change,
@@ -60,6 +64,8 @@ async function route(
     return change(request, env)
   if (pathname === '/v1/reports' && request.method === 'POST')
     return report(request, env)
+  if (pathname === '/v1/login' && request.method === 'POST')
+    return login(request, env)
   if (pathname.startsWith('/v1/owner/')) {
     if (!bearer(request, env.OWNER_TOKEN))
       return json({ error: 'unauthorized' }, 401)

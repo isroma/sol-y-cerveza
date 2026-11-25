@@ -2,13 +2,15 @@
 
 .brand {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
 }
 
 .brand h1 {
+  overflow: hidden;
+  min-width: 0;
   margin: 0;
+  text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 30px;
   font-weight: 800;

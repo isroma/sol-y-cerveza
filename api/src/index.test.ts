@@ -15,7 +15,13 @@ import {
   type RequestInit as MfRequestInit,
 } from 'miniflare'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { DAILY_LIMIT, THRESHOLD, VENUE_HOURLY_LIMIT } from './logic.ts'
+import {
+  DAILY_LIMIT,
+  LOGIN_HOURLY_LIMIT,
+  LOGIN_NETWORK_LIMIT,
+  THRESHOLD,
+  VENUE_HOURLY_LIMIT,
+} from './logic.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const TEST_SECRET = '1x0000000000000000000000000000000AA'
@@ -90,6 +96,8 @@ async function startApi(
     TURNSTILE_SECRET: TEST_SECRET,
     ADMIN_TOKEN: 'test-admin-token',
     OWNER_TOKEN: 'test-owner-token',
+    OWNER_USERNAME: 'dueño',
+    OWNER_PASSWORD: 'una contraseña larga',
     IP_SALT: SALT,
     ...bindings,
   }
@@ -879,6 +887,68 @@ describe('owner changes', () => {
     expect(
       (await queue()).find((r) => r.kind === 'closed' && !r.owner),
     ).toBeDefined()
+  })
+})
+
+describe('owner login', () => {
+  let api: Api
+  beforeAll(async () => {
+    api = await startApi()
+  })
+  afterAll(() => api.dispose())
+
+  const attempt = (password: string, ip = '93.1.1.1', username = 'dueño') =>
+    api.call('/v1/login', { ...postJson({ username, password }), ip })
+
+  it('hands out the owner token for the right username and password', async () => {
+    const response = await attempt('una contraseña larga')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ token: 'test-owner-token' })
+  })
+
+  it('answers a wrong username or password alike', async () => {
+    expect((await attempt('nope', '93.2.2.2')).status).toBe(401)
+    expect(
+      (await attempt('una contraseña larga', '93.2.2.2', 'otro')).status,
+    ).toBe(401)
+  })
+
+  it(`allows ${LOGIN_NETWORK_LIMIT} attempts per network, and a good login gives them back`, async () => {
+    for (let i = 0; i < LOGIN_NETWORK_LIMIT - 1; i++)
+      expect((await attempt('nope', '93.3.3.3')).status).toBe(401)
+    expect((await attempt('una contraseña larga', '93.3.3.3')).status).toBe(200)
+    for (let i = 0; i < LOGIN_NETWORK_LIMIT; i++)
+      expect((await attempt('nope', '93.3.3.3')).status).toBe(401)
+    const blocked = await attempt('una contraseña larga', '93.3.3.3')
+    expect(blocked.status).toBe(429)
+    expect(blocked.headers.get('Retry-After')).toBe('900')
+    // Another network still gets in.
+    expect((await attempt('una contraseña larga', '93.4.4.4')).status).toBe(200)
+  })
+
+  it(`stops everyone after ${LOGIN_HOURLY_LIMIT} attempts in an hour`, async () => {
+    await api.sql('DELETE FROM login_attempts')
+    const now = new Date().toISOString()
+    for (let i = 0; i < LOGIN_HOURLY_LIMIT; i++)
+      await api.sql(
+        'INSERT INTO login_attempts (net_hash, at) VALUES (?, ?)',
+        `other-${i}`,
+        now,
+      )
+    expect((await attempt('una contraseña larga', '93.5.5.5')).status).toBe(429)
+  })
+
+  it('is off until the username and password are set', async () => {
+    const bare = await startApi({ OWNER_PASSWORD: undefined })
+    try {
+      const response = await bare.call(
+        '/v1/login',
+        postJson({ username: 'dueño', password: 'x' }),
+      )
+      expect(response.status).toBe(503)
+    } finally {
+      await bare.dispose()
+    }
   })
 })
 

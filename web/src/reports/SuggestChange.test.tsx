@@ -5,7 +5,7 @@ import type { Terrace } from '../data/terraces.ts'
 import { emptyDraft, type ChangeDraft } from './draft.ts'
 import { StartMoveContext } from './picking.ts'
 import { SuggestChange } from './SuggestChange.tsx'
-import { exitOwner, unlockFromLocation } from '../prices/owner.ts'
+import { logIn, logOut } from '../prices/owner.ts'
 
 // The API and the bot check as a build with both configured has them.
 vi.mock('../apiClient.ts', async (original) => {
@@ -245,11 +245,10 @@ describe('SuggestChange', () => {
 
 describe('SuggestChange in owner mode', () => {
   const ownerOn = async () => {
-    window.location.hash = '#owner=0123456789abcdef0123'
-    vi.stubGlobal('fetch', async () => new Response(null, { status: 200 }))
-    await unlockFromLocation()
+    vi.stubGlobal('fetch', async () => Response.json({ token: 'owner' }))
+    await logIn('dueño', 'secreto')
   }
-  afterEach(() => exitOwner())
+  afterEach(() => logOut())
 
   it('saves a price as a change, with no bot check', async () => {
     await ownerOn()

@@ -2,22 +2,19 @@ import { useSyncExternalStore } from 'react'
 import { CAN_SEND, PRICES_API, type SuggestResult } from '../apiClient.ts'
 
 /**
- * Owner mode (ADR-0005, "Owner mode"): the owner uses the visitor's forms,
- * but what they send is a change, not a suggestion. A private link
- * `#owner=<token>` turns it on; the token stays in this browser's
- * localStorage. A price shows at once; a move, closure or new venue is applied
- * by the admin at its next Publish, without review.
+ * Owner mode (ADR-0005, "Owner mode"), shown as "Admin": the owner uses the
+ * visitor's forms, but what they send is a change, not a suggestion. They log
+ * in at /admin with a username and password; the API answers with the owner
+ * token, which stays in this browser's localStorage until they log out. A
+ * price shows at once; a move, closure or new venue is applied by the admin at
+ * its next Publish, without review.
  */
 
 const STORAGE_KEY = 'sol-y-cerveza-owner'
 
-type State = {
-  token: string | null
-  /** A one-line notice in the header ("Enlace de dueño no válido."). */
-  message: string | null
-}
+type State = { token: string | null }
 
-let state: State = { token: readStored(), message: null }
+let state: State = { token: readStored() }
 const listeners = new Set<() => void>()
 
 function set(patch: Partial<State>) {
@@ -58,12 +55,6 @@ export function useCanSend(): boolean {
   return CAN_SEND || (token !== null && PRICES_API !== null)
 }
 
-/** The token in `#owner=<token>`, or null. */
-export function tokenFromHash(hash: string): string | null {
-  const match = /^#owner=([A-Za-z0-9_-]{16,})$/.exec(hash)
-  return match?.[1] ?? null
-}
-
 async function call(
   path: string,
   init: RequestInit,
@@ -80,30 +71,40 @@ async function call(
   })
 }
 
-/** Turns owner mode on from the link (and removes the token from the address bar). */
-export async function unlockFromLocation(): Promise<void> {
-  const token = tokenFromHash(window.location.hash)
-  if (!token) return
-  history.replaceState(
-    null,
-    '',
-    window.location.pathname + window.location.search,
-  )
-  const ok = await call('/v1/owner/check', { method: 'GET' }, token)
-    .then((r) => r.ok)
-    .catch(() => false)
-  if (!ok) return set({ message: 'Enlace de dueño no válido.' })
-  store(token)
-  set({ token, message: null })
+export type LoginResult = 'ok' | 'wrong' | 'too-many' | 'error'
+
+/** Logs in with the owner's username and password; never throws. */
+export async function logIn(
+  username: string,
+  password: string,
+): Promise<LoginResult> {
+  if (!PRICES_API) return 'error'
+  try {
+    const response = await fetch(`${PRICES_API}/v1/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    if (response.status === 401) return 'wrong'
+    if (response.status === 429) return 'too-many'
+    if (!response.ok) return 'error'
+    const body: unknown = await response.json()
+    const token =
+      typeof body === 'object' && body !== null && 'token' in body
+        ? body.token
+        : null
+    if (typeof token !== 'string' || token === '') return 'error'
+    store(token)
+    set({ token })
+    return 'ok'
+  } catch {
+    return 'error'
+  }
 }
 
-export function exitOwner() {
+export function logOut() {
   store(null)
-  set({ token: null, message: null })
-}
-
-export function dismissMessage() {
-  set({ message: null })
+  set({ token: null })
 }
 
 /** POSTs the owner's change (`/v1/owner/changes` or `/v1/owner/reports`); never throws. */

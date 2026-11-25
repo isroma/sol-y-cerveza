@@ -151,6 +151,12 @@ export function parsePriceResolution(body: unknown): PriceResolution | null {
 }
 
 /** Constant-time string comparison, for the admin token. */
+/** The owner's login (routes/login.ts): attempts one network may make in LOGIN_WINDOW_MINUTES. */
+export const LOGIN_NETWORK_LIMIT = 5
+export const LOGIN_WINDOW_MINUTES = 15
+/** Login attempts from everyone together in an hour: a slow ceiling on guessing. */
+export const LOGIN_HOURLY_LIMIT = 30
+
 export function safeEqual(a: string, b: string): boolean {
   const left = new TextEncoder().encode(a)
   const right = new TextEncoder().encode(b)

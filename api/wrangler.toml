@@ -21,4 +21,5 @@ database_name = "sol-y-cerveza"
 database_id = "0a0de20d-6c0d-4bc1-ba40-1145861c02c5"
 
 # Secrets (`wrangler secret put <NAME>`; locally in .dev.vars):
-# TURNSTILE_SECRET, ADMIN_TOKEN, IP_SALT, OWNER_TOKEN (owner mode: add or remove prices only)
+# TURNSTILE_SECRET, ADMIN_TOKEN, IP_SALT, OWNER_TOKEN (owner mode),
+# OWNER_USERNAME and OWNER_PASSWORD (the owner's login, which hands out OWNER_TOKEN)

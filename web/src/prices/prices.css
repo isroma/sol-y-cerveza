@@ -62,40 +62,110 @@
   box-shadow: 0 1px 3px rgba(31, 35, 40, 0.15);
 }
 
-/* Owner mode (ADR-0005): a badge in the header, next to the name. */
-.owner-badge {
-  display: inline-flex;
+/* Owner mode (ADR-0005), "Admin": a soft pill in the header, like the card's
+   "Sugerir un cambio", and the login or log-out panel under the header. */
+.admin-pill {
   flex: none;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px 4px 2px 10px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--text-soft);
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-}
-
-.owner-badge button {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 16px;
-  line-height: 1;
   cursor: pointer;
 }
 
-.owner-badge--notice {
+/* Phones: the name, the pill and the menu button share one line. */
+@media (max-width: 899px) {
+  .brand:has(.admin-pill) {
+    gap: var(--space-2);
+  }
+
+  .admin-pill {
+    height: 26px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
+
+.admin-pill:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.admin-panel {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 72px);
+  left: 16px;
+  z-index: 30;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  padding: var(--space-4);
+  border-radius: var(--radius-m);
   background: var(--bg);
   color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--line);
-  white-space: normal;
+  box-shadow: var(--shadow);
+}
+
+.admin-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-panel p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.admin-panel input {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--control);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  /* 16 px: phones don't zoom into the field. */
+  font-size: 16px;
+}
+
+.admin-panel [role='alert'] {
+  color: var(--sun-dark);
+}
+
+.admin-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.admin-panel-actions button {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-panel-actions .admin-panel-main {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.admin-panel-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
