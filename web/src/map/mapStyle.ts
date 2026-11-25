@@ -4,7 +4,7 @@ import type {
   LightSpecification,
   StyleSpecification,
 } from 'maplibre-gl'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import type { SunPosition } from '../sun/sunState.ts'
 import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
 
@@ -16,7 +16,7 @@ import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
  */
 const basemapStyleSchema = z.object({
   version: z.literal(8),
-  sources: z.object({}).catchall(z.object({ type: z.string() })),
+  sources: z.catchall(z.object({}), z.object({ type: z.string() })),
   layers: z.array(z.object({ id: z.string(), type: z.string() })),
 })
 

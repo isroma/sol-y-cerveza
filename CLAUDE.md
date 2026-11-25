@@ -66,7 +66,7 @@ Parked: not now. They may come back later, but don't propose or start them unles
 ### TypeScript (`web/`)
 
 - `strict` and `noUncheckedIndexedAccess` are on. No `any`, and avoid `as`.
-- Validate external data (JSON files, APIs) with zod at the boundary.
+- Validate external data (JSON files, APIs) with zod at the boundary. Code the visitor app imports uses `import * as z from 'zod/mini'` (classic `zod` would add ~16 kB gzip to the entry chunk); classic `zod` is for admin-only code.
 - Use named exports. Tests sit next to the code as `*.test.ts(x)`.
 - Mock at module boundaries. MapLibre needs WebGL, so mock the map component in jsdom tests.
 - No `console.log` in committed code.

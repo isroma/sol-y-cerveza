@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
 import type { LatLon } from '../data/terraces.ts'
 import { PRICES_API } from './crowd.ts'
@@ -159,14 +159,14 @@ const photoAnswer = z.union([
     proposals: z.array(
       z.object({
         item: z.enum(ITEMS),
-        brand: z.enum(BRANDS).nullable(),
-        cents: z.number().int(),
+        brand: z.nullable(z.enum(BRANDS)),
+        cents: z.int(),
         label: z.string(),
         confidence: z.enum(['high', 'low']),
       }),
     ),
     notes: z.array(z.string()),
-    barName: z.string().nullable(),
+    barName: z.nullable(z.string()),
   }),
   z.object({ error: z.string() }),
 ])
