@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { transformWithOxc, type Plugin } from 'vite'
-import { BASEMAP_STYLE_URL } from './src/config.ts'
-import type { SwManifest } from './sw/manifest.ts'
+import { BASEMAP_STYLE_URL } from '../src/config.ts'
+import type { SwManifest } from '../sw/manifest.ts'
 
 /** What precacheList needs to know about a file of the build's bundle. */
 export type BundleFile =

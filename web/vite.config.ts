@@ -1,9 +1,9 @@
 import react from '@vitejs/plugin-react'
 import type { HtmlTagDescriptor, Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
-import { maplibreCss } from './maplibreCss.ts'
-import { reviewServer } from './reviewServer.ts'
-import { serviceWorker } from './serviceWorker.ts'
+import { reviewServer } from './plugins/admin/reviewServer.ts'
+import { maplibreCss } from './plugins/maplibreCss.ts'
+import { serviceWorker } from './plugins/serviceWorker.ts'
 import { BASEMAP_STYLE_URL } from './src/config.ts'
 
 /**

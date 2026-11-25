@@ -1,6 +1,6 @@
 name: Publish review
 
-# The admin view's Publish button (web/publish.ts) pushes a data/venue-review-*
+# The admin view's Publish button (web/plugins/admin/publish.ts) pushes a data/venue-review-*
 # branch with git only: on the admin's network api.github.com is unreachable.
 # This is the first, unprivileged half: it checks the push and holds no secrets.
 # GitHub runs a push workflow from the pushed commit, so whoever pushes can edit
@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       # A fast signal only: publish-review-pr.yml repeats this check with the same
-      # list (REVIEW, PRICES and DATA in web/publish.ts) before using the token.
+      # list (REVIEW, PRICES and DATA in web/plugins/admin/publish.ts) before using the token.
       - name: Check the branch only changes the published data
         env:
           BRANCH: ${{ github.ref_name }}

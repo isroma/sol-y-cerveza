@@ -1,6 +1,6 @@
 name: Publish review PR
 
-# Second half of the admin's Publish (web/publish.ts; publish-review.yml is the
+# Second half of the admin's Publish (web/plugins/admin/publish.ts; publish-review.yml is the
 # first). It opens the PR for a data/venue-review-* branch and enables
 # auto-merge with PUBLISH_TOKEN, a fine-grained token of the repo owner
 # (Contents and Pull requests: read and write, this repository only), because
@@ -96,7 +96,7 @@ jobs:
 
           # PUBLISH_TOKEN auto-merges whatever the branch holds, so it may only
           # change the files Publish commits (REVIEW, PRICES and DATA in
-          # web/publish.ts). publish-review.yml repeats this list as a fast signal.
+          # web/plugins/admin/publish.ts). publish-review.yml repeats this list as a fast signal.
           changed=$(git diff --no-renames --name-only "refs/remotes/origin/main...$SHA")
           other=''
           while IFS= read -r file; do

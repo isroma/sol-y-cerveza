@@ -7,19 +7,5 @@
     "module": "nodenext",
     "types": ["node"]
   },
-  "include": [
-    "vite.config.ts",
-    "capacitor.config.ts",
-    "adminGuard.ts",
-    "adminGuard.test.ts",
-    "maplibreCss.ts",
-    "maplibreCss.test.ts",
-    "reviewServer.ts",
-    "reviewServer.test.ts",
-    "pricePhotoServer.ts",
-    "pricePhotoServer.test.ts",
-    "publish.ts",
-    "serviceWorker.ts",
-    "serviceWorker.test.ts"
-  ]
+  "include": ["vite.config.ts", "capacitor.config.ts", "plugins"]
 }

@@ -3,8 +3,8 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { dirname, resolve } from 'node:path'
 import { TLSSocket } from 'node:tls'
-import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
+import { repoPath } from '../paths.ts'
 import { adminRequestRefusal, latestOnly } from './adminGuard.ts'
 import {
   answerPhoto,
@@ -21,13 +21,13 @@ import {
   reviewSchema,
   upsertReview,
   type Review,
-} from './src/admin/review.ts'
+} from '../../src/admin/review.ts'
 import {
   parseProbeOutput,
   parseProbeQuery,
   type Position,
   type ProbeOutput,
-} from './src/admin/probe.ts'
+} from '../../src/admin/probe.ts'
 import {
   formatPricesCsv,
   parsePricesCsv,
@@ -35,7 +35,7 @@ import {
   upsertPrice,
   venuePriceSchema,
   type VenuePrice,
-} from './src/admin/pricesCsv.ts'
+} from '../../src/admin/pricesCsv.ts'
 import {
   decide,
   decisionSchema,
@@ -44,19 +44,17 @@ import {
   parseLeadsCsv,
   type Candidate,
   type Lead,
-} from './src/admin/priceCandidates.ts'
+} from '../../src/admin/priceCandidates.ts'
 import {
   formatIgnored,
   ignoreSchema,
   parseIgnored,
   parseProposalsCsv,
   type ProposalsResponse,
-} from './src/admin/proposals.ts'
-import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from './src/admin/endpoints.ts'
+} from '../../src/admin/proposals.ts'
+import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from '../../src/admin/endpoints.ts'
 
-const CSV = fileURLToPath(
-  new URL('../pipeline/data/venue_review.csv', import.meta.url),
-)
+const CSV = repoPath('pipeline/data/venue_review.csv')
 
 async function readReviews(): Promise<Review[]> {
   try {
@@ -74,9 +72,7 @@ async function writeReviews(reviews: readonly Review[]): Promise<void> {
   await rename(partial, CSV)
 }
 
-const PRICES_CSV = fileURLToPath(
-  new URL('../pipeline/data/venue_prices.csv', import.meta.url),
-)
+const PRICES_CSV = repoPath('pipeline/data/venue_prices.csv')
 
 async function readPrices(): Promise<VenuePrice[]> {
   try {
@@ -95,12 +91,8 @@ async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
 }
 
 // Written by `python -m solycerveza.price_candidates` (ADR-0006).
-const CANDIDATES_CSV = fileURLToPath(
-  new URL('../pipeline/data/price_candidates.csv', import.meta.url),
-)
-const LEADS_CSV = fileURLToPath(
-  new URL('../pipeline/.cache/menu_leads.csv', import.meta.url),
-)
+const CANDIDATES_CSV = repoPath('pipeline/data/price_candidates.csv')
+const LEADS_CSV = repoPath('pipeline/.cache/menu_leads.csv')
 
 async function readOptional(path: string): Promise<string | null> {
   try {
@@ -130,12 +122,8 @@ async function writeCandidates(candidates: readonly Candidate[]) {
 
 // Machine proposals, written by another tool (may not exist), and the ones
 // the owner ignored (kept out of git, like other local admin state).
-const PROPOSALS_CSV = fileURLToPath(
-  new URL('../pipeline/data/venue_proposals.csv', import.meta.url),
-)
-const IGNORED_CSV = fileURLToPath(
-  new URL('../pipeline/.cache/venue_proposals_ignored.csv', import.meta.url),
-)
+const PROPOSALS_CSV = repoPath('pipeline/data/venue_proposals.csv')
+const IGNORED_CSV = repoPath('pipeline/.cache/venue_proposals_ignored.csv')
 
 async function readProposals(): Promise<ProposalsResponse> {
   const text = await readOptional(PROPOSALS_CSV)
@@ -154,7 +142,7 @@ async function ignoreProposal(key: string): Promise<void> {
   await rename(partial, IGNORED_CSV)
 }
 
-const PIPELINE = fileURLToPath(new URL('../pipeline/', import.meta.url))
+const PIPELINE = repoPath('pipeline/')
 const PROBE_TIMEOUT_MS = 60_000
 
 /** Optional raster paths for the probe (absolute, or relative to web/). */

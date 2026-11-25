@@ -106,7 +106,7 @@ describe('trimMaplibreCss', () => {
 
 describe('the app', () => {
   it('uses none of the controls whose CSS is dropped', () => {
-    const uses = appSources(join(import.meta.dirname, 'src')).flatMap(
+    const uses = appSources(join(import.meta.dirname, '../src')).flatMap(
       (file) => {
         const source = readFileSync(file, 'utf8')
         return Object.keys(UNUSED_CONTROLS)
