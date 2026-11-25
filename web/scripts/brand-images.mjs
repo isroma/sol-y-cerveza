@@ -1,19 +1,20 @@
 // Regenerates the app icons for the web manifest and the link preview image
 // (docs/design/README.md §11) from public/favicon.svg, by rendering small HTML
-// pages with Playwright's Chromium.
+// pages with Playwright's Chromium, then recompresses them losslessly.
 //
-//   cd web && node scripts/brand-images.mjs
+//   cd web && npm run brand-images
+//   cd web && npm run brand-images -- --optimize-only   (recompress only)
 //
-// Needs Playwright with Chromium installed (`npx playwright install chromium`).
+// Needs Playwright's Chromium (`npx playwright install chromium`, or a
+// browser in PW_CHROMIUM_PATH) and uv, which runs oxipng (pyoxipng) from
+// PyPI for the recompression, so no image tool is a dependency of the app.
 // Writes public/icon-192.png, public/icon-512.png, public/icon-maskable-512.png
 // and public/og.png. The text uses Inter, the design's web fallback font.
 
+import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-
-const require = createRequire(import.meta.url)
-const { chromium } = require('playwright')
+import { chromium } from '@playwright/test'
 
 const publicDir = fileURLToPath(new URL('../public/', import.meta.url))
 const mark = await readFile(`${publicDir}favicon.svg`, 'utf-8')
@@ -94,19 +95,58 @@ const outputs = [
   ['og.png', [1200, 630], og],
 ]
 
-const browser = await chromium.launch()
-try {
-  for (const [name, [width, height], html] of outputs) {
-    const tab = await browser.newPage({ viewport: { width, height } })
-    await tab.setContent(html)
-    await tab.evaluate(() => document.fonts.ready)
-    await tab.screenshot({
-      path: `${publicDir}${name}`,
-      omitBackground: true,
-    })
-    await tab.close()
-    process.stdout.write(`wrote public/${name}\n`)
-  }
-} finally {
-  await browser.close()
+/**
+ * Lossless recompression with oxipng: the same pixels and colour type
+ * (no palette, grey or bit-depth reduction), only better deflate, and no
+ * metadata chunks. About half the size of Chromium's screenshots.
+ */
+function optimize(paths) {
+  const script = `
+import os, sys, oxipng
+for path in sys.argv[1:]:
+    before = os.path.getsize(path)
+    oxipng.optimize(path, level=6, strip=oxipng.StripChunks.safe(),
+                    palette_reduction=False, grayscale_reduction=False,
+                    bit_depth_reduction=False, color_type_reduction=False)
+    print(f"optimized {os.path.basename(path)}: {before} -> {os.path.getsize(path)} B")
+`
+  execFileSync(
+    'uv',
+    [
+      'run',
+      '--no-project',
+      '--with',
+      'pyoxipng==9.1.1',
+      'python',
+      '-I',
+      '-c',
+      script,
+      ...paths,
+    ],
+    { stdio: 'inherit' },
+  )
 }
+
+const paths = outputs.map(([name]) => `${publicDir}${name}`)
+
+if (!process.argv.includes('--optimize-only')) {
+  const browser = await chromium.launch({
+    executablePath: process.env['PW_CHROMIUM_PATH'] || undefined,
+  })
+  try {
+    for (const [name, [width, height], html] of outputs) {
+      const tab = await browser.newPage({ viewport: { width, height } })
+      await tab.setContent(html)
+      await tab.evaluate(() => document.fonts.ready)
+      await tab.screenshot({
+        path: `${publicDir}${name}`,
+        omitBackground: true,
+      })
+      await tab.close()
+      process.stdout.write(`wrote public/${name}\n`)
+    }
+  } finally {
+    await browser.close()
+  }
+}
+optimize(paths)
