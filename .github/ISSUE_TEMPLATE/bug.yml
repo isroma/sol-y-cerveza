@@ -6,7 +6,7 @@ body:
     id: what
     attributes:
       label: What happened
-      description: For wrong sun/shade results, include the terrace, date and time, and what you saw on site.
+      description: 'For wrong sun/shade results: the venue, the day and time you were there, and what you saw (sun or shade on the tables).'
     validations:
       required: true
   - type: textarea
@@ -19,4 +19,4 @@ body:
     id: where
     attributes:
       label: Where
-      description: Web (browser + version), iOS or Android.
+      description: Browser and device (for example Safari on iPhone 15, Chrome on a Windows laptop).

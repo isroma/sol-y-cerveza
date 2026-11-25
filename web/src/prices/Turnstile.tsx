@@ -53,8 +53,8 @@ type Props = {
   siteKey: string
   /** A fresh token, or null when it expired. */
   onToken: (token: string | null) => void
-  /** The API checks it per endpoint: 'suggest' for prices, 'report' for venue reports, 'change' for the card back. */
-  action?: string
+  /** The API checks it per endpoint: 'report' for venue reports, 'change' for the card back. */
+  action: string
   /**
    * Run the check now (default) or once this turns true: the widget loads at
    * once either way, so a deferred check starts without the script's delay.
@@ -70,12 +70,7 @@ type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
  * Every mount needs a new check (each turn of the card), and the first in a
  * session also loads Cloudflare's script: while one runs, a spinner.
  */
-export function Turnstile({
-  siteKey,
-  onToken,
-  action = 'suggest',
-  run = true,
-}: Props) {
+export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<CheckState>('checking')
   const onTokenRef = useRef(onToken)

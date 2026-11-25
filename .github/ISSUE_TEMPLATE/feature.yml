@@ -1,5 +1,5 @@
 name: Feature or task
-description: Something to build, change or investigate
+description: Something to build, change or investigate. Some product questions are settled (today only, no weather) or parked; read "Product decisions" in CLAUDE.md first.
 body:
   - type: textarea
     id: goal

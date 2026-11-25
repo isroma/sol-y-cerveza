@@ -38,6 +38,19 @@ Nothing about a visitor is kept in the browser: cookies or local storage would b
 
 The numbers live in `src/logic.ts`. A determined attacker with many networks (a residential proxy pool) can still get through; the review queue in the admin, where any suggestion can be rejected, is the last line.
 
+## Code
+
+| File                                                               | What                                                                                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`                                                     | the Worker: the endpoint list, `route()` and CORS                                                       |
+| `src/env.ts`                                                       | `Env`, the bindings, vars and secrets                                                                   |
+| `src/http.ts`                                                      | JSON responses, size-capped bodies, bearer tokens                                                       |
+| `src/guard.ts`                                                     | the published venues (cached per isolate), Turnstile, `IP_SALT` and hashing, the caps (`takeAllowance`) |
+| `src/routes/prices.ts`                                             | suggestions, `GET /v1/prices` and its cache, the admin's suggestions queue                              |
+| `src/routes/reports.ts`                                            | `POST /v1/reports`, `POST /v1/changes` and the admin's reports queue                                    |
+| `src/routes/owner.ts`                                              | owner mode (prices, photos) and `GET /v1/admin/owner-prices`                                            |
+| `src/logic.ts`, `src/reports.ts`, `src/changes.ts`, `src/photo.ts` | pure rules: parsing, limits, consensus, the report queue, photo reading                                 |
+
 ## Local development
 
 ```bash
