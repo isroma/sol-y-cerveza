@@ -1,5 +1,12 @@
 import { useContext, useEffect, useRef, useState } from 'react'
-import { BRAND_NAMES, BRANDS, parseEuros, type Item } from '../data/prices.ts'
+import {
+  BRAND_NAMES,
+  BRANDS,
+  formatCents,
+  parseEuros,
+  SUGGEST_RANGE,
+  type Item,
+} from '../data/prices.ts'
 import type { Terrace } from '../data/terraces.ts'
 import { PRICE_RESULT_TEXT, TURNSTILE_SITE_KEY } from '../prices/crowd.ts'
 import { Turnstile } from '../prices/Turnstile.tsx'
@@ -10,10 +17,6 @@ import { distanceMetres, RESULT_TEXT, sendChange } from './reports.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
-
-/** The API takes prices from 0,50 € to 8,00 €. */
-const MIN_CENTS = 50
-const MAX_CENTS = 800
 
 /** Turnstile tokens last 300 s; one older than this is dropped for a new check. */
 const TOKEN_TTL_MS = 240_000
@@ -83,7 +86,9 @@ export function SuggestChange({
 
   const cents = parseEuros(text)
   const hasPrice = text.trim() !== ''
-  const priceOk = cents !== null && cents >= MIN_CENTS && cents <= MAX_CENTS
+  // The range the API accepts for this item.
+  const [minCents, maxCents] = SUGGEST_RANGE[item]
+  const priceOk = cents !== null && cents >= minCents && cents <= maxCents
   const edited = hasPrice || closed || move !== null
   const ready = edited && (!hasPrice || priceOk) && token !== null
   // How far from its badge the visitor placed it.
@@ -236,7 +241,7 @@ export function SuggestChange({
           </div>
           {hasPrice && !priceOk && (
             <p className="change-note">
-              Escribe un precio entre 0,50 € y 8,00 €.
+              {`Escribe un precio entre ${formatCents(minCents)} y ${formatCents(maxCents)}.`}
             </p>
           )}
           {TURNSTILE_SITE_KEY && (

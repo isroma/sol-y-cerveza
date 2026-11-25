@@ -2,6 +2,7 @@
 import {
   BRANDS,
   ITEMS,
+  SUGGEST_RANGE,
   type Brand,
   type Item,
 } from '../../web/src/data/prices.ts'
@@ -20,11 +21,6 @@ export const VENUE_HOURLY_LIMIT = 15
 export const EVENT_RETENTION_HOURS = 48
 /** The Turnstile action the app's price widget declares. */
 export const TURNSTILE_ACTION = 'suggest'
-/** Plausible prices, in cents: anything outside is a typo or a joke. */
-export const RANGE: Record<Item, readonly [number, number]> = {
-  cana: [50, 600],
-  tercio: [80, 800],
-}
 
 export type Suggestion = {
   venueId: string
@@ -65,7 +61,7 @@ export function parseSuggestion(
   if (!isItem(item)) return { ok: false, error: 'item' }
   if (item === 'tercio' ? !isBrand(brand) : brand !== null)
     return { ok: false, error: 'brand' }
-  const [min, max] = RANGE[item]
+  const [min, max] = SUGGEST_RANGE[item]
   if (
     typeof cents !== 'number' ||
     !Number.isInteger(cents) ||
