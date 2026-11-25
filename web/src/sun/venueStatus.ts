@@ -2,7 +2,12 @@ import type { Terrace } from '../data/terraces.ts'
 import { MINUTES_PER_DAY } from '../time/madrid.ts'
 import { stepIndex, type DayTrack } from './dayTrack.ts'
 import { anySunHorizon, horizonFor } from './leafOff.ts'
-import { STEP_MINUTES, sunState, type SunState } from './sunState.ts'
+import {
+  fillShortShade,
+  STEP_MINUTES,
+  sunState,
+  type SunState,
+} from './sunState.ts'
 
 /** How a venue is drawn: sunny now, sunny within SOON_MINUTES, no sun, or unknown. */
 export type SunCategory = 'sun' | 'soon' | 'nosun' | 'unknown'
@@ -11,7 +16,8 @@ export const SOON_MINUTES = 60
 
 /**
  * A venue's sun/shade state per step of the day, or null without a horizon.
- * In the leaf-off period it follows the leaf-off horizon (ADR-0007).
+ * In the leaf-off period it follows the leaf-off horizon (ADR-0007). Short
+ * shade between two sunny stretches counts as sun (`fillShortShade`).
  */
 export type VenueDay = { venue: Terrace; timeline: SunState[] | null }
 
@@ -39,7 +45,9 @@ export function venueDay(venue: Terrace, track: DayTrack): VenueDay {
     return { venue, timeline: null }
   return {
     venue,
-    timeline: track.positions.map((position) => sunState(horizon, position)),
+    timeline: fillShortShade(
+      track.positions.map((position) => sunState(horizon, position)),
+    ),
   }
 }
 
