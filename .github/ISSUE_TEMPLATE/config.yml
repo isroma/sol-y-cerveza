@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A venue or terrace is wrong or missing
+    url: https://isroma.github.io/sol-y-cerveza/
+    about: Use the app. Open the venue and choose "Sugerir un cambio", or add a bar with "¿Falta un bar? Añádelo" in the list.
+  - name: Report a security vulnerability
+    url: https://github.com/isroma/sol-y-cerveza/security/policy
+    about: Report it privately, as the security policy says. Please don't open a public issue.

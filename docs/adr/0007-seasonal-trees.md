@@ -94,7 +94,7 @@ Verified from this sandbox:
 
 Not verified, and needing the owner:
 
-- Individual species: no ground truth was available here. The thresholds (0.40 / 0.20) are starting values. Check them on 3–5 known terraces before trusting them (README, "Seasonal trees").
+- Individual species: no ground truth was available here. The thresholds (0.40 / 0.20) are starting values. Check them on 3–5 known terraces before trusting them ([pipeline guide, "Seasonal trees"](../pipeline.md#seasonal-trees)).
 - OSM building coverage in Badajoz: Overpass was unreachable from this sandbox.
 - The MDS02 flight date for sheet 0775, and the leaf-off dates above (they come from general knowledge, not from local phenology data).
 - That no 2nd-coverage MDSnV exists: I only searched, I didn't confirm it with CNIG.

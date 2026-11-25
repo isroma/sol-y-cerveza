@@ -36,7 +36,7 @@ The sun/shade answer is only as good as the terrace pin: a pin a few metres off 
 
 - **Visitor terrace reports in the app:** "¿Tiene terraza?" and placing the tables from the card (#210, open PR #219). The API and admin side are built.
 - **Proposals trial:** `python -m solycerveza.proposals --evaluate` has not been run; it needs the owner's machine (caches, network, API key). No proposer kind has a measured threshold yet ([ADR-0008](adr/0008-machine-venue-proposals.md)).
-- **Seasonal trees, data:** the owner runs `solycerveza.leafoff` and publishes a rebuilt `terraces.json` (README "Seasonal trees" has the checks).
+- **Seasonal trees, data:** the owner runs `solycerveza.leafoff` and publishes a rebuilt `terraces.json` ([pipeline guide, "Seasonal trees"](pipeline.md#seasonal-trees) has the checks).
 - **Owner-price import into `venue_prices.csv`:** described in ADR-0005, never built (#263).
 - **Owner photo reading on Workers AI** instead of the Claude API (#223, open PR #230).
 - **PNOA credit for admin review pins**, not only curated rows (`attribution_lines` in `pipeline/src/solycerveza/build.py`, #264).
