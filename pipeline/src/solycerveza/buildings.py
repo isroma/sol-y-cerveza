@@ -1,15 +1,16 @@
-"""Buildings at their LiDAR heights, for the map's 3D buildings with ``?shade=gpu``.
+"""Buildings at their LiDAR heights, for the map's 3D buildings and their shadows.
 
 Run from ``pipeline/`` after ``python -m solycerveza.obstacles``::
 
     python -m solycerveza.buildings [--out ../web/public/data/buildings.json]
 
 OSM has almost no building heights in Badajoz, so the basemap draws nearly every building at
-its 5 m default, while the GPU shadows (``web/src/map/heightShadows.ts``) cast from the real
-surface model. This draws the OSM footprints (``building=*``, from the Overpass structures cache
-``leafoff.load_structures`` uses; not ``roof``, which is a canopy) at the 75th percentile of the
-surface height inside each footprint, 1 m in from its edge: closer than the median to the rim
-that casts the shadow, since courtyards and terraces pull the median down.
+its 5 m default, and the GPU shadows (``web/src/map/prismShadows.ts``) are cast from what the
+map draws, so it needs real heights. This draws the OSM footprints (``building=*``, from the
+Overpass structures cache ``leafoff.load_structures`` uses; not ``roof``, which is a canopy) at
+the 75th percentile of the surface height inside each footprint, 1 m in from its edge: closer
+than the median to the rim that casts the shadow, since courtyards and terraces pull the median
+down.
 
 Where the LiDAR finds less than ``MIN_LIDAR_M`` (the building is newer than the 2018-19
 flight, or the footprint is off), the height is ``building:levels`` x ``LEVEL_M``, or else
