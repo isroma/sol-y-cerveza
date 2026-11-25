@@ -276,6 +276,36 @@ def test_an_open_model_gives_the_same_profiles_as_terrace_horizon(
     assert len({tuple(p) for p in profiles}) > 1
 
 
+@pytest.mark.parametrize("shifted", [False, True])
+def test_a_model_with_a_leafoff_surface_gives_both_profiles_as_two_models_would(
+    tmp_path: Path, utm_dsm: tuple[Path, NDArray[np.float64], Affine], shifted: bool
+) -> None:
+    dsm_path, surface, transform = utm_dsm
+    dtm_path = write_geotiff(tmp_path / "dtm.tif", np.full_like(surface, GROUND), transform)
+    # Leaf-off: the wall lowered in part, and a crown (now bare) east of the plaza lowered too.
+    bare = surface.copy()
+    bare[:, : SIZE // 2] = np.minimum(bare[:, : SIZE // 2], GROUND + 20)
+    surface[190:200, 230:240] = GROUND + 15
+    write_geotiff(dsm_path, surface, transform)
+    # Shifted by half a cell, it is on another grid: each profile is traced on its own then.
+    leafoff_transform = Affine.translation(PIXEL / 2, 0) @ transform if shifted else transform
+    leafoff_path = write_geotiff(tmp_path / "leafoff.tif", bare, leafoff_transform)
+    points = [(LAT + dlat, LON + dlon) for dlat in (-5e-4, 0, 4e-4) for dlon in (-6e-4, 0, 3e-4)]
+    with (
+        HorizonModel(dsm_path, dtm_path=dtm_path, leafoff_path=leafoff_path) as model,
+        HorizonModel(dsm_path, dtm_path=dtm_path) as summer,
+        HorizonModel(leafoff_path, dtm_path=dtm_path) as winter,
+    ):
+        pairs = [model.horizons(lat, lon) for lat, lon in points]
+        assert pairs == [
+            (summer.horizon(lat, lon), winter.horizon(lat, lon)) for lat, lon in points
+        ]
+        assert model.horizon(LAT, LON) == summer.horizon(LAT, LON)
+    assert any(s != w for s, w in pairs)
+    with HorizonModel(dsm_path, dtm_path=dtm_path) as model:
+        assert model.horizons(LAT, LON) == (model.horizon(LAT, LON), None)
+
+
 def test_an_open_model_without_terrain_needs_a_ground_elevation(
     utm_dsm: tuple[Path, NDArray[np.float64], Affine],
 ) -> None:
