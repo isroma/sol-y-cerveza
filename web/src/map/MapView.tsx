@@ -11,6 +11,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BASEMAP_STYLE_URL } from '../config.ts'
+import { markMapDrawn } from '../registerServiceWorker.ts'
 import type { LatLon } from '../data/terraces.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
@@ -291,9 +292,11 @@ export function MapView({
             ;(window as unknown as { __map?: MapLibreMap }).__map = map
           }
           setReady(true)
+          markMapDrawn()
         })
       })
       .catch(() => {
+        markMapDrawn()
         if (!cancelled) setFailed(true)
       })
 

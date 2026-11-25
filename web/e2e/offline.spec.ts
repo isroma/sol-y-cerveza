@@ -126,7 +126,8 @@ test('installs on the first visit and opens offline on the second', async ({
     expect.arrayContaining(['syc-pages-v1', 'syc-basemap-v1']),
   )
   expect(names.filter((n) => n.startsWith('syc-app-'))).toHaveLength(1)
-  // The LiDAR buildings and crowns the shadows are cast from, for offline.
+  // The LiDAR buildings and crowns the shadows are cast from, and the
+  // bridge, for offline (the worker installs after the map has fetched them).
   await expect
     .poll(() =>
       page.evaluate(async () => {
@@ -137,6 +138,7 @@ test('installs on the first visit and opens offline on the second', async ({
     )
     .toEqual(
       expect.arrayContaining([
+        '/sol-y-cerveza/data/bridge-mesh.json',
         '/sol-y-cerveza/data/buildings.json',
         '/sol-y-cerveza/data/terraces.json',
         '/sol-y-cerveza/data/trees.json',
