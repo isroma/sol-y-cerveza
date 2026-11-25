@@ -64,7 +64,7 @@ The owner records prices at the bar from their phone, without the laptop.
 Visitors can also report that a venue is in the wrong place (`move`), no longer exists (`closed`) or is missing (`add`), through `POST /v1/reports` on the same Worker.
 
 - **Never applied automatically.** Unlike prices, a report can't be shown at runtime: a moved or new venue needs the pipeline to compute its terrace horizon from the LiDAR model, and a wrongly closed venue would vanish from the map. So there is no consensus threshold; every report waits in the admin's Reports queue, the owner accepts it into `venue_review.csv`, and it ships with Publish like any review. The queue groups `closed` reports per venue and shows how many networks sent them, as evidence, not as a trigger.
-- **Same guardrails as prices.** Turnstile (action `report`), the same voter and network hashes, and the shared `suggestion_events` caps (an `add` counts against the venue key `new`). One open `move` and one open `closed` per voter and venue; a new one replaces the old one.
+- **Same guardrails as prices.** Turnstile (action `report`), the same voter and network hashes, and the shared `suggestion_events` caps (an `add` counts against the ~1 km cell of its position, `new:<lat>,<lon>` to 2 decimals). One open `move` and one open `closed` per voter and venue; a new one replaces the old one.
 - **Validity:** positions inside the Badajoz box; a `move` at most 500 m from the published position (a correction, not a relocation); `move` and `closed` only for venues in the published data; names for an `add` cleaned and 2 to 60 characters, no links.
 
 ## Consequences

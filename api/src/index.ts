@@ -59,7 +59,7 @@ import {
 import {
   distanceMetres,
   maxDistance,
-  NEW_VENUE_KEY,
+  newVenueKey,
   parseReport,
   parseResolution,
   REPORT_TURNSTILE_ACTION,
@@ -436,7 +436,7 @@ async function report(request: Request, env: Env): Promise<Response> {
   )
     return json({ error: 'bot check failed' }, 403)
   const value = parsed.value
-  const venueKey = value.kind === 'add' ? NEW_VENUE_KEY : value.venueId
+  const venueKey = value.kind === 'add' ? newVenueKey(value) : value.venueId
   if (value.kind !== 'add') {
     const refused = reportRefused(await knownVenues(env), value)
     if (refused) return refused

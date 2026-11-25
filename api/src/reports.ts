@@ -7,8 +7,15 @@ import { VENUE_ID } from './logic.ts'
 
 /** The Turnstile action the app's report widget declares. */
 export const REPORT_TURNSTILE_ACTION = 'report'
-/** The rate-limit venue key an `add` counts against (it has no venue yet). */
-export const NEW_VENUE_KEY = 'new'
+/**
+ * The rate-limit venue key an `add` counts against (it has no venue yet): its
+ * position's cell, rounded to 2 decimals (about 1 km), so missing-venue reports
+ * in one part of town don't use up every other part's hourly cap. Never a venue
+ * id, which always has a source prefix (`osm:` and so on).
+ */
+export function newVenueKey({ lat, lon }: LatLon): string {
+  return `new:${lat.toFixed(2)},${lon.toFixed(2)}`
+}
 /** A `move` is a correction, not a relocation: at most this far from the published position. */
 export const MAX_MOVE_METRES = 500
 /** A terrace sits by its venue: a `pin` at most this far from the published venue position. */
