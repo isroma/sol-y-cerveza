@@ -1,6 +1,6 @@
 # `terraces.json` data contract (version 2)
 
-The pipeline writes **`web/public/data/terraces.json`**. The web app fetches it at `./data/terraces.json` and validates it with zod. Until the build command lands (#12), the file holds sample data (`"sample": true`).
+The pipeline writes **`web/public/data/terraces.json`**. The web app fetches it at `./data/terraces.json` and validates it with zod. `python -m solycerveza.build` generates it from real sources, so it holds `"sample": false`; `"sample": true` marks fake data (test fixtures), for which the app shows a notice.
 
 Version 2 (2026-11-24) lists **every named venue**, not only those with a terrace: `terrace` is null when no terrace is known (the app shows "terraza sin confirmar", unconfirmed terrace), and then `verified` and `horizon` are null too. Version 1 only listed venues with a terrace.
 
