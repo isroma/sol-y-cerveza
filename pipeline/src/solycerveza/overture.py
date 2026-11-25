@@ -19,6 +19,7 @@ import re
 import unicodedata
 from collections.abc import Iterable, Sequence
 from difflib import SequenceMatcher
+from functools import cache
 from pathlib import Path
 
 import duckdb
@@ -231,6 +232,7 @@ GENERIC = frozenset(
 )
 
 
+@cache
 def normalize_name(name: str) -> str:
     text = unicodedata.normalize("NFKD", name.lower())
     text = "".join(c for c in text if not unicodedata.combining(c))
@@ -240,25 +242,63 @@ def normalize_name(name: str) -> str:
 
 def name_similarity(a: str, b: str) -> float:
     """0 to 100: how alike two venue names are, ignoring accents, case and generic words."""
+    whole, tokens, contained = _name_matchers(a, b)
+    return 100 * max(whole.ratio(), tokens.ratio(), contained)
+
+
+def _name_matchers(a: str, b: str) -> tuple[SequenceMatcher[str], SequenceMatcher[str], float]:
+    """The parts of `name_similarity`: whole names, sorted words, and containment (0 or 0.9)."""
     na, nb = normalize_name(a), normalize_name(b)
     if not na or not nb:
         na, nb = a.lower(), b.lower()
-    whole = SequenceMatcher(None, na, nb).ratio()
+    whole = SequenceMatcher(None, na, nb)
     tokens = SequenceMatcher(None, " ".join(sorted(na.split())), " ".join(sorted(nb.split())))
     shorter, longer = sorted((na.replace(" ", ""), nb.replace(" ", "")), key=len)
     contained = 0.9 if len(shorter) >= 5 and shorter in longer else 0.0
-    return 100 * max(whole, tokens.ratio(), contained)
+    return whole, tokens, contained
+
+
+def _similar_at_least(a: str, b: str, threshold: float) -> bool:
+    """`name_similarity(a, b) >= threshold`, exactly, but cheaper.
+
+    `quick_ratio` and `real_quick_ratio` are upper bounds of `ratio` (both count at least as
+    many matches over the same length), so a pair whose bound falls short skips `ratio`.
+    """
+    whole, tokens, contained = _name_matchers(a, b)
+    if 100 * contained >= threshold:
+        return True
+    return any(
+        100 * m.real_quick_ratio() >= threshold
+        and 100 * m.quick_ratio() >= threshold
+        and 100 * m.ratio() >= threshold
+        for m in (whole, tokens)
+    )
+
+
+#: `same_venue` never matches venues farther apart than this.
+MATCH_RADIUS_M = 250.0
 
 
 def same_venue(a: Venue, b: Venue) -> bool:
-    """Close and alike enough to be one venue (thresholds from the research notes)."""
+    """Close and alike enough to be one venue (thresholds from the research notes).
+
+    That is `(d <= 25 and s >= 60) or (d <= 100 and s >= 80) or (s >= 95 and len(a.name) >= 5)`
+    for distance `d` and `name_similarity` `s`, testing only the lowest threshold that applies.
+    """
     if a.name is None or b.name is None:
         return False
     d = distance_m(a.location, b.location)
-    if d > 250:
+    if d > MATCH_RADIUS_M:
         return False
-    s = name_similarity(a.name, b.name)
-    return (d <= 25 and s >= 60) or (d <= 100 and s >= 80) or (s >= 95 and len(a.name) >= 5)
+    if d <= 25:
+        threshold = 60.0
+    elif d <= 100:
+        threshold = 80.0
+    elif len(a.name) >= 5:
+        threshold = 95.0
+    else:
+        return False
+    return _similar_at_least(a.name, b.name, threshold)
 
 
 def merge_venues(osm: Iterable[Venue], overture: Iterable[Venue]) -> list[Venue]:
