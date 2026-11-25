@@ -225,9 +225,14 @@ def tall_parts(measured: Sequence[Measured], heights: FloatArray, grid: Grid) ->
         block = heights[row : row + rows, col : col + cols]
         if block.size == 0:
             continue
+        high = np.isfinite(block) & (block >= m.height + PART_RISE_M)
+        # The tall cells are among these, so too few here means too few inside: most buildings
+        # stop here, before the costly mask of their footprint.
+        if high.sum() * cell_area < PART_MIN_M2:
+            continue
         transform = window_transform(Window(col, row, cols, rows), grid.transform)
         inside = geometry_mask([inner], out_shape=block.shape, transform=transform, invert=True)
-        tall = inside & np.isfinite(block) & (block >= m.height + PART_RISE_M)
+        tall = inside & high
         if tall.sum() * cell_area < PART_MIN_M2:
             continue
         for geom, _ in shapes(tall.astype("uint8"), mask=tall, transform=transform):
