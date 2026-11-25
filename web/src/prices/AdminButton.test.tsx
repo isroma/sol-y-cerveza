@@ -20,4 +20,12 @@ describe('AdminButton', () => {
       screen.getByRole('button', { name: 'Iniciar sesión' }),
     ).toBeDisabled()
   })
+
+  it('closes with the cross at the top right', () => {
+    window.location.hash = '#admin'
+    render(<AdminButton />)
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
 })
