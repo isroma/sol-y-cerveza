@@ -1,15 +1,21 @@
 # height-tiles
 
-Shadow height tiles for the map's GPU sun shadows (`web/src/map/heightShadows.ts` on `main`).
-Rasters stay off `main`; the GitHub Pages deploy copies this branch into `data/heights/`.
+Data files for the map that stay off `main` (large, and rebuilt from the LiDAR rather than edited).
+Every GitHub Pages deploy of `main` copies them into the site's `data/`
+(`.github/workflows/deploy-pages.yml`; the deploy fails if this branch is missing, so keep its name).
 
-`{x}/{y}.png`: Web Mercator zoom-15 tiles of 512 px. R, G = surface (DSM) elevation in decimetres
-(big-endian 16-bit, 0 = no data); B = height above the terrain in quarter metres (max 255).
-Source: PNOA-LiDAR MDS02 and MDT02 © Instituto Geográfico Nacional (CC BY 4.0).
+`buildings.json`: OSM building outlines at their LiDAR heights (75th percentile of the surface height
+inside each, 1 m in from its edge), merged and simplified. Written by
+`cd pipeline && uv run python -m solycerveza.buildings`.
 
 `trees.json`: tree crowns from the same LiDAR (cells at least 2.5 m above the terrain, clear of OSM
-buildings), as GeoJSON polygons in height bands (`b` base, `h` top, metres). Contains data derived from
-© OpenStreetMap contributors (ODbL). The deploy copies it to `data/trees.json`.
+buildings), in height bands, with deciduous crowns flagged for the winter map. Written by
+`cd pipeline && uv run python -m solycerveza.trees`.
 
-Regenerate with `cd pipeline && uv run python -m solycerveza.heightmap` (and `solycerveza.trees`), then replace
-this branch's files with `web/public/data/heights/` in one commit (see docs/pipeline.md on `main`).
+Both use the compact format decoded by `web/src/map/extrusionCodec.ts` on `main`: polygons grouped as
+`[base m, top m, polygons]`, coordinates as integer steps of 1e-5°. The map draws them and casts their
+sun shadows on the GPU (`web/src/map/prismShadows.ts`). To update one, replace it here in one commit
+(see docs/pipeline.md on `main`); the next deploy of `main` picks it up.
+
+Sources: PNOA-LiDAR MDS02 and MDT02 © Instituto Geográfico Nacional (CC BY 4.0); contains data derived
+from © OpenStreetMap contributors (ODbL).
