@@ -355,6 +355,45 @@ describe('the Worker on a migrated D1', () => {
   })
 })
 
+describe('missing-venue reports', () => {
+  let api: Api
+  beforeAll(async () => {
+    api = await startApi()
+  })
+  afterAll(() => api.dispose())
+
+  const add = (lat: number, lon: number, n: number) =>
+    api.call('/v1/reports', {
+      ...postJson({
+        kind: 'add',
+        name: `Bar ${n}`,
+        venueKind: 'bar',
+        terrace: true,
+        lat,
+        lon,
+        token: 'ok:report',
+      }),
+      ip: netIp(400 + n),
+    })
+
+  it(`are capped at ${VENUE_HOURLY_LIMIT} an hour per area, not across town`, async () => {
+    for (let n = 0; n < VENUE_HOURLY_LIMIT; n++)
+      expect((await add(38.878 + n * 0.0001, -6.97, n)).status).toBe(201)
+    const sameArea = await add(38.8791, -6.9702, 100)
+    expect(sameArea.status).toBe(429)
+    expect(sameArea.headers.get('Retry-After')).toBe('3600')
+    // About 3 km away: its own cap.
+    expect((await add(38.9, -6.95, 101)).status).toBe(201)
+    const queue = await api.call('/v1/admin/reports', {
+      headers: { Authorization: ADMIN },
+    })
+    const body = await readJson<{ reports: { kind: string }[] }>(queue)
+    expect(body.reports.filter((r) => r.kind === 'add')).toHaveLength(
+      VENUE_HOURLY_LIMIT + 1,
+    )
+  })
+})
+
 describe('POST /v1/changes', () => {
   let api: Api
   beforeAll(async () => {

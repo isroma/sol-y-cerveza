@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { VENUE_ID } from './logic.ts'
 import {
   cleanName,
   distanceMetres,
   MAX_MOVE_METRES,
+  newVenueKey,
   parseReport,
   parseResolution,
   reportQueue,
@@ -26,6 +28,18 @@ const add = {
   lon: -6.97,
   token: 't',
 }
+
+describe('newVenueKey', () => {
+  it('keys a missing venue by its ~1 km cell', () => {
+    expect(newVenueKey({ lat: 38.878, lon: -6.97 })).toBe('new:38.88,-6.97')
+    expect(newVenueKey({ lat: 38.8791, lon: -6.9702 })).toBe('new:38.88,-6.97')
+    expect(newVenueKey({ lat: 38.9, lon: -6.95 })).toBe('new:38.90,-6.95')
+  })
+
+  it('never looks like a venue id', () => {
+    expect(VENUE_ID.test(newVenueKey({ lat: 38.878, lon: -6.97 }))).toBe(false)
+  })
+})
 
 describe('parseReport', () => {
   it('accepts each kind of report', () => {
