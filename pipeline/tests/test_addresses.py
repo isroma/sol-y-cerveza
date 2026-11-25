@@ -5,7 +5,6 @@ import httpx
 import pytest
 
 from solycerveza.addresses import (
-    PORTALS_CACHE,
     Address,
     collect_addresses,
     geocode,
@@ -13,7 +12,7 @@ from solycerveza.addresses import (
     osm_address,
     overture_address,
 )
-from solycerveza.junta import Geocoder
+from solycerveza.junta import PORTALS_CACHE, Geocoder
 from solycerveza.venues import LatLon, StreetAddress
 
 

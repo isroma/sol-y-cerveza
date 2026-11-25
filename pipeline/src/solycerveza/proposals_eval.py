@@ -150,6 +150,7 @@ def _position_lines(
     looked_at: Sequence[str],
     truth: dict[str, Truth],
     by_id: dict[str, Terrace],
+    looked_at_as: str = "with an address",
 ) -> list[str]:
     """Lines for one set of `position` proposals over the venues it could propose for."""
     moved = sum(truth[v].moved for v in looked_at)
@@ -161,7 +162,7 @@ def _position_lines(
         ok and truth[p.venue_id].moved for p, (_, ok) in zip(mine, scored, strict=True)
     )
     lines = [
-        f"- {len(looked_at)} venues with an address, {moved} of them moved by the owner.",
+        f"- {len(looked_at)} venues {looked_at_as}, {moved} of them moved by the owner.",
         f"- **position**: {len(mine)} proposals; precision {_ratio(right, len(mine))}, "
         f"recall {_ratio(right_moved, moved)} of moved venues.",
     ]
@@ -278,7 +279,7 @@ def evaluate(
         best: dict[str, Proposal] = {}
         for p in sorted(positions, key=sort_key):
             best.setdefault(p.venue_id, p)
-        lines += _position_lines(list(best.values()), evaluated, truth, by_id)
+        lines += _position_lines(list(best.values()), evaluated, truth, by_id, "looked at")
     lines.append("")
 
     lines.append("## Not a venue, from Overture attributes (overture-attributes)")

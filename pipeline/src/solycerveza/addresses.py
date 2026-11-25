@@ -9,7 +9,7 @@ Two origins, each kept apart so the trial can score them separately:
 
 Each address is cut to a street and a number with the register's own parser
 (`solycerveza.junta.split_address`; "s/n" and addresses without a number are dropped) and looked
-up with the register's `Geocoder`, sharing its cache (`pipeline/.cache/cartociudad_portals.json`)
+up with the register's `Geocoder`, sharing its cache (`pipeline/.cache/cartociudad_portals_v2.json`)
 and its rule: only a portal at exactly that street number counts.
 """
 
@@ -22,14 +22,13 @@ from typing import Literal
 
 import httpx
 
-from solycerveza.junta import Geocoder, split_address
+from solycerveza.junta import PORTALS_CACHE, Geocoder, split_address
 from solycerveza.venues import CACHE_DIR, USER_AGENT, LatLon, StreetAddress
 
 logger = logging.getLogger(__name__)
 
 Origin = Literal["osm", "overture"]
 ORIGINS: tuple[Origin, ...] = ("osm", "overture")
-PORTALS_CACHE = "cartociudad_portals.json"
 
 
 @dataclass(frozen=True)

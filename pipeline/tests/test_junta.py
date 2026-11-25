@@ -92,6 +92,13 @@ def test_pick_portal_needs_the_exact_number_and_a_similar_street() -> None:
     assert pick_portal([candidate(type="callejero")], "CALLE LAS LAVANDERAS", "1") is None
 
 
+def test_pick_portal_skips_the_villages_of_the_municipality() -> None:
+    village = candidate(postalCode="06194", lat=38.97, address="CALLE LAVANDERAS LAS 1, Valdebótoa")
+    city = candidate(postalCode="06011")
+    assert pick_portal([village, city], "CALLE LAS LAVANDERAS", "1") == LatLon(lat=38.88, lon=-6.97)
+    assert pick_portal([village], "CALLE LAS LAVANDERAS", "1") is None
+
+
 def test_geocoder_caches_answers(tmp_path: Path) -> None:
     calls: list[str] = []
 

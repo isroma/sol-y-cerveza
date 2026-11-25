@@ -42,6 +42,9 @@ REGISTER_URL = "https://www.juntaex.es/documents/77055/5801338/Restauracion.csv"
 GEOCODER_URL = "https://www.cartociudad.es/geocoder/api/geocoder/candidates"
 MIN_OPENED_YEAR = 2010
 CITY_POSTCODES = frozenset(f"060{i:02d}" for i in range(13))
+# Portal lookups. "v2": since #350 a portal outside the city's postcodes no longer counts, so
+# answers cached before then (which may sit in a village of the municipality) are not reused.
+PORTALS_CACHE = "cartociudad_portals_v2.json"
 
 MODALIDAD_KINDS: dict[str, Kind] = {
     "Café - Bar": "bar",
@@ -159,10 +162,17 @@ def parse_register(text: str) -> list[RegisterRow]:
 
 
 def pick_portal(candidates: Iterable[dict[str, Any]], street: str, number: str) -> LatLon | None:
-    """The candidate at exactly this street number, if its street name matches well enough."""
+    """The candidate at exactly this street number, if its street name matches well enough.
+
+    It must be in the city: the municipality's villages (Valdebótoa, Gévora, ...) share street
+    names with it, and a candidate there has a postcode outside `CITY_POSTCODES`.
+    """
     target = street_core(street)
     for candidate in candidates:
         if candidate.get("type") != "portal" or str(candidate.get("portalNumber")) != number:
+            continue
+        postcode = str(candidate.get("postalCode") or "").strip()
+        if postcode and postcode.zfill(5) not in CITY_POSTCODES:
             continue
         candidate_street = re.sub(r"\s\d+\w?$", "", str(candidate.get("address", "")).split(",")[0])
         if SequenceMatcher(None, target, street_core(candidate_street)).ratio() < 0.7:
@@ -285,7 +295,7 @@ def load_register(
             partial.write_bytes(response.content)
             partial.replace(csv_path)
         rows = parse_register(csv_path.read_bytes().decode("latin-1"))
-        geocoder = Geocoder(cache_dir / "cartociudad_portals.json", client)
+        geocoder = Geocoder(cache_dir / PORTALS_CACHE, client)
         located: list[tuple[RegisterRow, LatLon]] = []
         try:
             for row in rows:
