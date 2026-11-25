@@ -2,16 +2,77 @@ import { describe, expect, it } from 'vitest'
 import { buildId, precacheList, workerScript } from './serviceWorker.ts'
 
 describe('precacheList', () => {
+  const chunk = (
+    fileName: string,
+    imports: string[] = [],
+    extra: { isEntry?: boolean; facadeModuleId?: string } = {},
+  ) => ({
+    type: 'chunk' as const,
+    fileName,
+    isEntry: extra.isEntry ?? false,
+    facadeModuleId: extra.facadeModuleId ?? null,
+    imports,
+  })
+  const asset = (fileName: string) => ({ type: 'asset' as const, fileName })
+  const bundle = (...files: ReturnType<typeof chunk | typeof asset>[]) =>
+    Object.fromEntries(files.map((file) => [file.fileName, file]))
+
   it('keeps the hashed build files, sorted, without source maps', () => {
     expect(
-      precacheList([
-        'index.html',
-        'assets/MapView-b.js',
-        'assets/index-a.js',
-        'assets/index-a.js.map',
-        'data/terraces.json',
-      ]),
+      precacheList(
+        bundle(
+          asset('index.html'),
+          chunk('assets/MapView-b.js', [], {
+            facadeModuleId: '/web/src/map/MapView.tsx',
+          }),
+          chunk('assets/index-a.js', [], { isEntry: true }),
+          asset('assets/index-a.js.map'),
+          asset('data/terraces.json'),
+        ),
+      ),
     ).toEqual(['assets/MapView-b.js', 'assets/index-a.js'])
+  })
+
+  it('takes the entry and map chunks, their static imports and all assets', () => {
+    expect(
+      precacheList(
+        bundle(
+          chunk('assets/index-a.js', ['assets/runtime-r.js'], {
+            isEntry: true,
+          }),
+          chunk('assets/runtime-r.js'),
+          chunk(
+            'assets/MapView-b.js',
+            ['assets/runtime-r.js', 'assets/geo-g.js'],
+            {
+              facadeModuleId: '/web/src/map/MapView.tsx',
+            },
+          ),
+          chunk('assets/geo-g.js'),
+          asset('assets/MapView-b.css'),
+          asset('assets/maplibre-gl-worker-w.js'),
+        ),
+      ),
+    ).toEqual([
+      'assets/MapView-b.css',
+      'assets/MapView-b.js',
+      'assets/geo-g.js',
+      'assets/index-a.js',
+      'assets/maplibre-gl-worker-w.js',
+      'assets/runtime-r.js',
+    ])
+  })
+
+  it('leaves out chunks only dynamic imports reach (exifr for photos)', () => {
+    expect(
+      precacheList(
+        bundle(
+          chunk('assets/index-a.js', [], { isEntry: true }),
+          chunk('assets/full.esm-e.js', ['assets/exif-dep-d.js']),
+          chunk('assets/exif-dep-d.js'),
+        ),
+      ),
+    ).toEqual(['assets/index-a.js'])
   })
 })
 
