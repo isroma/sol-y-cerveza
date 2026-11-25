@@ -104,6 +104,9 @@
 }
 
 .time-slider {
+  /* Above the hour marks below it (its knob overlaps them). */
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 8px;
   margin: var(--slider-top) 0 var(--space-2);
@@ -135,12 +138,41 @@
   background: #fff;
 }
 
+/* Hour labels centred on their values: the same 12 px inset as the thumb's
+   travel and the bar's marks. */
 .time-ticks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 16px;
+  margin: 0 12px;
   color: var(--muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+.time-tick {
+  position: absolute;
+  bottom: 0;
+  translate: -50% 0;
+  line-height: 16px;
+}
+
+/* A small mark under the bar, above its label, in the bar's colours. */
+.time-tick::before {
+  content: '';
+  position: absolute;
+  /* Hangs from the bar's lower edge (tucked under it, so no hairline shows
+     between them) into the 8 px gap above the label. */
+  top: -12px;
+  left: 50%;
+  width: 2px;
+  height: 10px;
+  translate: -50% 0;
+  border-radius: 1px;
+  background: #e5e7eb;
+}
+
+.time-tick.is-past::before {
+  background: var(--sun-soft);
 }
 
 /* Filters */
