@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { STEP_MINUTES } from '../sun/sunState.ts'
 import { formatClock } from '../time/madrid.ts'
+import { nowMarker } from './nowMarker.ts'
 import { SunriseIcon, SunsetIcon } from './icons.tsx'
 
 /** Terrace hours shown on the slider. */
@@ -33,7 +34,7 @@ export function TimeSlider({
 }: Props) {
   const clamped = Math.min(SLIDER_END, Math.max(SLIDER_START, minutes))
   const percent = percentOf(clamped)
-  const showNow = inRange(now) && Math.abs(now - minutes) >= STEP_MINUTES
+  const marker = inRange(now) ? nowMarker(now, minutes) : 'none'
   const at = (m: number) => ({ left: `${percentOf(m)}%` })
   return (
     <section className="time" aria-label="Hora">
@@ -83,7 +84,7 @@ export function TimeSlider({
           style={{ '--fill': `${percent}%` } as CSSProperties}
           onChange={(event) => onChange(Number(event.target.value))}
         />
-        {showNow && (
+        {marker !== 'none' && (
           <div className="time-now-layer">
             {/* The current time: tap anywhere around it to come back to now. */}
             <button
@@ -94,9 +95,11 @@ export function TimeSlider({
               title={`Volver a ahora · ${formatClock(now)}`}
               onClick={onNow}
             >
-              <span className="time-now-bubble" aria-hidden="true">
-                Ahora
-              </span>
+              {marker === 'label' && (
+                <span className="time-now-bubble" aria-hidden="true">
+                  Ahora
+                </span>
+              )}
               <span className="time-now-dot" />
             </button>
           </div>
