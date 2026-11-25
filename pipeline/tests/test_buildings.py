@@ -11,6 +11,7 @@ from solycerveza.buildings import (
     footprints,
     measure,
     parse_levels,
+    tall_parts,
 )
 from solycerveza.obstacles import Grid
 
@@ -96,6 +97,38 @@ def test_measure_uses_the_lidar_then_levels_then_a_default() -> None:
         (15.0, "levels"),
         (DEFAULT_M, "default"),
     ]
+
+
+def test_tall_parts_raise_a_tower_out_of_its_building() -> None:
+    def at(col: int, row: int, size: int) -> Polygon:
+        x, y = 676000.0 + col * 2, 4304000.0 - row * 2
+        return box(x, y - size * 2, x + size * 2, y)
+
+    heights = np.zeros((40, 40))
+    heights[2:22, 2:22] = 15.0  # a nave, 40 x 40 m
+    heights[5:9, 5:9] = 36.0  # a tower, 8 x 8 m, on it
+    heights[15, 15] = 30.0  # one tall cell: an antenna, not a part
+    church = Building("relation/1", at(2, 2, 20), None)
+    (nave,) = measure([church], heights, GRID)
+    assert nave.height == 15.0
+
+    (tower,) = tall_parts([nave], heights, GRID)
+    assert tower.source == "lidar-part"
+    assert tower.building.osm_id == "relation/1#part"
+    assert tower.height == 36.0
+    assert tower.building.footprint.area == 64.0
+    # Dissolved, the nave and the tower stay two blocks at their own heights.
+    assert sorted(h for _, h, _ in dissolve([nave, tower])) == [15.0, 36.0]
+
+
+def test_tall_parts_skip_flat_buildings_and_others_than_lidar() -> None:
+    heights = np.zeros((40, 40))
+    heights[2:12, 2:12] = 15.0
+    flat = Measured(
+        Building("way/1", box(676004.0, 4303976.0, 676024.0, 4303996.0), None), 15.0, "lidar"
+    )
+    levels = Measured(flat.building, 3.0, "levels")
+    assert tall_parts([flat, levels], heights, GRID) == []
 
 
 def test_dissolve_merges_touching_buildings_of_similar_height_only() -> None:
