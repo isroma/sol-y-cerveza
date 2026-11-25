@@ -92,7 +92,8 @@ export const SearchIcon = (p: IconProps) => (
 
 export const SunIcon = (p: IconProps) => (
   <Icon {...p}>
-    <circle cx="12" cy="12" r="4" />
+    {/* A tinted disc, so the sun's colour reads at small sizes. */}
+    <circle cx="12" cy="12" r="4" fill="currentColor" fillOpacity={0.5} />
     <path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
   </Icon>
 )
@@ -100,7 +101,7 @@ export const SunIcon = (p: IconProps) => (
 /** Sun behind the horizon line: "sol en breve". */
 export const SunSoonIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M7.5 16a4.5 4.5 0 0 1 9 0" />
+    <path d="M7.5 16a4.5 4.5 0 0 1 9 0" fill="currentColor" fillOpacity={0.5} />
     <path d="M3 16h18M12 6.5v2.5M5.6 9.6l1.7 1.7M18.4 9.6l-1.7 1.7M3 20h18" />
   </Icon>
 )
