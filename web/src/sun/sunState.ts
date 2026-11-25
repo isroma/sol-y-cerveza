@@ -33,3 +33,34 @@ export function sunState(
   if (obstacle === undefined) return 'unknown'
   return position.altitude * 10 > obstacle ? 'sun' : 'shade'
 }
+
+/**
+ * Shade shorter than this between two sunny stretches counts as sun: mostly
+ * noise in the surface model (a lamp post, the edge of a crown). With
+ * 5-minute steps, gaps of up to 3 steps (15 minutes).
+ */
+export const SHORT_SHADE_UNDER_MINUTES = 20
+
+/**
+ * `timeline` with every shade gap under SHORT_SHADE_UNDER_MINUTES between two
+ * sun steps turned into sun. Shade before the first sun and after the last
+ * stays, and so does a gap with night in it.
+ */
+export function fillShortShade(timeline: readonly SunState[]): SunState[] {
+  const maxSteps = Math.ceil(SHORT_SHADE_UNDER_MINUTES / STEP_MINUTES) - 1
+  const filled = [...timeline]
+  let lastSun: number | null = null
+  timeline.forEach((state, i) => {
+    if (state !== 'sun') return
+    const gap = lastSun === null ? 0 : i - lastSun - 1
+    if (
+      lastSun !== null &&
+      gap > 0 &&
+      gap <= maxSteps &&
+      timeline.slice(lastSun + 1, i).every((s) => s === 'shade')
+    )
+      filled.fill('sun', lastSun + 1, i)
+    lastSun = i
+  })
+  return filled
+}

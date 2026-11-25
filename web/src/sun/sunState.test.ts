@@ -6,7 +6,13 @@ import {
   plazaAlta,
 } from '../test/fixtures.ts'
 import { fromMadridLocal } from '../time/madrid.ts'
-import { horizonBin, sunPosition, sunState } from './sunState.ts'
+import {
+  fillShortShade,
+  horizonBin,
+  sunPosition,
+  sunState,
+  type SunState,
+} from './sunState.ts'
 
 const madrid = (date: string, time: string) => {
   const [hours = 0, minutes = 0] = time.split(':').map(Number)
@@ -91,5 +97,33 @@ describe('sunState', () => {
   ])('on %s at %s, %s is %s', (date, time, terrace, expected) => {
     const position = sunPosition(madrid(date, time), terrace.terrace)
     expect(sunState(terrace.horizon, position)).toBe(expected)
+  })
+})
+
+describe('fillShortShade', () => {
+  /** "n" night, "s" sun, "." shade, one character per 5-minute step. */
+  const parse = (text: string): SunState[] =>
+    [...text].map((c) => (c === 's' ? 'sun' : c === 'n' ? 'night' : 'shade'))
+  const fill = (text: string) =>
+    fillShortShade(parse(text))
+      .map((s) => (s === 'sun' ? 's' : s === 'night' ? 'n' : '.'))
+      .join('')
+
+  it('turns shade under 20 minutes (up to 3 steps) between sun into sun', () => {
+    expect(fill('nn..ss.ss..ss...ss..nn')).toBe('nn..ssssssssssssss..nn')
+  })
+
+  it('keeps longer gaps, like a tower that hides the sun for 25 minutes', () => {
+    expect(fill('ss....ss')).toBe('ss....ss')
+    expect(fill('ss.....ss')).toBe('ss.....ss')
+  })
+
+  it('keeps shade before the first sun and after the last', () => {
+    expect(fill('n...ss.ss...n')).toBe('n...sssss...n')
+    expect(fill('...')).toBe('...')
+  })
+
+  it('keeps a gap with night in it', () => {
+    expect(fill('s.n.s')).toBe('s.n.s')
   })
 })

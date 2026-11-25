@@ -8,8 +8,9 @@ import {
   plazaAlta,
   withoutHorizon,
 } from '../test/fixtures.ts'
-import { parseClock } from '../time/madrid.ts'
+import { formatClock, parseClock } from '../time/madrid.ts'
 import { dayTrack, stepIndex } from './dayTrack.ts'
+import { sunState } from './sunState.ts'
 import {
   compareStatus,
   sunRuns,
@@ -177,5 +178,39 @@ describe('venueStatus with an envelope', () => {
       ...at(plazaAlta, summer, '08:30'),
       venue: broken,
     })
+  })
+})
+
+describe('venueStatus with a short shade gap', () => {
+  const clockOf = (minutes: number) => formatClock(minutes)
+  // A thin obstacle (a lamp post) due south: 3° wide, up to 80°, so the
+  // midday sun crosses it in under 20 minutes in summer.
+  const post: Terrace = {
+    ...plazaAlta,
+    horizon: horizonFromRuns([
+      [0, 359, 50],
+      [179, 181, 800],
+    ]),
+  }
+
+  it('counts the gap as sun: one spell, sun all through it', () => {
+    const horizon = post.horizon ?? []
+    const raw = summer.positions.map((p) => sunState(horizon, p))
+    // The raw midday gap behind the post: 1 to 3 steps of shade with the sun high.
+    const gap = raw.flatMap((state, i) =>
+      state === 'shade' && (summer.positions[i]?.altitude ?? 0) > 30 ? [i] : [],
+    )
+    expect(gap.length).toBeGreaterThan(0)
+    expect(gap.length).toBeLessThanOrEqual(3)
+
+    const timeline = venueDay(post, summer).timeline ?? []
+    expect(gap.every((i) => timeline[i] === 'sun')).toBe(true)
+    expect(sunRuns(timeline)).toHaveLength(1)
+    const inGap = at(post, summer, clockOf((gap[0] ?? 0) * 5))
+    expect(inGap.category).toBe('sun')
+    expect(inGap.sunUntil).toBe(sunRuns(timeline)[0]?.[1])
+    expect(inGap.minutesLeft).toBe(
+      timeline.slice(gap[0]).filter((s) => s === 'sun').length * 5,
+    )
   })
 })
