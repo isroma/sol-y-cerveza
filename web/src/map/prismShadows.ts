@@ -369,10 +369,10 @@ export class PrismShadowLayer implements CustomLayerInterface {
 
     // Shade each pixel once: MapLibre has set this layer's depth range; the
     // first quad over a pixel writes it and any later one fails LESS. The
-    // buffer is cleared first, as it can already hold this very depth from
-    // the layer's previous frame. That loses nothing: the only opaque 2D
-    // layer above this one is the flat building footprints, under the 3D
-    // buildings.
+    // buffer is cleared first: in tests it already held this very depth
+    // when the layer drew, which hid every shadow. Clearing loses nothing:
+    // the only opaque 2D layer above this one is the flat building
+    // footprints, under the 3D buildings.
     gl.depthMask(true)
     gl.clear(gl.DEPTH_BUFFER_BIT)
     gl.enable(gl.DEPTH_TEST)

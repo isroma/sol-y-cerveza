@@ -66,17 +66,16 @@ jobs:
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           # Offline cache kill switch: "1" ships a self-removing service worker (docs/operations.md).
           VITE_SW_KILL_SWITCH: ${{ vars.SW_KILL_SWITCH }}
-      # Shadow height tiles (rasters, kept off main), tree crowns and LiDAR buildings: the height-tiles
-      # branch becomes data/heights/, data/trees.json and data/buildings.json (docs/pipeline.md, "Shadow height tiles").
+      # Tree crowns and LiDAR buildings (kept off main): the height-tiles branch's trees.json and
+      # buildings.json become data/ (docs/pipeline.md, "Shadow height tiles"). The client no longer reads
+      # the branch's height tiles, so they aren't deployed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: height-tiles
           path: height-tiles
           persist-credentials: false
-      - name: Add the shadow height tiles
+      - name: Add the tree crowns and LiDAR buildings
         run: |
-          mkdir -p dist/data/heights
-          cp -R ../height-tiles/[0-9]* dist/data/heights/
           cp ../height-tiles/trees.json dist/data/trees.json
           cp ../height-tiles/buildings.json dist/data/buildings.json
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
