@@ -322,20 +322,25 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
   await expect(marker.locator('.pin')).toHaveClass(/pin--priced/)
   await expect(price).toHaveText('~1,50 €')
   await expect(marker).toHaveAttribute('aria-label', /caña ~1,50 €/)
-  // Opening the card fades the price out with the badge, instead of
-  // removing it: it is still there, mid-fade, right after the tap.
+  // Opening the card tucks the price into the badge on the card's curve
+  // instead of removing it: a moment after the tap it is part folded.
   await marker.click()
-  const fading = await price.evaluate((el) => ({
-    text: el.textContent,
-    opacity: Number(getComputedStyle(el).opacity),
-    transition: getComputedStyle(el).transitionProperty,
-  }))
-  expect(fading.text).toBe('~1,50 €')
-  expect(fading.transition).toContain('opacity')
-  expect(fading.opacity).toBeGreaterThan(0)
+  // It stays in the badge and folds on the card's curve (frame-by-frame
+  // timing is too unsteady in a headless browser to sample).
+  const tuck = await price.evaluate((el) => {
+    const style = getComputedStyle(el)
+    return {
+      text: el.textContent,
+      properties: style.transitionProperty,
+      durations: style.transitionDuration,
+    }
+  })
+  expect(tuck.text).toBe('~1,50 €')
+  expect(tuck.properties).toBe('scale, opacity')
+  expect(tuck.durations).toBe('0.36s, 0.2s')
   await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
   await expect
-    .poll(() => price.evaluate((el) => getComputedStyle(el).opacity))
-    .toBe('0')
+    .poll(() => price.evaluate((el) => getComputedStyle(el).scale))
+    .toBe('0 1')
   await shot(page, 'badge-price')
 })
