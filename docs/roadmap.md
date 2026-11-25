@@ -41,6 +41,7 @@ The sun/shade answer is only as good as the terrace pin: a pin a few metres off 
 - **Owner photo reading on Workers AI** instead of the Claude API (#223, open PR #230).
 - **PNOA credit for admin review pins**, not only curated rows (`attribution_lines` in `pipeline/src/solycerveza/build.py`, #264).
 - **Caña price on the map badge** and in the overview highlights (`web/src/map/pins.ts`, `web/src/map/highlights.ts`, #265; prices research #8).
+- **Visitor sun reports (discovery):** "Aquí da el sol ahora" on the card back, stamped by the server, reviewed in the admin into a pin move or a horizon correction; design open (#364).
 - **Human actions** to find more terraces: the Ayuntamiento request, accounts, 2 m LiDAR downloads (#46).
 
 ## Decided and parked

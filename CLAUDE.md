@@ -23,7 +23,7 @@ Don't break these:
 - The build never reads `pipeline/data/price_candidates.csv` or `pipeline/data/venue_proposals.csv`. They are candidates and proposals, not data: the owner accepts each one in the admin, which writes `venue_prices.csv` or `venue_review.csv`.
 - Visitor price suggestions and venue reports are never applied automatically. Reports, and suggestions without consensus, wait in the admin's queues; accepting one writes a review or price row that ships with Publish.
 - Nothing uploads to OSM automatically: the owner checks `osm-review.osm` in JOSM and uploads it under their own account. Venues from Overture, the Junta or `review:` go to OSM only with `--add`, after a survey, because those licences don't allow copying into OSM.
-- The admin (`admin.html`, `web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`, `web/plugins/admin/pricePhotoServer.ts`) is dev only and never part of the built site.
+- The admin (`admin.html`, `web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`) is dev only and never part of the built site.
 - Publish may change only `pipeline/data/venue_review.csv`, `pipeline/data/venue_prices.csv` and `web/public/data/terraces.json`; the `Publish review` workflow refuses a `data/venue-review-*` branch that changes anything else. It uses git only (the owner's network can't reach api.github.com); `Publish review PR` (`publish-review-pr.yml`, `workflow_run`, so always main's copy) opens the PR with the `PUBLISH_TOKEN` secret, kept in the `publish` environment, which only `main` may use, because PRs opened with `GITHUB_TOKEN` trigger no CI or deploy. Never use `PUBLISH_TOKEN` in a workflow a branch push can run.
 - Mobile is paused (above).
 
@@ -100,4 +100,4 @@ Parked: not now. They may come back later, but don't propose or start them unles
 - OSM data is ODbL. Keep "© OpenStreetMap contributors" visible in the app. Derived data that contains OSM data stays ODbL.
 - IGN/CNIG (PNOA LiDAR) and Catastro data require attribution: credit them in the app and in the README.
 - Do not use sources whose terms forbid storing or redistributing their data (e.g. Google Places) in the public dataset.
-- Never commit secrets, rasters or raw downloads. One exception (owner, 2026-11-25): the shadow height tiles and `trees.json`, on the orphan `height-tiles` branch only, never on `main` ([docs/pipeline.md](docs/pipeline.md#shadow-height-tiles)).
+- Never commit secrets, rasters or raw downloads. One exception (owner, 2026-11-25): the shadow height tiles, `trees.json` and `buildings.json`, on the orphan `height-tiles` branch only, never on `main` ([docs/pipeline.md](docs/pipeline.md#shadow-height-tiles)).

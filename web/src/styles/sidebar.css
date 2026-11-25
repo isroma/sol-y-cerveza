@@ -87,12 +87,18 @@
 
 .time-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  justify-content: center;
+}
+
+/* In the sidebar the time gets the same 24 px gap as every section, and room
+   under it for the "Ahora" bubble. The phone footer keeps its own spacing. */
+.sidebar .time-header {
+  margin-bottom: var(--space-3);
 }
 
 .time-value {
-  font-size: 24px;
+  font-size: 34px;
+  line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

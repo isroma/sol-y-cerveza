@@ -52,9 +52,13 @@ To check a rebuild:
 
 ## Shadow height tiles
 
-The map's prototype sun shadows (`?shade=gpu`, `web/src/map/heightShadows.ts`) march from each ground pixel towards the sun through the same DSM and DTM the terrace horizons use, so trees and terrain cast shadows and the map agrees with the list. `python -m solycerveza.heightmap` reprojects both rasters to Web Mercator zoom-15 tiles of 512 px (about 1.9 m a pixel) and writes PNGs to `web/public/data/heights/{x}/{y}.png` (gitignored: rasters are never committed). Each pixel packs the surface elevation in decimetres (R, G) and its height above the terrain in quarter metres (B). The city is 110 tiles, about 14 MB.
+The map's prototype sun shadows (`?shade=gpu`, `web/src/map/prismShadows.ts`) are flat polygons cast on the GPU from the objects the map draws, so every shadow has a visible caster: the [LiDAR buildings](#lidar-buildings) and the [tree crowns](#tree-crowns). A worker (`prismWorker.ts`) fetches both files, decodes them with the shared codec (`extrusionCodec.ts`) and builds, once, every outline edge with its base and top height, plus the triangulated outline of each floating crown band, sorted into 250 m cells (`prismGeometry.ts`); the layer uploads them as vertex buffers (about 8 MB). For each edge the vertex shader draws a ground quad from the edge at its base to the edge at its top, each pushed away from the sun by height ÷ tan(altitude) (at most 300 m, as far as the terrace horizons look); a crown band adds its outline pushed by its base. Together these cover exactly each prism's shadow on flat ground. The sun is two uniforms, so moving the time slider recasts nothing. Each pixel is shaded once (depth test at the layer's own depth), so overlaps don't darken; only the cells near the view are drawn. There is no terrain: shadows fall on a flat ground plane. MapLibre drops custom layers when the WebGL context is lost; `MapView.tsx` re-adds them, with the rest of its runtime setup, once the context is back.
 
-Rasters stay off `main`: the tiles live on the orphan branch `height-tiles` (`{x}/{y}.png` at its root), and the Pages deploy copies it into the site's `data/heights/` (`.github/workflows/deploy-pages.yml`). The dev server reads them from `web/public/data/heights`. Regenerate only when the DSM or DTM changes, then replace the branch's tiles in one commit:
+Against the list, at the list's terraces and sun steps, the prisms agree 85.6 % of the time (the ray march over the height tiles below agreed 94.5 % on the same data): no terrain, one height per building, merged and simplified outlines and banded crowns cost about 9 points. The owner prefers the clean polygons; the list's answer still comes from the full horizon.
+
+The earlier prototype marched from each ground pixel towards the sun through height tiles of the same DSM and DTM. `python -m solycerveza.heightmap` still writes them, as Web Mercator zoom-15 tiles of 512 px (about 1.9 m a pixel) in `web/public/data/heights/{x}/{y}.png` (gitignored: rasters are never committed); each pixel packs the surface elevation in decimetres (R, G) and its height above the terrain in quarter metres (B). The city is 110 tiles, about 14 MB. The client no longer reads them, and the deploy no longer copies them.
+
+Rasters stay off `main`: the tiles live on the orphan branch `height-tiles` (`{x}/{y}.png` at its root), next to `trees.json` and `buildings.json`, which the Pages deploy copies into the site's `data/` (`.github/workflows/deploy-pages.yml`). Regenerate the tiles only when the DSM or DTM changes, then replace the branch's tiles in one commit:
 
 ```sh
 git worktree add ../height-tiles height-tiles
@@ -64,9 +68,13 @@ cd ../height-tiles && git add -A && git commit -m "data: regenerate shadow heigh
 
 The next deploy of `main` picks them up (or run **Deploy web to GitHub Pages** by hand).
 
+### LiDAR buildings
+
+OSM has almost no building heights in Badajoz, so the basemap draws nearly every building at its 5 m default, while the GPU shadows are cast from the LiDAR. With `?shade=gpu` the map draws its own buildings instead (`web/src/map/lidarBuildings.ts`, which hides the basemap's `building-3d` and `building-roof`). `python -m solycerveza.buildings [--sources <csv>]` writes `web/public/data/buildings.json` (gitignored): every OSM `building=*` footprint (not `roof`) from the Overpass structures cache, at the 75th percentile of the surface height inside it, 1 m in from its edge (closer than the median to the rim that casts the shadow). Where the LiDAR finds under 2 m (newer than the 2018–19 flight), the height is `building:levels` × 3 m, or else 3 m; `--sources` lists each building's height and source. Touching buildings within 1.5 m of each other's height are merged, and outlines are simplified by 0.5 m. Same compact format as `trees.json`, drawn at real heights (no ×1.4). About 12,900 buildings in 8,100 outlines, 0.5 MB (0.16 MB gzipped). It lives on the `height-tiles` branch; the deploy copies it to `data/buildings.json`.
+
 ### Tree crowns
 
-The GPU shadows include trees' shade, so with `?shade=gpu` the map also draws the trees, from the same LiDAR. `python -m solycerveza.trees` writes `web/public/data/trees.json` (gitignored): cells at least 2.5 m above the terrain and clear of OSM buildings and structures (buffered 4 m), with shapes narrower than 6 m opened away, polygonized in height bands (2.5, 6, 11, 17 m) and smoothed. Each feature has `b` (base) and `h` (top) in metres. About 24,000 polygons, 9.4 MB (1.3 MB gzipped). Unmapped buildings, kiosks and awnings come out as trees too. It lives on the `height-tiles` branch next to the tiles; the deploy copies it to `data/trees.json`.
+The GPU shadows include trees' shade, so with `?shade=gpu` the map also draws the trees, from the same LiDAR, and casts their shadows. `python -m solycerveza.trees` writes `web/public/data/trees.json` (gitignored): cells at least 2.5 m above the terrain and clear of OSM buildings and structures (buffered 4 m), with shapes narrower than 6 m opened away, polygonized in height bands (2.5, 7, 13 m), smoothed and simplified (1.5 m); crowns under 30 m² are dropped. Each polygon rises to its own crown's height (95th percentile of its cells), capped where the next band starts. The file is a compact JSON, not GeoJSON: polygons grouped by base and top, with coordinates as integer steps of 1e-5° (`encode` in `trees.py`). The app decodes it inside MapLibre's workers (`web/src/map/extrusionCodec.ts`, loaded by `importScriptInWorkers`), so the main thread does no work for it. About 21,600 polygons, 1.2 MB (0.35 MB gzipped). Unmapped buildings, kiosks and awnings come out as trees too. With the [leaf-off surface model](#seasonal-trees), the crown cells it lowers (deciduous) and the ones it keeps are polygonized apart: polygons are then grouped by base, top and that tag, and `d` lists one flag per group (1 = deciduous; older clients ignore it). Splitting the crowns, rather than tagging whole ones by the share of cells lowered, leaves exactly the leaf-off model's crowns standing in winter, which is what the list's winter horizons see (December agreement with the list, prism rule: 88.3 % split, 86.4 % tagging crowns at least half lowered, 87.0 % with no winter on the map). From 1 December to 15 March, when `terraces.json` has winter horizons (the list's rule, `web/src/sun/leafOff.ts`), the map draws those crowns bare and casts no shadow from them. It lives on the `height-tiles` branch; the deploy copies it to `data/trees.json`. Rebuild it after the leaf-off model changes.
 
 ## Prices from venue websites
 
@@ -98,6 +106,25 @@ They write `pipeline/data/venue_proposals.csv` (`venue_id,kind,lat,lon,confidenc
 1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review (`164f946`, PR #78, the first venue review on `main`). Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only and makes no new calls.
 2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
 3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
+
+### Vision answers from a Claude Code session (no API key)
+
+A Claude Code session can look at the crops itself instead of the API:
+
+```bash
+cd pipeline
+uv run python -m solycerveza.vision_session export --evaluate --baseline .cache/terraces_pre_review.json
+# (or, for unreviewed venues: export --limit 50)
+# the session answers each task in .cache/vision-session/tasks.json and saves a JSON list
+uv run python -m solycerveza.vision_session import answers.json
+uv run python -m solycerveza.proposals --vision session --evaluate --baseline .cache/terraces_pre_review.json
+```
+
+`export` fetches the crops still without a session answer and writes a task file holding only what the judge may see: an opaque key, the venue's name and kind, the crop and the API's own prompt (no venue id, no decision). `import` checks the whole file (known keys, no duplicates, the `VisionAnswer` shape, a pixel inside the image for "yes") and caches nothing unless every answer is valid. Answers are cached under the model label `claude-code-session` and give proposals with the source `pnoa-ortho+claude-session`, so they never mix with API answers; `--vision session` reads them and never calls the API.
+
+For a blind trial, have subagents judge the crops, each given only its share of the task file and told not to read `pipeline/data/` or `terraces.json`.
+
+**Trial result (2026-11-25, #388):** on the 109 venues with a terrace decision, 91 answers were "unsure"; `terrace` reached 67 % precision (8/12) and 15 % recall, `no_terrace` 50 % (3/6) and 5 %, and no confidence threshold gives 90 % precision for either, so neither kind is trusted. The right pins were a median 10 m (p90 48 m) from the owner's, against 9 m (p90 27 m) for the pre-review position. Details in [ADR-0008](adr/0008-machine-venue-proposals.md#consequences).
 
 ## OSM write-back
 

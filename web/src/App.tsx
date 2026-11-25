@@ -18,6 +18,7 @@ import { StartMoveContext, type Picking } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
+import { isLeafOff } from './sun/leafOff.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
 import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
@@ -26,7 +27,7 @@ import { SearchBox } from './ui/SearchBox.tsx'
 import { TimeSlider } from './ui/TimeSlider.tsx'
 import { useMediaQuery } from './ui/useMediaQuery.ts'
 import { VenueList } from './ui/VenueList.tsx'
-import { readUrlState, writeUrlState } from './urlState.ts'
+import { startState, wasReloaded, writeUrlState } from './urlState.ts'
 
 type LoadState =
   | { status: 'loading' }
@@ -36,6 +37,9 @@ type LoadState =
 /** While the report picker is open, tapping badges doesn't open cards. */
 function ignoreSelect() {}
 
+/** How long the time and venue rest before they're written to the URL. */
+const URL_WRITE_DELAY_MS = 400
+
 /** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
 
@@ -44,7 +48,10 @@ export function App() {
   const [now, setNow] = useState(madridNow)
   // Time and venue start from the URL (a shared link), else the current
   // time with nothing selected. A null time follows the clock.
-  const [linked] = useState(() => readUrlState(window.location.search))
+  // A reload goes back to the current time; a link keeps its own.
+  const [linked] = useState(() =>
+    startState(window.location.search, wasReloaded()),
+  )
   const [time, setTime] = useState(linked.time)
   const minutes = time ?? now.minutes
   const date = now.date
@@ -87,16 +94,24 @@ export function App() {
   }, [linked])
 
   // Mirror the time and the venue into the URL, so the address is a link to
-  // this view.
+  // this view. Once the slider rests: Safari throws on more than 100
+  // replaceState calls in 10 s, and a throw here would blank the whole app.
   useEffect(() => {
-    const { pathname, search, hash } = window.location
-    const next = writeUrlState(search, { time, venue: selectedId })
-    if (next !== search)
-      window.history.replaceState(
-        window.history.state,
-        '',
-        pathname + next + hash,
-      )
+    const timer = window.setTimeout(() => {
+      const { pathname, search, hash } = window.location
+      const next = writeUrlState(search, { time, venue: selectedId })
+      if (next === search) return
+      try {
+        window.history.replaceState(
+          window.history.state,
+          '',
+          pathname + next + hash,
+        )
+      } catch {
+        // Over the browser's limit: the next change writes it.
+      }
+    }, URL_WRITE_DELAY_MS)
+    return () => window.clearTimeout(timer)
   }, [time, selectedId])
 
   // Keep "now" current: the marker on the bar, the time while it follows the
@@ -287,6 +302,7 @@ export function App() {
               sunset={times?.sunset ?? null}
               attribution={load.status === 'ready' ? load.file.attribution : []}
               leafOffTrees={leafOffTrees}
+              leafOff={leafOffTrees && isLeafOff(date)}
               onCenterChange={picking ? setCenter : undefined}
               flyTo={flyTo}
             />

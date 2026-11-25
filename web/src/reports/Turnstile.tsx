@@ -68,7 +68,8 @@ type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
 /**
  * Cloudflare's bot check; invisible unless Cloudflare wants an interaction.
  * Every mount needs a new check (each turn of the card), and the first in a
- * session also loads Cloudflare's script: while one runs, a spinner.
+ * session also loads Cloudflare's script. Nothing shows while it runs: most
+ * visitors never see a box, so a spinner would promise one that never comes.
  */
 export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
   const ref = useRef<HTMLDivElement>(null)
@@ -144,25 +145,13 @@ export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
     }
   }, [siteKey, action])
 
+  // Once Cloudflare is happy, its "success" box adds nothing: fold it away.
   return (
-    <>
-      {/* Only while a check runs: a deferred one waits for `run`. */}
-      {run && state === 'checking' && (
-        <div className="turnstile-checking">
-          <span
-            className="turnstile-spinner"
-            role="status"
-            aria-label="Verificando"
-          />
-        </div>
-      )}
-      {/* Once Cloudflare is happy, its "success" box adds nothing: fold it away. */}
-      <div
-        ref={ref}
-        className={
-          state === 'passed' ? 'price-turnstile is-passed' : 'price-turnstile'
-        }
-      />
-    </>
+    <div
+      ref={ref}
+      className={
+        state === 'passed' ? 'price-turnstile is-passed' : 'price-turnstile'
+      }
+    />
   )
 }

@@ -12,6 +12,11 @@ cached as `Unanswered` with its reason and not asked again. Transient failures (
 connection) are not cached; errors that would fail every request (authentication, permission,
 billing, a bad request, an unknown model) stop the run. Only `ClaudeAsker` touches the network;
 the key comes from `ANTHROPIC_API_KEY` (or any credential the Anthropic SDK finds).
+
+Answers can also come from a Claude Code session that looks at the crops itself, with no API key
+(`solycerveza.vision_session`). They are cached the same way under the model label
+`SESSION_MODEL`, so the two kinds of answer never share a cache key and are told apart by
+`MODELS` (model label -> proposal source).
 """
 
 import base64
@@ -33,6 +38,10 @@ from solycerveza.venues import CACHE_DIR
 logger = logging.getLogger(__name__)
 
 MODEL = "claude-opus-5-5"
+# The label of answers recorded by a Claude Code session (`solycerveza.vision_session`).
+SESSION_MODEL = "claude-code-session"
+# Model label -> the `source` of its proposals in `venue_proposals.csv`.
+MODELS = {MODEL: "pnoa-ortho+claude", SESSION_MODEL: "pnoa-ortho+claude-session"}
 # Bump when the prompt or the schema changes, so cached answers are not reused.
 PROMPT_VERSION = "1"
 VISION_CACHE = CACHE_DIR / "vision"
@@ -127,8 +136,8 @@ def estimate_usd(calls: int) -> tuple[float, float]:
     return (low, high)
 
 
-def answer_key(name: str, kind: str, image: bytes) -> str:
-    text = f"{MODEL}|{PROMPT_VERSION}|{name}|{kind}|{hashlib.sha256(image).hexdigest()}"
+def answer_key(name: str, kind: str, image: bytes, model: str = MODEL) -> str:
+    text = f"{model}|{PROMPT_VERSION}|{name}|{kind}|{hashlib.sha256(image).hexdigest()}"
     return hashlib.sha256(text.encode()).hexdigest()[:24]
 
 
@@ -268,9 +277,17 @@ def ask(
     except ValidationError as error:
         logger.warning("%s: answer does not validate: %s", name, error)
         return Unanswered(reason=f"invalid answer: {error.error_count()} errors", asked=today)
-    if answer.terrace == "yes" and (
-        answer.x is None or answer.y is None or answer.x >= crop.size_px or answer.y >= crop.size_px
-    ):
-        logger.warning("%s: 'yes' without a pixel inside the image", name)
-        return Unanswered(reason="'yes' without a pixel inside the image", asked=today)
+    problem = pixel_problem(answer, crop.size_px)
+    if problem is not None:
+        logger.warning("%s: %s", name, problem)
+        return Unanswered(reason=problem, asked=today)
     return CachedAnswer(answer=answer, asked=today)
+
+
+def pixel_problem(answer: VisionAnswer, size_px: int) -> str | None:
+    """Why a valid answer is still unusable ("yes" needs a pixel inside the image), or None."""
+    if answer.terrace == "yes" and (
+        answer.x is None or answer.y is None or answer.x >= size_px or answer.y >= size_px
+    ):
+        return "'yes' without a pixel inside the image"
+    return None

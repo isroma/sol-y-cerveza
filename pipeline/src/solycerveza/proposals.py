@@ -10,7 +10,8 @@ Three proposers, each optional (`--only`) and each cached in `.cache/`:
 - `vision`: a terrace read from the PNOA orthophoto by the Claude API (`solycerveza.ortho`,
   `solycerveza.terrace_vision`). Proposes `terrace` (with the tables' position) or
   `no_terrace`. Costs money: it prints an estimate and asks nothing new without `--yes` or
-  `--limit N`.
+  `--limit N`. With `--vision session` it reads the answers a Claude Code session recorded
+  instead (`solycerveza.vision_session`, no API key) and never calls the API.
 - `position`: a street address geocoded by CartoCiudad, from three origins scored apart: the
   Junta register (`solycerveza.junta`), for every venue a register row matches; and the venue's
   own OSM `addr:*` tags or Overture `addresses` (`solycerveza.addresses`). Proposes `position`
@@ -30,8 +31,9 @@ proposal:
 - `lat`, `lon`: WGS84, 6 decimals; empty for `no_terrace` and `not_venue`.
 - `confidence`: 0.00 to 1.00, two decimals.
 - `evidence`: one short English sentence.
-- `source`: what produced it: `pnoa-ortho+claude`, `junta+cartociudad`, `osm-addr+cartociudad`,
-  `overture-addr+cartociudad` or `overture-attributes`.
+- `source`: what produced it: `pnoa-ortho+claude` (API), `pnoa-ortho+claude-session` (a Claude
+  Code session), `junta+cartociudad`, `osm-addr+cartociudad`, `overture-addr+cartociudad` or
+  `overture-attributes`.
 - `generated`: YYYY-MM-DD the evidence was produced (a re-run keeps the date of an unchanged row).
 """
 
@@ -66,6 +68,9 @@ from solycerveza.overture import (
 from solycerveza.review import read_review
 from solycerveza.sources import load_all_venues
 from solycerveza.terrace_vision import (
+    MODEL,
+    MODELS,
+    SESSION_MODEL,
     VISION_CACHE,
     Asker,
     CachedAnswer,
@@ -98,7 +103,7 @@ EVAL_REPORT = CACHE_DIR / "proposals_eval.md"
 EVAL_CSV = CACHE_DIR / "proposals_eval.csv"
 COLUMNS = ("venue_id", "kind", "lat", "lon", "confidence", "evidence", "source", "generated")
 PROPOSERS = ("vision", "position", "overture")
-VISION_SOURCE = "pnoa-ortho+claude"
+VISION_SOURCE = MODELS[MODEL]
 JUNTA_SOURCE = "junta+cartociudad"
 ADDRESS_SOURCES: dict[Origin, str] = {
     "osm": "osm-addr+cartociudad",
@@ -455,14 +460,17 @@ class VisionPlan:
 
 
 def plan_vision(
-    targets: Sequence[Terrace], ortho_cache: Path = ORTHO_CACHE, vision_cache: Path = VISION_CACHE
+    targets: Sequence[Terrace],
+    ortho_cache: Path = ORTHO_CACHE,
+    vision_cache: Path = VISION_CACHE,
+    model: str = MODEL,
 ) -> VisionPlan:
     cached: dict[str, CachedAnswer] = {}
     unanswered: dict[str, Unanswered] = {}
     to_ask: list[Terrace] = []
     for t in sorted(targets, key=lambda t: t.id):
         image = cached_crop(Crop(t.venue), ortho_cache)
-        key = None if image is None else answer_key(t.name, t.kind, image)
+        key = None if image is None else answer_key(t.name, t.kind, image, model)
         answer = None if key is None else read_answer(key, vision_cache)
         if answer is None:
             to_ask.append(t)
@@ -506,7 +514,7 @@ def ask_vision(
 
 
 def vision_proposals(
-    targets: Iterable[Terrace], answers: dict[str, CachedAnswer]
+    targets: Iterable[Terrace], answers: dict[str, CachedAnswer], source: str = VISION_SOURCE
 ) -> list[Proposal]:
     """`terrace` for "yes" (at the pixel it named), `no_terrace` for "no"; "unsure" is skipped."""
     proposals: list[Proposal] = []
@@ -526,7 +534,7 @@ def vision_proposals(
                 lon=None if location is None else location.lon,
                 confidence=a.confidence,
                 evidence=re.sub(r"\s+", " ", a.evidence).strip(),
-                source=VISION_SOURCE,
+                source=source,
                 generated=cached.asked,
             )
         )
@@ -573,8 +581,13 @@ def run_proposers(
     ask_limit: AskBudget,
     today: date,
     asker: Asker | None = None,
+    vision_model: str = MODEL,
 ) -> tuple[list[Proposal], dict[str, list[str]]]:
-    """Every proposal, and per proposer the ids it actually produced an answer for or ran on."""
+    """Every proposal, and per proposer the ids it actually produced an answer for or ran on.
+
+    `vision_model` picks whose cached answers the vision proposer reads: the API's (`MODEL`,
+    asking for missing ones within `ask_limit`) or a session's (`SESSION_MODEL`, never asking).
+    """
     proposals: list[Proposal] = []
     ran: dict[str, list[str]] = {}
 
@@ -606,7 +619,16 @@ def run_proposers(
         if any(source in ran for source in SOURCES["position"]):
             ran["position"] = sorted(t.id for t in targets.position)
 
-    if "vision" in only:
+    if "vision" in only and vision_model == SESSION_MODEL:
+        plan = plan_vision(targets.vision, model=SESSION_MODEL)
+        print(
+            f"vision (session answers): {len(targets.vision)} venues, {len(plan.cached)} "
+            f"answered, {len(plan.to_ask)} without an answer "
+            "(`python -m solycerveza.vision_session export` lists them)"
+        )
+        proposals += vision_proposals(targets.vision, plan.cached, MODELS[SESSION_MODEL])
+        ran["vision"] = sorted(plan.cached)
+    elif "vision" in only:
         plan = plan_vision(targets.vision)
         low, high = estimate_usd(len(plan.to_ask))
         # The estimate is for the person running it, so it goes to stdout.
@@ -651,6 +673,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--limit", type=_non_negative, help="make at most N new Claude API calls (N >= 0)"
     )
     parser.add_argument(
+        "--vision",
+        choices=("api", "session"),
+        default="api",
+        help="vision answers from the Claude API (default) or recorded by a Claude Code session "
+        "(solycerveza.vision_session; never calls the API)",
+    )
+    parser.add_argument(
         "--min-confidence",
         type=float,
         default=DEFAULT_MIN_CONFIDENCE,
@@ -674,6 +703,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if unknown:
         parser.error(f"unknown proposers: {', '.join(sorted(unknown))}")
     ask_limit: AskBudget = AskAll() if args.yes else args.limit
+    vision_model = SESSION_MODEL if args.vision == "session" else MODEL
     today = date.today()
 
     reviews = read_review()
@@ -683,9 +713,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         baseline = read_records(args.baseline) if args.baseline else pre_review_records()
         targets = evaluation_targets(baseline, reviews)
-        proposals, ran = run_proposers(targets, only, ask_limit=ask_limit, today=today)
+        proposals, ran = run_proposers(
+            targets, only, ask_limit=ask_limit, today=today, vision_model=vision_model
+        )
         write_proposals(proposals, EVAL_CSV)
-        report = evaluate(proposals, ran, baseline, reviews)
+        report = evaluate(proposals, ran, baseline, reviews, vision_source=MODELS[vision_model])
         EVAL_REPORT.parent.mkdir(parents=True, exist_ok=True)
         EVAL_REPORT.write_text(report, encoding="utf-8")
         print(report, end="")
@@ -699,11 +731,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         position=records,
         overture=[t for t in records if overture_only(t)],
     )
-    proposals, _ = run_proposers(targets, only, ask_limit=ask_limit, today=today)
+    proposals, _ = run_proposers(
+        targets, only, ask_limit=ask_limit, today=today, vision_model=vision_model
+    )
     kept = [p for p in proposals if p.confidence >= args.min_confidence]
     # Proposers that did not run this time keep their earlier rows.
     old = read_proposals()
-    rerun = {source for name in only for source in SOURCES[name]}
+    sources = SOURCES | {"vision": (MODELS[vision_model],)}
+    rerun = {source for name in only for source in sources[name]}
     rows = [p for p in old if p.source not in rerun and p.venue_id not in reviewed]
     rows += keep_dates(old, kept)
     write_proposals(rows)

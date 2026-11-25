@@ -27,6 +27,7 @@ from solycerveza.proposals import (
     ADDRESS_SOURCES,
     JUNTA_SOURCE,
     SOURCES,
+    VISION_SOURCE,
     Proposal,
     Targets,
     overture_only,
@@ -186,8 +187,9 @@ def evaluate(
     ran: dict[str, list[str]],
     baseline: Sequence[Terrace],
     reviews: Sequence[Review],
+    vision_source: str = VISION_SOURCE,
 ) -> str:
-    """The Markdown report."""
+    """The Markdown report; `vision_source` picks the vision answers scored (API or session)."""
     truth = answer_key(baseline, reviews)
     by_id = {t.id: t for t in baseline}
     missing = sorted({r.venue_id for r in reviews} - set(truth))
@@ -204,8 +206,8 @@ def evaluate(
         lines.append(f"Not in the baseline, left out: {len(missing)} ({', '.join(missing)}).")
     lines.append("")
 
-    vision = [p for p in proposals if p.source == "pnoa-ortho+claude"]
-    lines.append("## Terrace from the orthophoto (pnoa-ortho+claude)")
+    vision = [p for p in proposals if p.source == vision_source]
+    lines.append(f"## Terrace from the orthophoto ({vision_source})")
     lines.append("")
     if "vision" not in ran:
         lines.append("Not run.")

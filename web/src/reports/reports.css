@@ -287,10 +287,21 @@
 }
 
 .change-send {
+  /* Pinned to the card's bottom: when the card has to scroll (small
+     phones), the rows scroll under it and Enviar stays in view. The ring in
+     the card's colour hides the rows passing behind it. */
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   min-height: var(--control);
   border: 0;
   border-radius: var(--radius-m);
   background: var(--sun-soft);
+  box-shadow: 0 0 0 var(--space-2) var(--bg);
   color: #1f2328;
   font: inherit;
   font-size: 15px;
@@ -298,8 +309,10 @@
   cursor: pointer;
 }
 
+/* Faded but opaque, so the rows don't show through it while pinned. */
 .change-send:disabled {
-  opacity: 0.5;
+  background: color-mix(in srgb, var(--sun-soft) 50%, var(--bg));
+  color: color-mix(in srgb, #1f2328 50%, var(--bg));
   cursor: default;
 }
 
@@ -343,32 +356,4 @@
 .price-turnstile:empty,
 .price-turnstile.is-passed {
   display: none;
-}
-
-/* While Cloudflare's check runs unseen (see Turnstile.tsx). */
-.turnstile-checking {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.turnstile-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--line);
-  border-top-color: var(--sun-dark);
-  border-radius: 50%;
-  animation: turnstile-spin 0.8s linear infinite;
-}
-
-@keyframes turnstile-spin {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .turnstile-spinner {
-    animation-duration: 2.4s;
-  }
 }

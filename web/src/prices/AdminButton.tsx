@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { EyeIcon, EyeOffIcon } from '../ui/icons.tsx'
+import { CloseIcon, EyeIcon, EyeOffIcon } from '../ui/icons.tsx'
 import { refreshCrowdPrices } from './crowd.ts'
 import { logIn, logOut, useOwner, type LoginResult } from './owner.ts'
 import './prices.css'
@@ -92,16 +92,23 @@ export function AdminButton() {
             role="dialog"
             aria-label="Admin"
           >
+            <button
+              type="button"
+              className="admin-panel-close"
+              aria-label="Cerrar"
+              title="Cerrar"
+              onClick={() => setOpen(false)}
+            >
+              <CloseIcon size={20} />
+            </button>
             {token ? (
               <>
+                <strong>Admin</strong>
                 <p>
                   Sesión iniciada. Tus cambios se guardan directamente: los
                   precios se ven al momento y las ubicaciones al publicar.
                 </p>
                 <div className="admin-panel-actions">
-                  <button type="button" onClick={() => setOpen(false)}>
-                    Cerrar
-                  </button>
                   <button
                     type="button"
                     className="admin-panel-main"
@@ -158,9 +165,6 @@ export function AdminButton() {
                 </span>
                 {error && <p role="alert">{error}</p>}
                 <div className="admin-panel-actions">
-                  <button type="button" onClick={() => setOpen(false)}>
-                    Cancelar
-                  </button>
                   <button
                     type="submit"
                     className="admin-panel-main"

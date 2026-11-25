@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { readUrlState, shareUrl, writeUrlState } from './urlState.ts'
+import {
+  readUrlState,
+  shareUrl,
+  startState,
+  writeUrlState,
+} from './urlState.ts'
 
 describe('readUrlState', () => {
   it('reads the time and the venue', () => {
@@ -48,5 +53,21 @@ describe('shareUrl', () => {
     expect(
       shareUrl('https://example.org/sol/?utm=x#y', 'osm:node/1', 13 * 60 + 5),
     ).toBe('https://example.org/sol/?utm=x&t=13:05&v=osm:node/1')
+  })
+})
+
+describe('startState', () => {
+  it('keeps the link’s time and venue on a first load', () => {
+    expect(startState('?t=18:30&v=osm:node/1', false)).toEqual({
+      time: 18 * 60 + 30,
+      venue: 'osm:node/1',
+    })
+  })
+
+  it('goes back to the current time on a reload, keeping the venue', () => {
+    expect(startState('?t=18:30&v=osm:node/1', true)).toEqual({
+      time: null,
+      venue: 'osm:node/1',
+    })
   })
 })

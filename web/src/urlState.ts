@@ -30,6 +30,22 @@ export function readUrlState(search: string): ViewState {
 }
 
 /**
+ * The view to start with: the link's, except that a reload starts at the
+ * current time (the time in the address is the one picked before it).
+ */
+export function startState(search: string, reloaded: boolean): ViewState {
+  const state = readUrlState(search)
+  return reloaded ? { ...state, time: null } : state
+}
+
+/** Whether this page load is a reload, not a link or typed address. */
+export function wasReloaded(): boolean {
+  // Without Navigation Timing (old browsers, tests), a first load.
+  const [entry] = performance.getEntriesByType?.('navigation') ?? []
+  return !!entry && 'type' in entry && entry.type === 'reload'
+}
+
+/**
  * `search` with t and v set from `state` (and dropped when they hold the
  * default), keeping any other parameters. Returns "" or "?…".
  */

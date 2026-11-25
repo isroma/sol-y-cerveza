@@ -202,8 +202,9 @@ export function MapControls({
               <h3>Sobre los datos</h3>
               <p>
                 El sol y la sombra se calculan con la posición del sol y el
-                relieve de edificios y árboles (LiDAR del PNOA). Las terrazas
-                aún no están verificadas sobre el terreno.
+                relieve de edificios y árboles (LiDAR del PNOA). Puede haber
+                errores: si ves alguno, usa «Sugerir un cambio» en la ficha del
+                bar.
               </p>
               {leafOffTrees && <p>{LEAF_OFF_INFO}</p>}
               <ul className="map-info-sources">

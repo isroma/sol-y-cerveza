@@ -4,6 +4,7 @@
 - Date: 2026-11-24
 - Amended (2026-11-25): the proposers and the trial shipped in #214, and the admin shows proposals with Accept and Ignore in #216. The trial has not been run yet: its numbers must come from the owner's machine (Consequences), so no kind has a measured threshold. The admin shows every row the CSV holds, highest confidence first; until the trial runs, the only filter is `--min-confidence` when the file is written.
 - Amended (2026-11-25, #350): the position proposer also geocodes each venue's own OSM `addr:*` or Overture `addresses` line, as two more sources (`osm-addr+cartociudad`, `overture-addr+cartociudad`) that the trial scores apart from the register (Decision 3 and 5). The position trial was run (Consequences): **no position source reaches 90 % precision, so all three stay off**; none of their 20 proposals on reviewed venues was right. CartoCiudad matches must now be in the city's postcodes (the municipality's villages share street names).
+- Amended (2026-11-25, #388): vision answers can also come from a Claude Code session that looks at the crops itself, with no API key (`solycerveza.vision_session`, source `pnoa-ortho+claude-session`, cached apart from API answers). Its blind trial ran on the 109 venues that then had a terrace decision, and **no kind reached 90 % precision** (Consequences, "Vision trial"), so the session's vision proposals stay off.
 - Issue: #211
 
 ## Context
@@ -58,7 +59,7 @@ Earlier research on the PNOA orthophoto found automatic table detection unusable
 
 ## Consequences
 
-- The vision and not-a-venue trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
+- The API vision and not-a-venue trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
 - **Position trial (2026-11-25, #350).** Run with `--evaluate --only position` on the pre-review baseline (`164f946^`), Overture release `2026-11-18.0`, and the Overpass, Junta and CartoCiudad answers of that day. A proposal is right within 15 m of the owner's position.
 
   | Source                      | Venues with an address (moved by the owner) | Proposals | Right | Recall of moved | 90 % threshold | Distance from the owner's position (median, p90) |
@@ -74,6 +75,12 @@ Earlier research on the PNOA orthophoto found automatic table detection unusable
   - Unreviewed venues on the same day: 298 Overture and 35 OSM venues have a usable address; 195 of these geocode to a city portal. That would give 101 `position` proposals at the default 0.5 cut (59 Overture, 38 register, 4 OSM), all from sources the trial says to ignore.
   - The owner's own check of a position is what fixes venues today; a future position proposer would need metre-level evidence (the orthophoto, an entrance in OSM), not a street address.
 
+- **Vision trial, session answers (2026-11-25, #388).** Crops from the pre-review baseline (`164f946^`) for the 109 venues with a terrace decision (54 terrace, 55 no terrace), judged blind by subagents of a Claude Code session with the API's prompt; each saw only the crop, the venue's name and kind, and none read the review, the curated terraces or `terraces.json`. Measured by `--vision session --evaluate`:
+  - 91 of 109 answers were "unsure" (no proposal); 12 "yes", 6 "no".
+  - `terrace`: precision 67 % (8/12), recall 15 % (8/54). The most confident "yes" (0.80) was wrong, so no confidence threshold gives 90 % precision.
+  - `no_terrace`: precision 50 % (3/6), recall 5 % (3/55); no threshold gives 90 %.
+  - Pins of the 8 right `terrace` proposals: median 10 m, p90 48 m from the owner's; the pre-review position of the same venues was median 9 m, p90 27 m, so the pins were no better than doing nothing.
+  - The API path (`pnoa-ortho+claude`) has still not been trialled.
 - The answer key is small: 87 terrace decisions, 79 Overture venues and 14 moves. A threshold met on a handful of proposals is a hint. Re-run the trial after each review batch.
 - `venue_proposals.csv` holds only its header in the repository. Rows are a local work list, and Publish does not ship them.
 - Terrace positions confirmed from these proposals are read off the PNOA orthophoto, so they need the PNOA credit in the app. Today `build.py` adds that credit only when a curated row is present. That is a follow-up.

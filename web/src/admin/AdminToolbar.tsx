@@ -6,19 +6,6 @@ import {
 } from './publishStatus.ts'
 
 type Props = {
-  queueMode: boolean
-  onQueue: () => void
-  junkOpen: boolean
-  junkCount: number
-  onJunk: () => void
-  suggestionsOpen: boolean
-  onSuggestions: () => void
-  reportsOpen: boolean
-  reportCount: number | null
-  onReports: () => void
-  candidatesOpen: boolean
-  onCandidates: () => void
-  onAdd: () => void
   reviewed: number
   total: number
   /** Records of terraces.json this client can't read. */
@@ -28,21 +15,8 @@ type Props = {
   onPublish: () => void
 }
 
-/** The admin's header: its panel buttons, the counts and Publish. */
+/** The admin's header: the title with Publish, and the count. */
 export function AdminToolbar({
-  queueMode,
-  onQueue,
-  junkOpen,
-  junkCount,
-  onJunk,
-  suggestionsOpen,
-  onSuggestions,
-  reportsOpen,
-  reportCount,
-  onReports,
-  candidatesOpen,
-  onCandidates,
-  onAdd,
   reviewed,
   total,
   dropped,
@@ -52,53 +26,17 @@ export function AdminToolbar({
 }: Props) {
   return (
     <>
-      <div className="admin-title">
+      <div className="admin-title admin-publish" aria-live="polite">
         <h1>Venue review</h1>
-        <span className="admin-title-actions">
-          <button type="button" aria-pressed={queueMode} onClick={onQueue}>
-            Review queue
-          </button>
-          <button type="button" aria-pressed={junkOpen} onClick={onJunk}>
-            Not venues ({junkCount})
-          </button>
-          <button
-            type="button"
-            aria-pressed={suggestionsOpen}
-            onClick={onSuggestions}
-          >
-            Suggestions
-          </button>
-          <button type="button" aria-pressed={reportsOpen} onClick={onReports}>
-            Reports{reportCount ? ` (${reportCount})` : ''}
-          </button>
-          <button
-            type="button"
-            aria-pressed={candidatesOpen}
-            onClick={onCandidates}
-          >
-            Website prices
-          </button>
-          <button type="button" onClick={onAdd}>
-            + Add venue
-          </button>
-        </span>
-      </div>
-      <p>
-        {reviewed} of {total} reviewed
-        {dropped > 0 && (
-          <span className="admin-message" role="alert">
-            {' '}
-            · {dropped} invalid {dropped === 1 ? 'record' : 'records'} in
-            terraces.json left out
-          </span>
-        )}
-        {message && <span className="admin-message"> · {message}</span>}
-      </p>
-      <div className="admin-publish" aria-live="polite">
         <button type="button" disabled={isBusy(publish)} onClick={onPublish}>
           {isBusy(publish) ? 'Publishing…' : 'Publish'}
         </button>
-        <p className={`admin-publish-${publish.step}`}>
+      </div>
+      <p className="admin-status">
+        {reviewed} of {total} reviewed
+      </p>
+      {publish.step !== 'idle' && (
+        <p className={`admin-status admin-publish-${publish.step}`}>
           {isActive(publish) && <span className="admin-spinner" />}
           {describe(publish)}{' '}
           {publish.url && (
@@ -106,11 +44,20 @@ export function AdminToolbar({
               {publish.pr ? 'Open PR' : 'GitHub'}
             </a>
           )}
+          {isActive(publish) && ' You can keep editing.'}
         </p>
-        {isActive(publish) && (
-          <p>You can keep editing: new changes go out with the next Publish.</p>
-        )}
-      </div>
+      )}
+      {(dropped > 0 || message) && (
+        <p className="admin-status">
+          {dropped > 0 && (
+            <span className="admin-message" role="alert">
+              {dropped} invalid {dropped === 1 ? 'record' : 'records'} in
+              terraces.json left out.{' '}
+            </span>
+          )}
+          {message && <span className="admin-message">{message}</span>}
+        </p>
+      )}
     </>
   )
 }
