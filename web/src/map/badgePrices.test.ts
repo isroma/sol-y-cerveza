@@ -12,13 +12,31 @@ describe('canaPrice', () => {
   it('takes the caña only', () => {
     expect(
       canaPrice([
-        { item: 'cana', brand: null, cents: 140, approximate: false },
-        { item: 'tercio', brand: 'cruzcampo', cents: 200, approximate: false },
+        {
+          item: 'cana',
+          brand: null,
+          cents: 140,
+          approximate: false,
+          updated: '2026-11-25',
+        },
+        {
+          item: 'tercio',
+          brand: 'cruzcampo',
+          cents: 200,
+          approximate: false,
+          updated: '2026-11-25',
+        },
       ]),
     ).toEqual({ cents: 140, approximate: false })
     expect(
       canaPrice([
-        { item: 'tercio', brand: 'cruzcampo', cents: 200, approximate: false },
+        {
+          item: 'tercio',
+          brand: 'cruzcampo',
+          cents: 200,
+          approximate: false,
+          updated: '2026-11-25',
+        },
       ]),
     ).toBeNull()
   })

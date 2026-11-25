@@ -140,6 +140,21 @@ export const SunOffIcon = (p: IconProps) => (
   </Icon>
 )
 
+/** A caña: a plain, slightly tapered glass. */
+export const CanaIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 4h10l-1.3 15.6a1.6 1.6 0 0 1-1.6 1.4H9.9a1.6 1.6 0 0 1-1.6-1.4z" />
+  </Icon>
+)
+
+/** A tercio: a 33 cl bottle with a label. */
+export const TercioIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10.2 2.5h3.6v3.6c0 .9.6 1.6 1.3 2.3.6.6.9 1.4.9 2.3V19.5a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-8.8c0-.9.3-1.7.9-2.3.7-.7 1.3-1.4 1.3-2.3z" />
+    <path d="M8 12.5h8v4.5H8z" />
+  </Icon>
+)
+
 export const BeerIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z" />

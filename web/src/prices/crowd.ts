@@ -38,6 +38,8 @@ export type ShownPrice = {
   brand: Brand | null
   cents: number
   approximate: boolean
+  /** When it was last updated: an ISO date or date-time. */
+  updated: string
 }
 
 let crowd: Promise<CrowdPrice[]> | null = null
@@ -101,10 +103,13 @@ export function shownPrices(
   const shown = new Map<string, ShownPrice>()
   const here = visitors.filter((p) => p.venueId === venueId)
   for (const p of here)
-    if (!p.confirmed) shown.set(key(p), { ...pick(p), approximate: true })
-  for (const p of curated) shown.set(key(p), { ...pick(p), approximate: false })
+    if (!p.confirmed)
+      shown.set(key(p), { ...pick(p), approximate: true, updated: p.last })
+  for (const p of curated)
+    shown.set(key(p), { ...pick(p), approximate: false, updated: p.seen })
   for (const p of here)
-    if (p.confirmed) shown.set(key(p), { ...pick(p), approximate: false })
+    if (p.confirmed)
+      shown.set(key(p), { ...pick(p), approximate: false, updated: p.last })
   const rank = (p: ShownPrice) =>
     p.item === 'cana' ? -1 : BRANDS.indexOf(p.brand ?? 'cruzcampo')
   return [...shown.values()].sort((a, b) => rank(a) - rank(b))
