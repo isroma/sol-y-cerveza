@@ -4,6 +4,15 @@
 
 Closes #
 
+## Screenshots
+
+<!-- UI changes only: before and after, desktop and phone (see CONTRIBUTING.md). Delete this section otherwise. -->
+
+|         | Before | After |
+| ------- | ------ | ----- |
+| Desktop |        |       |
+| Phone   |        |       |
+
 ## Verification
 
 <!-- Tick what you actually ran. Leave unticked what you could not check, and say why.
