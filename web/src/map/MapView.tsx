@@ -31,7 +31,7 @@ import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { PrismShadowLayer } from './prismShadows.ts'
 import { addLidarBuildings, LIDAR_BUILDINGS } from './lidarBuildings.ts'
-import { addTreeCrowns, TREES } from './treeCrowns.ts'
+import { addTreeCrowns, setLeafOff, TREES } from './treeCrowns.ts'
 import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
@@ -64,6 +64,11 @@ type Props = {
   attribution: readonly string[]
   /** The data has leaf-off horizons (ADR-0007). */
   leafOffTrees?: boolean
+  /**
+   * Today the list uses those horizons (1 Dec to 15 Mar): with `?shade=gpu`,
+   * deciduous crowns are drawn bare and cast no shadow.
+   */
+  leafOff?: boolean
   /** While set, gets the map's centre now and as the map moves (the report picker). */
   onCenterChange?: (center: LatLon) => void
   /** Centres the map here, zoomed in to place a point (the report picker). */
@@ -98,6 +103,7 @@ export function MapView({
   sunset,
   attribution,
   leafOffTrees = false,
+  leafOff = false,
   onCenterChange,
   flyTo = null,
 }: Props) {
@@ -118,6 +124,7 @@ export function MapView({
   const onSelectRef = useRef(onSelect)
   const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
+  const leafOffRef = useRef(leafOff)
   const prismLayerRef = useRef<PrismShadowLayer | null>(null)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
@@ -200,8 +207,11 @@ export function MapView({
               data: { type: 'FeatureCollection', features: [] },
             })
           if (!map.getLayer(SHADOWS)) {
-            if (GPU_SHADOWS)
+            if (GPU_SHADOWS) {
               prismLayerRef.current ??= new PrismShadowLayer(SHADOWS)
+              // Before it is added, so it builds its arrays once.
+              prismLayerRef.current.setLeafOff(leafOffRef.current)
+            }
             map.addLayer(
               prismLayerRef.current ?? {
                 id: SHADOWS,
@@ -234,6 +244,7 @@ export function MapView({
             )
           if (GPU_SHADOWS && !map.getSource(TREES))
             addTreeCrowns(map, LIDAR_BUILDINGS)
+          if (GPU_SHADOWS) setLeafOff(map, leafOffRef.current)
           // Made once, from the day paint, and kept across a restore: the
           // snapshot holds whatever paint the night had set.
           nightSwitchRef.current ??= createNightSwitch(map, new Set([SHADOWS]))
@@ -333,6 +344,15 @@ export function MapView({
     prismLayerRef.current?.setSun(sun)
     castShadows(map, sun, shadowCacheRef.current)
   }, [ready, sun])
+
+  // Bare deciduous crowns, without shadows, while the list uses leaf-off horizons.
+  useEffect(() => {
+    leafOffRef.current = leafOff
+    const map = mapRef.current
+    if (!ready || !map || !GPU_SHADOWS) return
+    setLeafOff(map, leafOff)
+    prismLayerRef.current?.setLeafOff(leafOff)
+  }, [ready, leafOff])
 
   // A dark map at night.
   useEffect(() => {

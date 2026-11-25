@@ -18,6 +18,7 @@ import { StartMoveContext, type Picking } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
+import { isLeafOff } from './sun/leafOff.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
 import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
@@ -298,6 +299,7 @@ export function App() {
               sunset={times?.sunset ?? null}
               attribution={load.status === 'ready' ? load.file.attribution : []}
               leafOffTrees={leafOffTrees}
+              leafOff={leafOffTrees && isLeafOff(date)}
               onCenterChange={picking ? setCenter : undefined}
               flyTo={flyTo}
             />

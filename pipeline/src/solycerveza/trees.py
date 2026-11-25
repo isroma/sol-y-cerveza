@@ -15,6 +15,11 @@ of its cells), capped where the next band takes over, so no crown is drawn talle
 
 Unmapped buildings, kiosks and awnings that pass the filters are drawn as trees too.
 
+With the leaf-off surface model (``python -m solycerveza.leafoff``, ADR-0007), the crown cells it
+lowers (deciduous) and the ones it keeps are polygonized apart, and the deciduous polygons are
+tagged, so the map can draw them bare and cast no shadow from them from 1 December to 15 March:
+what is left is the leaf-off model's own crowns, which the list's winter horizons see.
+
 Output: a compact JSON (``encode``), decoded in the app's map workers by
 ``web/src/map/extrusionCodec.ts``; coordinates in WGS84 rounded to 1e-5 degrees (about 1 m),
 ordered by band then position (deterministic).
@@ -35,7 +40,7 @@ from pyproj import Transformer
 from rasterio.features import rasterize, shapes
 from shapely.geometry import LinearRing, MultiPolygon, Polygon, shape
 
-from solycerveza.leafoff import dilate, load_structures, structures_mask
+from solycerveza.leafoff import LEAFOFF_DSM_PATH, dilate, load_structures, structures_mask
 from solycerveza.obstacles import Grid
 from solycerveza.venues import CACHE_DIR
 
@@ -130,10 +135,26 @@ def band_shapes(
     return out
 
 
-def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str, Any]:
+def seasonal_bands(
+    crowns: BoolArray, heights: FloatArray, grid: Grid, lowered: BoolArray
+) -> tuple[list[tuple[float, float, Polygon]], list[bool]]:
+    """Band polygons of the evergreen crowns, then of the deciduous ones (the cells ``lowered``
+    in the leaf-off surface model), with a flag per polygon: True for deciduous."""
+    kept = band_polygons(crowns & ~lowered, heights, grid)
+    bare = band_polygons(crowns & lowered, heights, grid)
+    return kept + bare, [False] * len(kept) + [True] * len(bare)
+
+
+def encode(
+    bands: Sequence[tuple[float, float, Polygon]],
+    crs: str,
+    bare: Sequence[bool] | None = None,
+) -> dict[str, Any]:
     """Extrusions (crowns, buildings) in the format ``web/src/map/extrusionCodec.ts`` decodes.
 
-    ``{"v": 1, "g": [[base, top, polygons], ...]}``, one group per (base, top), in order. A
+    ``{"v": 1, "g": [[base, top, polygons], ...]}``, one group per (base, top), in order. With
+    ``bare`` (one flag per band, ``seasonal_bands``), groups are per (base, top, bare) and ``"d"``
+    lists each group's flag (1 = deciduous); clients that don't know it ignore it. A
     polygon is a list of rings; a ring is a flat list of ``x, y`` steps in ``UNIT`` degrees
     (WGS84), open (the closing point is implied). Each step is from the previous point, and a
     ring's first point is from the first point of the ring before it. Within a group, polygons
@@ -141,9 +162,9 @@ def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str,
     """
     to_wgs84 = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
     groups: dict[
-        tuple[float, float], list[tuple[tuple[int, int], list[npt.NDArray[np.int64]]]]
+        tuple[float, float, bool], list[tuple[tuple[int, int], list[npt.NDArray[np.int64]]]]
     ] = {}
-    for base, top, polygon in bands:
+    for index, (base, top, polygon) in enumerate(bands):
         geom = shapely.transform(
             polygon, lambda xy: np.column_stack(to_wgs84.transform(xy[:, 0], xy[:, 1]))
         )
@@ -154,10 +175,12 @@ def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str,
             continue
         point = geom.representative_point()
         key = (round(point.y * UNIT), round(point.x * UNIT))
-        groups.setdefault((base, top), []).append((key, rings))
+        flag = bare is not None and bare[index]
+        groups.setdefault((base, top, flag), []).append((key, rings))
     out: list[list[Any]] = []
+    flags: list[int] = []
     first = np.zeros(2, dtype=np.int64)
-    for (base, top), polygons in sorted(groups.items()):
+    for (base, top, flag), polygons in sorted(groups.items()):
         encoded: list[list[list[int]]] = []
         for _, rings in sorted(polygons, key=lambda item: item[0]):
             steps_per_ring: list[list[int]] = []
@@ -167,7 +190,10 @@ def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str,
                 steps_per_ring.append([int(v) for v in steps.ravel()])
             encoded.append(steps_per_ring)
         out.append([base, top, encoded])
-    return {"v": 1, "g": out}
+        flags.append(int(flag))
+    if bare is None:
+        return {"v": 1, "g": out}
+    return {"v": 1, "g": out, "d": flags}
 
 
 def grid_ring(ring: LinearRing) -> npt.NDArray[np.int64] | None:
@@ -178,7 +204,10 @@ def grid_ring(ring: LinearRing) -> npt.NDArray[np.int64] | None:
     return points if len(points) >= 3 else None
 
 
-def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> dict[str, Any]:
+def build(
+    dsm_path: Path, dtm_path: Path, cache_dir: Path, leafoff_path: Path | None = None
+) -> dict[str, Any]:
+    """The crowns file; tagged deciduous or not when ``leafoff_path`` is given."""
     with rasterio.open(dsm_path) as dsm, rasterio.open(dtm_path) as dtm:
         grid = Grid(dsm.crs.to_string(), dsm.transform, dsm.width, dsm.height)
         surface = dsm.read(1).astype(np.float64)
@@ -189,19 +218,36 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> dict[str, Any]:
     heights = smoothed(surface - terrain)
     structures = structures_mask(load_structures(cache_dir=cache_dir), grid)
     crowns = crown_cells(heights, structures)
-    return encode(band_polygons(crowns, heights, grid), grid.crs)
+    if leafoff_path is None:
+        return encode(band_polygons(crowns, heights, grid), grid.crs)
+    with rasterio.open(leafoff_path) as leafoff:
+        bare_surface = leafoff.read(1).astype(np.float64)
+    if bare_surface.shape != surface.shape:
+        raise ValueError(f"{leafoff_path} is not on the grid of {dsm_path}")
+    lowered = np.nan_to_num(surface - bare_surface) > 0.01
+    bands, bare = seasonal_bands(crowns, heights, grid, lowered)
+    return encode(bands, grid.crs, bare)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--out", type=Path, default=OUT_PATH)
     parser.add_argument("--cache", type=Path, default=CACHE_DIR)
+    parser.add_argument("--leafoff", type=Path, default=LEAFOFF_DSM_PATH)
     args = parser.parse_args(argv)
-    crowns = build(args.cache / "badajoz_dsm.tif", args.cache / "badajoz_dtm.tif", args.cache)
+    leafoff = args.leafoff if args.leafoff.exists() else None
+    if leafoff is None:
+        print(f"no {args.leafoff}: crowns not tagged deciduous (ADR-0007)")
+    crowns = build(
+        args.cache / "badajoz_dsm.tif", args.cache / "badajoz_dtm.tif", args.cache, leafoff
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(crowns, separators=(",", ":")) + "\n", encoding="utf-8")
     count = sum(len(polygons) for _, _, polygons in crowns["g"])
     print(f"wrote {count} crown polygons to {args.out}")
+    if "d" in crowns:
+        bare = sum(len(g[2]) for g, d in zip(crowns["g"], crowns["d"], strict=True) if d)
+        print(f"{bare} of them deciduous (bare from 1 Dec to 15 Mar)")
     return 0
 
 
