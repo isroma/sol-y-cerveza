@@ -1,20 +1,13 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
 import type { Brand, Item } from '../data/prices.ts'
 import { cleanVenueName } from '../data/geo.ts'
-import {
-  PRICES_API,
-  TURNSTILE_SITE_KEY,
-  type SuggestResult,
-} from '../prices/crowd.ts'
+import { postJson, type SuggestResult } from '../apiClient.ts'
 
 /**
  * Visitors' reports of a moved, closed or missing venue (issue #201). They go
  * to the same API as price suggestions and wait for the owner's review, so
  * nothing changes on the map when one is sent.
  */
-
-/** Shown only when the build has the API and the bot check, like price suggestions. */
-export const CAN_REPORT = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
 
 /** The API refuses moves further than this from the published position. */
 export const MAX_MOVE_M = 500
@@ -44,31 +37,27 @@ export function validName(raw: string): boolean {
 
 const round6 = (value: number) => Math.round(value * 1e6) / 1e6
 
-export async function reportVenue(report: Report): Promise<SuggestResult> {
-  if (!PRICES_API) return 'error'
+export function reportVenue(report: Report): Promise<SuggestResult> {
   const body =
     report.kind === 'closed'
       ? report
       : { ...report, lat: round6(report.lat), lon: round6(report.lon) }
-  try {
-    const response = await fetch(`${PRICES_API}/v1/reports`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (response.ok) return 'ok'
-    if (response.status === 429) return 'rate-limited'
-    if (response.status === 403) return 'bot'
-    return 'error'
-  } catch {
-    return 'error'
-  }
+  return postJson('/v1/reports', body)
 }
 
 export const RESULT_TEXT: Record<SuggestResult, string> = {
   ok: '¡Gracias! Lo revisaremos antes de publicarlo.',
   'rate-limited':
     'Hay demasiados avisos enviados desde tu conexión. Prueba más tarde.',
+  bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
+  error: 'No se ha podido enviar. Inténtalo más tarde.',
+}
+
+/** What a visitor sees after sending only a price. */
+export const PRICE_RESULT_TEXT: Record<SuggestResult, string> = {
+  ok: '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
+  'rate-limited':
+    'Hay demasiados precios enviados desde tu conexión o para este bar. Prueba más tarde.',
   bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
   error: 'No se ha podido enviar. Inténtalo más tarde.',
 }
@@ -82,25 +71,12 @@ export type Change = {
   closed?: true
 }
 
-export async function sendChange(change: Change): Promise<SuggestResult> {
-  if (!PRICES_API) return 'error'
+export function sendChange(change: Change): Promise<SuggestResult> {
   const body = change.move
     ? {
         ...change,
         move: { lat: round6(change.move.lat), lon: round6(change.move.lon) },
       }
     : change
-  try {
-    const response = await fetch(`${PRICES_API}/v1/changes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (response.ok) return 'ok'
-    if (response.status === 429) return 'rate-limited'
-    if (response.status === 403) return 'bot'
-    return 'error'
-  } catch {
-    return 'error'
-  }
+  return postJson('/v1/changes', body)
 }

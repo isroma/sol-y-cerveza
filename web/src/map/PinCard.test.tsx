@@ -4,11 +4,15 @@ import type { VenueStatus } from '../sun/venueStatus.ts'
 import { sunBox } from '../ui/categoryStyle.ts'
 import { PinCard, ShareButton } from './PinCard.tsx'
 
+// The API and the bot check as a build with both configured has them.
+vi.mock('../apiClient.ts', async (original) => {
+  vi.stubEnv('VITE_PRICES_API', 'https://api.test')
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key')
+  return original()
+})
+
 vi.mock('../prices/crowd.ts', async (original) => ({
   ...(await original<typeof import('../prices/crowd.ts')>()),
-  PRICES_API: 'https://api.test',
-  TURNSTILE_SITE_KEY: 'site-key',
-  CAN_SUGGEST: true,
   useCrowdPrices: () => [],
 }))
 

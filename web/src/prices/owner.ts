@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import * as z from 'zod/mini'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
 import { distanceMetres, type LatLon } from '../data/geo.ts'
-import { PRICES_API } from './crowd.ts'
+import { PRICES_API } from '../apiClient.ts'
 
 /**
  * Owner mode: the owner saves confirmed beer prices from their phone, straight

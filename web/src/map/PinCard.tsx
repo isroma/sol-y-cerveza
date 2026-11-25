@@ -4,7 +4,7 @@ import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
-import { CAN_SUGGEST } from '../prices/crowd.ts'
+import { CAN_SEND } from '../apiClient.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useOwner } from '../prices/owner.ts'
 import { emptyDraft, useDraft } from '../reports/draft.ts'
@@ -155,7 +155,7 @@ export function PinCard({ status, minutes }: Props) {
     status.timeline !== null && currentSunRun(status.timeline, minutes) !== null
 
   const suggest =
-    CAN_SUGGEST && !token ? (
+    CAN_SEND && !token ? (
       <button
         type="button"
         className={bar ? 'card-suggest' : 'card-suggest card-suggest--alone'}

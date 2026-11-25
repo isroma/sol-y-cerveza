@@ -5,12 +5,14 @@ import type { Terrace } from '../data/terraces.ts'
 import type { Picking } from './picking.ts'
 import { ReportPicker } from './ReportPicker.tsx'
 
-vi.mock('../prices/crowd.ts', () => ({
-  PRICES_API: 'https://api.test',
-  TURNSTILE_SITE_KEY: 'site-key',
-}))
+// The API and the bot check as a build with both configured has them.
+vi.mock('../apiClient.ts', async (original) => {
+  vi.stubEnv('VITE_PRICES_API', 'https://api.test')
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key')
+  return original()
+})
 
-vi.mock('../prices/Turnstile.tsx', () => ({
+vi.mock('./Turnstile.tsx', () => ({
   Turnstile: ({ onToken }: { onToken: (token: string) => void }) => {
     useEffect(() => onToken('token'), [onToken])
     return null

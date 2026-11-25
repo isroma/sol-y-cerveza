@@ -15,7 +15,7 @@ import { OwnerBar } from './prices/OwnerBar.tsx'
 import { DraftContext, type ChangeDraft } from './reports/draft.ts'
 import { StartMoveContext, type Picking } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
-import { CAN_REPORT } from './reports/reports.ts'
+import { CAN_SEND } from './apiClient.ts'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
@@ -269,7 +269,7 @@ export function App() {
             minutes={minutes}
             selectedId={selectedId}
             onSelect={selectFromList}
-            onAdd={CAN_REPORT ? startAdd : undefined}
+            onAdd={CAN_SEND ? startAdd : undefined}
           />
         )}
       </aside>

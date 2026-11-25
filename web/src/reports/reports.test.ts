@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { reportVenue, validName, type Report } from './reports.ts'
 
-vi.mock('../prices/crowd.ts', () => ({
-  PRICES_API: 'https://api.test',
-  TURNSTILE_SITE_KEY: 'site-key',
-}))
+// The API and the bot check as a build with both configured has them.
+vi.mock('../apiClient.ts', async (original) => {
+  vi.stubEnv('VITE_PRICES_API', 'https://api.test')
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key')
+  return original()
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()

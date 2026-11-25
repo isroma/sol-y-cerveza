@@ -62,40 +62,6 @@
   box-shadow: 0 1px 3px rgba(31, 35, 40, 0.15);
 }
 
-/* Cloudflare's check: only takes space while it needs the visitor. */
-.price-turnstile:empty,
-.price-turnstile.is-passed {
-  display: none;
-}
-
-/* While Cloudflare's check runs unseen (see Turnstile.tsx). */
-.turnstile-checking {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.turnstile-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--line);
-  border-top-color: var(--sun-dark);
-  border-radius: 50%;
-  animation: turnstile-spin 0.8s linear infinite;
-}
-
-@keyframes turnstile-spin {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .turnstile-spinner {
-    animation-duration: 2.4s;
-  }
-}
-
 /* Owner mode (ADR-0005): the owner's own editor in the card, and a bar on the map. */
 .owner-prices {
   display: flex;
