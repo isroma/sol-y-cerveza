@@ -11,9 +11,8 @@ import {
 // up) part of it is in sun, and a terrace partly in sun is shown as in sun.
 
 const NAME = 'Bar Medio Sol'
-/** Packed whole degrees: "#" is 0°, "y" is 85° (one past the backslash). */
+/** Packed whole degrees: "#" is 0°. */
 const LOW = '#'.repeat(360)
-const HIGH = 'y'.repeat(360)
 
 const withEnvelope = {
   ...terracesFile,
@@ -29,7 +28,6 @@ const withEnvelope = {
       verified: null,
       horizon: Array.from({ length: 360 }, () => 850),
       horizon_low: LOW,
-      horizon_high: HIGH,
     },
   ],
 }

@@ -19,7 +19,7 @@ from solycerveza.build import (
     raster_attribution,
     render,
 )
-from solycerveza.envelope import pack_high, pack_low, unpack
+from solycerveza.envelope import pack_low, unpack
 from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
@@ -279,14 +279,13 @@ def test_add_horizons_sets_the_envelope_over_the_ground_points() -> None:
     (result,) = add_horizons([_terrace()], _ring_horizon, points_for=_points)
     assert result.horizon == [100] * 360
     assert result.horizon_low == pack_low([50] * 360)
-    assert result.horizon_high == pack_high([300] * 360)
     assert unpack(result.horizon_low or "") == [5] * 360
     assert result.horizon_low_winter is None
 
 
 def test_add_horizons_leaves_out_an_envelope_every_point_agrees_with() -> None:
     (result,) = add_horizons([_terrace()], lambda _a, _b: [7] * 360, points_for=_points)
-    assert result.horizon_low is None and result.horizon_high is None
+    assert result.horizon_low is None
 
 
 def test_add_horizons_without_ground_points_has_no_envelope() -> None:
@@ -303,19 +302,16 @@ def test_add_horizons_keeps_a_winter_envelope_only_where_it_differs() -> None:
 
     assert same.horizon_low_winter is None
     assert open_.horizon_low_winter == pack_low([10] * 360)
-    assert open_.horizon_high_winter == pack_high([260] * 360)
 
 
-def test_an_envelope_needs_both_halves_in_order() -> None:
+def test_an_envelope_needs_a_horizon_and_a_packed_string() -> None:
     base = {**_terrace().model_dump(), "horizon": [5] * 360}
-    with pytest.raises(ValidationError, match="both its low and its high"):
-        Terrace.model_validate({**base, "horizon_low": pack_low([0] * 360)})
-    with pytest.raises(ValidationError, match="must not exceed"):
-        Terrace.model_validate(
-            {**base, "horizon_low": pack_low([90] * 360), "horizon_high": pack_high([10] * 360)}
-        )
+    with pytest.raises(ValidationError, match="needs a horizon"):
+        Terrace.model_validate({**base, "horizon": None, "horizon_low": pack_low([0] * 360)})
     with pytest.raises(ValidationError, match="pattern"):
-        Terrace.model_validate({**base, "horizon_low": "a\\" * 180, "horizon_high": "a" * 360})
+        Terrace.model_validate({**base, "horizon_low": "a\\" * 180})
+    with pytest.raises(ValidationError, match="extra"):
+        Terrace.model_validate({**base, "horizon_high": pack_low([0] * 360)})
 
 
 def test_render_leaves_out_null_envelopes() -> None:
@@ -324,11 +320,6 @@ def test_render_leaves_out_null_envelopes() -> None:
     text = render(_file([without, with_envelope]))
     data = json.loads(text)
     assert "horizon_low" not in data["terraces"][0]
-    assert list(data["terraces"][1])[7:11] == [
-        "horizon",
-        "horizon_winter",
-        "horizon_low",
-        "horizon_high",
-    ]
-    assert f'      "horizon_high": "{pack_high([300] * 360)}",' in text.splitlines()
+    assert list(data["terraces"][1])[7:10] == ["horizon", "horizon_winter", "horizon_low"]
+    assert f'      "horizon_low": "{pack_low([50] * 360)}",' in text.splitlines()
     assert render(TerracesFile.model_validate_json(text)) == text

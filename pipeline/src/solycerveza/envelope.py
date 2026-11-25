@@ -1,10 +1,9 @@
 """Horizon envelopes across a terrace (``docs/data-contract.md``, "Horizon envelope").
 
 A terrace is several metres across, and a pin is rarely placed to better than a few metres, so a
-single horizon from the pin can say sun where half the tables are in shade. The envelope samples
-ground-level points around the pin and keeps, per azimuth bin, the lowest and the highest
-obstacle over them: the sun clears every point above the high envelope, no point at or below the
-low one, and in between the terrace is partly in sun.
+single horizon from the pin can say shade where half the tables are in sun. The envelope samples
+ground-level points around the pin and keeps, per azimuth bin, the lowest obstacle over them:
+when the sun clears it, some part of the terrace is in sun, and the app shows the terrace in sun.
 
 Points are the pin plus ``SAMPLE_COUNT`` points evenly spaced on a circle of
 ``SAMPLE_RADIUS_M`` around it, the first due north, then clockwise. A point counts only on the
@@ -16,10 +15,9 @@ crown, or inside a building), ``terrace_points`` falls back to wider circles: ``
 points at each of ``FALLBACK_RADII_M``, kept only if at least ``FALLBACK_MIN_POINTS`` are on the
 ground, so a single far point never stands for the whole terrace.
 
-The file stores each envelope as a 360-character string, one character per bin, in whole degrees
-(``pack_low``/``pack_high``): a string parses far faster than 360 numbers, and the app decodes it
-only when it shows partial sun. The low envelope rounds down and the high one up, so rounding only
-widens the partial band, by under 1° (one 5-minute step of the sun's motion at most).
+The file stores the envelope as a 360-character string, one character per bin, in whole degrees
+(``pack_low``): a string parses far faster than 360 numbers. It rounds down, so rounding can only
+add sun, by under 1° (one 5-minute step of the sun's motion at most).
 """
 
 import math
@@ -46,7 +44,6 @@ PACK_ALPHABET = "".join(chr(c) for c in range(35, 127) if c != 92)
 PACKED_PATTERN = r"^[#-\[\]-~]{360}$"
 
 LatLonPair = tuple[float, float]
-Envelope = tuple[list[int], list[int]]
 
 
 def sample_points(
@@ -114,23 +111,17 @@ def terrace_points(
     return fallback if len(fallback) >= FALLBACK_MIN_POINTS else points
 
 
-def envelope(horizons: Sequence[Sequence[int]]) -> Envelope:
-    """Per-bin lowest and highest obstacle over several horizon profiles."""
+def lowest(horizons: Sequence[Sequence[int]]) -> list[int]:
+    """Per-bin lowest obstacle over several horizon profiles."""
     if not horizons:
         raise ValueError("an envelope needs at least one horizon")
     low = [min(values) for values in zip(*horizons, strict=True)]
-    high = [max(values) for values in zip(*horizons, strict=True)]
-    return low, high
+    return low
 
 
 def pack_low(tenths: Sequence[int]) -> str:
     """A low envelope in tenths of a degree as a packed string, rounded down to whole degrees."""
     return "".join(PACK_ALPHABET[value // 10] for value in tenths)
-
-
-def pack_high(tenths: Sequence[int]) -> str:
-    """A high envelope in tenths of a degree as a packed string, rounded up to whole degrees."""
-    return "".join(PACK_ALPHABET[-(-value // 10)] for value in tenths)
 
 
 def unpack(packed: str) -> list[int]:

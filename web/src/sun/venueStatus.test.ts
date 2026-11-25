@@ -147,7 +147,6 @@ describe('venueStatus with an envelope', () => {
   const mixed: Terrace = {
     ...plazaAlta,
     horizon_low: packedFlat(15),
-    horizon_high: packedFlat(30),
   }
   /** The same day for a terrace whose only obstacle is `tenths` high. */
   const open = (tenths: number, clock: string) =>
