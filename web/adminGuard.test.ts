@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { adminRequestRefusal, type AdminRequest } from './adminGuard.ts'
+import {
+  adminRequestRefusal,
+  latestOnly,
+  type AdminRequest,
+} from './adminGuard.ts'
 
 const HOST = 'localhost:5173'
 
@@ -114,18 +118,37 @@ describe('adminRequestRefusal', () => {
     }
   })
 
-  it('lets GET and HEAD through, from anywhere', () => {
+  it('refuses GET and HEAD from another site', () => {
     for (const method of ['GET', 'HEAD', undefined])
-      expect(
-        adminRequestRefusal({
-          method,
-          headers: {
-            origin: 'https://evil.example',
-            'sec-fetch-site': 'cross-site',
-          },
-          secure: false,
-        }),
-      ).toBeNull()
+      for (const site of ['cross-site', 'Same-Site'])
+        expect(
+          adminRequestRefusal({
+            method,
+            headers: { host: HOST, 'sec-fetch-site': site },
+            secure: false,
+          }),
+        ).not.toBeNull()
+  })
+
+  it('lets GET and HEAD through from the admin page, a typed URL or curl', () => {
+    for (const method of ['GET', 'HEAD', undefined])
+      for (const site of ['same-origin', 'none', undefined]) {
+        const headers: AdminRequest['headers'] = { host: HOST }
+        if (site !== undefined) headers['sec-fetch-site'] = site
+        expect(
+          adminRequestRefusal({ method, headers, secure: false }),
+        ).toBeNull()
+      }
+  })
+
+  it('needs no JSON content type or Origin check on GET', () => {
+    expect(
+      adminRequestRefusal({
+        method: 'GET',
+        headers: { host: HOST, 'content-type': 'text/plain' },
+        secure: false,
+      }),
+    ).toBeNull()
   })
 
   it('compares with https when the dev server uses TLS', () => {
@@ -140,5 +163,32 @@ describe('adminRequestRefusal', () => {
         secure: true,
       }),
     ).toBeNull()
+  })
+})
+
+describe('latestOnly', () => {
+  it('aborts the running job when a new one starts', () => {
+    const slot = latestOnly()
+    const first = slot.start()
+    const second = slot.start()
+    expect(first.signal.aborted).toBe(true)
+    expect(second.signal.aborted).toBe(false)
+  })
+
+  it('leaves nothing to abort once the current job finishes', () => {
+    const slot = latestOnly()
+    const first = slot.start()
+    slot.finish(first)
+    slot.start()
+    expect(first.signal.aborted).toBe(false)
+  })
+
+  it('ignores a superseded job finishing late', () => {
+    const slot = latestOnly()
+    const first = slot.start()
+    const second = slot.start()
+    slot.finish(first)
+    slot.start()
+    expect(second.signal.aborted).toBe(true)
   })
 })
