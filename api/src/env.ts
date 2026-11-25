@@ -7,5 +7,6 @@ export type Env = {
   ADMIN_TOKEN?: string
   IP_SALT?: string
   OWNER_TOKEN?: string
-  ANTHROPIC_API_KEY?: string
+  /** Workers AI: reads the owner's menu photos. */
+  AI: Ai
 }

@@ -94,7 +94,7 @@ export async function ownerPhoto(
     const photo = parsePhoto(read.body)
     const capped = await photoAllowance(env, Date.now())
     if (capped) return capped
-    return json(await readPhoto(env.ANTHROPIC_API_KEY ?? '', photo), 200)
+    return json(await readPhoto(env.AI, photo), 200)
   } catch (error) {
     if (error instanceof PhotoError)
       return json({ error: error.message }, error.status)
