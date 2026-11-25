@@ -6,10 +6,6 @@ import {
 } from './publishStatus.ts'
 
 type Props = {
-  inboxOpen: boolean
-  /** Reports and likely non-venues waiting (suggestion and price counts load in the Inbox). */
-  inboxCount: number
-  onInbox: () => void
   reviewed: number
   total: number
   /** Records of terraces.json this client can't read. */
@@ -19,11 +15,8 @@ type Props = {
   onPublish: () => void
 }
 
-/** The admin's header: the title, the Inbox, the count and Publish. */
+/** The admin's header: the title with Publish, and the count. */
 export function AdminToolbar({
-  inboxOpen,
-  inboxCount,
-  onInbox,
   reviewed,
   total,
   dropped,
@@ -33,20 +26,15 @@ export function AdminToolbar({
 }: Props) {
   return (
     <>
-      <div className="admin-title">
+      <div className="admin-title admin-publish" aria-live="polite">
         <h1>Venue review</h1>
-        <button type="button" aria-pressed={inboxOpen} onClick={onInbox}>
-          Inbox{inboxCount ? ` (${inboxCount})` : ''}
-        </button>
-      </div>
-      <div className="admin-publish" aria-live="polite">
-        <span className="admin-count">
-          {reviewed} of {total} reviewed
-        </span>
         <button type="button" disabled={isBusy(publish)} onClick={onPublish}>
           {isBusy(publish) ? 'Publishing…' : 'Publish'}
         </button>
       </div>
+      <p className="admin-status">
+        {reviewed} of {total} reviewed
+      </p>
       {publish.step !== 'idle' && (
         <p className={`admin-status admin-publish-${publish.step}`}>
           {isActive(publish) && <span className="admin-spinner" />}

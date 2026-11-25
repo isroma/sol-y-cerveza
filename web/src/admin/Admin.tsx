@@ -3,11 +3,9 @@ import type { LatLon } from '../data/terraces.ts'
 import { AddVenuePanel, type Adding } from './AddVenuePanel.tsx'
 import { AdminMap } from './AdminMap.tsx'
 import { AdminToolbar } from './AdminToolbar.tsx'
-import { InboxTabs, type InboxTab } from './InboxTabs.tsx'
-import { PriceCandidates } from './PriceCandidates.tsx'
-import { SuggestionsQueue } from './SuggestionsQueue.tsx'
-import { ReportsQueue } from './ReportsQueue.tsx'
-import { fetchReports, type VenueReport } from './reports.ts'
+import { InboxFilters, InboxList } from './InboxList.tsx'
+import { InboxPanel } from './InboxPanel.tsx'
+import { useInbox } from './useInbox.ts'
 import { useOwnerChanges } from './useOwnerChanges.ts'
 import { priceKey } from './pricesCsv.ts'
 import { stateOf, type MapVenue } from './mapState.ts'
@@ -15,7 +13,6 @@ import { dayTrack } from '../sun/dayTrack.ts'
 import { toMadridLocal } from '../time/madrid.ts'
 import { needsALook, referenceDates, type LookReason } from './needsLook.ts'
 import { BADAJOZ_CENTER } from '../config.ts'
-import { BatchDismiss } from './BatchDismiss.tsx'
 import { junkSignalsAll, likelyJunk } from './junk.ts'
 import { acceptChange, openProposals, type Proposal } from './proposals.ts'
 import { scoreVenues } from './queueScore.ts'
@@ -42,8 +39,6 @@ import { VenueListPanel } from './VenueListPanel.tsx'
 import { VenuePanel } from './VenuePanel.tsx'
 
 const CENTRE: LatLon = { lat: BADAJOZ_CENTER[1], lon: BADAJOZ_CENTER[0] }
-/** How long a batch "not a venue" waits for Undo before it is saved. */
-const DISMISS_UNDO_MS = 10_000
 
 type Filter = 'todo' | 'not_venue' | 'all' | 'look'
 
@@ -71,7 +66,6 @@ export function Admin() {
     message,
     setMessage,
     proposalData,
-    saveAll,
     save,
     savePrice,
     change,
@@ -83,17 +77,11 @@ export function Admin() {
   const [pinning, setPinning] = useState(false)
   // The terrace pin while it is being dragged, for a live sun preview.
   const [dragging, setDragging] = useState<LatLon | null>(null)
-  // The Inbox: what came from outside to accept, one tab open at a time.
-  const [inbox, setInbox] = useState<InboxTab | null>(null)
-  const [reportCount, setReportCount] = useState<number | null>(null)
+  // The sidebar's two tabs: the venues to review, or the Inbox.
+  const [tab, setTab] = useState<'review' | 'inbox'>('review')
   // Where a selected visitor report would put a venue.
   const [proposed, setProposed] = useState<LatLon | null>(null)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
-  const [dismissing, setDismissing] = useState<{
-    ids: string[]
-    until: number
-    saving: boolean
-  } | null>(null)
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)
@@ -174,12 +162,10 @@ export function Admin() {
     () => scoreVenues(venues, reviews, proposals, CENTRE, junkSignals),
     [venues, reviews, proposals, junkSignals],
   )
-  const junk = useMemo(() => {
-    const staged = new Set(dismissing?.ids)
-    return likelyJunk(venues, reviews, junkSignals).filter(
-      (item) => !staged.has(item.venue.id),
-    )
-  }, [venues, reviews, junkSignals, dismissing])
+  const junk = useMemo(
+    () => likelyJunk(venues, reviews, junkSignals),
+    [venues, reviews, junkSignals],
+  )
 
   const listed = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('es')
@@ -287,37 +273,36 @@ export function Admin() {
     [save, reviews, queueMode, selectedId, advance],
   )
 
-  // Batch "not a venue": staged for DISMISS_UNDO_MS, then saved one by one
-  // through the usual save path.
-  const commitDismiss = useCallback(
-    async (ids: string[]) => {
-      // Still staged (left out of the list) while the rows are written.
-      setDismissing({ ids, until: 0, saving: true })
-      const saved = await saveAll(
-        ids.map((venueId) => ({
-          venueId,
-          next: nextReview(
-            undefined,
-            venueId,
-            { kind: 'status', status: 'not_venue' },
-            today(),
-          ),
-        })),
-      )
-      setDismissing(null)
-      if (saved) setMessage(`Marked ${ids.length} as not a venue`)
-    },
-    [saveAll, setMessage],
-  )
+  const { acceptReport, acceptSuggestion } = useReportActions({
+    venues,
+    reviews,
+    save,
+    savePrice,
+    onReportSaved: () => setProposed(null),
+  })
 
-  useEffect(() => {
-    if (!dismissing || dismissing.saving) return
-    const timer = window.setTimeout(
-      () => void commitDismiss(dismissing.ids),
-      Math.max(0, dismissing.until - Date.now()),
-    )
-    return () => window.clearTimeout(timer)
-  }, [dismissing, commitDismiss])
+  // The Inbox tab: each answer moves on to its next item.
+  const inbox = useInbox({
+    junk,
+    show: (venueId, point) => {
+      setAdding(null)
+      select(venueId)
+      setProposed(point)
+    },
+    acceptReport,
+    acceptSuggestion,
+    savePrice: (price) => savePrice(priceKey(price), price),
+    markNotVenue: (venueId) =>
+      save(
+        venueId,
+        nextReview(
+          undefined,
+          venueId,
+          { kind: 'status', status: 'not_venue' },
+          today(),
+        ),
+      ),
+  })
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -332,6 +317,22 @@ export function Admin() {
       }
       if (event.metaKey || event.ctrlKey || event.altKey) return
       const key = event.key.toLowerCase()
+      if (tab === 'inbox') {
+        const open = inbox.open
+        if (key === 'escape') inbox.openItem(null)
+        else if (
+          open &&
+          !inbox.busy &&
+          (key === 'a' || key === 'r' || key === 'j')
+        )
+          void inbox.answer(
+            open,
+            key === 'a' ? 'yes' : key === 'r' ? 'no' : 'skip',
+          )
+        else return
+        event.preventDefault()
+        return
+      }
       if (key === 'escape') {
         if (pinning) setPinning(false)
         else select(null)
@@ -357,6 +358,8 @@ export function Admin() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [
+    tab,
+    inbox,
     nextToReview,
     adding,
     pinning,
@@ -426,14 +429,6 @@ export function Admin() {
     }
   }
 
-  const { acceptReport, acceptSuggestion } = useReportActions({
-    venues,
-    reviews,
-    save,
-    savePrice,
-    onReportSaved: () => setProposed(null),
-  })
-
   // Changes the owner made from the phone are applied as the admin opens.
   useOwnerChanges({
     ready: dataVenues.length > 0,
@@ -449,26 +444,9 @@ export function Admin() {
           .filter(Boolean)
           .join(' '),
       )
-      void fetchReports().then((r) => {
-        if (r.reports) setReportCount(r.reports.length)
-      })
+      void inbox.reload()
     },
   })
-
-  // Pending reports, for the count on the Reports button.
-  useEffect(() => {
-    void fetchReports().then((r) => {
-      if (r.reports) setReportCount(r.reports.length)
-    })
-  }, [])
-
-  const selectReport = (r: VenueReport) => {
-    if (r.kind === 'add') {
-      setAdding(null)
-      select(null)
-    } else select(r.venueId)
-    if ('lat' in r) setProposed({ lat: r.lat, lon: r.lon })
-  }
 
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
 
@@ -493,19 +471,6 @@ export function Admin() {
       <aside className="admin-side">
         <header className="admin-head">
           <AdminToolbar
-            inboxOpen={inbox !== null}
-            inboxCount={(reportCount ?? 0) + junk.length}
-            onInbox={() => {
-              // Opens on the tab with something waiting.
-              setInbox(
-                inbox
-                  ? null
-                  : !reportCount && junk.length > 0
-                    ? 'junk'
-                    : 'reports',
-              )
-              setProposed(null)
-            }}
             reviewed={reviewed}
             total={venues.length}
             dropped={dropped}
@@ -513,30 +478,31 @@ export function Admin() {
             publish={publish}
             onPublish={() => void runPublish()}
           />
-          {dismissing?.saving && (
-            <div className="admin-dismissing" role="status">
-              Saving {dismissing.ids.length} as not a venue…
-            </div>
-          )}
-          {dismissing && !dismissing.saving && (
-            <div className="admin-dismissing" role="status">
-              <span>
-                {dismissing.ids.length} will be marked not a venue in a few
-                seconds.
-              </span>
-              <span className="admin-actions">
-                <button type="button" onClick={() => setDismissing(null)}>
-                  Undo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void commitDismiss(dismissing.ids)}
-                >
-                  Save now
-                </button>
-              </span>
-            </div>
-          )}
+          <div className="admin-tabs" role="tablist" aria-label="Sidebar">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'review'}
+              onClick={() => {
+                setTab('review')
+                inbox.openItem(null)
+              }}
+            >
+              To review <span>{queue.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'inbox'}
+              onClick={() => {
+                setTab('inbox')
+                setAdding(null)
+                select(null)
+              }}
+            >
+              Inbox <span>{inbox.items.length}</span>
+            </button>
+          </div>
           {proposalData.errors.length > 0 && (
             <details className="admin-help">
               <summary>
@@ -549,86 +515,48 @@ export function Admin() {
               </ul>
             </details>
           )}
-          {inbox && (
-            <div className="admin-inbox">
-              <InboxTabs
-                tab={inbox}
-                onTab={(tab) => {
-                  setInbox(tab)
-                  setProposed(null)
-                }}
-                counts={{ reports: reportCount, junk: junk.length }}
-              />
-              {inbox === 'reports' && (
-                <ReportsQueue
-                  venueOf={(id) => mapVenues.find((v) => v.id === id)}
-                  onSelect={selectReport}
-                  onAccept={acceptReport}
-                  onCount={setReportCount}
+          {tab === 'review' ? (
+            <>
+              <div className="admin-search">
+                <input
+                  type="search"
+                  placeholder="Search by name"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                 />
-              )}
-              {inbox === 'suggestions' && (
-                <SuggestionsQueue
-                  nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
-                  onSelect={select}
-                  onAccept={acceptSuggestion}
-                />
-              )}
-              {inbox === 'prices' && (
-                <PriceCandidates
-                  nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
-                  onSelect={select}
-                  onAccept={(price) => savePrice(priceKey(price), price)}
-                />
-              )}
-              {inbox === 'junk' && (
-                <BatchDismiss
-                  items={junk}
-                  onSelect={select}
-                  onMark={(ids) =>
-                    setDismissing({
-                      ids,
-                      until: Date.now() + DISMISS_UNDO_MS,
-                      saving: false,
-                    })
-                  }
-                />
-              )}
-            </div>
-          )}
-          <div className="admin-search">
-            <input
-              type="search"
-              placeholder="Search by name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+                <button
+                  type="button"
+                  aria-label="Add a venue"
+                  title="Add a venue no source lists"
+                  onClick={startAdding}
+                >
+                  +
+                </button>
+              </div>
+              <div className="admin-filters" role="tablist">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={filter === f.id}
+                    onClick={() => setFilter(f.id)}
+                  >
+                    {f.label}
+                    {f.id === 'look' && ` (${looks.size})`}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <InboxFilters
+              items={inbox.items}
+              filter={inbox.filter}
+              onFilter={inbox.setFilter}
             />
-            <button
-              type="button"
-              aria-label="Add a venue"
-              title="Add a venue no source lists"
-              onClick={startAdding}
-            >
-              +
-            </button>
-          </div>
-          <div className="admin-filters" role="tablist">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                role="tab"
-                aria-selected={filter === f.id}
-                onClick={() => setFilter(f.id)}
-              >
-                {f.label}
-                {f.id === 'look' && ` (${looks.size})`}
-                {f.id === 'todo' && ` (${queue.length})`}
-              </button>
-            ))}
-          </div>
+          )}
         </header>
-        {queueMode && (
+        {tab === 'review' && queueMode && (
           <ol className="admin-list admin-queue-list">
             {queue.map((s, index) => (
               <li key={s.venue.id}>
@@ -651,7 +579,7 @@ export function Admin() {
             ))}
           </ol>
         )}
-        {!queueMode && (
+        {tab === 'review' && !queueMode && (
           <VenueListPanel
             venues={listed}
             reviews={reviews}
@@ -659,6 +587,18 @@ export function Admin() {
             onSelect={select}
             looks={filter === 'look' ? looks : null}
             pinMoved={pinMoved}
+          />
+        )}
+        {tab === 'inbox' && (
+          <InboxList
+            shown={inbox.shown}
+            filter={inbox.filter}
+            openKey={inbox.open?.key ?? null}
+            onOpen={inbox.openItem}
+            venueOf={(id) => mapVenues.find((v) => v.id === id)}
+            loaded={inbox.loaded}
+            errors={inbox.errors}
+            leads={inbox.leads}
           />
         )}
       </aside>
@@ -695,12 +635,29 @@ export function Admin() {
             onCancel={() => setAdding(null)}
           />
         )}
-        {queueMode && !adding && !selectedVenue && queue.length === 0 && (
-          <section className="admin-panel" aria-label="Review queue">
-            <h2>Nothing left to review</h2>
-          </section>
+        {tab === 'inbox' && inbox.open && (
+          <InboxPanel
+            item={inbox.open}
+            position={inbox.shown.indexOf(inbox.open) + 1}
+            total={inbox.shown.length}
+            venueOf={(id) => mapVenues.find((v) => v.id === id)}
+            busy={inbox.busy}
+            failure={inbox.failure}
+            onAnswer={(choice) => {
+              if (inbox.open) void inbox.answer(inbox.open, choice)
+            }}
+          />
         )}
-        {!adding && selectedVenue && selectedMap && (
+        {tab === 'review' &&
+          queueMode &&
+          !adding &&
+          !selectedVenue &&
+          queue.length === 0 && (
+            <section className="admin-panel" aria-label="Review queue">
+              <h2>Nothing left to review</h2>
+            </section>
+          )}
+        {tab === 'review' && !adding && selectedVenue && selectedMap && (
           <VenuePanel
             venue={selectedVenue}
             state={selectedMap.state}

@@ -125,4 +125,53 @@ describe('Admin', () => {
       ).toMatchObject({ venueId: plazaAlta.id, status: 'not_venue' }),
     )
   })
+
+  it('answers an Inbox item and moves on to the next one', async () => {
+    const calls = stubServer()
+    const server = globalThis.fetch
+    let suggestions = [plazaAlta, calleMenacho].map((v, n) => ({
+      venue_id: v.id,
+      item: 'cana',
+      brand: '',
+      cents: 150 + n * 10,
+      voters: 2,
+      last: '2026-11-24T10:00:00Z',
+    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== ADMIN_ENDPOINTS.suggestions)
+          return server(input, init)
+        if (init?.method === 'POST') {
+          // Resolved: the API no longer lists it.
+          suggestions = suggestions.slice(1)
+          return json({ ok: true })
+        }
+        return json({ suggestions })
+      }),
+    )
+    render(<Admin />)
+    await screen.findByRole('button', { name: new RegExp(plazaAlta.name) })
+
+    fireEvent.click(screen.getByRole('tab', { name: /^Inbox/ }))
+    const first = await screen.findByRole('button', {
+      name: new RegExp(`${plazaAlta.name}.*1,50`),
+    })
+    fireEvent.click(first)
+    expect(first).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByText('Inbox 1 of 2')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Accept/ }))
+
+    await waitFor(() =>
+      expect(screen.getByText('Inbox 1 of 1')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('map-selected')).toHaveTextContent(
+      calleMenacho.id,
+    )
+    expect(
+      calls.find((c) => c.url === ADMIN_ENDPOINTS.prices && c.method === 'PUT')
+        ?.body,
+    ).toMatchObject({ venueId: plazaAlta.id, item: 'cana', cents: 150 })
+  })
 })

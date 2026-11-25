@@ -37,7 +37,7 @@ Pins placed on it are ordinary review rows (`review` in the record's `sources`).
 
 ## Deciding venues
 
-The sidebar has the title with **Inbox**, the count with **Publish**, a search box with **+** (add a venue), and the filters **To review**, **Needs a look**, **Not a venue** and **All**. Click a venue to open its panel, then decide with a key:
+The sidebar has the title with **Publish**, the count, and two tabs: **To review** (the venues) and **Inbox** (what came from outside), each with its count. To review has a search box with **+** (add a venue) and the filters **To review**, **Needs a look**, **Not a venue** and **All**. Click a venue to open its panel, then decide with a key:
 
 | Key       | Does                                                                                                           |
 | --------- | -------------------------------------------------------------------------------------------------------------- |
@@ -54,8 +54,8 @@ The sidebar has the title with **Inbox**, the count with **Publish**, a search b
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
 - **To review** (with an empty search) is the review queue: the venues without a decision, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
-- **Inbox** holds what came from outside, in tabs: **Reports**, **Suggestions**, **Website prices** and **Not venues** (below). Its count is the pending reports plus the likely non-venues, and it opens on a tab with something waiting.
-- **Not venues** (an Inbox tab) lists Overture-only venues that are probably not a bar or restaurant (name, fast food, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), to mark in one go. Strong signals start ticked; **Mark N as not a venue** waits 10 s for **Undo** before it saves.
+- **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**A**), **Reject** (**R**) and **Skip** (**J**). Each answer moves on to the next Inbox item, not to To review.
+- **Not venues** (an Inbox filter) lists Overture-only venues that are probably not a bar or restaurant (name, fast food, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), one at a time: **Not a venue** (**A**) marks it; **Keep it** (**R**) takes it off the Inbox until the admin reloads, and it stays in To review.
 - **+** (next to the search) adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
 
 ## Fixing a terrace
@@ -76,12 +76,12 @@ The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/
 
 - **By hand**: type them in the panel's price fields.
 - **From the phone**: logged in at `/admin` on the site, prices you save show at once from the API (owner prices), without the admin. Reading prices from a photo was removed (2026-11-25).
-- **Website prices** (an Inbox tab) lists the candidates `python -m solycerveza.price_candidates` found on venues' own websites (`pipeline/data/price_candidates.csv`, [ADR-0006](adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page (`web/src/admin/PriceCandidates.tsx`). Check it, then **Accept** (it is saved to `venue_prices.csv` with `seen` = the fetch date, and ships with the next Publish) or **Dismiss** (hidden). Both are recorded in the candidate's `status`.
-- **Suggestions** (an Inbox tab) is the queue of visitor price suggestions the API has not served (fewer than 5 networks agree; [api/README.md](../api/README.md)). **Accept** saves the price to `venue_prices.csv` and resolves it in the API; **Reject** resolves it as rejected, so no vote for that price counts again.
+- **Website prices** (an Inbox filter) lists the candidates `python -m solycerveza.price_candidates` found on venues' own websites (`pipeline/data/price_candidates.csv`, [ADR-0006](adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page (`web/src/admin/PriceCandidates.tsx`). Check it, then **Accept** (it is saved to `venue_prices.csv` with `seen` = the fetch date, and ships with the next Publish) or **Dismiss** (hidden). Both are recorded in the candidate's `status`.
+- **Suggestions** (an Inbox filter) is the queue of visitor price suggestions the API has not served (fewer than 5 networks agree; [api/README.md](../api/README.md)). **Accept** saves the price to `venue_prices.csv` and resolves it in the API; **Reject** resolves it as rejected, so no vote for that price counts again.
 
 ## Reports
 
-**Reports** (an Inbox tab) lists the visitors' venue reports from the API ([ADR-0009](adr/0009-terrace-reports.md), `web/src/admin/ReportsQueue.tsx`). Reports are never applied automatically. Selecting one shows the venue and, for a move, a terrace pin or a new venue, a dashed pin at the proposed point. **Accept** applies it as a review row (`reportChange` in `web/src/admin/reports.ts`) and only then resolves it in the API; **Reject** only resolves it.
+**Reports** (an Inbox filter) lists the visitors' venue reports from the API ([ADR-0009](adr/0009-terrace-reports.md), `web/src/admin/InboxPanel.tsx`). Reports are never applied automatically. Selecting one shows the venue and, for a move, a terrace pin or a new venue, a dashed pin at the proposed point. **Accept** applies it as a review row (`reportChange` in `web/src/admin/reports.ts`) and only then resolves it in the API; **Reject** only resolves it.
 
 | Report kind        | Accepting writes                                                                                      |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
