@@ -15,6 +15,7 @@
     "maplibreCss.ts",
     "maplibreCss.test.ts",
     "reviewServer.ts",
+    "reviewServer.test.ts",
     "pricePhotoServer.ts",
     "pricePhotoServer.test.ts",
     "publish.ts",

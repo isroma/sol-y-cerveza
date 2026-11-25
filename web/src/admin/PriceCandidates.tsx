@@ -9,15 +9,14 @@ import {
   type Candidate,
   type CandidatesResponse,
 } from './priceCandidates.ts'
-
-const API = '/__admin/price-candidates'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 async function fetchCandidates(): Promise<{
   data: CandidatesResponse | null
   error: string | null
 }> {
   try {
-    const response = await fetch(API)
+    const response = await fetch(ADMIN_ENDPOINTS.priceCandidates)
     const body: unknown = await response.json()
     if (!response.ok) {
       const parsed = z.object({ error: z.string() }).safeParse(body)
@@ -84,7 +83,7 @@ export function PriceCandidates({ nameOf, onSelect, onAccept }: Props) {
   const decide = async (c: Candidate, status: 'accepted' | 'dismissed') => {
     try {
       if (status === 'accepted') await onAccept(toPrice(c))
-      const response = await fetch(API, {
+      const response = await fetch(ADMIN_ENDPOINTS.priceCandidates, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: candidateKey(c), status }),

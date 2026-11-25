@@ -101,7 +101,7 @@ The owner can also record prices at the bar from the public site on a phone ([AD
 
 ## Dev-server endpoints
 
-All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON.
+All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON. The paths are named once, in `web/src/admin/endpoints.ts`, which the admin page and the dev server both import; `web/reviewServer.test.ts` checks that the server mounts exactly those.
 
 | Endpoint                    | Methods          | What                                                                                                      |
 | --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
