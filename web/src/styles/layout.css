@@ -122,11 +122,7 @@
     font-size: 20px;
   }
 
-  .time-footer .time {
-    margin-top: 3px;
-  }
-
   .time-footer .time-track {
-    --slider-top: 34px;
+    --slider-top: 30px;
   }
 }
