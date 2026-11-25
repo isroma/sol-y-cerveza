@@ -12,6 +12,8 @@
     "capacitor.config.ts",
     "adminGuard.ts",
     "adminGuard.test.ts",
+    "maplibreCss.ts",
+    "maplibreCss.test.ts",
     "reviewServer.ts",
     "reviewServer.test.ts",
     "pricePhotoServer.ts",

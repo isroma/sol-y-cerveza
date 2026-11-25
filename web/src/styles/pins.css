@@ -1,0 +1,222 @@
+/* Pins */
+
+.pin-marker {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 13px 4px 4px;
+  border-radius: 999px;
+  /* The selected ring takes the state colour, like the card's border. */
+  --pin-ring: #d1d5db;
+  --pin-shadow: 0 4px 12px rgba(31, 35, 40, 0.2);
+  isolation: isolate;
+  background: #fff;
+  box-shadow: var(--pin-shadow);
+  color: #1f2328;
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  /* Scales from the tip of the pointer, under the badge. */
+  transform-origin: 19px calc(100% + 8px);
+  transition: scale 0.15s;
+}
+
+/* The badge and its pointer are one teardrop, like a map pin: a square with
+   three round corners, turned 45° so the sharp one points down. Its sides
+   leave the circle on tangents, so the join is smooth, and it carries the
+   shadow (and the selected ring) around the whole shape. */
+.pin::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 38px;
+  height: 38px;
+  border-radius: 50% 50% 4px 50%;
+  background: #fff;
+  box-shadow: var(--pin-shadow);
+  rotate: 45deg;
+  content: '';
+}
+
+.pin-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.25);
+  color: #fff;
+}
+
+/* Badge only until there is a price to show; the teardrop casts the shadow. */
+.pin:has(.pin-price:empty) {
+  padding: 4px;
+  box-shadow: none;
+}
+
+.pin--sun,
+.pin--soon {
+  --pin-ring: #ffc53d;
+}
+
+.pin--unknown {
+  --pin-ring: #c2a88e;
+}
+
+.pin--sun .pin-icon {
+  background: linear-gradient(160deg, #ffc53d, #f59e0b);
+}
+
+.pin--soon .pin-icon {
+  background: linear-gradient(160deg, #fff1b8, #f7c948);
+  color: #a16207;
+}
+
+.pin--nosun .pin-icon {
+  background: linear-gradient(160deg, #c6cbd3, #8b919c);
+}
+
+.pin--unknown .pin-icon {
+  background: linear-gradient(160deg, #dcc8b4, #a88d73);
+}
+
+/* No sun: smaller than the sunny badges, so the sun stands out. */
+.pin--nosun:not(.pin--selected),
+.pin--unknown:not(.pin--selected) {
+  scale: 0.78;
+}
+
+.pin-marker:hover .pin {
+  scale: 1.08;
+}
+
+.pin--selected {
+  --pin-shadow: 0 0 0 3px var(--pin-ring), 0 6px 16px rgba(31, 35, 40, 0.28);
+  scale: 1.28;
+}
+
+.pin-marker:hover .pin--selected {
+  scale: 1.32;
+}
+
+.user-dot {
+  width: 22px;
+  height: 22px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow:
+    0 0 0 10px rgba(37, 99, 235, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}
+
+/* The attribution follows the app's theme, dark at night. */
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.maplibregl-ctrl-attrib.maplibregl-compact a {
+  color: var(--muted);
+}
+
+.maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button {
+  background-color: transparent;
+}
+
+/* MapLibre draws the "i" as a black image: flip it to light at night. */
+.app.is-night .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+
+/* Our own slot, so no corner margins; the button keeps no focus ring after a
+   tap. */
+.map-attrib .maplibregl-ctrl-attrib.maplibregl-compact {
+  margin: 0;
+}
+
+.map-attrib .maplibregl-ctrl-attrib-button:focus,
+.map-attrib .maplibregl-ctrl-attrib-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Opened, the "i" stays a plain button and the credits show next to it:
+   a horizontal strip to its left on desktop, a thin vertical strip above it
+   on phones. */
+.map-attrib .maplibregl-ctrl-attrib.maplibregl-compact.maplibregl-compact-show {
+  padding: 2px 24px 2px 0;
+}
+
+.map-attrib
+  .maplibregl-ctrl-attrib.maplibregl-compact-show
+  .maplibregl-ctrl-attrib-inner {
+  position: absolute;
+  right: calc(100% + var(--space-2));
+  bottom: 0;
+  padding: 0 var(--space-3);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  .map-attrib
+    .maplibregl-ctrl-attrib.maplibregl-compact-show
+    .maplibregl-ctrl-attrib-inner {
+    right: auto;
+    bottom: calc(100% + var(--space-2));
+    left: 0;
+    width: 24px;
+    padding: var(--space-3) 0;
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+  }
+}
+
+.pin-price:empty {
+  display: none;
+}
+
+/* Zoomed out: only the best places keep a full pin (see highlights.ts). */
+.map-wrap.is-overview .pin-marker--top .pin:not(.pin--selected) {
+  scale: 1.12;
+}
+
+.map-wrap.is-overview
+  .pin-marker:not(.pin-marker--top)
+  .pin:not(.pin--selected) {
+  scale: 0.7;
+}
+
+/* Grey badges stay a step smaller than the yellow ones. */
+.map-wrap.is-overview
+  .pin-marker:not(.pin-marker--top)
+  :is(.pin--nosun, .pin--unknown):not(.pin--selected) {
+  scale: 0.56;
+}
+
+.map-wrap.is-night .pin {
+  --pin-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+/* The selected ring stays at night, too. */
+.map-wrap.is-night .pin--selected {
+  --pin-shadow: 0 0 0 3px var(--pin-ring), 0 6px 16px rgba(0, 0, 0, 0.55);
+}

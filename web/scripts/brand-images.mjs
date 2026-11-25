@@ -28,7 +28,7 @@ const MUTED = '#6B7280'
 const BEER =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 11h1.5a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H16"/><path d="M6 8c0-2 1.5-3 3-2.5C9.7 4 12 3.7 13 5c1.5-.7 3 .4 3 3"/><path d="M9.5 12v6M12.5 12v6"/></svg>'
 
-/** The four sun states, as the map badges draw them (src/index.css). */
+/** The four sun states, as the map badges draw them (src/styles/pins.css). */
 const STATES = [
   { from: '#FFC53D', to: '#F59E0B', icon: '#FFFFFF', scale: 1 },
   { from: '#FFF1B8', to: '#F7C948', icon: '#A16207', scale: 1 },

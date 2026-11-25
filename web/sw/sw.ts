@@ -6,6 +6,7 @@
 // imports, so it runs as a classic worker everywhere. Strategies:
 //
 // - assets/*-<hash>.* : precached per build, cache-first (they never change).
+//   Chunks only owner tools import (exifr) are cached on first use instead.
 // - the page and data/terraces.json (and other unhashed files): network-first
 //   with a short timeout; the cache only when offline, slow or the server
 //   errors. A response that arrives after the timeout still updates the
@@ -229,7 +230,8 @@ function isStorable(response: Response): boolean {
 async function cacheFirst(request: Request): Promise<Response> {
   const cached = await caches.match(request.url, { ignoreVary: true })
   if (cached) return cached
-  // Not cached (e.g. precaching still running): fetch and keep it. A 404 here
+  // Not cached (precaching still running, or a chunk the build doesn't
+  // precache, serviceWorker.ts precacheList): fetch and keep it. A 404 here
   // means a deploy removed the file; LazyMapView reloads once to recover.
   const response = await fetch(request)
   if (isStorable(response)) {
