@@ -11,11 +11,11 @@ import {
   type Filters,
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
-import { OwnerBar } from './prices/OwnerBar.tsx'
+import { OwnerBadge } from './prices/OwnerBadge.tsx'
+import { useCanSend } from './prices/owner.ts'
 import { DraftContext, type ChangeDraft } from './reports/draft.ts'
 import { StartMoveContext, type Picking } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
-import { CAN_SEND } from './apiClient.ts'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
@@ -54,6 +54,7 @@ export function App() {
   // Phones: the time bar is the footer; search, filters and the list live in
   // a menu that opens over the map.
   const phone = useMediaQuery('(max-width: 899px)')
+  const canSend = useCanSend()
   const [menuOpen, setMenuOpen] = useState(false)
   // Reporting a moved or missing venue: a centre pin over the map.
   const [picking, setPicking] = useState<Picking | null>(null)
@@ -232,6 +233,7 @@ export function App() {
       <header className="brand">
         <Logo />
         <h1>Sol y Cerveza</h1>
+        <OwnerBadge />
         {phone && (
           <button
             type="button"
@@ -269,7 +271,7 @@ export function App() {
             minutes={minutes}
             selectedId={selectedId}
             onSelect={selectFromList}
-            onAdd={CAN_SEND ? startAdd : undefined}
+            onAdd={canSend ? startAdd : undefined}
           />
         )}
       </aside>
@@ -298,9 +300,6 @@ export function App() {
             onPlace={placeMove}
             onClose={stopPicking}
           />
-        )}
-        {load.status === 'ready' && (
-          <OwnerBar venues={load.file.terraces} onSelect={setSelectedId} />
         )}
       </main>
       {phone && !picking && (

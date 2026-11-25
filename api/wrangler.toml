@@ -14,10 +14,6 @@ ALLOWED_ORIGINS = "https://isroma.github.io,http://localhost:5173,http://localho
 # The published data, used to reject suggestions for unknown venues.
 TERRACES_URL = "https://isroma.github.io/sol-y-cerveza/data/terraces.json"
 
-# Workers AI: reads the owner's menu photos (free daily allowance).
-[ai]
-binding = "AI"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "sol-y-cerveza"

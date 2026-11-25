@@ -27,6 +27,7 @@ const pin = {
 
 const row = (fields: Partial<ReportRow>): ReportRow => ({
   id: 1,
+  by_owner: 0,
   kind: 'terrace',
   venue_id: 'osm:node/1',
   name: '',
@@ -113,6 +114,7 @@ describe('reportQueue for terraces', () => {
         venueId: 'osm:node/1',
         terrace: true,
         reporters: 2,
+        owner: false,
         last: '2026-11-24T12:00:00.000Z',
       },
       {
@@ -121,6 +123,7 @@ describe('reportQueue for terraces', () => {
         venueId: 'osm:node/1',
         terrace: false,
         reporters: 1,
+        owner: false,
         last: '2026-11-24T10:00:00.000Z',
       },
       {
@@ -130,6 +133,7 @@ describe('reportQueue for terraces', () => {
         lat: 38.878,
         lon: -6.97,
         reporters: 1,
+        owner: false,
         last: '2026-11-24T09:00:00.000Z',
       },
     ])

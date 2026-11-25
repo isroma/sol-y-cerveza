@@ -7,6 +7,7 @@ import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue } from './SuggestionsQueue.tsx'
 import { ReportsQueue } from './ReportsQueue.tsx'
 import { fetchReports, type VenueReport } from './reports.ts'
+import { useOwnerChanges } from './useOwnerChanges.ts'
 import { priceKey } from './pricesCsv.ts'
 import { stateOf, type MapVenue } from './mapState.ts'
 import { dayTrack } from '../sun/dayTrack.ts'
@@ -440,6 +441,27 @@ export function Admin() {
     save,
     savePrice,
     onReportSaved: () => setProposed(null),
+  })
+
+  // Changes the owner made from the phone are applied as the admin opens.
+  useOwnerChanges({
+    ready: dataVenues.length > 0,
+    accept: acceptReport,
+    onDone: (applied, problems) => {
+      setMessage(
+        [
+          applied > 0 &&
+            `Applied ${applied} change${applied === 1 ? '' : 's'} from owner mode: Publish to ship them.`,
+          problems.length > 0 &&
+            `${problems.length} owner change${problems.length === 1 ? '' : 's'} not applied (${problems.join('; ')}); they stay in Reports.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
+      )
+      void fetchReports().then((r) => {
+        if (r.reports) setReportCount(r.reports.length)
+      })
+    },
   })
 
   // Pending reports, for the count on the Reports button.

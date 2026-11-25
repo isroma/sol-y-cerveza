@@ -11,10 +11,12 @@
  *   when the owner changes a price or resolves a suggestion.
  * - GET /v1/admin/suggestions, POST /v1/admin/resolve: the review queue,
  *   for the local admin view only (bearer ADMIN_TOKEN).
- * - Owner mode (bearer OWNER_TOKEN, which can only add or remove prices):
- *   GET /v1/owner/check, PUT/DELETE /v1/owner/prices saves a confirmed price,
- *   POST /v1/owner/photo reads prices and the bar's name from a photo (at most
- *   PHOTO_DAILY_LIMIT a day).
+ * - Owner mode (bearer OWNER_TOKEN, which can only change prices and send
+ *   reports): GET /v1/owner/check, PUT/DELETE /v1/owner/prices saves a
+ *   confirmed price, POST /v1/owner/changes is the card back as the owner's
+ *   change (a price shows at once; a move or closed waits for the admin's next
+ *   Publish, applied without review), POST /v1/owner/reports adds a missing
+ *   venue the same way. No bot check and no caps.
  * - GET /v1/admin/owner-prices: owner prices, for the admin's import.
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
  *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
@@ -30,7 +32,12 @@
 import type { Env } from './env.ts'
 import { bearer, json } from './http.ts'
 import { allowedOrigin } from './logic.ts'
-import { ownerPhoto, ownerPrice, ownerPrices } from './routes/owner.ts'
+import {
+  ownerChange,
+  ownerPrice,
+  ownerPrices,
+  ownerReport,
+} from './routes/owner.ts'
 import { pending, prices, resolve, suggest } from './routes/prices.ts'
 import {
   change,
@@ -63,8 +70,10 @@ async function route(
       (request.method === 'PUT' || request.method === 'DELETE')
     )
       return ownerPrice(request, env)
-    if (pathname === '/v1/owner/photo' && request.method === 'POST')
-      return ownerPhoto(request, env)
+    if (pathname === '/v1/owner/changes' && request.method === 'POST')
+      return ownerChange(request, env)
+    if (pathname === '/v1/owner/reports' && request.method === 'POST')
+      return ownerReport(request, env)
   }
   if (pathname.startsWith('/v1/admin/')) {
     if (!bearer(request, env.ADMIN_TOKEN))

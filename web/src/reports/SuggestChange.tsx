@@ -14,7 +14,15 @@ import { Turnstile } from './Turnstile.tsx'
 import { Toggle } from '../ui/Toggle.tsx'
 import { StartMoveContext } from './picking.ts'
 import type { ChangeDraft } from './draft.ts'
-import { PRICE_RESULT_TEXT, RESULT_TEXT, sendChange } from './reports.ts'
+import {
+  OWNER_RESULT_TEXT,
+  PRICE_RESULT_TEXT,
+  RESULT_TEXT,
+  sendChange,
+  sendOwnerChange,
+} from './reports.ts'
+import { useOwner } from '../prices/owner.ts'
+import { refreshCrowdPrices } from '../prices/crowd.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
@@ -28,6 +36,7 @@ const TOKEN_TTL_MS = 240_000
  * behind one bot check. The check runs as soon as the back opens (the
  * owner's call), so its token is usually ready by the first edit.
  * "Ubicación" hands over to the map picker, which brings the spot back here.
+ * In owner mode the same form saves a change instead, with no bot check.
  */
 export function SuggestChange({
   venue,
@@ -42,6 +51,7 @@ export function SuggestChange({
   onBack: () => void
 }) {
   const startMove = useContext(StartMoveContext)
+  const owner = useOwner().token !== null
   const { item, brand, text, closed, move } = draft
   // A token from before the trip to the map is used if still fresh.
   const [token, setToken] = useState(() =>
@@ -91,18 +101,16 @@ export function SuggestChange({
   const [minCents, maxCents] = SUGGEST_RANGE[item]
   const priceOk = cents !== null && cents >= minCents && cents <= maxCents
   const edited = hasPrice || closed || move !== null
-  const ready = edited && (!hasPrice || priceOk) && token !== null
+  const ready = edited && (!hasPrice || priceOk) && (owner || token !== null)
   // How far from its badge the visitor placed it.
   const moved = move
     ? Math.round(distanceMetres(venue.terrace ?? venue.venue, move))
     : null
 
   const send = async () => {
-    if (!ready || token === null) return
-    setSending(true)
-    const answer = await sendChange({
+    if (!ready) return
+    const parts = {
       venueId: venue.id,
-      token,
       ...(hasPrice && cents !== null
         ? {
             price: {
@@ -114,10 +122,28 @@ export function SuggestChange({
         : {}),
       ...(move ? { move } : {}),
       ...(closed ? { closed: true as const } : {}),
-    })
+    }
+    const priceOnly = hasPrice && !closed && move === null
+    if (owner) {
+      setSending(true)
+      const answer = await sendOwnerChange(parts)
+      setSending(false)
+      if (answer === 'ok' && hasPrice) void refreshCrowdPrices()
+      // A price shows at once; a move or closure at the next Publish.
+      setResult(
+        answer !== 'ok'
+          ? OWNER_RESULT_TEXT.error
+          : priceOnly
+            ? OWNER_RESULT_TEXT.price
+            : OWNER_RESULT_TEXT.later,
+      )
+      return
+    }
+    if (token === null) return
+    setSending(true)
+    const answer = await sendChange({ ...parts, token })
     setSending(false)
     // A price alone waits for agreement; anything else for review.
-    const priceOnly = hasPrice && !closed && move === null
     setResult((priceOnly ? PRICE_RESULT_TEXT : RESULT_TEXT)[answer])
   }
 
@@ -147,7 +173,7 @@ export function SuggestChange({
           tabIndex={-1}
           data-focus={result ? undefined : true}
         >
-          <strong>Sugerir un cambio</strong>
+          <strong>{owner ? 'Editar' : 'Sugerir un cambio'}</strong>
           <span>{venue.name}</span>
         </div>
       </div>
@@ -245,7 +271,7 @@ export function SuggestChange({
               {`Escribe un precio entre ${formatCents(minCents)} y ${formatCents(maxCents)}.`}
             </p>
           )}
-          {TURNSTILE_SITE_KEY && (
+          {TURNSTILE_SITE_KEY && !owner && (
             <Turnstile
               siteKey={TURNSTILE_SITE_KEY}
               action="change"
@@ -258,7 +284,13 @@ export function SuggestChange({
             className="change-send"
             disabled={!ready || sending}
           >
-            {sending ? 'Enviando…' : 'Enviar'}
+            {owner
+              ? sending
+                ? 'Guardando…'
+                : 'Guardar'
+              : sending
+                ? 'Enviando…'
+                : 'Enviar'}
           </button>
         </form>
       )}

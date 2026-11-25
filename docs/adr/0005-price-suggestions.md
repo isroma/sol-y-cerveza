@@ -50,17 +50,18 @@ A rejection used to be a status on the suggestion rows, so it didn't last: a vot
 
 - `GET /v1/prices` is cached in the Worker (the Cache API for 5 minutes, isolate memory for 60 seconds) and purged by owner price writes and admin resolves, so public traffic can't use up D1's daily reads. A purge only reaches the data centre that took the write; elsewhere a change shows within 5 minutes, the same as the browser cache.
 - The API fails closed on misconfiguration: with no `IP_SALT` of at least 16 characters, the endpoints that hash addresses answer 503; a Turnstile test secret passes only on `localhost`.
-- Every JSON body is bounded in bytes (8 KB, 7 MB for a photo), on `Content-Length` and while reading.
+- Every JSON body is bounded in bytes (8 KB), on `Content-Length` and while reading.
 
 ### Owner mode (2026-11-23)
 
-The owner records prices at the bar from their phone, without the laptop.
+The owner records prices, and fixes venues, from their phone at the bar, without the laptop.
 
 - **Unlocking:** a private link carrying `OWNER_TOKEN` turns on owner mode on the public site. The token is kept in the phone's local storage.
-- **Saving:** the venue card gets price fields, which save straight to `owner_prices` in D1 (`PUT /v1/owner/prices`). `GET /v1/prices` serves those prices as confirmed (no "~"), replacing visitor prices for the same item. They're dated with the Madrid date.
-- **Photo:** "Foto de la carta" sends a downscaled photo to `POST /v1/owner/photo`, which reads the prices and the bar's name with a Workers AI vision model (`@cf/google/gemma-4-26b-a4b-it`), using the same prompt and price rules as the admin's photo reader (`web/src/data/photoReading.ts`). Workers AI rather than the Claude API (2026-11-25) because it needs no paid key: it runs inside the Worker on Cloudflare's free daily allowance (10,000 neurons), with zero data retention, so the photo isn't stored. It reads printed boards well and handwriting less so; unclear readings fall through to the ask-first path. Llama 4 and Llama 3.2 Vision were ruled out because their licence withholds the multimodal rights from EU-based developers. At most 50 photos in any 24 hours (`PHOTO_DAILY_LIMIT`, 2026-11-24), so a leaked token can't use up that allowance.
-- **Auto-save:** the app saves clear readings for a clearly matched bar and asks for anything unclear. The bar is matched by the card that's open, or, for a photo from the library, by its GPS location and the name on the menu.
-- **Scope of the token:** `OWNER_TOKEN` can only add or remove prices and read photos (capped); it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can delete, and the token can be replaced with `wrangler secret put`.
+- **The visitor's forms (2026-11-25):** owner mode has no editor of its own. The owner uses the card's back ("Editar" instead of "Sugerir un cambio") and "¿Falta un bar? Añádelo" as a visitor would, with no Turnstile check and no caps, and the header shows "Modo dueño" with a way out. What they send is a change, not a suggestion:
+  - A price goes to `owner_prices` in D1 (`POST /v1/owner/changes`) and shows at once: `GET /v1/prices` serves it as confirmed (no "~"), replacing visitor prices for the same item, dated with the Madrid date.
+  - A move, closure or new venue (`POST /v1/owner/changes`, `POST /v1/owner/reports`) is stored as a venue report marked `by_owner`. It can't go live on its own, because the sun at a spot comes from the LiDAR rebuild. The admin applies these through the same path as an accepted visitor report as soon as it opens, without review, marks them accepted, and Publish ships them.
+- **Photos removed (2026-11-25):** reading prices from a photo of the menu (first with the Claude API, then Workers AI) was dropped; the owner types prices. The admin's own photo reader (`web/plugins/admin/pricePhotoServer.ts`) stays.
+- **Scope of the token:** `OWNER_TOKEN` can change prices and send venue reports that the admin applies; it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can overwrite, and reports the admin shows before Publish; the token can be replaced with `wrangler secret put`.
 - **Repo copy:** the admin's "Import phone prices" copies owner prices into `venue_prices.csv`, so the repo keeps the full record and Publish ships them as usual. (Not built yet: see the amendment at the top.)
 
 ### Venue reports (2026-11-24, #200)

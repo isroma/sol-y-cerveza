@@ -3,10 +3,10 @@ import {
   describeReport,
   fetchReports,
   isStale,
+  resolveReports,
   type ReportedVenue,
   type VenueReport,
 } from './reports.ts'
-import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 type Props = {
   venueOf: (venueId: string) => ReportedVenue | undefined
@@ -47,17 +47,7 @@ export function ReportsQueue({ venueOf, onSelect, onAccept, onCount }: Props) {
     status: 'accepted' | 'rejected',
   ) => {
     if (status === 'accepted' && !(await onAccept(report))) return
-    let failed: string | null = null
-    try {
-      const response = await fetch(ADMIN_ENDPOINTS.reports, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: report.ids, status }),
-      })
-      if (!response.ok) failed = `HTTP ${response.status}`
-    } catch (e) {
-      failed = String(e)
-    }
+    const failed = await resolveReports(report.ids, status)
     show(await fetchReports())
     if (failed) setError(`not resolved: ${failed}`)
   }

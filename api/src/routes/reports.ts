@@ -49,6 +49,7 @@ export function reportWrites(
   voterHash: string,
   netHash: string,
   now: number,
+  byOwner = false,
 ) {
   const venueId = value.kind === 'add' ? '' : value.venueId
   const replaced =
@@ -64,8 +65,8 @@ export function reportWrites(
     ...replaced,
     env.DB.prepare(
       `INSERT INTO venue_reports
-         (kind, venue_id, name, venue_kind, lat, lon, terrace, voter_hash, net_hash, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (kind, venue_id, name, venue_kind, lat, lon, terrace, voter_hash, net_hash, created_at, by_owner)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       value.kind,
       venueId,
@@ -77,6 +78,7 @@ export function reportWrites(
       voterHash,
       netHash,
       new Date(now).toISOString(),
+      Number(byOwner),
     ),
   ]
 }
@@ -171,7 +173,7 @@ export async function change(request: Request, env: Env): Promise<Response> {
 
 export async function pendingReports(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT id, kind, venue_id, name, venue_kind, lat, lon, terrace, net_hash, created_at
+    `SELECT id, kind, venue_id, name, venue_kind, lat, lon, terrace, net_hash, created_at, by_owner
      FROM venue_reports WHERE status = 'pending'`,
   ).all<ReportRow>()
   return json({ reports: reportQueue(results) }, 200)
