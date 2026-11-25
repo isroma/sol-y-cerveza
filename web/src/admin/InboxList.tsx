@@ -11,6 +11,7 @@ import type { InboxFilter } from './useInbox.ts'
 const FILTERS: { id: InboxFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'report', label: 'Reports' },
+  { id: 'sun', label: 'Sun' },
   { id: 'suggestion', label: 'Suggestions' },
   { id: 'price', label: 'Website prices' },
   { id: 'junk', label: 'Not venues' },

@@ -570,6 +570,31 @@ body {
   font-size: 10px;
 }
 
+/* Sun report sightings (SunReportDetails.tsx) */
+.admin-sightings {
+  width: 100%;
+  margin-top: 6px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.admin-sightings th {
+  color: var(--muted);
+  font-weight: 400;
+  text-align: left;
+}
+
+.admin-sightings th,
+.admin-sightings td {
+  padding: 4px 6px 4px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.admin-sightings td:first-child {
+  white-space: nowrap;
+}
+
 /* Website price candidates (InboxPanel.tsx, InboxList.tsx) */
 .admin-candidate-snippet {
   color: var(--muted);

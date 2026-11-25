@@ -66,6 +66,7 @@ export function useInbox({
     () =>
       inboxItems({
         reports: data?.reports ?? [],
+        sun: data?.sun ?? [],
         suggestions: data?.suggestions ?? [],
         candidates: data?.candidates ?? [],
         junk,
@@ -99,6 +100,12 @@ export function useInbox({
         if (yes && !(await acceptReport(item.report)))
           return 'not saved in venue_review.csv'
         return resolveReports(item.report.ids, yes ? 'accepted' : 'rejected')
+      case 'sun':
+        // Saved in the API only: nothing to write here or to Publish.
+        return postDecision(ADMIN_ENDPOINTS.sun, {
+          ids: item.sun.ids,
+          status: yes ? 'accepted' : 'rejected',
+        })
       case 'suggestion':
         if (yes) await acceptSuggestion(item.group)
         return postDecision(ADMIN_ENDPOINTS.suggestions, {

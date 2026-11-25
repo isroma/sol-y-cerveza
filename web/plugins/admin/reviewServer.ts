@@ -267,7 +267,7 @@ export function reviewServer(): Plugin {
             : send(res, 409, { error: 'a Publish is still building' }),
         )
       })
-      // The suggestions and reports review queues, proxied to the API so the
+      // The suggestions, reports and sun reports review queues, proxied to the API so the
       // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
       // browser: GET reads the queue, POST resolves entries.
       const env = loadEnv(
@@ -310,6 +310,10 @@ export function reviewServer(): Plugin {
       server.middlewares.use(
         ADMIN_ENDPOINTS.reports,
         proxy('/v1/admin/reports', '/v1/admin/reports/resolve'),
+      )
+      server.middlewares.use(
+        ADMIN_ENDPOINTS.sun,
+        proxy('/v1/admin/sun', '/v1/admin/sun/resolve'),
       )
       // Sun preview: the horizon and height above ground at a pin, from the
       // LiDAR rasters. PROBE_DSM and PROBE_DTM (e.g. in web/.env.local)
