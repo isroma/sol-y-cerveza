@@ -119,7 +119,7 @@ export function MapControls({
               Badajoz
             </li>
             <li role="menuitem" aria-disabled="true" className="muted">
-              Más ciudades, próximamente
+              Más ciudades próximamente
             </li>
           </ul>
         )}
