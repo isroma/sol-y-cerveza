@@ -126,6 +126,22 @@ test('installs on the first visit and opens offline on the second', async ({
     expect.arrayContaining(['syc-pages-v1', 'syc-basemap-v1']),
   )
   expect(names.filter((n) => n.startsWith('syc-app-'))).toHaveLength(1)
+  // The LiDAR buildings and crowns the shadows are cast from, for offline.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const cache = await caches.open('syc-pages-v1')
+        const keys = await cache.keys()
+        return keys.map((r) => new URL(r.url).pathname).sort()
+      }),
+    )
+    .toEqual(
+      expect.arrayContaining([
+        '/sol-y-cerveza/data/buildings.json',
+        '/sol-y-cerveza/data/terraces.json',
+        '/sol-y-cerveza/data/trees.json',
+      ]),
+    )
 
   await context.setOffline(true)
   // Proof that the reload below comes from the cache: the server now has

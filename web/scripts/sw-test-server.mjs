@@ -13,6 +13,9 @@
 //   POST /__test/deploy?site=a|b|kill    serve that build from now on
 //   POST /__test/data   (JSON body)      serve this as data/terraces.json;
 //                                        an empty body restores the build's
+//
+// data/buildings.json and data/trees.json (not in the build: the deploy
+// copies them from the height-tiles branch) are the e2e/data/ fixtures.
 
 import { createServer } from 'node:http'
 import { readFile, rm } from 'node:fs/promises'
@@ -24,6 +27,10 @@ const WEB = fileURLToPath(new URL('..', import.meta.url))
 const OUT = join(WEB, 'node_modules', '.cache', 'sw-test')
 const BASE = '/sol-y-cerveza/'
 const SITES = ['a', 'b', 'kill']
+const LIDAR = {
+  'data/buildings.json': join(WEB, 'e2e', 'data', 'buildings.json'),
+  'data/trees.json': join(WEB, 'e2e', 'data', 'trees.json'),
+}
 
 const args = process.argv.slice(2)
 const port = Number(args[args.indexOf('--port') + 1] || 5299)
@@ -103,8 +110,8 @@ const server = createServer(async (request, response) => {
 
   let path = decodeURIComponent(url.pathname.slice(BASE.length)) || 'index.html'
   if (path.endsWith('/')) path += 'index.html'
-  const file = normalize(join(OUT, site, path))
-  if (!file.startsWith(join(OUT, site)))
+  const file = LIDAR[path] ?? normalize(join(OUT, site, path))
+  if (!LIDAR[path] && !file.startsWith(join(OUT, site)))
     return void response.writeHead(404).end()
   // GitHub Pages sends a 10 minute max-age on everything.
   const headers = { 'cache-control': 'max-age=600' }

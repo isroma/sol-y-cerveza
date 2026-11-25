@@ -1,5 +1,10 @@
 import { expect, test as base, type Page } from '@playwright/test'
-import { basemapStyle, SUNNY_INSTANT, terracesFile } from './fixtures.ts'
+import {
+  basemapStyle,
+  lidarFile,
+  SUNNY_INSTANT,
+  terracesFile,
+} from './fixtures.ts'
 
 // Leaf-off horizons (docs/adr/0007-seasonal-trees.md): a terrace under
 // deciduous trees is walled in by crowns all year, but open once they are
@@ -69,6 +74,9 @@ async function open(page: Page, instant: Date, file: unknown) {
   await page.clock.setFixedTime(instant)
   await page.route('**/data/terraces.json', (route) =>
     route.fulfill({ json: file }),
+  )
+  await page.route(/\/data\/(buildings|trees)\.json$/, (route) =>
+    route.fulfill({ json: lidarFile(new URL(route.request().url()).pathname) }),
   )
   await page.goto('./')
   await expect(page.locator('.pin-marker').first()).toBeVisible({

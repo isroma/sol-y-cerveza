@@ -19,8 +19,8 @@ const BUILDINGS_ZOOM = 14
 
 /**
  * OSM buildings at their LiDAR heights (each feature's `h`, in metres), with
- * the basemap's look: walls and a lighter roof cap. Real heights, without the
- * basemap's BUILDING_HEIGHT_SCALE, so they match the GPU shadows.
+ * the basemap's look: walls and a lighter roof cap. Real heights, as the
+ * shadows (prismShadows.ts) and the list use.
  */
 export const LIDAR_BUILDING_LAYERS: readonly FillExtrusionLayerSpecification[] =
   [
@@ -52,17 +52,26 @@ export const LIDAR_BUILDING_LAYERS: readonly FillExtrusionLayerSpecification[] =
   ]
 
 /**
- * Draws the LiDAR buildings in place of the basemap's 3D buildings (`?shade=gpu`
- * only), before the layer `before` when given. The basemap layers stay in the
- * style, hidden, so the night paint and the polygon shadows are unchanged.
+ * Draws the LiDAR buildings, before the layer `before` when given. Resolves
+ * to whether the file loaded; until then (and for good if it never does) the
+ * basemap's own 3D buildings stay, so the map always has buildings.
  */
 export function addLidarBuildings(
-  map: ExtrusionMap &
-    Pick<MapLibreMap, 'addLayer' | 'getLayer' | 'setLayoutProperty'>,
+  map: ExtrusionMap & Pick<MapLibreMap, 'addLayer'>,
   before: string | undefined,
-) {
-  addExtrusionSource(map, LIDAR_BUILDINGS, BUILDINGS_URL)
+): Promise<boolean> {
+  const loaded = addExtrusionSource(map, LIDAR_BUILDINGS, BUILDINGS_URL)
   for (const layer of LIDAR_BUILDING_LAYERS) map.addLayer(layer, before)
+  return loaded
+}
+
+/**
+ * Hides the basemap's 3D buildings once the LiDAR ones are in. They stay in
+ * the style, so the night paint is unchanged.
+ */
+export function hideBasemapBuildings(
+  map: Pick<MapLibreMap, 'getLayer' | 'setLayoutProperty'>,
+) {
   for (const id of BASEMAP_BUILDINGS)
     if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none')
 }

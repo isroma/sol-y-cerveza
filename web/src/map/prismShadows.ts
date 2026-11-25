@@ -21,7 +21,7 @@ import { TREES_URL } from './treeCrowns.ts'
 
 /**
  * Sun shadows as flat polygons, cast on the GPU from the prisms the map
- * draws: the LiDAR buildings and the tree crowns (`?shade=gpu`).
+ * draws: the LiDAR buildings and the tree crowns.
  *
  * Every outline edge and its heights are uploaded once. For each edge the
  * vertex shader draws a ground quad from the edge at its base height to the
@@ -77,7 +77,10 @@ void main() {
   fragColor = u_color;
 }`
 
-/** The shadows' opacity at `zoom`, as SHADOW_OPACITY in camera.ts. */
+/**
+ * The shadows' opacity at `zoom`: they come in with the 3D buildings, once
+ * the view tilts; in the flat and half-tilted views they only add grey noise.
+ */
 export function shadowOpacity(zoom: number): number {
   const t = (zoom - RELIEF_ZOOM) / (TILTED_ZOOM - RELIEF_ZOOM)
   return Math.max(0, Math.min(1, t)) * MAX_OPACITY

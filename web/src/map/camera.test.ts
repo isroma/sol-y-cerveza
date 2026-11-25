@@ -5,26 +5,10 @@ import {
   cardFolded,
   cardScale,
   FLAT_ZOOM,
-  RELIEF_ZOOM,
   TILTED_PITCH,
   TILTED_ZOOM,
   pitchForZoom,
-  SHADOW_OPACITY,
 } from './camera.ts'
-
-describe('SHADOW_OPACITY', () => {
-  it('is faint in the top view and clear once tilted', () => {
-    expect(SHADOW_OPACITY).toEqual([
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      RELIEF_ZOOM,
-      0,
-      TILTED_ZOOM,
-      0.6,
-    ])
-  })
-})
 
 describe('pitchForZoom', () => {
   it('is a flat top view when zoomed out', () => {

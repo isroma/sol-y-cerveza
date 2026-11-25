@@ -22,7 +22,7 @@ describe('shadowStep', () => {
 })
 
 describe('shadowOpacity', () => {
-  it('follows the tilt, as SHADOW_OPACITY', () => {
+  it('follows the tilt', () => {
     expect(shadowOpacity(14)).toBe(0)
     expect(shadowOpacity(18)).toBe(0.6)
   })

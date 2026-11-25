@@ -3,26 +3,20 @@ import { addExtrusionSource } from './extrusionSource.ts'
 import {
   addLidarBuildings,
   BUILDINGS_URL,
+  hideBasemapBuildings,
   LIDAR_BUILDING_LAYERS,
   LIDAR_BUILDINGS,
 } from './lidarBuildings.ts'
 import { ROOF_M } from './mapStyle.ts'
 
-vi.mock('./extrusionSource.ts', () => ({ addExtrusionSource: vi.fn() }))
+vi.mock('./extrusionSource.ts', () => ({
+  addExtrusionSource: vi.fn(async () => true),
+}))
 
 describe('addLidarBuildings', () => {
-  it('draws walls and roofs before the given layer and hides the basemap buildings', () => {
-    const map = {
-      addSource: vi.fn(),
-      getSource: vi.fn(),
-      addLayer: vi.fn(),
-      getLayer: vi.fn(),
-      setLayoutProperty: vi.fn(),
-    }
-    map.getLayer.mockImplementation((id: string) =>
-      id === 'building-3d' ? {} : undefined,
-    )
-    addLidarBuildings(map, 'building-3d')
+  it('draws walls and roofs before the given layer, and says whether they loaded', async () => {
+    const map = { addSource: vi.fn(), getSource: vi.fn(), addLayer: vi.fn() }
+    await expect(addLidarBuildings(map, 'building-3d')).resolves.toBe(true)
     expect(addExtrusionSource).toHaveBeenCalledWith(
       map,
       LIDAR_BUILDINGS,
@@ -31,6 +25,16 @@ describe('addLidarBuildings', () => {
     expect(map.addLayer.mock.calls).toEqual(
       LIDAR_BUILDING_LAYERS.map((layer) => [layer, 'building-3d']),
     )
+  })
+})
+
+describe('hideBasemapBuildings', () => {
+  it('hides the basemap buildings the style has', () => {
+    const map = { getLayer: vi.fn(), setLayoutProperty: vi.fn() }
+    map.getLayer.mockImplementation((id: string) =>
+      id === 'building-3d' ? {} : undefined,
+    )
+    hideBasemapBuildings(map)
     // Only the layers the style has (building-roof is missing here).
     expect(map.setLayoutProperty.mock.calls).toEqual([
       ['building-3d', 'visibility', 'none'],

@@ -2,6 +2,16 @@
 // stub basemap style, so the tests depend neither on the real data nor on
 // the network.
 
+import buildingsFile from './data/buildings.json' with { type: 'json' }
+import treesFile from './data/trees.json' with { type: 'json' }
+
+/** The tiny LiDAR files (data/README.md) for a request path, if it asks for one. */
+export function lidarFile(pathname: string): unknown {
+  if (pathname.endsWith('/data/buildings.json')) return buildingsFile
+  if (pathname.endsWith('/data/trees.json')) return treesFile
+  return undefined
+}
+
 /** 13:00 in Madrid (CEST) on the summer solstice: the sun is about 70° up. */
 export const SUNNY_INSTANT = new Date('2026-06-21T11:00:00Z')
 
