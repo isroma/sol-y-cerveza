@@ -47,15 +47,15 @@ Why network-first: [ADR-0011](adr/0011-network-first-service-worker.md). The bui
 
 `.github/workflows/ci.yml` runs on every PR and every push to `main`:
 
-| Job                          | Runs                                                                                                                                                       |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `changes`                    | decides which jobs the PR can affect (below)                                                                                                               |
-| `web`                        | `npm ci`, `format:check`, `lint`, `test`, `build` in `web/`                                                                                                |
-| `e2e`                        | Playwright, three jobs: `phone` (`phone,reports-phone`), `desktop` (`desktop,reports-desktop`) and `offline`, each with `E2E_PROJECTS` set to its projects |
-| `pipeline`                   | `uv sync --locked`, `ruff format --check`, `ruff check`, `mypy`, `pytest` in `pipeline/`                                                                   |
-| `api`                        | `npm ci`, `format:check`, `lint`, `typecheck`, `test`, `build:dry`, and every D1 migration applied to a fresh local database                               |
-| `ci-ok`                      | the single required check: fails if any job failed or was cancelled, or (outside a PR) was skipped                                                         |
-| `deploy-pages`, `deploy-api` | pushes to `main` only, after `ci-ok`                                                                                                                       |
+| Job                          | Runs                                                                                                                                                                                                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `changes`                    | decides which jobs the PR can affect (below)                                                                                                                                                                                                         |
+| `web`                        | `npm ci`, `format:check`, `lint`, `test`, `build` in `web/`                                                                                                                                                                                          |
+| `e2e`                        | Playwright, four jobs: `phone`, `desktop`, `reports` (`reports-phone,reports-desktop`) and `offline`, each with `E2E_PROJECTS` set to its projects. Chromium's system libraries are installed only if one is missing (the runner image has them all) |
+| `pipeline`                   | `uv sync --locked`, `ruff format --check`, `ruff check`, `mypy`, `pytest` in `pipeline/`                                                                                                                                                             |
+| `api`                        | `npm ci`, `format:check`, `lint`, `typecheck`, `test`, `build:dry`, and every D1 migration applied to a fresh local database                                                                                                                         |
+| `ci-ok`                      | the single required check: fails if any job failed or was cancelled, or (outside a PR) was skipped                                                                                                                                                   |
+| `deploy-pages`, `deploy-api` | pushes to `main` only, after `ci-ok`                                                                                                                                                                                                                 |
 
 **Path filter.** On a PR, `.github/scripts/ci-changes.sh` maps the changed paths to the jobs that read them, and the others are skipped (a skipped job counts as passed for `ci-ok`). Changes under `.github/` run everything; `web/ios/**`, `web/android/**`, `docs/`, `README.md`, `CLAUDE.md` and other files outside the code run nothing but `changes` and `ci-ok`. The full mapping is in the script and repeated above the `changes` job. Pushes to `main` run everything.
 
