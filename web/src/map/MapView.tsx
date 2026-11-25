@@ -1,3 +1,4 @@
+import { BridgeMeshLayer } from './bridgeMesh.ts'
 import {
   Map as MapLibreMap,
   Marker,
@@ -57,6 +58,7 @@ prewarm()
 
 /** Sun shadows of the LiDAR buildings and trees, cast on the GPU (prismShadows.ts). */
 const SHADOWS = 'building-shadows'
+const BRIDGE_MESH = 'bridge-mesh'
 
 /** Close enough to place a venue within a few metres (the report picker). */
 const PICK_ZOOM = 18
@@ -119,6 +121,7 @@ export function MapView({
   const sunRef = useRef(sun)
   const leafOffRef = useRef(leafOff)
   const prismLayerRef = useRef<PrismShadowLayer | null>(null)
+  const bridgeLayerRef = useRef<BridgeMeshLayer | null>(null)
   /** buildings.json loaded: the basemap's 3D buildings are hidden. */
   const lidarLoadedRef = useRef(false)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
@@ -242,6 +245,12 @@ export function MapView({
             })
           } else if (lidarLoadedRef.current) hideBasemapBuildings(map)
           if (!map.getSource(TREES)) addTreeCrowns(map, LIDAR_BUILDINGS)
+          // Puente Real's slanted pylon and cables, which extrusions can't
+          // draw; it also hands the modelled bridges' roads to their decks.
+          if (!map.getLayer(BRIDGE_MESH)) {
+            bridgeLayerRef.current ??= new BridgeMeshLayer(BRIDGE_MESH)
+            map.addLayer(bridgeLayerRef.current)
+          }
           setLeafOff(map, leafOffRef.current)
           // Made once, from the day paint, and kept across a restore: the
           // snapshot holds whatever paint the night had set.
@@ -250,6 +259,7 @@ export function MapView({
           map.setLight(sunLight(sun))
           prismLayerRef.current?.setSun(sun)
           nightSwitchRef.current(nightDepth(sun.altitude))
+          bridgeLayerRef.current?.setNight(nightDepth(sun.altitude))
           const dots = dotsUpdate(
             null,
             statusesRef.current,
@@ -337,7 +347,9 @@ export function MapView({
 
   // A dark map at night.
   useEffect(() => {
-    if (ready) nightSwitchRef.current?.(depth)
+    if (!ready) return
+    nightSwitchRef.current?.(depth)
+    bridgeLayerRef.current?.setNight(depth)
   }, [ready, depth])
 
   // Grey dots for venues without a terrace, sent only when they change (not

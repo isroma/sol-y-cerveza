@@ -23,8 +23,9 @@ own blocks at their own height (``tall_parts``). A part traced from the 2 m grid
 stair-stepped edges, so one that fills at least ``STRAIGHTEN_FILL`` of its minimum rotated
 rectangle becomes that rectangle (``straighten``), except the round domes in ``KEEP_SHAPE``;
 parts that are tree canopy (``CANOPY_PARTS``) are dropped.
-The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``), and the old
-town's landmarks are modelled by hand (``landmarks.py``).
+The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``), the old
+town's landmarks are modelled by hand (``landmarks.py``), and so are the four bridges over the
+Guadiana (``bridges.py``, which also writes ``bridge-mesh.json``).
 
 Touching buildings whose heights are within ``DISSOLVE_M`` of each other are merged, and the
 outlines are simplified by ``SIMPLIFY_M``, to keep the file small. Output: the compact format of
@@ -93,6 +94,7 @@ MERLON_EVERY_M = 2.4
 MERLON_HEIGHT_M = 1.8
 MERLON_SINK_M = 1.0  # the walls stop this far below the LiDAR height; the merlons rise above it
 OUT_PATH = Path("../web/public/data/buildings.json")
+MESH_PATH = Path("../web/public/data/bridge-mesh.json")
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -360,7 +362,10 @@ def load_osm(cache_dir: Path) -> dict[str, Any]:
         )
 
 
-def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, Any], list[Measured]]:
+def build(
+    dsm_path: Path, dtm_path: Path, cache_dir: Path
+) -> tuple[dict[str, Any], list[Measured], dict[str, Any]]:
+    """The buildings file, the measured buildings and the bridge mesh file (bridges.py)."""
     with rasterio.open(dsm_path) as dsm, rasterio.open(dtm_path) as dtm:
         grid = Grid(dsm.crs.to_string(), dsm.transform, dsm.width, dsm.height)
         surface = dsm.read(1).astype(np.float64)
@@ -379,12 +384,15 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, An
     measured = measure([*footprints(raw, to_grid), *built], heights, grid)
     parts, merlons = crenellate(straighten(drop_canopy(tall_parts(measured, heights, grid))))
     measured = [*measured, *parts]
-    # landmarks.py builds on this module's types, so it is imported here, not at the top.
-    from solycerveza import landmarks
+    # landmarks.py and bridges.py build on this module's types, so they are imported here.
+    from solycerveza import bridges, landmarks
 
     shapes = landmarks.load_outlines(cache_dir, to_grid)
     drawn, landmark_bands = landmarks.apply(measured, shapes, heights, grid)
-    return encode([*dissolve(drawn), *merlons, *landmark_bands], grid.crs), measured
+    decks = bridges.load_outlines(cache_dir, to_grid)
+    drawn, bridge_bands, mesh = bridges.apply(drawn, decks, surface, terrain, grid)
+    bands = [*dissolve(drawn), *merlons, *landmark_bands, *bridge_bands]
+    return encode(bands, grid.crs), measured, mesh
 
 
 def write_sources(measured: Sequence[Measured], path: Path) -> None:
@@ -400,12 +408,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=OUT_PATH)
     parser.add_argument("--cache", type=Path, default=CACHE_DIR)
     parser.add_argument("--sources", type=Path, help="CSV of each building's height and source")
+    parser.add_argument("--mesh-out", type=Path, default=MESH_PATH, help="the bridge mesh file")
     args = parser.parse_args(argv)
-    data, measured = build(
+    data, measured, mesh = build(
         args.cache / "badajoz_dsm.tif", args.cache / "badajoz_dtm.tif", args.cache
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
+    args.mesh_out.write_text(json.dumps(mesh, separators=(",", ":")) + "\n", encoding="utf-8")
     if args.sources:
         write_sources(measured, args.sources)
     count = sum(len(polygons) for _, _, polygons in data["g"])

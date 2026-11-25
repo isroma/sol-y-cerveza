@@ -14,8 +14,9 @@
 //   POST /__test/data   (JSON body)      serve this as data/terraces.json;
 //                                        an empty body restores the build's
 //
-// data/buildings.json and data/trees.json (not in the build: the deploy
-// copies them from the height-tiles branch) are the e2e/data/ fixtures.
+// data/buildings.json, data/trees.json and data/bridge-mesh.json (not in the
+// build: the deploy copies them from the height-tiles branch) are the
+// e2e/data/ fixtures.
 
 import { createServer } from 'node:http'
 import { readFile, rm } from 'node:fs/promises'
@@ -30,6 +31,7 @@ const SITES = ['a', 'b', 'kill']
 const LIDAR = {
   'data/buildings.json': join(WEB, 'e2e', 'data', 'buildings.json'),
   'data/trees.json': join(WEB, 'e2e', 'data', 'trees.json'),
+  'data/bridge-mesh.json': join(WEB, 'e2e', 'data', 'bridge-mesh.json'),
 }
 
 const args = process.argv.slice(2)

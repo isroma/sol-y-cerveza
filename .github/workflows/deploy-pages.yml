@@ -66,17 +66,22 @@ jobs:
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           # Offline cache kill switch: "1" ships a self-removing service worker (docs/operations.md).
           VITE_SW_KILL_SWITCH: ${{ vars.SW_KILL_SWITCH }}
-      # Tree crowns and LiDAR buildings (kept off main): the height-tiles branch's trees.json and
-      # buildings.json become data/ (docs/pipeline.md, "Map shadows"). The map casts its shadows from them.
+      # Tree crowns, LiDAR buildings and the bridge mesh (kept off main): the height-tiles branch's
+      # trees.json, buildings.json and bridge-mesh.json become data/ (docs/pipeline.md, "Map
+      # shadows"). The map casts its shadows from the first two.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: height-tiles
           path: height-tiles
           persist-credentials: false
-      - name: Add the tree crowns and LiDAR buildings
+      - name: Add the tree crowns, LiDAR buildings and bridge mesh
         run: |
           cp ../height-tiles/trees.json dist/data/trees.json
           cp ../height-tiles/buildings.json dist/data/buildings.json
+          # Until height-tiles has it, the map draws no bridge mesh and keeps the basemap's roads.
+          if [ -f ../height-tiles/bridge-mesh.json ]; then
+            cp ../height-tiles/bridge-mesh.json dist/data/bridge-mesh.json
+          fi
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: web/dist

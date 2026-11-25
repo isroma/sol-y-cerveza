@@ -2,6 +2,7 @@
 // stub basemap style, so the tests depend neither on the real data nor on
 // the network.
 
+import bridgeMeshFile from './data/bridge-mesh.json' with { type: 'json' }
 import buildingsFile from './data/buildings.json' with { type: 'json' }
 import treesFile from './data/trees.json' with { type: 'json' }
 
@@ -9,6 +10,7 @@ import treesFile from './data/trees.json' with { type: 'json' }
 export function lidarFile(pathname: string): unknown {
   if (pathname.endsWith('/data/buildings.json')) return buildingsFile
   if (pathname.endsWith('/data/trees.json')) return treesFile
+  if (pathname.endsWith('/data/bridge-mesh.json')) return bridgeMeshFile
   return undefined
 }
 
