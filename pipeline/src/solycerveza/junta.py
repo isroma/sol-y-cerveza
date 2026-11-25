@@ -33,7 +33,7 @@ from typing import Any
 
 import httpx
 
-from solycerveza.overture import same_venue
+from solycerveza.overture import NearbyVenues, same_venue
 from solycerveza.venues import CACHE_DIR, USER_AGENT, Kind, LatLon, Venue
 
 logger = logging.getLogger(__name__)
@@ -259,7 +259,7 @@ def add_register_venues(
     min_opened_year: int = MIN_OPENED_YEAR,
 ) -> tuple[list[Venue], int]:
     """Venues plus unmatched recent register rows, and how many existing venues were confirmed."""
-    kept = list(venues)
+    kept = NearbyVenues(venues)
     confirmed: set[str] = set()
     for row, location in rows:
         candidate = Venue(
@@ -269,13 +269,13 @@ def add_register_venues(
             location=location,
             outdoor_seating=None,
         )
-        match = next((v for v in kept if same_venue(candidate, v)), None)
+        match = next((v for v in kept.near(candidate.location) if same_venue(candidate, v)), None)
         if match is not None:
             confirmed.add(match.id)
             continue
         if row.opened is not None and row.opened.year >= min_opened_year:
-            kept.append(candidate)
-    return sorted(kept, key=lambda venue: venue.id), len(confirmed)
+            kept.add(candidate)
+    return sorted(kept.venues, key=lambda venue: venue.id), len(confirmed)
 
 
 def load_register(

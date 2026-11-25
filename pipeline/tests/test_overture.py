@@ -1,4 +1,5 @@
 import itertools
+import random
 from pathlib import Path
 
 import duckdb
@@ -6,6 +7,8 @@ import pytest
 
 from solycerveza.geo import BADAJOZ_BBOX, distance_m
 from solycerveza.overture import (
+    MATCH_RADIUS_M,
+    NearbyVenues,
     _similar_at_least,
     cache_path,
     fetch_places,
@@ -112,6 +115,25 @@ def test_same_venue_matches_its_definition_at_every_distance_band() -> None:
         first = venue("osm:node/1", a, 38.88, -6.97)
         second = venue("overture:a", b, 38.88 + dlat, -6.97)
         assert same_venue(first, second) == _reference_same_venue(first, second), (a, b, dlat)
+
+
+@pytest.mark.parametrize("lat", [38.88, -45.0, 0.0, 75.0, 89.5])
+def test_nearby_venues_finds_every_venue_within_the_match_radius(lat: float) -> None:
+    rng = random.Random(lat)
+    index = NearbyVenues(
+        venue(f"osm:node/{i}", "x", lat + rng.uniform(-0.01, 0.01), rng.uniform(-0.02, 0.02))
+        for i in range(600)
+    )
+    order = {v.id: i for i, v in enumerate(index.venues)}
+    for query in index.venues[:60]:
+        near = [order[v.id] for v in index.near(query.location)]
+        assert near == sorted(near)  # insertion order
+        within = {
+            order[v.id]
+            for v in index.venues
+            if distance_m(query.location, v.location) <= MATCH_RADIUS_M
+        }
+        assert within <= set(near)
 
 
 def test_merge_keeps_osm_and_drops_overture_duplicates() -> None:

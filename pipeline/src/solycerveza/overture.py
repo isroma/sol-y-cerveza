@@ -15,6 +15,7 @@ Run `python -m solycerveza.overture` to download the places for the bbox into `.
 
 import argparse
 import logging
+import math
 import re
 import unicodedata
 from collections.abc import Iterable, Sequence
@@ -301,17 +302,61 @@ def same_venue(a: Venue, b: Venue) -> bool:
     return _similar_at_least(a.name, b.name, threshold)
 
 
+# Latitude span of MATCH_RADIUS_M, with a margin for rounding: venues farther apart in latitude
+# are farther apart than MATCH_RADIUS_M (`geo.distance_m` is at least the north-south part).
+_NEAR_LAT_DEG = math.degrees(MATCH_RADIUS_M / 6_371_000) * 1.01
+
+
+class NearbyVenues:
+    """A growing list of venues, bucketed by position to find those `same_venue` could match.
+
+    `near` returns a superset of the venues within `MATCH_RADIUS_M`, in the order they were
+    added, so testing `same_venue` on them alone gives the same first match as testing every
+    venue in order.
+    """
+
+    def __init__(self, venues: Iterable[Venue] = ()) -> None:
+        self.venues: list[Venue] = []
+        self._cells: dict[tuple[int, int], list[int]] = {}
+        for venue in venues:
+            self.add(venue)
+
+    def add(self, venue: Venue) -> None:
+        key = (_cell(venue.location.lat), _cell(venue.location.lon))
+        self._cells.setdefault(key, []).append(len(self.venues))
+        self.venues.append(venue)
+
+    def near(self, location: LatLon) -> list[Venue]:
+        """Every venue that may lie within `MATCH_RADIUS_M` of `location`, in insertion order."""
+        reach = abs(location.lat) + _NEAR_LAT_DEG
+        if reach >= 89.0:  # near a pole a degree of longitude is too short to bound
+            return list(self.venues)
+        # Within MATCH_RADIUS_M, the east-west part bounds the longitude gap at the mean
+        # latitude, which is at most `reach` from the equator.
+        lon_deg = _NEAR_LAT_DEG / math.cos(math.radians(reach))
+        indexes: list[int] = []
+        for row in range(
+            _cell(location.lat - _NEAR_LAT_DEG), _cell(location.lat + _NEAR_LAT_DEG) + 1
+        ):
+            for col in range(_cell(location.lon - lon_deg), _cell(location.lon + lon_deg) + 1):
+                indexes += self._cells.get((row, col), ())
+        return [self.venues[i] for i in sorted(indexes)]
+
+
+def _cell(degrees: float) -> int:
+    return math.floor(degrees / _NEAR_LAT_DEG)
+
+
 def merge_venues(osm: Iterable[Venue], overture: Iterable[Venue]) -> list[Venue]:
     """OSM venues plus the Overture venues that duplicate neither OSM nor each other."""
-    kept = list(osm)
-    added = 0
+    kept = NearbyVenues(osm)
+    osm_count = len(kept.venues)
     for venue in overture:
-        if any(same_venue(venue, other) for other in kept):
+        if any(same_venue(venue, other) for other in kept.near(venue.location)):
             continue
-        kept.append(venue)
-        added += 1
-    logger.info("Overture adds %d venues to %d from OSM", added, len(kept) - added)
-    return sorted(kept, key=lambda venue: venue.id)
+        kept.add(venue)
+    logger.info("Overture adds %d venues to %d from OSM", len(kept.venues) - osm_count, osm_count)
+    return sorted(kept.venues, key=lambda venue: venue.id)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -155,6 +155,35 @@ def test_register_rows_confirm_matches_and_add_only_recent_unmatched_venues() ->
     assert added.id.startswith("junta:")
 
 
+def test_register_rows_match_venues_in_any_order_and_any_part_of_the_city() -> None:
+    def bar(venue_id: str, lat: float) -> Venue:
+        return Venue(
+            id=venue_id,
+            name="La Marina",
+            kind="bar",
+            location=LatLon(lat=lat, lon=-6.97),
+            outdoor_seating=None,
+        )
+
+    # A row near the first two matches both (one 80 m off, in another cell of the index).
+    existing = [bar("overture:b", 38.8808), bar("osm:node/1", 38.88), bar("osm:node/2", 38.95)]
+    for order in (existing, existing[::-1]):
+        venues, confirmed = add_register_venues(
+            order, [(row("La Marina", 2020), LatLon(lat=38.8801, lon=-6.97))]
+        )
+        assert confirmed == 1
+        assert [v.id for v in venues] == sorted(v.id for v in existing)
+    # A second row matching only the venue the first row did not confirm.
+    venues, confirmed = add_register_venues(
+        existing,
+        [
+            (row("La Marina", 2020), LatLon(lat=38.8801, lon=-6.97)),
+            (row("La Marina", 2020), LatLon(lat=38.9501, lon=-6.97)),
+        ],
+    )
+    assert confirmed == 2
+
+
 def test_geocoder_retries_server_errors_and_does_not_cache_failures(tmp_path: Path) -> None:
     answers = iter([httpx.Response(500), httpx.Response(200, json=[candidate()])])
     client = httpx.Client(transport=httpx.MockTransport(lambda _request: next(answers)))
