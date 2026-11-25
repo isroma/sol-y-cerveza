@@ -241,12 +241,15 @@ def test_main_builds_dsm_and_dtm_on_one_grid_from_local_tiles(tmp_path: Path) ->
             tmp_path / kind / "tile.TIF", np.full(shape, height, np.float32), left, top, 100.0
         )
 
+    none = tmp_path / "corrections.geojson"
+    none.write_text('{"type": "FeatureCollection", "features": []}')
     code = main(
         [
             "--dsm-dir", str(tmp_path / "mds02"),
             "--dtm-dir", str(tmp_path / "mdt02"),
             "--out-dir", str(tmp_path / "out"),
             "--resolution", "100",
+            "--corrections", str(none),
         ]
     )  # fmt: skip
 

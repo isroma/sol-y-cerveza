@@ -7,7 +7,9 @@ Run from ``pipeline/``::
 
 Both write ``.cache/badajoz_dsm.tif`` and ``.cache/badajoz_dtm.tif``: float32 GeoTIFFs in
 ETRS89 / UTM 29N (EPSG:25829) on one shared grid that covers ``BADAJOZ_BBOX``, with orthometric
-heights in metres. Products, licence and caveats: ``docs/research/lidar.md``.
+heights in metres. The surface is then set to the terrain in the reviewed ``ground`` areas of
+``data/surface_corrections.geojson`` (``surface_corrections.py``). Products, licence and caveats:
+``docs/research/lidar.md``.
 """
 
 import argparse
@@ -30,6 +32,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 from solycerveza.geo import BADAJOZ_BBOX, BoundingBox
+from solycerveza.surface_corrections import CORRECTIONS_PATH, areas, flatten, load_corrections
 
 log = logging.getLogger(__name__)
 
@@ -322,6 +325,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--dtm-dir", type=Path, default=CACHE_DIR / "cnig" / "mdt02")
     parser.add_argument("--wcs-dir", type=Path, default=CACHE_DIR / "wcs")
     parser.add_argument("--out-dir", type=Path, default=CACHE_DIR)
+    parser.add_argument(
+        "--corrections",
+        type=Path,
+        default=CORRECTIONS_PATH,
+        help="reviewed surface corrections (GeoJSON); its ground areas are flattened",
+    )
     parser.add_argument("--resolution", type=float, default=2.0, help="output cell size (m)")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -343,8 +352,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         outputs = [("dsm", dsm, MDS02_ATTRIBUTION), ("dtm", dtm, MDT02_ATTRIBUTION)]
 
+    rasters = {kind: mosaic(sources, grid) for kind, sources, _ in outputs}
+    ground = areas(load_corrections(args.corrections), "ground", grid.crs)
+    rasters["dsm"], flattened = flatten(
+        rasters["dsm"], rasters["dtm"], ground, grid.transform, NODATA
+    )
+    log.info("flattened %d surface cells in %d reviewed ground areas", flattened, len(ground))
     for kind, sources, attribution in outputs:
-        data = mosaic(sources, grid)
+        data = rasters[kind]
         valid = data != NODATA
         if not valid.any():
             raise RuntimeError(f"no {kind} source overlaps the Badajoz bbox: {sources}")
