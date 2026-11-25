@@ -16,16 +16,18 @@ import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import {
   cardFolded,
-  cardScale,
   pitchForZoom,
   RELIEF_ZOOM,
   SHADOW_OPACITY,
 } from './camera.ts'
-import { dotsData, dotsUpdate } from './dots.ts'
+import { fitCard, focusVenue, sizeCard } from './cardFit.ts'
+import { addDotLayers, DOTS_SOURCE } from './dotLayers.ts'
+import { dotsUpdate } from './dots.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
+import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { ShadowCache } from './shadowLayer.ts'
@@ -39,136 +41,9 @@ setWorkerUrl(workerUrl)
 prewarm()
 
 const SHADOWS = 'building-shadows'
-const DOTS_SOURCE = 'venues-unconfirmed'
-const DOTS_LAYER = 'venues-unconfirmed'
-const LABELS_LAYER = 'venues-unconfirmed-labels'
-/** From this zoom, unconfirmed venues show their name next to the dot. */
-const LABELS_ZOOM = 16.5
-
-/** City overview in the top view: the old town, the river and the south-west districts. */
-const INITIAL_ZOOM = 13.8
-const INITIAL_VIEW = {
-  center: [-6.978, 38.8725] as [number, number],
-  zoom: INITIAL_ZOOM,
-  pitch: pitchForZoom(INITIAL_ZOOM),
-  bearing: 0,
-}
-
-const MAP_LOCALE = {
-  'AttributionControl.ToggleAttribution': 'Mostrar u ocultar la atribución',
-  'AttributionControl.MapFeedback': 'Comentarios sobre el mapa',
-  'Map.Title': 'Mapa',
-}
 
 /** Close enough to place a venue within a few metres (the report picker). */
 const PICK_ZOOM = 18
-
-/** Size the venue card for a zoom (see cardScale). */
-function sizeCard(el: HTMLElement, zoom: number) {
-  el.style.setProperty('--card-scale', String(cardScale(zoom)))
-}
-
-const FIT_MARGIN = 16
-const FIT_GAP = 8
-
-/**
- * Pan so the open card sits fully inside the map and clear of the floating
- * controls (city, buttons, legend). A card too tall for the space below the
- * side buttons moves sideways past them, if it fits, to use the full height.
- * If it is still taller than the free space, cap its height (`--card-max`)
- * so the card body scrolls instead.
- */
-function fitCard(map: MapLibreMap, card: HTMLElement, wrap: HTMLElement) {
-  const box = wrap.getBoundingClientRect()
-  const cardRect = card.querySelector('.pin-card')?.getBoundingClientRect()
-  if (!cardRect || cardRect.width === 0) return
-  const controls = [
-    ...wrap.querySelectorAll('.map-city, .map-buttons, .map-legend'),
-  ].map((el) => el.getBoundingClientRect())
-
-  // The free band for the card's column, moved `shift` px sideways.
-  const space = (shift: number) => {
-    let top = box.top + FIT_MARGIN
-    let bottom = box.bottom - FIT_MARGIN
-    for (const r of controls) {
-      if (
-        r.width === 0 ||
-        r.right <= cardRect.left + shift ||
-        r.left >= cardRect.right + shift
-      )
-        continue
-      if (r.top + r.height / 2 < box.top + box.height / 2)
-        top = Math.max(top, r.bottom + FIT_GAP)
-      else bottom = Math.min(bottom, r.top - FIT_GAP)
-    }
-    return { top, bottom }
-  }
-
-  // The card's full height, even while its body is capped and scrolling.
-  const body = card.querySelector('.pin-card-body')
-  const natural = body
-    ? cardRect.height - body.clientHeight + body.scrollHeight
-    : cardRect.height
-  let shift = 0
-  let { top, bottom } = space(0)
-  if (natural > bottom - top) {
-    for (const r of controls) {
-      const past =
-        r.left > box.left + box.width / 2
-          ? r.left - FIT_GAP - cardRect.right
-          : r.right + FIT_GAP - cardRect.left
-      if (
-        past === 0 ||
-        cardRect.left + past < box.left + FIT_MARGIN ||
-        cardRect.right + past > box.right - FIT_MARGIN
-      )
-        continue
-      const moved = space(past)
-      if (moved.bottom - moved.top > bottom - top) {
-        shift = past
-        top = moved.top
-        bottom = moved.bottom
-      }
-    }
-  }
-
-  const scale = Number(card.style.getPropertyValue('--card-scale')) || 1
-  card.style.setProperty('--card-max', `${(bottom - top) / scale}px`)
-  const fresh =
-    card.querySelector('.pin-card')?.getBoundingClientRect() ?? cardRect
-  const left = box.left + FIT_MARGIN
-  const right = box.right - FIT_MARGIN
-  // Panning by +x moves the map, and the card on it, x px to the left.
-  const dx = shift
-    ? -shift
-    : fresh.left < left
-      ? fresh.left - left
-      : fresh.right > right
-        ? fresh.right - right
-        : 0
-  const dy =
-    fresh.top < top || fresh.height > bottom - top
-      ? fresh.top - top
-      : fresh.bottom > bottom
-        ? fresh.bottom - bottom
-        : 0
-  if (Math.abs(dx) > 1 || Math.abs(dy) > 1)
-    map.panBy([dx, dy], { duration: 300 })
-}
-
-/** Bring a venue into view, close enough for its full card. */
-function focusVenue(map: MapLibreMap, status: VenueStatus) {
-  const position = status.venue.terrace ?? status.venue.venue
-  const zoom = Math.max(map.getZoom(), 16.5)
-  map.easeTo({
-    center: [position.lon, position.lat],
-    zoom,
-    pitch: pitchForZoom(zoom),
-    // Venue a bit above centre, so the card below its badge fits in view.
-    offset: [0, -120],
-    duration: 900,
-  })
-}
 
 type Props = {
   statuses: readonly VenueStatus[]
@@ -186,19 +61,6 @@ type Props = {
   onCenterChange?: (center: LatLon) => void
   /** Centres the map here, zoomed in to place a point (the report picker). */
   flyTo?: LatLon | null
-}
-
-/**
- * A click inside the venue card (e.g. its price form) is not a map click.
- * Uses the path recorded at dispatch: React may have already replaced the
- * clicked element (a button that opens a form) by the time the map sees it.
- */
-function onCard(event: Event): boolean {
-  return event
-    .composedPath()
-    .some(
-      (node) => node instanceof Element && node.classList.contains('pin-card'),
-    )
 }
 
 /** How long the card takes to shrink back into its badge (see .is-closing). */
@@ -287,19 +149,7 @@ export function MapView({
         map = new MapLibreMap({
           container,
           style: sunlitStyle(base),
-          ...INITIAL_VIEW,
-          maxPitch: 70,
-          // Badajoz only: no panning off to the rest of the world.
-          maxBounds: [
-            [-7.07, 38.82],
-            [-6.89, 38.94],
-          ],
-          minZoom: 12,
-          // The tilt follows the zoom (see camera.ts), so no manual pitching.
-          pitchWithRotate: false,
-          // Smooth building edges in the 3D view.
-          canvasContextAttributes: { antialias: true },
-          locale: MAP_LOCALE,
+          ...MAP_OPTIONS,
           attributionControl: false,
         })
         sizeCard(cardEl, map.getZoom())
@@ -400,86 +250,8 @@ export function MapView({
               scheduleShadows()
           })
           map.on('idle', refreshShadows)
-          map.addSource(DOTS_SOURCE, {
-            type: 'geojson',
-            data: dotsData([], null),
-          })
+          addDotLayers(map, (id) => onSelectRef.current(id))
           dotsKeyRef.current = null
-          map.addLayer({
-            id: DOTS_LAYER,
-            type: 'circle',
-            source: DOTS_SOURCE,
-            paint: {
-              'circle-radius': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                13,
-                ['case', ['get', 'selected'], 7, 1.6],
-                15.5,
-                ['case', ['get', 'selected'], 8, 2.6],
-                17,
-                ['case', ['get', 'selected'], 10, 5.5],
-              ],
-              'circle-color': [
-                'case',
-                ['get', 'selected'],
-                '#8A6F55',
-                '#C2A88E',
-              ],
-              'circle-stroke-width': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15.5,
-                ['case', ['get', 'selected'], 3, 0.8],
-                17,
-                ['case', ['get', 'selected'], 3, 1.5],
-              ],
-              'circle-stroke-color': '#FFFFFF',
-            },
-          })
-          map.addLayer({
-            id: LABELS_LAYER,
-            type: 'symbol',
-            source: DOTS_SOURCE,
-            minzoom: LABELS_ZOOM,
-            layout: {
-              'text-field': ['get', 'name'],
-              'text-font': ['Noto Sans Regular'],
-              'text-size': 11,
-              'text-anchor': 'left',
-              'text-offset': [0.8, 0],
-              'text-max-width': 9,
-              'symbol-sort-key': ['case', ['get', 'selected'], 0, 1],
-            },
-            paint: {
-              'text-color': '#6B7280',
-              'text-halo-color': '#FFFFFF',
-              'text-halo-width': 1.5,
-            },
-          })
-          for (const layer of [DOTS_LAYER, LABELS_LAYER]) {
-            map.on('click', layer, (event) => {
-              if (onCard(event.originalEvent)) return
-              const id: unknown = event.features?.[0]?.properties['id']
-              if (typeof id === 'string') onSelectRef.current(id)
-            })
-            map.on('mouseenter', layer, () => {
-              if (map) map.getCanvas().style.cursor = 'pointer'
-            })
-            map.on('mouseleave', layer, () => {
-              if (map) map.getCanvas().style.cursor = ''
-            })
-          }
-          map.on('click', (event) => {
-            if (!map) return
-            if (onCard(event.originalEvent)) return
-            const hit = map.queryRenderedFeatures(event.point, {
-              layers: [DOTS_LAYER, LABELS_LAYER],
-            })
-            if (hit.length === 0) onSelectRef.current(null)
-          })
           nightSwitchRef.current = createNightSwitch(map, new Set([SHADOWS]))
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.
