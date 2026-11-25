@@ -131,6 +131,12 @@ describe('limitHit', () => {
       'venue',
     )
   })
+
+  it('counts every part of a multi-part change', () => {
+    const counts = { voter: DAILY_LIMIT - 2, network: 0, venue: 0 }
+    expect(limitHit(counts, 2)).toBeNull()
+    expect(limitHit(counts, 3)).toBe('voter')
+  })
 })
 
 describe('misconfiguration guards', () => {
