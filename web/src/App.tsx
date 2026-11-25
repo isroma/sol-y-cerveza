@@ -8,6 +8,7 @@ import {
 import {
   applyFilters,
   DEFAULT_FILTERS,
+  matchesQuery,
   type Filters,
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
@@ -195,10 +196,10 @@ export function App() {
     },
     [draft],
   )
-  const startAdd = useCallback(() => {
+  const startAdd = useCallback((name?: string) => {
     setMenuOpen(false)
     setSelectedId(null)
-    setPicking({ kind: 'add' })
+    setPicking(name ? { kind: 'add', name } : { kind: 'add' })
   }, [])
   const stopPicking = useCallback(() => {
     // A move returns to its card's back; adding a venue just ends.
@@ -287,6 +288,11 @@ export function App() {
             selectedId={selectedId}
             onSelect={selectFromList}
             onAdd={canSend ? startAdd : undefined}
+            query={query}
+            nameUnknown={
+              query.trim() !== '' &&
+              !statuses.some((s) => matchesQuery(s.venue.name, query))
+            }
           />
         )}
       </aside>

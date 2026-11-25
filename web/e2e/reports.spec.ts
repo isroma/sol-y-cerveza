@@ -237,7 +237,7 @@ test('adds a missing venue from the menu', async ({ page, reports }) => {
   })
   if (isPhone(page))
     await page.getByRole('button', { name: 'Abrir menú' }).click()
-  await page.getByRole('button', { name: '¿Falta un bar? Añádelo' }).click()
+  await page.getByRole('button', { name: 'Añadir un bar que falta' }).click()
   const bar = page.getByRole('region', { name: 'Añadir un bar' })
   await expect(bar).toBeFocused()
   await expect(page.getByRole('searchbox', { name: /Buscar bar/ })).toBeVisible(
