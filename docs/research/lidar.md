@@ -9,6 +9,7 @@ Research for #4. The pipeline step is `python -m solycerveza.obstacles` (run fro
 - **CRS:** ETRS89 / UTM 29N (EPSG:25829), the CNIG "H29"/"HU29" files. No reprojection is needed for these sheets.
 - **Licence:** CC-BY 4.0 compatible (Orden FOM/2807/2015). Attribution for our derived rasters: `Obra derivada de MDS02 2015-2021 CC-BY 4.0 scne.es` and `Obra derivada de MDT02-cob2 2015-2021 CC-BY 4.0 scne.es`.
 - **Downloads can't be scripted.** The CNIG Centro de Descargas guards every download with reCAPTCHA v3 plus a browser-automation check, so the 2 m sheets must be downloaded by hand ([steps below](#manual-download-mds02--mdt02)).
+- **Newer data (checked 2026-11-25, #442):** the 3rd coverage was flown over Badajoz in Jun – Sep 2023 and is downloadable for sheet 0775, but only at 0.5 m (MDS50cm/MDT50cm) and only as provisional v1 models. There is no 2 m 3rd-coverage model. Recommendation: switch to it, but via v2 ([details](#3rd-coverage-for-badajoz-checked-2026-11-25)).
 - **Automated fallback:** the IGN WCS download services serve MDS05 and MDT05 (5 m, 1st coverage, flown 2009–2010) with no captcha: `--source wcs`. The rasters built from them pass the sanity checks below and are usable until someone downloads the 2 m sheets.
 
 ## Products
@@ -17,8 +18,9 @@ Research for #4. The pipeline step is `python -m solycerveza.obstacles` (run fro
 | --- | --- | --- | --- | --- | --- |
 | [MDS02, 2ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-superficies-mds02-segunda-cobertura) | 2nd, Jul 2018 – Apr 2019 | 2 m, COG | MTN25 sheet | CNIG, manual | `Obra derivada de MDS02 2015-2021 CC-BY 4.0 scne.es` |
 | [MDT02, 2ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt02-segunda-cobertura) | 2nd, Jul 2018 – Apr 2019 | 2 m, COG | MTN25 sheet | CNIG, manual | `Obra derivada de MDT02-cob2 2015-2021 CC-BY 4.0 scne.es` |
-| [MDS50cm, 3ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-superficies-mds50cm-tercera-cobertura) | 3rd, Jun – Sep 2023 | 0.5 m, COG | 1:5,000 cut (MTN50 split 8 × 8) | CNIG, manual | `Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es` |
-| [MDT50cm, 3ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt50cm) | 3rd, Jun – Sep 2023 | 0.5 m, COG | 1:5,000 cut | CNIG, manual | `Obra derivada de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es` |
+| [MDS50cm, 3ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-superficies-mds50cm-tercera-cobertura) | 3rd, Jun – Sep 2023 (v1 only, published 2026-09-11) | 0.5 m, COG | 1:5,000 cut (MTN50 split 8 × 8) | CNIG, manual | `Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es` |
+| [MDT50cm, 3ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/modelo-digital-terreno-mdt50cm) | 3rd, Jun – Sep 2023 (v1 only, published 2026-07-09) | 0.5 m, COG | 1:5,000 cut | CNIG, manual | `Obra derivada de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es` |
+| [LiDAR point clouds, 3ª cobertura](https://centrodedescargas.cnig.es/CentroDescargas/lidar-tercera-cobertura) | 3rd, Jun – Sep 2023 | 5 points/m², LAZ, RGBI | 1 × 1 km | CNIG, manual | not checked |
 | MDS05 ([WCS](https://wcs-mds.idee.es/mds?service=WCS&request=GetCapabilities), coverage `mds05`) | 1st, Oct 2009 – Sep 2010 | 5 m, served in EPSG:25830 | any subset | automated | `Obra derivada de MDS05 2008-2015 CC-BY 4.0 scne.es` |
 | MDT05 ([WCS](https://servicios.idee.es/wcs-inspire/mdt?service=WCS&request=GetCapabilities), coverage `Elevacion25830_5`) | 1st (presumably, see below) | 5 m, EPSG:25830 | any subset | automated | `Obra derivada de MDT05-cob1 2008-2015 CC-BY 4.0 scne.es` |
 
@@ -28,7 +30,7 @@ Notes:
 - **Flight dates per lot** come from the PNOA-LiDAR status pages ([1st](https://pnoa.ign.es/web/portal/pnoa-lidar/primera-cobertura), [2nd](https://pnoa.ign.es/web/portal/pnoa-lidar/segunda-cobertura) and [3rd](https://pnoa.ign.es/web/portal/pnoa-lidar/tercera-cobertura) coverage):
   - 1st coverage, lot "Extremadura Sur": Oct 2009 – Sep 2010, 0.5 points/m², Leica ALS50.
   - 2nd coverage, "Extremadura Sur": Jul 2018 – Apr 2019, 1 point/m², Leica ALS80. The "Extremadura Norte" lot (Oct 2018 – Mar 2019, 2 points/m²) covers the north.
-  - 3rd coverage, Extremadura: Jun – Sep 2023, 5 points/m². Provisional MDT/MDS ("v1") are published. Final v2 models are expected in the 2nd half of 2026, derived products in the 1st half of 2027.
+  - 3rd coverage, Extremadura: Jun – Sep 2023, 5 points/m². Provisional MDT/MDS ("v1") are published. Final v2 models are expected in the 2nd half of 2026, derived products in the 1st half of 2027 (status table dated September 2026). See [3rd coverage for Badajoz](#3rd-coverage-for-badajoz-checked-2026-11-25).
 - I assume Badajoz falls in the "Sur" lots; the lot boundaries were not checked. Each CNIG file listing shows the capture year per sheet ("Fecha" column), which settles it once someone opens the 0775 listing.
 - The MDT WCS doesn't say which coverage it serves. Its 5 m grid matches MDT05 (1st coverage), the only 5 m MDT that CNIG publishes.
 - The [OGC API Coverages](https://api-coverages.idee.es/collections) endpoint offers the same MDT grids (up to 5 m in EPSG:25830), but no surface model.
@@ -124,11 +126,58 @@ Notes:
 
 **Reading:** the fallback is plausible for horizons. It captures buildings and tree canopy, and the old town's topography lives in the DTM. Narrow, tall features (bell towers, pinnacles) come out several metres low, as expected from 0.5 points/m² gridded at 5 m.
 
+## 3rd coverage for Badajoz (checked 2026-11-25)
+
+Research for #442, after the review in #440 found the 2018–19 surface out of date along the Guadiana (river-island trees since removed, patched by hand in `pipeline/data/surface_corrections.geojson`). Sources: the PNOA-LiDAR [3rd-coverage status page](https://pnoa.ign.es/pnoa-lidar/tercera-cobertura) and [product list](https://pnoa.ign.es/pnoa-lidar/productos-a-descarga), the [IDEE blog post on the 3rd-coverage products](https://blog.idee.es/en/archivo/-/blogs/nuevos-productos-lidar-de-la-3-cobertura-del-pnoa), and the CNIG product pages, listings and [news](https://centrodedescargas.cnig.es/CentroDescargas/novedades), read in a browser.
+
+### What exists
+
+- **Coverage:** CNIG lists 51 MDS50cm and 51 MDT50cm files for MTN50 sheet 0775, all dated 2023. The 3rd coverage is cut by 1:5,000 sheets, not MTN25, so 0775-2/0775-4 don't apply. Names look like `MDS50CM-ETRS89-H29-0775B-6-6-COB3-V1.tif` (the `B` presumably marks the westward-extended sheet).
+- **Flight:** Jun – Sep 2023 (lot "Extremadura"), 5 points/m², point clouds coloured RGBI. In summer, so deciduous trees are in leaf.
+- **Products:**
+  - MDS50cm and MDT50cm, 0.5 m, COG, EPSG:25829 for our cuts.
+  - Point clouds (LAZ, 1 × 1 km). The status table marks Extremadura's edited classification (NPC02) "Publicada (*)", with a footnote that work continues. I didn't check the listing for our tiles.
+  - **No 2 m model.** No MDS02/MDT02 (or 1 m, 5 m) exists for the 3rd coverage, and none is announced. Normalized building/vegetation models exist only for the 1st and 2nd coverages.
+- **v1 vs v2:** v1 is provisional, interpolated from the automatic initial classification (NPC01). v2 is final, from the edited classification (NPC02), with better vegetation and building classes. CNIG says both have the same metric accuracy. Extremadura dates:
+  - MDT50cm v1: published 2026-07-09.
+  - MDS50cm v1: published 2026-09-11.
+  - v2: "Previsión 2º semestre 2026". As of the 2026-11-23 news, v2 MDT50cm has been published for other regions (16-11-2026) but not Extremadura.
+- **Licence:** the same Orden FOM/2807/2015 licence, CC-BY 4.0 compatible. Derived-work wording, verbatim from the CNIG pages: `Obra derivada de MDS50cm-cob3 2022-2025 CC-BY 4.0 scne.es` and `Obra derivada de MDT50cm-cob3 2022-2025 CC-BY 4.0 scne.es`.
+- **Download:** same CNIG Centro de Descargas, same reCAPTCHA, so by hand. On each product page, set "Ámbito" to "Hoja MTN50", type `775`, pick `0775` from the suggestions and apply the filter (three pages of results).
+
+### Cuts covering the bbox
+
+Assuming the cuts are numbered row-column from the sheet's north-west corner (row 1 north, column 1 west; not verified), each cut is 1/8 of 0775 in each direction (0.041667° × 0.020833°). The bbox then needs rows 4–8 and columns 4–7: **20 cuts per product**.
+
+- MDS50cm: 20 files, about 1.7 GB (77–95 MB each).
+- MDT50cm: 20 files, likely 2–2.5 GB (row 4 cuts are 125–132 MB each).
+- The #440 corrections (38.884–38.894° N, 6.959–6.974° W) all fall in cut **6-6** (`…-0775B-6-6-COB3-V1.tif`, 84 MB for the MDS).
+
+### Comparison with what we use
+
+|  | MDS02/MDT02 (in use) | MDS50cm/MDT50cm, 3rd coverage |
+| --- | --- | --- |
+| Flight | Jul 2018 – Apr 2019 | Jun – Sep 2023 |
+| Density | 1 point/m² | 5 points/m² |
+| Grid | 2 m | 0.5 m |
+| Files for the bbox | 2 + 2 MTN25 sheets | 20 + 20 cuts |
+| Classification | final | v1 automatic now, v2 edited pending |
+| Pipeline support | yes | no: needs cut names in `obstacles.py` and max-filter downsampling to 2 m |
+
+### Recommendation
+
+**Switch to the 3rd coverage, but use v2 if it arrives soon.**
+
+- 2023 is 4–5 years newer, at 5× the point density. That should cover new buildings and tree growth, and probably some of the Guadiana changes #440 patched by hand. It's not certain that it covers all of them: the trees may have been removed after summer 2023.
+- Before downloading 40 files, download only cut 6-6 of MDS50cm v1 and compare it with the corrections. If the river-island trees are gone in 2023, the switch removes most of the hand patching.
+- v1's automatic classification matters little for the MDS (all classes count as surface) but more for the MDT, so the nDSM is less reliable in v1. If Extremadura's v2 isn't published by about the end of Q1 2027, use v1 and repeat the sanity check.
+- The switch is pipeline work (a separate PR): add the cut grid and names to `obstacles.py`, then downsample to 2 m with a max filter for the DSM (see [Pipeline output](#pipeline-output)) and a mean or nearest filter for the DTM. The attribution strings change to the `cob3` wording above.
+
 ## Known gaps and caveats
 
 - **Age:**
   - The 2 m data is from 2018–2019 and the fallback from 2009–2010. Buildings built since then are missing, trees have grown, and demolished buildings still appear.
-  - The 3rd coverage (2023, 5 points/m², 0.5 m) is the freshest. Its final v2 models are due in late 2026.
+  - The 3rd coverage (2023, 5 points/m², 0.5 m) is the freshest. Its v1 models are published for sheet 0775; the final v2 models are due in late 2026 ([details](#3rd-coverage-for-badajoz-checked-2026-11-25)).
 - **Season:**
   - The 1st coverage was flown Oct–Sep and the 2nd Jul–Apr, so deciduous trees may be in leaf or bare depending on the date.
   - Per ADR-0001, the horizon treats every tree as opaque all year.
@@ -140,4 +189,6 @@ Notes:
 ## Open questions
 
 - [ ] Download the four MDS02/MDT02 files by hand, rerun the step and repeat the sanity check. Also record the per-sheet capture year from the CNIG listing.
-- [ ] Should we skip the 2nd coverage and go straight to the 3rd (MDS50cm/MDT50cm, 2023)? It means about 20 of the 64 1:5,000 cuts of sheet 0775 per product, about 2–3 GB each. It also needs max-filter downsampling. Better to wait for v2 (late 2026).
+- [x] ~~Should we skip the 2nd coverage and go straight to the 3rd?~~ Answered in [3rd coverage for Badajoz](#3rd-coverage-for-badajoz-checked-2026-11-25): yes, preferably with v2.
+- [ ] Download cut 0775B-6-6 of MDS50cm v1 and check whether the #440 river-island trees are gone in 2023.
+- [ ] Watch the CNIG news for Extremadura's MDS50cm/MDT50cm v2.
