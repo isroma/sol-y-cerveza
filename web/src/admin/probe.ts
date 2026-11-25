@@ -1,13 +1,13 @@
 import { z } from 'zod'
 import { insideBadajoz } from '../data/geo.ts'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 /**
  * The sun probe: horizon and height above ground at one point, computed by
  * `python -m solycerveza.probe` (pipeline/src/solycerveza/probe.py) and served
- * by the dev server at PROBE_API. Pure: shared by the admin page and its
+ * by the dev server at ADMIN_ENDPOINTS.probe. Pure: shared by the admin page and its
  * dev-server endpoint.
  */
-export const PROBE_API = '/__admin/probe'
 
 /** Positions are rounded to 5 decimals (about 1 m) for requests and the cache. */
 const DECIMALS = 5
@@ -52,7 +52,7 @@ export function probeKey(at: Position): string {
 
 export function probeUrl(at: Position): string {
   const { lat, lon } = roundPosition(at)
-  return `${PROBE_API}?lat=${lat.toFixed(DECIMALS)}&lon=${lon.toFixed(DECIMALS)}`
+  return `${ADMIN_ENDPOINTS.probe}?lat=${lat.toFixed(DECIMALS)}&lon=${lon.toFixed(DECIMALS)}`
 }
 
 /**

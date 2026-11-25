@@ -30,13 +30,13 @@ Names only; values live in GitHub, Cloudflare or local files that are never comm
 
 Why network-first: [ADR-0011](adr/0011-network-first-service-worker.md). The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `serviceWorker` plugin in `web/vite.config.ts`). It is never registered in dev (`npm run dev`, `npm run admin`), in the admin or inside the Capacitor apps (`web/src/registerServiceWorker.ts`).
 
-| Request                                            | Strategy                                                                                                                                         |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `assets/*-<hash>.*`                                | Precached at install, cache-first. One cache per build (`syc-app-<build>`); the previous build's is kept so pages still open on it keep working. |
-| The page, `data/terraces.json`, icons, other files | Network-first, past the HTTP cache (revalidated), 3 s timeout; the cache only when offline, slow or on a 5xx. A late response still updates it.  |
-| OpenFreeMap style and TileJSON                     | Network-first with the same timeout (they name the tile version to load).                                                                        |
-| OpenFreeMap tiles, glyphs, sprites                 | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                                 |
-| Prices API `GET /v1/prices`                        | Network-first. Writes (`POST /v1/changes`, `POST /v1/reports`, owner mode's `/v1/owner/*`) and everything else are not touched.                  |
+| Request                                            | Strategy                                                                                                                                                                                                                     |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets/*-<hash>.*`                                | Precached at install, cache-first; chunks only owner tools import (exifr, for photos) are cached on first use. One cache per build (`syc-app-<build>`); the previous build's is kept so pages still open on it keep working. |
+| The page, `data/terraces.json`, icons, other files | Network-first, past the HTTP cache (revalidated), 3 s timeout; the cache only when offline, slow or on a 5xx. A late response still updates it.                                                                              |
+| OpenFreeMap style and TileJSON                     | Network-first with the same timeout (they name the tile version to load).                                                                                                                                                    |
+| OpenFreeMap tiles, glyphs, sprites                 | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                                                                                                             |
+| Prices API `GET /v1/prices`                        | Network-first. Writes (`POST /v1/changes`, `POST /v1/reports`, owner mode's `/v1/owner/*`) and everything else are not touched.                                                                                              |
 
 **Updates.** A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloads an open page; its next load is the new version. If a page asks for a map chunk that a deploy removed and no cache has, `LazyMapView` reloads once (guarded by `sessionStorage`, no loops) and then shows "No se pudo cargar el mapa".
 

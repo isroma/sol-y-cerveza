@@ -5,12 +5,12 @@ import {
   fitWithin,
   MAX_CENTS,
   MIN_CENTS,
-  PHOTO_API,
   photoResponseSchema,
   proposalName,
   type Proposal,
 } from './pricePhoto.ts'
 import { priceKey, type VenuePrice } from './pricesCsv.ts'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 type Props = {
   venueId: string
@@ -28,7 +28,7 @@ type Status = z.infer<typeof statusSchema>
 // Whether the dev server has ANTHROPIC_API_KEY: asked once per admin session.
 let statusRequest: Promise<Status> | null = null
 function fetchStatus(): Promise<Status> {
-  statusRequest ??= fetch(PHOTO_API)
+  statusRequest ??= fetch(ADMIN_ENDPOINTS.pricePhoto)
     .then(async (response) => statusSchema.parse(await response.json()))
     .catch(() => ({
       enabled: false,
@@ -97,7 +97,7 @@ export function PricePhoto({ venueId, prices, today, onSave }: Props) {
     setReading(true)
     try {
       const image = await encodePhoto(file)
-      const response = await fetch(PHOTO_API, {
+      const response = await fetch(ADMIN_ENDPOINTS.pricePhoto, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image, mediaType: 'image/jpeg' }),

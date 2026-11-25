@@ -3,7 +3,7 @@
 The reference for how Sol y Cerveza looks, sounds and behaves. Use it before adding a screen, a component, a colour or a piece of copy. The live product is the source of truth for anything this document doesn't cover; if they disagree, fix one of them in the same PR.
 
 - Palette at a glance: [`palette.svg`](palette.svg)
-- Machine-readable tokens: [`tokens.json`](tokens.json) (mirrors `web/src/index.css`, `web/src/ui/categoryStyle.ts`, `web/src/map/mapStyle.ts` and `web/src/map/night.ts`)
+- Machine-readable tokens: [`tokens.json`](tokens.json) (mirrors `web/src/styles/` (`tokens.css`, `night.css`), `web/src/ui/categoryStyle.ts`, `web/src/map/mapStyle.ts` and `web/src/map/night.ts`)
 
 ![Sol y Cerveza palette](palette.svg)
 
@@ -148,7 +148,7 @@ Numbers that change (times, durations, prices) use `font-variant-numeric: tabula
 
 ## 5. Layout, space and depth
 
-Spacing follows a **4-point grid**, and every value comes from the tokens in `web/src/index.css` (`--space-*`, `--radius-*`, `--control`, `--map-inset`). If a value isn't on the scale, it's wrong.
+Spacing follows a **4-point grid**, and every value comes from the tokens in `web/src/styles/tokens.css` (`--space-*`, `--radius-*`, `--control`, `--map-inset`). If a value isn't on the scale, it's wrong.
 
 | Token       | Value | Typical use                                          |
 | ----------- | ----- | ---------------------------------------------------- |

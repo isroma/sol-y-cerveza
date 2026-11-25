@@ -97,11 +97,11 @@ Only one Publish builds at a time.
 
 ## Owner mode on the phone
 
-The owner can also record prices at the bar from the public site on a phone ([ADR-0005](adr/0005-price-suggestions.md), "Owner mode"): a private link `#owner=<OWNER_TOKEN>` turns it on and keeps the token in the phone's local storage. The venue card then shows price fields that save straight to the API (`PUT`/`DELETE /v1/owner/prices`), and "Foto de la carta" reads a price-board photo with the Claude API (`POST /v1/owner/photo`, at most 50 a day). The token can only add or remove prices and read photos. Owner prices live in the API's database; copying them into `venue_prices.csv` (`GET /v1/admin/owner-prices` exists for it) is not built yet.
+The owner can also record prices at the bar from the public site on a phone ([ADR-0005](adr/0005-price-suggestions.md), "Owner mode"): a private link `#owner=<OWNER_TOKEN>` turns it on and keeps the token in the phone's local storage. The venue card then shows price fields that save straight to the API (`PUT`/`DELETE /v1/owner/prices`), and "Foto de la carta" reads a price-board photo with the Claude API (`POST /v1/owner/photo`, at most 50 a day). The token can only add or remove prices and read photos (`web/src/prices/owner.ts`). Owner prices live in the API's database; copying them into `venue_prices.csv` (`GET /v1/admin/owner-prices` exists for it) is not built yet.
 
 ## Dev-server endpoints
 
-All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON.
+All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON. The paths are named once, in `web/src/admin/endpoints.ts`, which the admin page and the dev server both import; `web/reviewServer.test.ts` checks that the server mounts exactly those.
 
 | Endpoint                    | Methods          | What                                                                                                      |
 | --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |

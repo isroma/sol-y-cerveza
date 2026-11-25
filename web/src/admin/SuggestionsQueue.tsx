@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { BRAND_NAMES, BRANDS, formatCents, ITEMS } from '../data/prices.ts'
-
-const API = '/__admin/suggestions'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 const groupSchema = z.object({
   venue_id: z.string(),
@@ -19,7 +18,7 @@ async function fetchQueue(): Promise<{
   error: string | null
 }> {
   try {
-    const response = await fetch(API)
+    const response = await fetch(ADMIN_ENDPOINTS.suggestions)
     const body: unknown = await response.json()
     if (!response.ok) {
       const parsed = z.object({ error: z.string() }).safeParse(body)
@@ -70,7 +69,7 @@ export function SuggestionsQueue({ nameOf, onSelect, onAccept }: Props) {
     status: 'accepted' | 'rejected',
   ) => {
     if (status === 'accepted') await onAccept(group)
-    await fetch(API, {
+    await fetch(ADMIN_ENDPOINTS.suggestions, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

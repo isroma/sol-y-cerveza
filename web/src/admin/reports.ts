@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { distanceMetres } from '../data/geo.ts'
 import type { LatLon } from '../data/terraces.ts'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 import { KINDS, type nextReview } from './review.ts'
 
 /**
@@ -138,14 +139,12 @@ export function reportChange(
   }
 }
 
-export const REPORTS_API = '/__admin/reports'
-
 export async function fetchReports(): Promise<{
   reports: VenueReport[] | null
   error: string | null
 }> {
   try {
-    const response = await fetch(REPORTS_API)
+    const response = await fetch(ADMIN_ENDPOINTS.reports)
     const body: unknown = await response.json()
     if (!response.ok) {
       const parsed = z.object({ error: z.string() }).safeParse(body)

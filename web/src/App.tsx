@@ -144,7 +144,7 @@ export function App() {
         'content',
         depth === null ? '#FFC53D' : mixHex('#2D3348', '#141826', depth),
       )
-    // Dusk is softer than deep night (see .app.is-night in index.css).
+    // Dusk is softer than deep night (see .app.is-night in styles/night.css).
     document.documentElement.style.setProperty(
       '--night-depth',
       String(depth ?? 1),
