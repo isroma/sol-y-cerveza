@@ -1,5 +1,11 @@
+import { memo } from 'react'
 import type { Terrace } from '../data/terraces.ts'
-import { STATE_COLORS, STATE_LABELS, stateOf } from './mapState.ts'
+import {
+  STATE_COLORS,
+  STATE_LABELS,
+  stateOf,
+  type MapState,
+} from './mapState.ts'
 import { LOOK_REASONS, type LookReason } from './needsLook.ts'
 import type { Review } from './review.ts'
 
@@ -15,8 +21,56 @@ type Props = {
   pinMoved: (id: string) => boolean
 }
 
+type RowProps = {
+  venue: Terrace
+  state: MapState
+  current: boolean
+  onSelect: (id: string) => void
+  /** With "Needs a look": why it is on it. */
+  lookReasons: string | null
+  /** With "Needs a look": whether its pin moved since the build. */
+  moved: boolean
+}
+
+// Memoised, like the list: it holds hundreds of venues, and the admin
+// re-renders on every selection and pin drag.
+const VenueRow = memo(function VenueRow({
+  venue,
+  state,
+  current,
+  onSelect,
+  lookReasons,
+  moved,
+}: RowProps) {
+  return (
+    <li>
+      <button
+        type="button"
+        aria-current={current ? 'true' : undefined}
+        onClick={() => onSelect(venue.id)}
+      >
+        <span
+          className="admin-dot"
+          style={{ background: STATE_COLORS[state] }}
+          title={STATE_LABELS[state]}
+        />
+        <span className="admin-name">
+          {venue.name}
+          {lookReasons !== null && (
+            <span className="admin-look">
+              {lookReasons}
+              {moved && ' · pin moved since the build'}
+            </span>
+          )}
+        </span>
+        <span className="admin-kind">{venue.kind}</span>
+      </button>
+    </li>
+  )
+})
+
 /** The venue list outside the review queue. */
-export function VenueListPanel({
+export const VenueListPanel = memo(function VenueListPanel({
   venues,
   reviews,
   selectedId,
@@ -26,36 +80,20 @@ export function VenueListPanel({
 }: Props) {
   return (
     <ol className="admin-list">
-      {venues.map((v) => {
-        const state = stateOf(v, reviews.get(v.id))
-        return (
-          <li key={v.id}>
-            <button
-              type="button"
-              aria-current={v.id === selectedId ? 'true' : undefined}
-              onClick={() => onSelect(v.id)}
-            >
-              <span
-                className="admin-dot"
-                style={{ background: STATE_COLORS[state] }}
-                title={STATE_LABELS[state]}
-              />
-              <span className="admin-name">
-                {v.name}
-                {looks && (
-                  <span className="admin-look">
-                    {(looks.get(v.id) ?? [])
-                      .map((r) => LOOK_REASONS[r])
-                      .join(' · ')}
-                    {pinMoved(v.id) && ' · pin moved since the build'}
-                  </span>
-                )}
-              </span>
-              <span className="admin-kind">{v.kind}</span>
-            </button>
-          </li>
-        )
-      })}
+      {venues.map((v) => (
+        <VenueRow
+          key={v.id}
+          venue={v}
+          state={stateOf(v, reviews.get(v.id))}
+          current={v.id === selectedId}
+          onSelect={onSelect}
+          lookReasons={
+            looks &&
+            (looks.get(v.id) ?? []).map((r) => LOOK_REASONS[r]).join(' · ')
+          }
+          moved={looks !== null && pinMoved(v.id)}
+        />
+      ))}
     </ol>
   )
-}
+})

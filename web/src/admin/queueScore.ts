@@ -1,5 +1,5 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
-import { distanceMetres } from '../data/geo.ts'
+import { distanceMetres, latitudeGapMetres } from '../data/geo.ts'
 import {
   isStrong,
   JUNK_LABELS,
@@ -132,8 +132,12 @@ export function scoreVenues(
     const review = reviews.get(venue.id)
     const at = positionOf(venue, review)
     const fromCentre = distanceMetres(at, centre)
+    // The latitude test first skips most pairs: this runs on every review.
     const near = confirmed.filter(
-      (c) => c.id !== venue.id && distanceMetres(c.at, at) <= CLUSTER_M,
+      (c) =>
+        c.id !== venue.id &&
+        latitudeGapMetres(c.at, at) <= CLUSTER_M &&
+        distanceMetres(c.at, at) <= CLUSTER_M,
     ).length
     const source = sourceValue(venue)
     const best = proposals.get(venue.id)?.[0]

@@ -1,5 +1,5 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
-import { distanceMetres } from '../data/geo.ts'
+import { distanceMetres, latitudeGapMetres } from '../data/geo.ts'
 import type { Review } from './review.ts'
 
 /**
@@ -42,6 +42,7 @@ export const STRONG: ReadonlySet<JunkSignal> = new Set([
 export const DUPLICATE_M = 300
 export const FAR_M = 4000
 export const ISOLATED_M = 250
+const REACH_M = Math.max(DUPLICATE_M, ISOLATED_M)
 
 export function normalize(name: string): string {
   return name
@@ -107,20 +108,27 @@ export function junkSignalsAll(
     if (NOT_A_VENUE.test(name)) signals.push('name')
     if (TAKEAWAY.test(name)) signals.push('takeaway')
     if (TRAILING_TOWN.test(name)) signals.push('other_town')
-    let nearest = Infinity
+    // Whether another venue is within ISOLATED_M. This runs on every review
+    // change, so pairs that can't change a signal skip the full distance:
+    // once one venue is near, only same-name venues count, and none counts
+    // beyond both radii north–south.
+    let near = false
     let duplicate: JunkSignal | null = null
     for (const other of others) {
       if (other.id === venue.id) continue
+      const sameName = other.name === name
+      if (near && !sameName) continue
+      if (latitudeGapMetres(venue.venue, other.at) > REACH_M) continue
       const d = distanceMetres(venue.venue, other.at)
-      nearest = Math.min(nearest, d)
-      if (d > DUPLICATE_M || other.name !== name) continue
+      if (d <= ISOLATED_M) near = true
+      if (d > DUPLICATE_M || !sameName) continue
       if (other.settled) duplicate = 'duplicate'
       else if (duplicate === null && other.id < venue.id)
         duplicate = 'duplicate_overture'
     }
     if (duplicate) signals.push(duplicate)
     if (distanceMetres(venue.venue, centre) > FAR_M) signals.push('far')
-    if (nearest > ISOLATED_M) signals.push('isolated')
+    if (!near) signals.push('isolated')
     out.set(venue.id, signals)
   }
   return out

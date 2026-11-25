@@ -3,6 +3,7 @@ import {
   cleanVenueName,
   distanceMetres,
   insideBadajoz,
+  latitudeGapMetres,
   VENUE_ID,
 } from './geo.ts'
 
@@ -36,6 +37,28 @@ describe('distanceMetres', () => {
     expect(
       distanceMetres({ lat: 38.878, lon: -6.97 }, { lat: 38.878, lon: -6.97 }),
     ).toBe(0)
+  })
+})
+
+describe('latitudeGapMetres', () => {
+  it('is never more than distanceMetres', () => {
+    const a = { lat: 38.878, lon: -6.97 }
+    for (const b of [
+      a,
+      { lat: 38.879, lon: -6.97 },
+      { lat: 38.8771, lon: -6.9712 },
+      { lat: 38.9, lon: -6.95 },
+      { lat: 38.84, lon: -7.04 },
+    ]) {
+      expect(latitudeGapMetres(a, b)).toBeLessThanOrEqual(distanceMetres(a, b))
+      expect(latitudeGapMetres(b, a)).toBeLessThanOrEqual(distanceMetres(a, b))
+    }
+  })
+
+  it('is close to the distance due north', () => {
+    const a = { lat: 38.878, lon: -6.97 }
+    const b = { lat: 38.881, lon: -6.97 }
+    expect(distanceMetres(a, b) - latitudeGapMetres(a, b)).toBeCloseTo(1, 3)
   })
 })
 

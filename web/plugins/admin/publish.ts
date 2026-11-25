@@ -109,6 +109,21 @@ async function branchExists(branch: string): Promise<boolean> {
   return refs !== ''
 }
 
+/**
+ * Whether the review or prices file in the checkout at `dir` differs from
+ * its commit (new files included). Without that, a build ships nothing.
+ */
+export async function editsToShip(dir: string): Promise<boolean> {
+  const changed = await sh(dir, 'git', [
+    'status',
+    '--porcelain',
+    '--',
+    REVIEW,
+    PRICES,
+  ])
+  return changed !== ''
+}
+
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms))
 
 /**
@@ -201,6 +216,11 @@ async function publishReview(mine: number): Promise<void> {
     ])
     await writeFile(join(dir, REVIEW), csv, 'utf-8')
     if (prices !== null) await writeFile(join(dir, PRICES), prices, 'utf-8')
+    // Already live: the build (about 30 s) could not change what ships.
+    if (!(await editsToShip(dir))) {
+      update({ step: 'nothing' })
+      return
+    }
     // Rasters and downloads are gitignored: reuse this checkout's cache.
     await symlink(join(ROOT, 'pipeline/.cache'), join(dir, 'pipeline/.cache'))
     await sh(join(dir, 'pipeline'), 'uv', [
