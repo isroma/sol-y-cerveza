@@ -29,10 +29,9 @@ from solycerveza.envelope import (
     LatLonPair,
     Structures,
     envelope,
-    ground_points,
     pack_high,
     pack_low,
-    sample_points,
+    terrace_points,
 )
 from solycerveza.horizon import terrace_horizon
 from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
@@ -251,8 +250,9 @@ def build(
     structures = Structures(load_structures())
 
     def points_for(lat: float, lon: float) -> list[LatLonPair]:
-        return ground_points(
-            sample_points(lat, lon),
+        return terrace_points(
+            lat,
+            lon,
             partial(height_above_ground, dsm_path=dsm_path, dtm_path=dtm_path),
             structures.contains,
         )

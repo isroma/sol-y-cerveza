@@ -62,6 +62,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 A terrace is several metres across, and a pin is rarely placed to better than a few metres: moving it 2 m changes the single-point answer at about 7 % of daylight times. The envelope samples the terrace instead (`pipeline/src/solycerveza/envelope.py`):
 
 - Points: the pin and 8 points on a 3 m circle round it, the first due north, then clockwise.
+- Fallback: when that leaves no ground point but the pin (pin and circle all under one canopy or crown, on a roof, or inside a building), 12 points on each of a 4 m and a 5 m circle instead, used only if at least 2 of them are on open ground.
 - A point counts only on open ground: the surface model at most 1 m above the terrain there (not on a roof, under an awning or under a tree crown), and outside every closed OSM structure outline (`leafoff.load_structures`).
 - Each kept point gets a horizon like the pin's (same observer and range). `horizon_low[i]` is the lowest of them in bin `i`, `horizon_high[i]` the highest. The pin is one of the points only when it is on open ground itself, so `horizon` can lie outside the envelope.
 - **Packed encoding:** each envelope is a string of exactly 360 characters, one per bin (bin `i` as in `horizon`), in **whole degrees** from 0 to 90. The character with code point `c` stands for `c - 35` degrees below the backslash (`c < 92`) and `c - 36` above it, so the 91 characters run from `#` (0°) to `~` (90°) and none needs escaping in JSON. The low envelope is rounded down and the high one up, so rounding only widens the partial band, by under 1°. A string parses far faster than 360 numbers, and the app decodes it only when it shows partial sun.
@@ -76,7 +77,7 @@ A terrace is several metres across, and a pin is rarely placed to better than a 
 4. If `horizon` is `null`, the result is **unknown**.
 5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
 6. **Leaf-off period** (1 December to 15 March, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
-7. **Envelope** (prototype, only with `?partial=1` in the app's URL): when the terrace has an envelope, it replaces steps 3 and 6. In the leaf-off period use `horizon_low_winter`/`horizon_high_winter` when present, else `horizon_low`/`horizon_high`. With `low` and `high` decoded to degrees: **sun** if `alt > high[bin]`, **shade** if `alt <= low[bin]`, and **partial** in between (part of the terrace in sun).
+7. **Envelope**: when the terrace has an envelope (a malformed one counts as absent), it replaces steps 3 and 6. In the leaf-off period use `horizon_low_winter`/`horizon_high_winter` when present, else `horizon_low`/`horizon_high`. With `low` and `high` decoded to degrees: **sun** if `alt > high[bin]`, **shade** if `alt <= low[bin]`, and **partial** in between (part of the terrace in sun).
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 
