@@ -77,6 +77,11 @@ function palette(depth: number): Palette {
   ) as Palette
 }
 
+/** The 3D buildings' night colour at `depth`, for layers the switch can't paint. */
+export function nightBuildingColor(depth: number): string {
+  return palette(depth).buildingTop
+}
+
 const isWater = (id: string) => id.startsWith('water')
 const isGreen = (id: string) =>
   /park|wood|grass|landcover|garden|pitch/.test(id)
