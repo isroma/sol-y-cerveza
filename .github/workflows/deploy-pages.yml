@@ -67,8 +67,7 @@ jobs:
           # Offline cache kill switch: "1" ships a self-removing service worker (docs/operations.md).
           VITE_SW_KILL_SWITCH: ${{ vars.SW_KILL_SWITCH }}
       # Tree crowns and LiDAR buildings (kept off main): the height-tiles branch's trees.json and
-      # buildings.json become data/ (docs/pipeline.md, "Shadow height tiles"). The client no longer reads
-      # the branch's height tiles, so they aren't deployed.
+      # buildings.json become data/ (docs/pipeline.md, "Map shadows"). The map casts its shadows from them.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: height-tiles

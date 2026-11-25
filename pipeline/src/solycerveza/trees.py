@@ -4,8 +4,8 @@ Run from ``pipeline/`` after ``python -m solycerveza.obstacles``::
 
     python -m solycerveza.trees [--out ../web/public/data/trees.json]
 
-The GPU shadows (``web/src/map/heightShadows.ts``) march through the whole surface model, so
-trees cast shade the basemap never draws. This finds them in the same model: cells at least
+The map's GPU shadows (``web/src/map/prismShadows.ts``) are cast from what it draws, so it
+draws trees the basemap lacks. This finds them in the surface model: cells at least
 ``MIN_HEIGHT_M`` above the terrain, away from every OSM building or structure
 (``leafoff.load_structures``, buffered by ``BUILDING_BUFFER_CELLS``). Shapes narrower than
 three cells (walls, fences, lamp posts, cables) are opened away. What is left is cut into height

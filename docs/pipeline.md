@@ -50,20 +50,18 @@ To check a rebuild:
 3. Pick 3–5 terraces you know: some under plane trees or mulberries (they should gain a winter horizon), and some under orange trees, palms or pines (they should not). Run the app with the clock in January (or the admin probe) and compare.
 4. If evergreens come out as bare, raise `WINTER_DROP_MIN_NDVI` in `pipeline/src/solycerveza/leafoff.py`. If plane-tree squares are missed, lower it, or `SUMMER_MIN_NDVI`. Say what you changed in the PR.
 
-## Shadow height tiles
+## Map shadows
 
 The map's sun shadows (`web/src/map/prismShadows.ts`) are flat polygons cast on the GPU from the objects the map draws, so every shadow has a visible caster: the [LiDAR buildings](#lidar-buildings) and the [tree crowns](#tree-crowns). A worker (`prismWorker.ts`) fetches both files, decodes them with the shared codec (`extrusionCodec.ts`) and builds, once, every outline edge with its base and top height, plus the triangulated outline of each floating crown band, sorted into 250 m cells (`prismGeometry.ts`); the layer uploads them as vertex buffers (about 8 MB). For each edge the vertex shader draws a ground quad from the edge at its base to the edge at its top, each pushed away from the sun by height ÷ tan(altitude) (at most 300 m, as far as the terrace horizons look); a crown band adds its outline pushed by its base. Together these cover exactly each prism's shadow on flat ground. The sun is two uniforms, so moving the time slider recasts nothing. Each pixel is shaded once (depth test at the layer's own depth), so overlaps don't darken; only the cells near the view are drawn. There is no terrain: shadows fall on a flat ground plane. MapLibre drops custom layers when the WebGL context is lost; `MapView.tsx` re-adds them, with the rest of its runtime setup, once the context is back.
 
-Against the list, at the list's terraces and sun steps, the prisms agree 85.6 % of the time (the ray march over the height tiles below agreed 94.5 % on the same data): no terrain, one height per building, merged and simplified outlines and banded crowns cost about 9 points. The owner prefers the clean polygons; the list's answer still comes from the full horizon.
+Against the list, at the list's terraces and sun steps, the prisms agree 85.6 % of the time (an earlier prototype that marched through height tiles of the DSM and DTM agreed 94.5 % on the same data, and was dropped for it): no terrain, one height per building, merged and simplified outlines and banded crowns cost about 9 points. The owner prefers the clean polygons; the list's answer still comes from the full horizon.
 
-The earlier prototype marched from each ground pixel towards the sun through height tiles of the same DSM and DTM. `python -m solycerveza.heightmap` still writes them, as Web Mercator zoom-15 tiles of 512 px (about 1.9 m a pixel) in `web/public/data/heights/{x}/{y}.png` (gitignored: rasters are never committed); each pixel packs the surface elevation in decimetres (R, G) and its height above the terrain in quarter metres (B). The city is 110 tiles, about 14 MB. The client no longer reads them, and the deploy no longer copies them.
-
-Rasters stay off `main`: the tiles live on the orphan branch `height-tiles` (`{x}/{y}.png` at its root), next to `trees.json` and `buildings.json`, which the Pages deploy copies into the site's `data/` (`.github/workflows/deploy-pages.yml`). Regenerate the tiles only when the DSM or DTM changes, then replace the branch's tiles in one commit:
+Large files stay off `main`: `buildings.json` and `trees.json` live on the orphan branch `height-tiles` (the name is historical; the deploy uses it), which every Pages deploy copies into the site's `data/` (`.github/workflows/deploy-pages.yml`). To update one, rebuild it (below) and replace it there in one commit:
 
 ```sh
 git worktree add ../height-tiles height-tiles
-rm -rf ../height-tiles/[0-9]* && cp -R web/public/data/heights/* ../height-tiles/
-cd ../height-tiles && git add -A && git commit -m "data: regenerate shadow height tiles" && git push
+cp web/public/data/buildings.json web/public/data/trees.json ../height-tiles/
+cd ../height-tiles && git add -A && git commit -m "data: rebuild LiDAR buildings and trees" && git push
 ```
 
 The next deploy of `main` picks them up (or run **Deploy web to GitHub Pages** by hand).
