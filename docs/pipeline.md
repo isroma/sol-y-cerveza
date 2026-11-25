@@ -64,6 +64,10 @@ cd ../height-tiles && git add -A && git commit -m "data: regenerate shadow heigh
 
 The next deploy of `main` picks them up (or run **Deploy web to GitHub Pages** by hand).
 
+### Tree crowns
+
+The GPU shadows include trees' shade, so with `?shade=gpu` the map also draws the trees, from the same LiDAR. `python -m solycerveza.trees` writes `web/public/data/trees.json` (gitignored): cells at least 2.5 m above the terrain and clear of OSM buildings and structures (buffered 4 m), with shapes narrower than 6 m opened away, polygonized in height bands (2.5, 6, 11, 17 m) and smoothed. Each feature has `b` (base) and `h` (top) in metres. About 24,000 polygons, 9.4 MB (1.3 MB gzipped). Unmapped buildings, kiosks and awnings come out as trees too. It lives on the `height-tiles` branch next to the tiles; the deploy copies it to `data/trees.json`.
+
 ## Prices from venue websites
 
 ```bash

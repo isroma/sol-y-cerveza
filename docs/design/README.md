@@ -126,6 +126,7 @@ Apple Maps-like and warm. The map is the stage, not the star: low contrast, so t
 | Water            | `#9ACBEF`                                                          |
 | Streets          | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`)                      |
 | Shadows          | `#6B5848`, 0 → 0.6 opacity as the view tilts                       |
+| Trees (3D)       | `#A8C98C`, LiDAR crowns in height bands; only with `?shade=gpu`    |
 | Labels           | `#7A6B55` / `#8A7B66`, water `#4D8BC4`                             |
 
 Night map palettes: see `DUSK` and `NIGHT` in `web/src/map/night.ts` and [`tokens.json`](tokens.json).
