@@ -51,11 +51,7 @@ import {
   publishStatusSchema,
   type PublishStatus,
 } from './publishStatus.ts'
-
-const API = '/__admin/review'
-const PUBLISH_API = '/__admin/publish'
-const PRICES_API = '/__admin/prices'
-const PROPOSALS_API = '/__admin/proposals'
+import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 const CENTRE: LatLon = { lat: BADAJOZ_CENTER[1], lon: BADAJOZ_CENTER[0] }
 /** How long a batch "not a venue" waits for Undo before it is saved. */
@@ -125,24 +121,25 @@ function addedVenue(review: Review): Terrace | null {
 }
 
 async function fetchPrices(): Promise<Map<string, VenuePrice>> {
-  const response = await fetch(PRICES_API)
+  const response = await fetch(ADMIN_ENDPOINTS.prices)
   if (!response.ok)
-    throw new Error(`GET ${PRICES_API}: HTTP ${response.status}`)
+    throw new Error(`GET ${ADMIN_ENDPOINTS.prices}: HTTP ${response.status}`)
   const rows = venuePriceSchema.array().parse(await response.json())
   return new Map(rows.map((p) => [priceKey(p), p]))
 }
 
 /** The machine proposals; none when the file or the endpoint is missing. */
 async function fetchProposals(): Promise<ProposalsResponse> {
-  const response = await fetch(PROPOSALS_API)
+  const response = await fetch(ADMIN_ENDPOINTS.proposals)
   if (!response.ok)
-    throw new Error(`GET ${PROPOSALS_API}: HTTP ${response.status}`)
+    throw new Error(`GET ${ADMIN_ENDPOINTS.proposals}: HTTP ${response.status}`)
   return proposalsResponseSchema.parse(await response.json())
 }
 
 async function fetchReviews(): Promise<Map<string, Review>> {
-  const response = await fetch(API)
-  if (!response.ok) throw new Error(`GET ${API}: HTTP ${response.status}`)
+  const response = await fetch(ADMIN_ENDPOINTS.review)
+  if (!response.ok)
+    throw new Error(`GET ${ADMIN_ENDPOINTS.review}: HTTP ${response.status}`)
   const rows = reviewSchema.array().parse(await response.json())
   return new Map(rows.map((r) => [r.venueId, r]))
 }
@@ -231,7 +228,7 @@ export function Admin() {
     let stop = false
     const poll = async () => {
       try {
-        const response = await fetch(PUBLISH_API)
+        const response = await fetch(ADMIN_ENDPOINTS.publish)
         const parsed = publishStatusSchema.safeParse(await response.json())
         if (!stop && parsed.success) setPublish(parsed.data)
       } catch {
@@ -353,15 +350,18 @@ export function Admin() {
       try {
         for (const { venueId, next } of changes) {
           const response = next
-            ? await fetch(API, {
+            ? await fetch(ADMIN_ENDPOINTS.review, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(next),
               })
-            : await fetch(`${API}?venue_id=${encodeURIComponent(venueId)}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-              })
+            : await fetch(
+                `${ADMIN_ENDPOINTS.review}?venue_id=${encodeURIComponent(venueId)}`,
+                {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                },
+              )
           if (!response.ok) throw new Error(await response.text())
         }
         setMessage('Saved')
@@ -392,15 +392,18 @@ export function Admin() {
       })
       try {
         const response = next
-          ? await fetch(PRICES_API, {
+          ? await fetch(ADMIN_ENDPOINTS.prices, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(next),
             })
-          : await fetch(`${PRICES_API}?key=${encodeURIComponent(key)}`, {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-            })
+          : await fetch(
+              `${ADMIN_ENDPOINTS.prices}?key=${encodeURIComponent(key)}`,
+              {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+              },
+            )
         if (!response.ok) throw new Error(await response.text())
         setMessage('Saved')
       } catch (error) {
@@ -519,7 +522,7 @@ export function Admin() {
       ignored: [...current.ignored, key],
     }))
     try {
-      const response = await fetch(PROPOSALS_API, {
+      const response = await fetch(ADMIN_ENDPOINTS.proposals, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key }),
@@ -669,7 +672,7 @@ export function Admin() {
   const runPublish = async () => {
     try {
       // JSON, like every admin write (adminGuard.ts); the body is unused.
-      const response = await fetch(PUBLISH_API, {
+      const response = await fetch(ADMIN_ENDPOINTS.publish, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',

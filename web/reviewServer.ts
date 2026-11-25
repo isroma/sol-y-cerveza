@@ -52,6 +52,7 @@ import {
   parseProposalsCsv,
   type ProposalsResponse,
 } from './src/admin/proposals.ts'
+import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from './src/admin/endpoints.ts'
 
 const CSV = fileURLToPath(
   new URL('../pipeline/data/venue_review.csv', import.meta.url),
@@ -264,9 +265,9 @@ export function reviewServer(): Plugin {
     name: 'venue-review',
     apply: 'serve',
     configureServer(server) {
-      // First, so it covers every /__admin route below: refuses state-changing
+      // First, so it covers every admin route below: refuses state-changing
       // requests that aren't same-origin JSON (adminGuard.ts).
-      server.middlewares.use('/__admin', (req, res, next) => {
+      server.middlewares.use(ADMIN_PREFIX, (req, res, next) => {
         const refusal = adminRequestRefusal({
           method: req.method,
           headers: req.headers,
@@ -275,7 +276,7 @@ export function reviewServer(): Plugin {
         if (refusal === null) return next()
         send(res, 403, { error: refusal })
       })
-      server.middlewares.use('/__admin/publish', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.publish, (req, res) => {
         if (req.method === 'GET') return send(res, 200, publishStatus())
         if (req.method !== 'POST')
           return send(res, 405, { error: 'method not allowed' })
@@ -323,11 +324,11 @@ export function reviewServer(): Plugin {
           )
         }
       server.middlewares.use(
-        '/__admin/suggestions',
+        ADMIN_ENDPOINTS.suggestions,
         proxy('/v1/admin/suggestions', '/v1/admin/resolve'),
       )
       server.middlewares.use(
-        '/__admin/reports',
+        ADMIN_ENDPOINTS.reports,
         proxy('/v1/admin/reports', '/v1/admin/reports/resolve'),
       )
       // Sun preview: the horizon and height above ground at a pin, from the
@@ -339,7 +340,7 @@ export function reviewServer(): Plugin {
       }
       // One probe process at a time: a newer request kills the one before.
       const probes = latestOnly()
-      server.middlewares.use('/__admin/probe', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.probe, (req, res) => {
         if (req.method !== 'GET')
           return send(res, 405, { error: 'method not allowed' })
         const url = new URL(req.url ?? '/', 'http://localhost')
@@ -363,10 +364,10 @@ export function reviewServer(): Plugin {
         )
       })
       // Prices from a photo of the price board, read by the Claude API with
-      // ANTHROPIC_API_KEY (web/.env.local). Before /__admin/prices, which
-      // would otherwise match this path too.
+      // ANTHROPIC_API_KEY (web/.env.local). Before ADMIN_ENDPOINTS.prices,
+      // which would otherwise match this path too.
       const anthropicKey = env['ANTHROPIC_API_KEY'] ?? ''
-      server.middlewares.use('/__admin/prices/photo', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.pricePhoto, (req, res) => {
         if (req.method === 'GET')
           return send(res, 200, photoStatus(anthropicKey))
         if (req.method !== 'POST')
@@ -387,7 +388,7 @@ export function reviewServer(): Plugin {
           send(res, answer.status, answer.body)
         })
       })
-      server.middlewares.use('/__admin/prices', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.prices, (req, res) => {
         const run = queue.then(async () => {
           const url = new URL(req.url ?? '/', 'http://localhost')
           if (req.method === 'GET') return send(res, 200, await readPrices())
@@ -408,7 +409,7 @@ export function reviewServer(): Plugin {
         })
       })
       // Website price candidates: read them, and record accept or dismiss.
-      server.middlewares.use('/__admin/price-candidates', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.priceCandidates, (req, res) => {
         const run = queue.then(async () => {
           if (req.method === 'GET')
             return send(res, 200, {
@@ -427,8 +428,8 @@ export function reviewServer(): Plugin {
         })
       })
       // Machine proposals (venue_proposals.csv): read them, and ignore one.
-      // Accepting one writes a normal review row through /__admin/review.
-      server.middlewares.use('/__admin/proposals', (req, res) => {
+      // Accepting one writes a normal review row through ADMIN_ENDPOINTS.review.
+      server.middlewares.use(ADMIN_ENDPOINTS.proposals, (req, res) => {
         const run = queue.then(async () => {
           if (req.method === 'GET') return send(res, 200, await readProposals())
           if (req.method === 'POST') {
@@ -442,7 +443,7 @@ export function reviewServer(): Plugin {
           send(res, 400, { error: String(error) })
         })
       })
-      server.middlewares.use('/__admin/review', (req, res) => {
+      server.middlewares.use(ADMIN_ENDPOINTS.review, (req, res) => {
         const run = queue.then(() => handle(req, res))
         queue = run.catch((error: unknown) => {
           send(res, 400, { error: String(error) })
