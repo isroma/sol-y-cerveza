@@ -1,3 +1,4 @@
+import socket
 from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
@@ -11,6 +12,7 @@ from solycerveza.venues import USER_AGENT
 from solycerveza.websites import (
     Fetcher,
     Link,
+    check_public_host,
     crawl_site,
     decode,
     is_denied,
@@ -68,6 +70,7 @@ def fetcher(
     refresh: bool = False,
     max_bytes: int = 1_000_000,
     today: date = TODAY,
+    resolve: Callable[[str, int], list[str]] | None = None,
 ) -> Fetcher:
     clock = clock or Clock()
     return Fetcher(
@@ -78,7 +81,24 @@ def fetcher(
         clock=clock,
         refresh=refresh,
         max_bytes=max_bytes,
+        resolve=resolve or public_dns,
     )
+
+
+def public_dns(host: str, port: int) -> list[str]:
+    """A fake resolver: every host is one public address (tests never touch DNS)."""
+    return ["151.101.1.1"]
+
+
+def dns(table: dict[str, list[str]]) -> Callable[[str, int], list[str]]:
+    """A fake resolver from a table; a host missing from it does not resolve."""
+
+    def resolve(host: str, port: int) -> list[str]:
+        if host not in table:
+            raise socket.gaierror(socket.EAI_NONAME, "Name or service not known")
+        return table[host]
+
+    return resolve
 
 
 def page(html: str) -> httpx.Response:
@@ -101,10 +121,105 @@ HOME = """<html><body>
         ("mailto:hola@bar.es", None),
         ("bar", None),
         ("", None),
+        # IP literals, in every form a URL parser reads as an address, and localhost names
+        ("http://127.0.0.1:8080/x", None),
+        ("192.168.1.1", None),
+        ("http://169.254.169.254/latest/", None),
+        ("http://8.8.8.8/", None),
+        ("http://[::1]/", None),
+        ("http://[::ffff:127.0.0.1]/", None),
+        ("http://[fe80::1%25eth0]/", None),
+        ("http://127.1/", None),
+        ("http://0x7f.0.0.1/", None),
+        ("http://0177.0.0.1/", None),
+        ("http://2130706433/", None),
+        ("http://0x7f000001/", None),
+        ("http://127.0.0.1./", None),
+        ("http://localhost/", None),
+        ("http://localhost.:8000/", None),
+        ("http://bar.localhost/", None),
+        ("https://localhost.bar.es/", "https://localhost.bar.es/"),
+        ("https://bar2025.es/", "https://bar2025.es/"),
     ],
 )
 def test_normalize_url(raw: str, expected: str | None) -> None:
     assert normalize_url(raw) == expected
+
+
+def test_own_website_skips_private_addresses() -> None:
+    urls = ["http://127.0.0.1:8080/x", "http://192.168.1.1/", "www.bar.es"]
+    assert own_website(urls) == "http://www.bar.es/"
+
+
+@pytest.mark.parametrize(
+    ("addresses", "refused"),
+    [
+        (["151.101.1.1"], False),
+        (["151.101.1.1", "2a04:4e42::1"], False),
+        (["127.0.0.1"], True),  # e.g. localtest.me
+        (["192.168.1.10"], True),
+        (["10.0.0.1"], True),
+        (["169.254.169.254"], True),
+        (["100.64.0.1"], True),
+        (["0.0.0.0"], True),
+        (["224.0.0.1"], True),
+        (["::1"], True),
+        (["fe80::1%eth0"], True),
+        (["fd00::1"], True),
+        (["::ffff:127.0.0.1"], True),
+        (["151.101.1.1", "10.0.0.1"], True),  # one private address is enough
+        ([], True),
+    ],
+)
+def test_check_public_host(addresses: list[str], refused: bool) -> None:
+    resolve = dns({"bar.es": addresses})
+    assert (check_public_host("https://bar.es/", resolve) is not None) is refused
+
+
+def test_check_public_host_unresolvable() -> None:
+    reason = check_public_host("https://gone.es/", dns({}))
+    assert reason is not None and "does not resolve" in reason
+
+
+def test_hosts_resolving_to_private_addresses_are_never_requested(tmp_path: Path) -> None:
+    site = Site(
+        {
+            "http://localtest.me/robots.txt": httpx.Response(404),
+            "http://localtest.me/": page("<p>Caña 1,50 €</p>"),
+        }
+    )
+    resolve = dns({"localtest.me": ["127.0.0.1"]})
+    f = fetcher(site, tmp_path, resolve=resolve)
+    assert crawl_site(f, "http://localtest.me/").pages == []
+    assert site.requests == []
+    assert f.requests == 0
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_unresolvable_host_is_a_skipped_site(tmp_path: Path) -> None:
+    site = Site({"https://gone.es/": page("<p>x</p>")})
+    assert crawl_site(fetcher(site, tmp_path, resolve=dns({})), "https://gone.es/").pages == []
+    assert site.requests == []
+
+
+def test_redirect_to_a_private_host_is_not_followed(tmp_path: Path) -> None:
+    site = Site(
+        {
+            "https://bar.es/robots.txt": httpx.Response(404),
+            "https://bar.es/": httpx.Response(301, headers={"location": "https://www.bar.es/"}),
+            "https://www.bar.es/robots.txt": httpx.Response(404),
+            "https://www.bar.es/": page("<p>Caña 1,50 €</p>"),
+            "https://cafe.es/robots.txt": httpx.Response(404),
+            "https://cafe.es/": httpx.Response(
+                302, headers={"location": "http://192.168.1.1/admin"}
+            ),
+        }
+    )
+    # www.bar.es is on the same site but resolves to the owner's network.
+    resolve = dns({"bar.es": ["151.101.1.1"], "www.bar.es": ["192.168.1.1"]})
+    assert crawl_site(fetcher(site, tmp_path, resolve=resolve), "https://bar.es/").pages == []
+    assert crawl_site(fetcher(site, tmp_path), "https://cafe.es/").pages == []
+    assert not any("www.bar.es" in url or "192.168" in url for url in site.urls)
 
 
 @pytest.mark.parametrize(

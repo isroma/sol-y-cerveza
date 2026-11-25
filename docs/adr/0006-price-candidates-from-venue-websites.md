@@ -18,6 +18,7 @@ A venue's own website is different. The venue publishes it to tell the public it
    - URLs come from OSM (`website`, `contact:website`, `url`) and Overture (`websites`), for venues the build lists.
    - An explicit host denylist drops social networks, link pages, search, maps, review sites, and booking and delivery platforms (`DENIED_HOSTS` in `solycerveza.websites`).
    - Links and redirects that leave the venue's site are not followed.
+   - Public hosts only: IP literals and `localhost` names are refused, and before each download the host is resolved and skipped if any of its addresses is not global (private, loopback, link-local, reserved), because anyone can point a venue's `website` tag at the owner's network.
 2. **Polite fetching.**
    - Requests carry the pipeline's descriptive User-Agent.
    - robots.txt is honoured, including Crawl-delay (up to 30 s). A robots.txt that fails or answers 5xx means "keep out".

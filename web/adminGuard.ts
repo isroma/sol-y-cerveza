@@ -20,14 +20,19 @@ function header(headers: IncomingHttpHeaders, name: string): string | null {
  * Claude credits (photo) and forward the API admin token, so a page on another
  * site must not be able to drive them while `npm run admin` runs.
  *
- * GET and HEAD pass: none of the admin GETs change anything, and Vite's CORS
- * policy keeps other origins from reading their answers.
+ * Every method, GET and HEAD included, needs `Sec-Fetch-Site`, when present,
+ * not to be `cross-site` or `same-site`. Vite's CORS policy keeps other
+ * origins from reading an answer, but not from sending the request: a
+ * `no-cors` fetch loop from any page would still run GET handlers such as
+ * the probe, which starts a Python process. A missing header (curl, older
+ * browsers) passes, like `same-origin` and `none`. The guard covers only
+ * `/__admin`, so opening admin.html from a link elsewhere still works.
  *
- * Every other method needs:
+ * GET and HEAD need nothing more: none of the admin GETs change anything.
+ * Every other method also needs:
  * - `Content-Type: application/json`. A cross-origin page can only send that
  *   with fetch, which makes the browser ask first (CORS preflight) and always
  *   sends an Origin header. Forms and `no-cors` fetches can't set it.
- * - `Sec-Fetch-Site`, when present, not `cross-site` or `same-site`.
  * - `Origin`, when present, equal to the dev server's own origin, taken from
  *   the Host header (Vite's `server.allowedHosts` already refuses unknown
  *   hosts, which stops DNS rebinding).
@@ -38,16 +43,16 @@ function header(headers: IncomingHttpHeaders, name: string): string | null {
  * owner's machine, which could edit the files or run git directly anyway.
  */
 export function adminRequestRefusal(request: AdminRequest): string | null {
+  const { headers } = request
+  const fetchSite = header(headers, 'sec-fetch-site')?.toLowerCase() ?? null
+  if (fetchSite === 'cross-site' || fetchSite === 'same-site')
+    return 'admin requests must come from the admin page'
   const method = (request.method ?? 'GET').toUpperCase()
   if (method === 'GET' || method === 'HEAD') return null
-  const { headers } = request
   const contentType = header(headers, 'content-type') ?? ''
   const mediaType = contentType.split(';')[0]?.trim().toLowerCase() ?? ''
   if (mediaType !== 'application/json')
     return 'admin requests must be sent as application/json'
-  const fetchSite = header(headers, 'sec-fetch-site')?.toLowerCase() ?? null
-  if (fetchSite === 'cross-site' || fetchSite === 'same-site')
-    return 'admin requests must come from the admin page'
   const origin = header(headers, 'origin')
   if (origin === null) return null
   const host = header(headers, 'host')
@@ -56,4 +61,26 @@ export function adminRequestRefusal(request: AdminRequest): string | null {
   if (own === null || origin.toLowerCase() !== own.toLowerCase())
     return 'admin requests must come from the admin page'
   return null
+}
+
+/**
+ * At most one running job, the latest: `start` aborts the one before it, so a
+ * dragged pin (or a page firing requests in a loop) never stacks up probe
+ * processes. `finish` frees the slot when that job is still the current one.
+ */
+export function latestOnly(): {
+  start: () => AbortController
+  finish: (job: AbortController) => void
+} {
+  let current: AbortController | null = null
+  return {
+    start() {
+      current?.abort()
+      current = new AbortController()
+      return current
+    },
+    finish(job) {
+      if (current === job) current = null
+    },
+  }
 }
