@@ -10,15 +10,15 @@ Which bar and restaurant terraces in Badajoz get sun or shade today, at any time
 ```
 pipeline/ (offline, Python)                         web/ (static, TypeScript)
 venues + terrace positions ─┐
-LiDAR surface model ────────┴─► horizon profile ──► web/public/data/ ──► sun position for the chosen
-                                 per terrace (360°)   terraces.json       date/time vs. horizon → sun / shade
+LiDAR surface model ────────┴─► horizon profile ──► web/public/data/ ──► sun position today at the
+                                 per terrace (360°)   terraces.json       chosen time vs. horizon → sun / shade
 ```
 
 Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Roadmap
 
-The sun/shade map, the phone layout and the admin are live. What comes next (prices, verified terraces, seasonal trees) and why: [review and roadmap](docs/roadmap.md).
+The sun/shade map, the phone layout, the admin, beer prices (the owner's and visitors' suggestions), visitor venue reports, the seasonal-tree code and offline use are built. What is left and why: [review and roadmap](docs/roadmap.md).
 
 ## Design
 
@@ -31,18 +31,28 @@ Brand, colours, typography, components, copy and templates: [design standards](d
 You need Node 26 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
+cp web/.env.example web/.env.local     # optional: API, Turnstile and admin keys (see the comments in it)
 cd web && npm ci && npm run dev        # web app on http://localhost:5173
 cd pipeline && uv sync && uv run pytest
 ```
+
+To try prices and reports against a local API (`api/README.md`, "Local development"), run the Worker and point the app at it:
+
+```bash
+cd api && cp .dev.vars.example .dev.vars && npm ci && npm run migrate:local
+npm run dev                            # API on http://localhost:8787
+```
+
+Then set `VITE_PRICES_API=http://localhost:8787` in `web/.env.local` (the example's Turnstile site key always passes on localhost) and restart `npm run dev` in `web/`. For the admin's Suggestions and Reports queues set `PRICES_ADMIN_TOKEN` to the `ADMIN_TOKEN` in `api/.dev.vars`; for owner mode, open the app at `#owner=` followed by its `OWNER_TOKEN`.
 
 Browser smoke tests (Playwright, `web/e2e/`) drive the real app and map in Chromium, with a stubbed basemap and a small fixed data set, so they need no network. Install the browser once, then run them:
 
 ```bash
 cd web && npx playwright install --with-deps chromium
-npm run e2e                            # phone and desktop on the dev server, plus the offline tests
+npm run e2e                            # every Playwright project
 ```
 
-`npm run e2e` also runs `e2e/offline.spec.ts` (Playwright project `offline`): the service worker against production builds served under `/sol-y-cerveza/` by `web/scripts/sw-test-server.mjs`, which builds them first and can switch between two deploys and the kill switch.
+There are five projects (`web/playwright.config.ts`): `phone` and `desktop` on the dev server, `reports-phone` and `reports-desktop` on a dev server with a stubbed prices API and Turnstile key, and `offline`. Set `E2E_PROJECTS` to a comma-separated list (e.g. `E2E_PROJECTS=phone,reports-phone npm run e2e`) to run only those. `npm run e2e` also runs `e2e/offline.spec.ts` (Playwright project `offline`): the service worker against production builds served under `/sol-y-cerveza/` by `web/scripts/sw-test-server.mjs`, which builds them first and can switch between two deploys and the kill switch.
 
 ### Offline and the service worker
 
@@ -54,7 +64,7 @@ The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `service
 | The page, `data/terraces.json`, icons, other files       | Network-first, past the HTTP cache (revalidated), 3 s timeout; the cache only when offline, slow or on a 5xx. A late response still updates it. |
 | OpenFreeMap style and TileJSON                            | Network-first with the same timeout (they name the tile version to load).                                                                     |
 | OpenFreeMap tiles, glyphs, sprites                        | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                              |
-| Prices API `GET /v1/prices`                               | Network-first. POSTs (suggestions) and everything else are not touched.                                                                       |
+| Prices API `GET /v1/prices`                               | Network-first. Writes (`POST /v1/changes`, `POST /v1/reports`, owner mode's `/v1/owner/*`) and everything else are not touched.               |
 
 A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloads an open page; its next load is the new version. If a page asks for a map chunk that a deploy removed and no cache has, `LazyMapView` reloads once (guarded by `sessionStorage`, no loops) and then shows "No se pudo cargar el mapa".
 
@@ -63,7 +73,10 @@ A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloa
 To rebuild the data (`web/public/data/terraces.json`) from `pipeline/`:
 
 ```bash
-uv run python -m solycerveza.obstacles --source wcs   # surface + terrain rasters, once (see docs/research/lidar.md for the 2 m data)
+cd pipeline
+uv run python -m solycerveza.obstacles                 # surface + terrain rasters, once, from the 2 m MDS02/MDT02 sheets
+                                                       # downloaded by hand (docs/research/lidar.md; the command says how)
+# uv run python -m solycerveza.obstacles --source wcs  # fallback: automated 5 m MDS05/MDT05 (flown 2009–10); changes the attribution
 uv run python -m solycerveza.leafoff                   # optional: leaf-off surface model for winter (ADR-0007)
 uv run python -m solycerveza.build                     # venues + curated list + horizons -> terraces.json
 ```
@@ -120,7 +133,7 @@ uv run python -m solycerveza.proposals --limit 50     # then the unreviewed venu
 
 Three proposers suggest answers for venues nobody has reviewed: a terrace (and where its tables are) read from the PNOA orthophoto by the Claude API (`ANTHROPIC_API_KEY`); a corrected position from the Junta register address (CartoCiudad); and "not a venue" for weak Overture places. They write `pipeline/data/venue_proposals.csv`, which the build never reads. See [ADR-0008](docs/adr/0008-machine-venue-proposals.md).
 
-1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review. Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only.
+1. **Run the trial first.** `--evaluate` scores each proposer against your 106 decisions, as the venues were before you reviewed them. The commit `164f946^` is the last one before the first review (`164f946`, PR #78, the first venue review on `main`). Without `--baseline` it rebuilds that state from the cached sources. The report (stdout and `pipeline/.cache/proposals_eval.md`) gives precision and recall, pin distances, and the confidence that reaches 90 % precision. Only that run's vision calls cost money: the command prints the estimate, about $2–5 for the 87 venues with a terrace decision. Without `--yes` or `--limit N` it uses cached answers only.
 2. **Trust a kind only above its threshold.** If the trial finds no threshold for a kind, ignore that kind.
 3. **Then generate proposals** for the unreviewed venues (`--only vision,position,overture` picks proposers; `--min-confidence` sets the cut) and confirm them one by one in the admin.
 

@@ -14,7 +14,8 @@
 //   and sprites stale-while-revalidate. Capped by entries and age; opaque
 //   responses are never stored.
 // - Prices API: GET /v1/prices network-first. Other requests, and every
-//   non-GET (price suggestions), go straight to the network.
+//   non-GET (POST /v1/changes and /v1/reports, owner mode's /v1/owner/*),
+//   go straight to the network.
 //
 // README "Offline and the service worker" has the kill switch.
 
