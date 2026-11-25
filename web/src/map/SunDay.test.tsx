@@ -52,4 +52,25 @@ describe('SunDay', () => {
     render(<SunDay timeline={timeline.map(() => 'shade')} minutes={12 * 60} />)
     expect(screen.getByRole('img', { name: 'Sin sol hoy' })).toBeInTheDocument()
   })
+
+  it('marks sun only visitors saw as a stretch of its own, and says so', () => {
+    // The visitors saw the last hour of the sun spell, 13:00–14:00.
+    const approximate = timeline.map((_, i) => i >= 156 && i < 168)
+    const { container } = render(
+      <SunDay timeline={timeline} approximate={approximate} minutes={720} />,
+    )
+    expect(parts(container)).toEqual([
+      ['night', 0, 30],
+      ['shade', 30, 90],
+      ['sun', 120, 180],
+      ['visitors', 300, 60],
+      ['shade', 360, 240],
+      ['night', 600, 240],
+    ])
+    expect(
+      screen.getByRole('img', {
+        name: 'Sol hoy: de 10:00 a 14:00 (según los visitantes)',
+      }),
+    ).toBeInTheDocument()
+  })
 })

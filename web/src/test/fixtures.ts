@@ -1,4 +1,5 @@
 import type { Terrace, TerracesFile } from '../data/terraces.ts'
+import type { SunCorrection } from '../sun/corrections.ts'
 
 /** Builds a 360-bin horizon from `[firstBin, lastBin, value]` runs. */
 export function horizonFromRuns(
@@ -85,3 +86,18 @@ export const sampleFile: TerracesFile = {
   attribution: ['Datos de ejemplo: terrazas y horizontes ficticios'],
   terraces: [calleMenacho, paseoSanFrancisco, plazaAlta, withoutHorizon],
 }
+
+/** A run of visitors' sun corrections (GET /v1/sun), unconfirmed by default. */
+export const sunCorrection = (
+  patch: Partial<SunCorrection>,
+): SunCorrection => ({
+  venueId: 'osm:node/1',
+  leafOff: false,
+  from: 170,
+  to: 190,
+  altitude: 200,
+  confirmed: false,
+  reporters: 3,
+  last: '2026-11-25T12:31:04.000Z',
+  ...patch,
+})

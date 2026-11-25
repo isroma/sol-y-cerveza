@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { sunBox } from '../ui/categoryStyle.ts'
+import { sunBox, sunSummary } from '../ui/categoryStyle.ts'
 import { PinCard, ShareButton } from './PinCard.tsx'
 
 // The API and the bot check as a build with both configured has them.
@@ -32,6 +32,8 @@ function status(patch: Partial<VenueStatus>): VenueStatus {
     state: 'shade',
     category: 'nosun',
     timeline: null,
+    approximate: null,
+    byVisitors: false,
     sunUntil: null,
     nextSun: null,
     minutesLeft: null,
@@ -53,6 +55,26 @@ describe('sunBox', () => {
       title: 'Sol en 25 min',
       detail: 'Desde las 14:57',
     })
+  })
+
+  it("puts a ~ on the duration when the sun leans on visitors' reports", () => {
+    const visitors = { byVisitors: true }
+    expect(
+      sunBox(
+        status({ category: 'sun', sunUntil: 17 * 60 + 26, ...visitors }),
+        at,
+      ).title,
+    ).toBe('~2 h 54 min de sol')
+    expect(
+      sunBox(status({ category: 'soon', nextSun: at + 25, ...visitors }), at)
+        .title,
+    ).toBe('Sol en ~25 min')
+    expect(
+      sunSummary(
+        status({ category: 'sun', sunUntil: 17 * 60 + 26, ...visitors }),
+        at,
+      ),
+    ).toBe('Sol hasta las 17:26 (~2 h 54 min)')
   })
 
   it('covers no more sun, night and unknown', () => {
@@ -84,6 +106,35 @@ describe('PinCard', () => {
       screen.getByRole('img', { name: 'Sol hoy: de 12:00 a 17:30' }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
+  })
+
+  it("says when the sun leans on visitors' reports, and only then", () => {
+    const timeline = Array.from({ length: 288 }, (_, i) =>
+      i >= 144 && i * 5 < 17 * 60 + 26 ? ('sun' as const) : ('shade' as const),
+    )
+    const sunny = { category: 'sun' as const, sunUntil: 17 * 60 + 30, timeline }
+    const { rerender } = render(
+      <PinCard status={status(sunny)} minutes={at} sunset={18 * 60 + 4} />,
+    )
+    expect(screen.queryByText('Según los visitantes')).toBeNull()
+    rerender(
+      <PinCard
+        status={status({
+          ...sunny,
+          byVisitors: true,
+          approximate: timeline.map((s) => s === 'sun'),
+        })}
+        minutes={at}
+        sunset={18 * 60 + 4}
+      />,
+    )
+    expect(screen.getByText('~2 h 58 min de sol')).toBeInTheDocument()
+    expect(screen.getByText('Según los visitantes')).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', {
+        name: 'Sol hoy: de 12:00 a 17:30 (según los visitantes)',
+      }),
+    ).toBeInTheDocument()
   })
 
   it('turns round to suggest a change, and back', async () => {

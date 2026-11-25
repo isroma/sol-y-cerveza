@@ -1,7 +1,8 @@
 import type { Terrace } from '../data/terraces.ts'
 import { MINUTES_PER_DAY } from '../time/madrid.ts'
 import { stepIndex, type DayTrack } from './dayTrack.ts'
-import { anySunHorizon, horizonFor } from './leafOff.ts'
+import { correctHorizon, type SunCorrection } from './corrections.ts'
+import { anySunHorizon, horizonFor, isLeafOff } from './leafOff.ts'
 import {
   fillShortShade,
   STEP_MINUTES,
@@ -18,8 +19,14 @@ export const SOON_MINUTES = 60
  * A venue's sun/shade state per step of the day, or null without a horizon.
  * In the leaf-off period it follows the leaf-off horizon (ADR-0007). Short
  * shade between two sunny stretches counts as sun (`fillShortShade`).
+ * Visitors' corrections (`corrections.ts`) add sun; `approximate` marks the
+ * steps that are sun only because of unconfirmed ones (null: none are).
  */
-export type VenueDay = { venue: Terrace; timeline: SunState[] | null }
+export type VenueDay = {
+  venue: Terrace
+  timeline: SunState[] | null
+  approximate: boolean[] | null
+}
 
 export type VenueStatus = {
   venue: Terrace
@@ -29,6 +36,13 @@ export type VenueStatus = {
   category: SunCategory
   /** Per-step states for the whole day (see DayTrack), null without a horizon. */
   timeline: SunState[] | null
+  /** Per step: sun only thanks to visitors' unconfirmed reports; null if none is. */
+  approximate: boolean[] | null
+  /**
+   * The answer at the chosen minute leans on visitors: the sun spell it talks
+   * about (the current one in sun, else the next) has visitor-only steps.
+   */
+  byVisitors: boolean
   /** While in sun: the minute the sun goes (MINUTES_PER_DAY if it lasts until midnight). */
   sunUntil: number | null
   /** While not in sun: the minute the sun next arrives today, if it does. */
@@ -37,18 +51,64 @@ export type VenueStatus = {
   minutesLeft: number | null
 }
 
-export function venueDay(venue: Terrace, track: DayTrack): VenueDay {
+function dayStates(horizon: readonly number[], track: DayTrack): SunState[] {
+  return fillShortShade(
+    track.positions.map((position) => sunState(horizon, position)),
+  )
+}
+
+/**
+ * `corrections` are the venue's own (any season); the cap applies to
+ * whichever horizon answers that day (envelope, leaf-off or full).
+ */
+export function venueDay(
+  venue: Terrace,
+  track: DayTrack,
+  corrections: readonly SunCorrection[] = [],
+): VenueDay {
   // Sun when any part of the terrace has it (its envelope), else at the pin.
   const horizon =
     anySunHorizon(venue, track.date) ?? horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
-    return { venue, timeline: null }
+    return { venue, timeline: null, approximate: null }
+  const corrected =
+    corrections.length > 0
+      ? correctHorizon(horizon, corrections, isLeafOff(track.date))
+      : null
+  if (corrected === null)
+    return { venue, timeline: dayStates(horizon, track), approximate: null }
+  const timeline = dayStates(corrected.all, track)
+  if (corrected.confirmed === null)
+    return { venue, timeline, approximate: null }
+  // Sun is confirmed only where the confirmed caps alone already give it.
+  const sure = dayStates(corrected.confirmed, track)
+  const approximate = timeline.map(
+    (state, i) => state === 'sun' && sure[i] !== 'sun',
+  )
   return {
     venue,
-    timeline: fillShortShade(
-      track.positions.map((position) => sunState(horizon, position)),
-    ),
+    timeline,
+    approximate: approximate.includes(true) ? approximate : null,
   }
+}
+
+/**
+ * `days` with the visitors' corrections applied. Venues without any keep
+ * their day as it is (the same object), so only the corrected ones are
+ * computed again.
+ */
+export function correctDays(
+  days: readonly VenueDay[],
+  byVenue: ReadonlyMap<string, readonly SunCorrection[]>,
+  track: DayTrack,
+): readonly VenueDay[] {
+  if (byVenue.size === 0) return days
+  return days.map((day) => {
+    const corrections = byVenue.get(day.venue.id)
+    return corrections && day.timeline !== null
+      ? venueDay(day.venue, track, corrections)
+      : day
+  })
 }
 
 function firstIndex(
@@ -64,7 +124,7 @@ function firstIndex(
 }
 
 export function venueStatus(day: VenueDay, minutes: number): VenueStatus {
-  const { venue, timeline } = day
+  const { venue, timeline, approximate } = day
   const hasTerrace = venue.terrace !== null
   if (timeline === null) {
     return {
@@ -73,6 +133,8 @@ export function venueStatus(day: VenueDay, minutes: number): VenueStatus {
       state: 'unknown',
       category: 'unknown',
       timeline: null,
+      approximate: null,
+      byVisitors: false,
       sunUntil: null,
       nextSun: null,
       minutesLeft: null,
@@ -97,12 +159,26 @@ export function venueStatus(day: VenueDay, minutes: number): VenueStatus {
   else if (nextSun !== null && nextSun - minutes <= SOON_MINUTES)
     category = 'soon'
 
+  // The spell the answer talks about: [start, end) in steps.
+  let byVisitors = false
+  if (approximate !== null) {
+    const start = state === 'sun' ? index : nextIndex
+    if (start !== null) {
+      const end = firstIndex(timeline, start, (s) => s !== 'sun')
+      byVisitors = approximate
+        .slice(start, end ?? timeline.length)
+        .includes(true)
+    }
+  }
+
   return {
     venue,
     hasTerrace,
     state,
     category,
     timeline,
+    approximate,
+    byVisitors,
     sunUntil: sunUntil === null ? null : Math.min(sunUntil, MINUTES_PER_DAY),
     nextSun,
     minutesLeft,

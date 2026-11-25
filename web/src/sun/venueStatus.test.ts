@@ -6,13 +6,16 @@ import {
   packedFlat,
   paseoSanFrancisco,
   plazaAlta,
+  sunCorrection,
   withoutHorizon,
 } from '../test/fixtures.ts'
 import { formatClock, parseClock } from '../time/madrid.ts'
 import { dayTrack, stepIndex } from './dayTrack.ts'
 import { sunState } from './sunState.ts'
+import { correctionsByVenue } from './corrections.ts'
 import {
   compareStatus,
+  correctDays,
   sunRuns,
   venueDay,
   venueStatus,
@@ -212,5 +215,117 @@ describe('venueStatus with a short shade gap', () => {
     expect(inGap.minutesLeft).toBe(
       timeline.slice(gap[0]).filter((s) => s === 'sun').length * 5,
     )
+  })
+})
+
+describe("visitors' sun corrections", () => {
+  // Under trees, 31° all round: no sun at all at the winter solstice, when
+  // the sun peaks near 28°. Visitors saw sun around the south at midday.
+  const shady = paseoSanFrancisco
+  const south = (patch: Parameters<typeof sunCorrection>[0] = {}) =>
+    sunCorrection({
+      venueId: shady.id,
+      leafOff: true,
+      from: 160,
+      to: 200,
+      altitude: 200,
+      ...patch,
+    })
+
+  it('adds the sun visitors saw, marked as approximate', () => {
+    expect(at(shady, winter, '13:40').state).toBe('shade')
+    const day = venueDay(shady, winter, [south()])
+    const status = venueStatus(day, parseClock('13:40') ?? 0)
+    expect(status.state).toBe('sun')
+    expect(status.byVisitors).toBe(true)
+    const approximate = status.approximate ?? []
+    // Every sunny step leans on the visitors, and only those.
+    expect(
+      (status.timeline ?? []).every((s, i) => (s === 'sun') === approximate[i]),
+    ).toBe(true)
+  })
+
+  it("marks the next sun as the visitors' while in shade before it", () => {
+    const status = venueStatus(
+      venueDay(shady, winter, [south()]),
+      parseClock('10:00') ?? 0,
+    )
+    expect(status.state).toBe('shade')
+    expect(status.nextSun).not.toBeNull()
+    expect(status.byVisitors).toBe(true)
+  })
+
+  it('shows confirmed corrections as plain sun', () => {
+    const day = venueDay(shady, winter, [south({ confirmed: true })])
+    expect(day.timeline).toContain('sun')
+    expect(day.approximate).toBeNull()
+    expect(venueStatus(day, parseClock('13:40') ?? 0).byVisitors).toBe(false)
+  })
+
+  it('is confirmed only where the confirmed cap alone gives sun', () => {
+    // Confirmed sun in a narrow slice, visitors' in a wider one.
+    const narrow = south({ confirmed: true, from: 175, to: 190 })
+    const sure = venueDay(shady, winter, [narrow]).timeline ?? []
+    const day = venueDay(shady, winter, [narrow, south()])
+    const approximate = day.approximate ?? []
+    expect(sure).toContain('sun')
+    sure.forEach((state, i) => {
+      if (state === 'sun') expect(approximate[i]).toBe(false)
+    })
+    expect(approximate.some(Boolean)).toBe(true)
+  })
+
+  it('ignores corrections from the other season', () => {
+    const day = venueDay(shady, winter, [south({ leafOff: false })])
+    expect(day.timeline).not.toContain('sun')
+    expect(day.approximate).toBeNull()
+  })
+
+  it('caps the envelope when the terrace has one', () => {
+    const enveloped: Terrace = { ...shady, horizon_low: packedFlat(30) }
+    expect(venueDay(enveloped, winter).timeline).not.toContain('sun')
+    expect(venueDay(enveloped, winter, [south()]).timeline).toContain('sun')
+  })
+
+  it('caps the leaf-off horizon when it answers', () => {
+    const leafless: Terrace = {
+      ...shady,
+      horizon: horizonFromRuns([[0, 359, 50]]),
+      horizon_winter: horizonFromRuns([[0, 359, 310]]),
+    }
+    expect(venueDay(leafless, winter).timeline).not.toContain('sun')
+    expect(venueDay(leafless, winter, [south()]).timeline).toContain('sun')
+  })
+
+  it('marks short shade bridged only by visitors as approximate', () => {
+    // A block to the south hides the midday sun for about an hour; visitors
+    // saw sun over most of it, leaving a gap short enough to count as sun.
+    const post: Terrace = {
+      ...plazaAlta,
+      horizon: horizonFromRuns([
+        [0, 359, 50],
+        [160, 200, 800],
+      ]),
+    }
+    const plain = venueDay(post, summer).timeline ?? []
+    const corrected = venueDay(post, summer, [
+      sunCorrection({ venueId: post.id, from: 160, to: 190, altitude: 400 }),
+    ])
+    const timeline = corrected.timeline ?? []
+    const approximate = corrected.approximate ?? []
+    const gained = timeline.flatMap((s, i) =>
+      s === 'sun' && plain[i] !== 'sun' ? [i] : [],
+    )
+    expect(gained.length).toBeGreaterThan(0)
+    expect(gained.every((i) => approximate[i])).toBe(true)
+  })
+
+  it('recomputes only the venues with corrections', () => {
+    const days = [venueDay(shady, winter), venueDay(plazaAlta, winter)]
+    expect(correctDays(days, new Map(), winter)).toBe(days)
+    const corrected = correctDays(days, correctionsByVenue([south()]), winter)
+    expect(corrected[0]).not.toBe(days[0])
+    expect(corrected[0]?.timeline).toContain('sun')
+    expect(corrected[1]).toBe(days[1])
   })
 })
