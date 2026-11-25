@@ -29,9 +29,9 @@ import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
-import { HeightShadowLayer } from './heightShadows.ts'
+import { PrismShadowLayer } from './prismShadows.ts'
 import { addLidarBuildings, LIDAR_BUILDINGS } from './lidarBuildings.ts'
-import { addTreeCrowns } from './treeCrowns.ts'
+import { addTreeCrowns, TREES } from './treeCrowns.ts'
 import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
@@ -44,7 +44,7 @@ prewarm()
 
 const SHADOWS = 'building-shadows'
 
-/** Prototype: `?shade=gpu` draws shadows from the LiDAR heights (heightShadows.ts). */
+/** Prototype: `?shade=gpu` casts shadows on the GPU from the LiDAR buildings and trees (prismShadows.ts). */
 const GPU_SHADOWS =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).get('shade') === 'gpu'
@@ -118,7 +118,7 @@ export function MapView({
   const onSelectRef = useRef(onSelect)
   const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
-  const heightLayerRef = useRef<HeightShadowLayer | null>(null)
+  const prismLayerRef = useRef<PrismShadowLayer | null>(null)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -184,37 +184,84 @@ export function MapView({
           if (Math.abs(map.getPitch() - pitch) > 0.5)
             map.easeTo({ pitch, duration: 300 })
         })
-        map.on('load', () => {
+        /**
+         * Adds the app's own sources and layers and applies the sun, the
+         * night and the dots. Idempotent: it runs on load and again once a
+         * lost WebGL context is restored, when MapLibre has rebuilt the
+         * style from a snapshot that keeps sources and layers but drops
+         * custom layers (the GPU shadows).
+         */
+        const setup = () => {
           if (!map) return
           // Ground shadows of the buildings, under the 3D extrusions.
-          map.addSource(SHADOWS, {
-            type: 'geojson',
-            data: { type: 'FeatureCollection', features: [] },
-          })
-          shadowCacheRef.current = new ShadowCache()
-          if (GPU_SHADOWS) {
-            heightLayerRef.current = new HeightShadowLayer(SHADOWS)
-            heightLayerRef.current.setSun(sunRef.current)
-          }
-          map.addLayer(
-            heightLayerRef.current ?? {
-              id: SHADOWS,
-              // A paper-thin extrusion rather than a fill: MapLibre draws an
-              // extrusion layer in one pass and fades the layer as a whole,
-              // so where shadows overlap (neighbouring buildings, the same
-              // building twice at a tile edge) they don't stack darker.
-              type: 'fill-extrusion',
-              source: SHADOWS,
-              minzoom: RELIEF_ZOOM,
-              paint: {
-                'fill-extrusion-color': '#6B5848',
-                'fill-extrusion-opacity': SHADOW_OPACITY,
-                'fill-extrusion-height': 0.05,
-                'fill-extrusion-vertical-gradient': false,
+          if (!map.getSource(SHADOWS))
+            map.addSource(SHADOWS, {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] },
+            })
+          if (!map.getLayer(SHADOWS)) {
+            if (GPU_SHADOWS)
+              prismLayerRef.current ??= new PrismShadowLayer(SHADOWS)
+            map.addLayer(
+              prismLayerRef.current ?? {
+                id: SHADOWS,
+                // A paper-thin extrusion rather than a fill: MapLibre draws
+                // an extrusion layer in one pass and fades the layer as a
+                // whole, so where shadows overlap (neighbouring buildings,
+                // the same building twice at a tile edge) they don't stack
+                // darker.
+                type: 'fill-extrusion',
+                source: SHADOWS,
+                minzoom: RELIEF_ZOOM,
+                paint: {
+                  'fill-extrusion-color': '#6B5848',
+                  'fill-extrusion-opacity': SHADOW_OPACITY,
+                  'fill-extrusion-height': 0.05,
+                  'fill-extrusion-vertical-gradient': false,
+                },
               },
-            },
-            map.getLayer('building') ? 'building' : undefined,
+              map.getLayer('building') ? 'building' : undefined,
+            )
+          }
+          if (!map.getSource(DOTS_SOURCE))
+            addDotLayers(map, (id) => onSelectRef.current(id))
+          // The buildings and trees the GPU shadows are cast from, at their
+          // LiDAR heights (pipeline buildings.py and trees.py).
+          if (GPU_SHADOWS && !map.getSource(LIDAR_BUILDINGS))
+            addLidarBuildings(
+              map,
+              map.getLayer('building-3d') ? 'building-3d' : undefined,
+            )
+          if (GPU_SHADOWS && !map.getSource(TREES))
+            addTreeCrowns(map, LIDAR_BUILDINGS)
+          // Made once, from the day paint, and kept across a restore: the
+          // snapshot holds whatever paint the night had set.
+          nightSwitchRef.current ??= createNightSwitch(map, new Set([SHADOWS]))
+          const sun = sunRef.current
+          map.setLight(sunLight(sun))
+          prismLayerRef.current?.setSun(sun)
+          nightSwitchRef.current(nightDepth(sun.altitude))
+          shadowCacheRef.current = new ShadowCache()
+          castShadows(map, sun, shadowCacheRef.current)
+          const dots = dotsUpdate(
+            null,
+            statusesRef.current,
+            selectedIdRef.current,
           )
+          const dotsSource = map.getSource<GeoJSONSource>(DOTS_SOURCE)
+          if (dots && dotsSource) {
+            void dotsSource.setData(dots.data)
+            dotsKeyRef.current = dots.key
+          }
+        }
+        map.on('webglcontextrestored', () => {
+          if (!map) return
+          if (map.isStyleLoaded()) setup()
+          else map.once('style.load', setup)
+        })
+        map.on('load', () => {
+          if (!map) return
+          setup()
           // Check as the map moves (at most every SHADOW_THROTTLE_MS), as
           // building tiles arrive and when it settles, so shadows keep up
           // with zooms, pans and flights. Most checks redo nothing (see
@@ -235,18 +282,6 @@ export function MapView({
               scheduleShadows()
           })
           map.on('idle', refreshShadows)
-          addDotLayers(map, (id) => onSelectRef.current(id))
-          dotsKeyRef.current = null
-          // The buildings and trees the GPU shadows are cast from, at their
-          // LiDAR heights (pipeline buildings.py and trees.py).
-          if (GPU_SHADOWS) {
-            addLidarBuildings(
-              map,
-              map.getLayer('building-3d') ? 'building-3d' : undefined,
-            )
-            addTreeCrowns(map, LIDAR_BUILDINGS)
-          }
-          nightSwitchRef.current = createNightSwitch(map, new Set([SHADOWS]))
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.
           if (import.meta.env.DEV) {
@@ -295,7 +330,7 @@ export function MapView({
     const map = mapRef.current
     if (!ready || !map) return
     map.setLight(sunLight(sun))
-    heightLayerRef.current?.setSun(sun)
+    prismLayerRef.current?.setSun(sun)
     castShadows(map, sun, shadowCacheRef.current)
   }, [ready, sun])
 
