@@ -1,7 +1,8 @@
 # ADR-0009: Terrace reports from visitors
 
-- Status: Accepted
+- Status: accepted (2026-11-24)
 - Date: 2026-11-24
+- Amended (2026-11-25): built so far: the API (`terrace` and `pin` kinds, #217) and the admin's Reports queue (#218). The visitor side, asking "¿Tiene terraza?" and placing the tables from the venue card, is not built yet (#210; open PR #219). Until it ships, `POST /v1/reports` receives no `terrace` or `pin` reports from the app.
 - Issue: #210
 
 ## Context
