@@ -109,7 +109,7 @@ describe('fillShortShade', () => {
       .map((s) => (s === 'sun' ? 's' : s === 'night' ? 'n' : '.'))
       .join('')
 
-  it('turns shade of up to 15 minutes between sun into sun', () => {
+  it('turns shade under 20 minutes (up to 3 steps) between sun into sun', () => {
     expect(fill('nn..ss.ss..ss...ss..nn')).toBe('nn..ssssssssssssss..nn')
   })
 

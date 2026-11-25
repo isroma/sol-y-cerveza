@@ -184,7 +184,7 @@ describe('venueStatus with an envelope', () => {
 describe('venueStatus with a short shade gap', () => {
   const clockOf = (minutes: number) => formatClock(minutes)
   // A thin obstacle (a lamp post) due south: 3° wide, up to 80°, so the
-  // midday sun crosses it in under 15 minutes in summer.
+  // midday sun crosses it in under 20 minutes in summer.
   const post: Terrace = {
     ...plazaAlta,
     horizon: horizonFromRuns([

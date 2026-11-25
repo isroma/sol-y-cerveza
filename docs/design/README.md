@@ -88,7 +88,7 @@ Rules: sunny badges always sit above grey ones; only sunny terraces are ever enl
 
 **A terrace partly in sun is in sun** (`docs/data-contract.md`, "Horizon envelope"): where the data samples several points across a terrace, it counts as sun as soon as any of them gets sun, and looks exactly like sun everywhere (badge, list, card, day strip, sort, "Con sol ahora"). "Sol hasta las …" is when the last of the terrace loses the sun, "Sol en …" when the first of it gets sun. There is no separate partial state. Terraces without an envelope keep the single-point answer.
 
-**Short shade counts as sun** (`fillShortShade` in `web/src/sun/sunState.ts`): shade of 15 minutes or less (3 five-minute steps) between two sunny stretches is sun everywhere: the badge state, "Con sol ahora", "Sol hasta las …", the minutes of sun and the day strip. Such gaps are mostly noise in the surface model (a lamp post, the edge of a crown). Shade before the first sun and after the last is unchanged, and longer gaps stay (Kiosco Silva's 25 minutes behind a tower).
+**Short shade counts as sun** (`fillShortShade` in `web/src/sun/sunState.ts`): shade under 20 minutes (`SHORT_SHADE_UNDER_MINUTES`; with 5-minute steps, up to 3 steps or 15 minutes) between two sunny stretches is sun everywhere: the badge state, "Con sol ahora", "Sol hasta las …", the minutes of sun and the day strip. Such gaps are mostly noise in the surface model (a lamp post, the edge of a crown). Shade before the first sun and after the last is unchanged, and longer gaps stay (Kiosco Silva's 25 minutes behind a tower).
 
 ### Neutrals (day)
 
