@@ -10,7 +10,7 @@ junta:c0b04d99a5a8,not_venue,,,,,,,2026-11-23
 junta:f5c7f9a005f7,not_venue,,,,,,,2026-11-23
 osm:node/11985353231,terrace,,,,,38.865777,-6.983054,2026-11-23
 osm:node/12370413570,terrace,,,,,38.866663,-6.986623,2026-11-23
-osm:node/13472264001,terrace,,,,,38.867602,-6.984232,2026-11-23
+osm:node/13472264001,terrace,,,,,38.867575,-6.984262,2026-11-25
 osm:node/14409330101,not_venue,,,,,,,2026-11-23
 osm:node/2351183083,not_venue,,,,,,,2026-11-23
 osm:node/3190144147,terrace,,,,,38.875449,-6.977478,2026-11-23
@@ -54,7 +54,7 @@ overture:645058a5-c6a1-45bf-b1f3-ab9c34e554aa,not_venue,,,,,,,2026-11-23
 overture:65dd75d9-bdd1-4fb8-85a1-1f4e3b9731ab,no_terrace,,,,,,,2026-11-23
 overture:6de44fac-6764-4d98-970f-71c5f82d2cdf,no_terrace,,,,,,,2026-11-23
 overture:70b06c5e-0814-49d1-ba0e-0adb6fe38441,terrace,,,,,38.867629,-6.986606,2026-11-23
-overture:76e9fa75-22f2-4e55-9175-75ae92117e35,terrace,,,,,38.872168,-6.976612,2026-11-23
+overture:76e9fa75-22f2-4e55-9175-75ae92117e35,terrace,,,,,38.872197,-6.97664,2026-11-25
 overture:7d15128d-1c78-4688-a480-087e90896614,terrace,,,,,38.868853,-6.986256,2026-11-23
 overture:7d2381ff-ab02-4dcb-b429-e2240774e993,no_terrace,,,,,,,2026-11-23
 overture:7dcb8bf4-616e-433b-b0f4-405b8d25d162,no_terrace,,,,,,,2026-11-23
@@ -76,8 +76,8 @@ overture:a7c68e8d-d92f-48c0-b32f-703af28b28fb,no_terrace,,,,,,,2026-11-23
 overture:a7f4d1ac-83f8-4098-9d70-8732a2d95e0d,terrace,,,,,38.866943,-6.98346,2026-11-23
 overture:a9a12a41-2470-4255-81d2-bf5a45ba0d51,no_terrace,,,,,,,2026-11-23
 overture:a9d0c171-cb42-499d-88af-505a8e97c833,terrace,,,,,38.869008,-6.986466,2026-11-23
-overture:aab4ff94-070b-4dc3-a5ce-87181f2da26e,terrace,,,38.872006,-6.976715,38.872069,-6.976821,2026-11-23
-overture:ab95d7c6-eb55-4b97-b646-69ba6f0d5c4e,terrace,,,,,38.867481,-6.984039,2026-11-23
+overture:aab4ff94-070b-4dc3-a5ce-87181f2da26e,terrace,,,38.872006,-6.976715,38.872112,-6.976863,2026-11-25
+overture:ab95d7c6-eb55-4b97-b646-69ba6f0d5c4e,terrace,,,,,38.867454,-6.98407,2026-11-25
 overture:b1aafaab-18c1-4550-894e-4bb164e55aec,no_terrace,,,,,,,2026-11-23
 overture:b56611bd-a6fe-486a-8dbd-2bf9d6bfeb08,no_terrace,,,,,,,2026-11-23
 overture:b75d5d1d-1369-45e4-9a66-146d9d7c6ce1,no_terrace,,,,,,,2026-11-23
