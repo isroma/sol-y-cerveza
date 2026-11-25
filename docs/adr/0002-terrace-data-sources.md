@@ -2,6 +2,11 @@
 
 - Status: accepted (2026-11-22, recommended options)
 - Amended: decision 3 (Overture as a to-do list only) is superseded by [ADR-0003](0003-venue-base-osm-plus-overture.md), 2026-11-24.
+- Amended (2026-11-25):
+  - The Junta register row ("Not planned") is superseded by [ADR-0004](0004-junta-register-and-website-evidence.md): the register adds venues and confirms others.
+  - "Later the pipeline can read `leisure=outdoor_seating`" (decision 5) is done: a `leisure=outdoor_seating` point within 40 m of a venue marks its terrace and sets the terrace position (`SEATING_LINK_M` in `pipeline/src/solycerveza/terraces.py`).
+  - The curated CSV columns are now those in the header of `pipeline/data/curated_terraces.csv`: `id,venue_id,name,kind,terrace_lat,terrace_lon,verified,ayto_ref,notes`.
+  - User reports exist: prices ([ADR-0005](0005-price-suggestions.md)), and moved, closed, missing and terrace reports ([ADR-0005](0005-price-suggestions.md) "Venue reports", [ADR-0009](0009-terrace-reports.md)).
 - Date: 2026-11-22
 - Issue: #2. Evidence and links: [research notes](../research/data-sources.md).
 
@@ -37,7 +42,7 @@ OSM and Overture barely overlap: about 61 of the 157 OSM venues match an Overtur
 | Ayuntamiento register | Reuse under Ley 37/2007 | Cite "Ayuntamiento de Badajoz" and the data date, do not distort it, and do not imply endorsement. Publish business names only; no data on individual holders (we do not ask for it). Not importable into OSM without explicit permission. |
 | PNOA orthophoto (desk placement) | CC BY 4.0, IGN | Credit IGN's required wording, "PNOA cedido por © Instituto Geográfico Nacional". The same IGN credit is already required for LiDAR (#4). |
 | Overture places (option B only) | CDLA-Permissive-2.0; Apache-2.0 (Foursquare); CC0 (AllThePlaces) | Ship the CDLA-Permissive-2.0 text with the data (§2.1). Skip Foursquare-only records, or ship the Apache-2.0 licence and NOTICE. Credit "Overture Maps Foundation". Under option A nothing is redistributed, so there are no duties. |
-| Junta register | CC BY 4.0 (verify) | Credit the Junta de Extremadura if it is ever used. Not planned. |
+| Junta register | CC BY 4.0 (verify) | Credit the Junta de Extremadura if it is ever used. Not planned (since used: [ADR-0004](0004-junta-register-and-website-evidence.md)). |
 | Google Places | Proprietary | Not used. |
 
 ## Terrace record fields
@@ -69,7 +74,7 @@ The curated CSV from #3 (`id,osm_id,name,kind,terrace_lat,terrace_lon,verified,n
 - **How often**:
   - Every January to March: request the updated register (authorizations run for the calendar year and renew automatically, art. 8) and compare it with the CSV.
   - Every spring, before terrace season: check on site the rows that are unverified or older than 2 years.
-  - User reports, once #8 adds a backend.
+  - User reports, once #8 adds a backend (built: [ADR-0005](0005-price-suggestions.md), [ADR-0009](0009-terrace-reports.md)).
 
 ## Consequences
 

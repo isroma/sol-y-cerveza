@@ -39,7 +39,7 @@ Live reload against the Vite dev server is possible (`server.url` in the Capacit
 
 ## What CI builds
 
-`.github/workflows/mobile.yml` runs on pull requests that touch `web/**` or the workflow, and on every push to `main`. It is not a required check. Both jobs build the web app and run `npx cap sync` for their platform, then:
+`.github/workflows/mobile.yml` runs only by hand (`workflow_dispatch`: Actions → Mobile → Run workflow) while mobile is paused. It is not a required check. Both jobs build the web app and run `npx cap sync` for their platform, then:
 
 - `android` (Ubuntu, JDK 21): `./gradlew assembleDebug`, and uploads the debug APK as the `sol-y-cerveza-debug-apk` artifact (kept 14 days). You can install it on a device or emulator with `adb install app-debug.apk`.
 - `ios` (macOS 26, the runner's default Xcode): `xcodebuild` for the iOS Simulator with code signing disabled. It checks that the project compiles. It does not produce an installable artifact.

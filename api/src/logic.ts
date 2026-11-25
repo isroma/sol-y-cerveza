@@ -351,12 +351,16 @@ export function turnstilePassed(
 
 export type RecentCounts = { voter: number; network: number; venue: number }
 
-/** Which limit a new suggestion would break, or null when it may go in. */
+/**
+ * Which limit `parts` new events (one per suggestion or report) would break, or
+ * null when they may all go in.
+ */
 export function limitHit(
   counts: RecentCounts,
+  parts = 1,
 ): 'voter' | 'network' | 'venue' | null {
-  if (counts.voter >= DAILY_LIMIT) return 'voter'
-  if (counts.network >= NETWORK_DAILY_LIMIT) return 'network'
-  if (counts.venue >= VENUE_HOURLY_LIMIT) return 'venue'
+  if (counts.voter + parts > DAILY_LIMIT) return 'voter'
+  if (counts.network + parts > NETWORK_DAILY_LIMIT) return 'network'
+  if (counts.venue + parts > VENUE_HOURLY_LIMIT) return 'venue'
   return null
 }

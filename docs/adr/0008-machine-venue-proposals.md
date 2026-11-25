@@ -1,7 +1,8 @@
 # ADR-0008: Machine proposals for unreviewed venues, measured before use
 
-- Status: proposed
+- Status: accepted (2026-11-24)
 - Date: 2026-11-24
+- Amended (2026-11-25): the proposers and the trial shipped in #214, and the admin shows proposals with Accept and Ignore in #216. The trial has not been run yet: its numbers must come from the owner's machine (Consequences), so no kind has a measured threshold. The admin shows every row the CSV holds, highest confidence first; until the trial runs, the only filter is `--min-confidence` when the file is written.
 - Issue: #211
 
 ## Context
