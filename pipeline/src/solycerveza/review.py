@@ -17,15 +17,15 @@ OSM tags and the other sources:
   for `terrace`); the admin's "Needs a look" list skips it. Older files may lack the column.
 """
 
-import csv
 import logging
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from solycerveza.csvfile import Row, blank_to_none, read_rows
 from solycerveza.terraces import Terrace
 from solycerveza.venues import VENUE_ID_PATTERN, Kind, Lat, LatLon, Lon, Venue
 
@@ -100,22 +100,18 @@ class Review(BaseModel):
         return LatLon(lat=self.terrace_lat, lon=self.terrace_lon)
 
 
+def _review_cells(row: Row) -> dict[str, object]:
+    # A file with the legacy header has no looks_right column: no row is marked.
+    cells: dict[str, object] = dict(blank_to_none(row))
+    cells["looks_right"] = cells.get("looks_right") == "yes"
+    return cells
+
+
 def read_review(path: Path = REVIEW_CSV) -> list[Review]:
     """The review rows, or none when the file does not exist yet."""
     if not path.exists():
         return []
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) not in (COLUMNS, LEGACY_COLUMNS):
-            raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
-        reviews: list[Review] = []
-        for row in reader:
-            cells: dict[str, object] = {k: (v or "").strip() or None for k, v in row.items()}
-            cells["looks_right"] = cells.get("looks_right") == "yes"
-            try:
-                reviews.append(Review.model_validate(cells))
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
+    reviews = read_rows(path, COLUMNS, Review, clean=_review_cells, legacy=(LEGACY_COLUMNS,))
     ids = [r.venue_id for r in reviews]
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
     if duplicates:

@@ -28,8 +28,9 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import httpx
-from pydantic import Field, ValidationError
+from pydantic import Field
 
+from solycerveza.csvfile import Row, blank_to_none, read_rows
 from solycerveza.geo import BADAJOZ_BBOX
 from solycerveza.overture import cache_path, read_websites
 from solycerveza.price_extract import MAX_SNIPPET, extract_prices
@@ -72,25 +73,18 @@ def sort_key(c: Candidate) -> tuple[str, str, str, int, str, str]:
     return (*c.key, c.snippet)
 
 
+def _candidate_cells(row: Row) -> dict[str, str | None]:
+    # The file's `fetched` column is the `seen` date of the price the candidate would become.
+    cells = blank_to_none(row)
+    cells["seen"] = cells.pop("fetched")
+    return cells
+
+
 def read_candidates(path: Path = CANDIDATES_CSV) -> list[Candidate]:
     """The candidate rows, or none when the file does not exist yet."""
     if not path.exists():
         return []
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != COLUMNS:
-            raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
-        rows: list[Candidate] = []
-        for row in reader:
-            if None in row:
-                raise ValueError(f"{path}:{reader.line_num}: more cells than columns")
-            cells = {k: (v or "").strip() or None for k, v in row.items()}
-            cells["seen"] = cells.pop("fetched")
-            try:
-                rows.append(Candidate.model_validate(cells))
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
-    return rows
+    return read_rows(path, COLUMNS, Candidate, clean=_candidate_cells)
 
 
 def write_candidates(rows: Iterable[Candidate], path: Path = CANDIDATES_CSV) -> None:
