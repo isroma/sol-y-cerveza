@@ -19,10 +19,13 @@ import {
   DAILY_LIMIT,
   LOGIN_HOURLY_LIMIT,
   LOGIN_NETWORK_LIMIT,
+  madridDate,
   THRESHOLD,
   VENUE_HOURLY_LIMIT,
 } from './logic.ts'
 import { DELETE_OPEN_REPORT } from './reports.ts'
+import { horizonBin, isLeafOff, SUN_THRESHOLD } from './sun.ts'
+import { getPosition } from 'suncalc'
 
 const ROOT = join(import.meta.dirname, '..')
 const TEST_SECRET = '1x0000000000000000000000000000000AA'
@@ -36,6 +39,34 @@ const ORIGINS = 'https://isroma.github.io,http://localhost:5173'
 const TERRACES_URL = 'https://data.test/terraces.json'
 /** Venues osm:node/1 … osm:node/40, all at one spot in Badajoz. */
 const VENUES = Array.from({ length: 40 }, (_, i) => `osm:node/${i + 1}`)
+
+/** The spot on a 10° grid where the sun's altitude now is nearest `degrees`. */
+function spotWithSunAt(degrees: number): { lat: number; lon: number } {
+  const now = new Date()
+  let best = { lat: 0, lon: 0 }
+  let bestGap = Infinity
+  for (let lat = -60; lat <= 60; lat += 10)
+    for (let lon = -180; lon < 180; lon += 10) {
+      const gap = Math.abs(getPosition(now, lat, lon).altitude - degrees)
+      if (gap < bestGap) [best, bestGap] = [{ lat, lon }, gap]
+    }
+  return best
+}
+
+/**
+ * Sun reports depend on where the sun is when the Worker gets them, so these
+ * venues are placed, whatever the time the tests run, where the sun is 45° up
+ * (and moves slowly), where it is far below the horizon, and nowhere.
+ */
+const SUNNY = 'osm:node/901'
+const DARK = 'osm:node/902'
+const NOWHERE = 'osm:node/903'
+const SUNNY_SPOT = spotWithSunAt(45)
+const SUN_VENUES = [
+  { id: SUNNY, venue: SUNNY_SPOT },
+  { id: DARK, venue: spotWithSunAt(-60) },
+  { id: NOWHERE },
+]
 
 let bundle = ''
 let compatibilityDate = ''
@@ -109,10 +140,13 @@ async function startApi(
     const url = new URL(request.url)
     if (request.url === TERRACES_URL)
       return MfResponse.json({
-        terraces: VENUES.map((id) => ({
-          id,
-          venue: { lat: 38.878, lon: -6.97 },
-        })),
+        terraces: [
+          ...VENUES.map((id) => ({
+            id,
+            venue: { lat: 38.878, lon: -6.97 },
+          })),
+          ...SUN_VENUES,
+        ],
       })
     if (url.hostname === 'challenges.cloudflare.com') {
       calls.siteverify++
@@ -1186,5 +1220,225 @@ describe('body size', () => {
       postJson({ ids: [1], status: 'rejected' }, { Authorization: ADMIN }),
     )
     expect(response.status).toBe(200)
+  })
+})
+
+describe('sun reports', () => {
+  let api: Api
+  beforeAll(async () => {
+    api = await startApi()
+  })
+  afterAll(() => api.dispose())
+
+  type Correction = {
+    venueId: string
+    leafOff: boolean
+    from: number
+    to: number
+    altitude: number
+    confirmed: boolean
+    reporters: number
+  }
+  type Queued = {
+    ids: number[]
+    venueId: string
+    reporters: number
+    shown: boolean
+    sightings: { azimuth: number; altitude: number }[]
+  }
+  type Stored = {
+    id: number
+    azimuth: number
+    altitude: number
+    bin: number
+    leaf_off: number
+    status: string
+    by_owner: number
+  }
+
+  const sunNow = (venueId: string, ip: string, extra = {}) =>
+    api.call('/v1/changes', {
+      ...postJson({ venueId, token: 'ok:change', sun: true, ...extra }),
+      ip,
+    })
+  const corrections = async () => {
+    const response = await api.call('/v1/sun')
+    expect(response.status).toBe(200)
+    return (await readJson<{ corrections: Correction[] }>(response)).corrections
+  }
+  const queue = async () =>
+    (
+      await readJson<{ reports: Queued[] }>(
+        await api.call('/v1/admin/sun', { headers: { Authorization: ADMIN } }),
+      )
+    ).reports
+  const resolve = (ids: number[], status: string) =>
+    api.call(
+      '/v1/admin/sun/resolve',
+      postJson({ ids, status }, { Authorization: ADMIN }),
+    )
+  const stored = (venueId: string) =>
+    api.rows<Stored>(
+      'SELECT id, azimuth, altitude, bin, leaf_off, status, by_owner FROM sun_reports WHERE venue_id = ? ORDER BY id',
+      venueId,
+    )
+  /**
+   * Puts every SUNNY report where the first one is: the sun moves a little
+   * between requests, which could split a run at a tenth of a degree or a bin.
+   */
+  const align = () =>
+    api.sql(
+      `UPDATE sun_reports SET (azimuth, altitude, bin) =
+         (SELECT azimuth, altitude, bin FROM sun_reports WHERE venue_id = ?1 ORDER BY id LIMIT 1)
+       WHERE venue_id = ?1`,
+      SUNNY,
+    )
+  const events = async (venueId: string) =>
+    (
+      await api.rows<{ n: number }>(
+        'SELECT COUNT(*) AS n FROM suggestion_events WHERE venue_id = ?',
+        venueId,
+      )
+    )[0]?.n
+
+  it('stores where the sun is, by the server, and replaces a re-report', async () => {
+    const response = await sunNow(SUNNY, '94.1.1.1')
+    expect(response.status).toBe(201)
+    const sun = getPosition(new Date(), SUNNY_SPOT.lat, SUNNY_SPOT.lon)
+    const [report] = await stored(SUNNY)
+    expect(report?.altitude).toBeCloseTo(sun.altitude, 0)
+    expect(report?.azimuth).toBeCloseTo(sun.azimuth, 0)
+    expect(report?.bin).toBe(horizonBin(report?.azimuth ?? NaN))
+    expect(report?.leaf_off).toBe(Number(isLeafOff(madridDate(new Date()))))
+    expect(report?.status).toBe('pending')
+    expect(await events(SUNNY)).toBe(1)
+
+    expect((await sunNow(SUNNY, '94.1.1.1')).status).toBe(201)
+    expect((await stored(SUNNY)).length).toBe(1)
+    expect(await events(SUNNY)).toBe(2)
+  })
+
+  it('stores a sun report with a price, as one change', async () => {
+    const response = await sunNow(SUNNY, '94.1.1.2', {
+      price: { item: 'cana', brand: null, cents: 150 },
+    })
+    expect(response.status).toBe(201)
+    expect(
+      await api.rows('SELECT 1 FROM suggestions WHERE venue_id = ?', SUNNY),
+    ).toHaveLength(1)
+    expect(await stored(SUNNY)).toHaveLength(2)
+    expect(await events(SUNNY)).toBe(4)
+  })
+
+  it('refuses the sun when it is down, a venue without a position and a bad part, storing nothing', async () => {
+    const down = await sunNow(DARK, '94.1.1.3', {
+      price: { item: 'cana', brand: null, cents: 150 },
+    })
+    expect(down.status).toBe(400)
+    expect(await down.json()).toEqual({ error: 'sun is down' })
+    expect(
+      await api.rows('SELECT 1 FROM suggestions WHERE venue_id = ?', DARK),
+    ).toEqual([])
+    expect(await stored(DARK)).toEqual([])
+    expect(await events(DARK)).toBe(0)
+
+    const nowhere = await sunNow(NOWHERE, '94.1.1.3')
+    expect(nowhere.status).toBe(400)
+    expect(await stored(NOWHERE)).toEqual([])
+
+    const bad = await sunNow(SUNNY, '94.1.1.3', { sun: 'yes' })
+    expect(bad.status).toBe(400)
+    expect(await bad.json()).toEqual({ error: 'invalid sun' })
+  })
+
+  it(`serves a correction once ${SUN_THRESHOLD} networks agree, and queues them`, async () => {
+    expect(SUN_THRESHOLD).toBe(3)
+    // One network so far: 94.1.1.1 and 94.1.1.2 are two voters on one /24.
+    expect((await sunNow(SUNNY, '94.2.2.2')).status).toBe(201)
+    const pendingBefore = await queue()
+    expect(pendingBefore.map((q) => [q.venueId, q.reporters, q.shown])).toEqual(
+      [[SUNNY, 2, false]],
+    )
+    expect((await sunNow(SUNNY, '94.3.3.3')).status).toBe(201)
+    await align()
+    const served = await corrections()
+    expect(served.map((c) => [c.venueId, c.confirmed, c.reporters])).toEqual([
+      [SUNNY, false, 3],
+    ])
+    const [run] = served
+    const [first] = await stored(SUNNY)
+    expect(run?.from).toBe(((first?.bin ?? 0) + 355) % 360)
+    expect(run?.to).toBe(((first?.bin ?? 0) + 5) % 360)
+    expect(run?.leafOff).toBe(isLeafOff(madridDate(new Date())))
+    const [entry] = await queue()
+    expect(entry?.reporters).toBe(3)
+    expect(entry?.ids).toHaveLength(4)
+    expect(entry?.shown).toBe(true)
+    expect(entry?.sightings[0]?.altitude).toBeCloseTo(45, -1)
+  })
+
+  it('stops serving rejected reports, and keeps the slice blocked for new networks', async () => {
+    const [entry] = await queue()
+    const response = await resolve(entry?.ids ?? [], 'rejected')
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
+    expect(await corrections()).toEqual([])
+    expect(await queue()).toEqual([])
+    expect(
+      await api.rows('SELECT 1 FROM sun_rejections WHERE venue_id = ?', SUNNY),
+    ).not.toHaveLength(0)
+
+    for (const ip of ['94.4.4.4', '94.5.5.5', '94.6.6.6'])
+      expect((await sunNow(SUNNY, ip)).status).toBe(201)
+    await align()
+    // A resolve of nothing purges the cache.
+    expect((await resolve([999_999], 'accepted')).status).toBe(200)
+    expect(await corrections()).toEqual([])
+    expect((await queue()).map((q) => [q.reporters, q.shown])).toEqual([
+      [3, false],
+    ])
+  })
+
+  it('confirms accepted reports', async () => {
+    const [entry] = await queue()
+    expect((await resolve(entry?.ids ?? [], 'accepted')).status).toBe(200)
+    expect(
+      (await corrections()).map((c) => [c.venueId, c.confirmed, c.reporters]),
+    ).toEqual([[SUNNY, true, 3]])
+    expect(await queue()).toEqual([])
+  })
+
+  it('stores the owner’s as accepted and serves it at once', async () => {
+    const owner = (venueId: string) =>
+      api.call(
+        '/v1/owner/changes',
+        postJson({ venueId, sun: true }, { Authorization: OWNER }),
+      )
+    const down = await owner(DARK)
+    expect(down.status).toBe(400)
+    expect(await down.json()).toEqual({ error: 'sun is down' })
+    expect((await owner(SUNNY)).status).toBe(201)
+    await align()
+    const mine = (await stored(SUNNY)).filter((r) => r.by_owner === 1)
+    expect(mine.map((r) => r.status)).toEqual(['accepted'])
+    // The owner's write purged the cache: the confirmed run counts them too.
+    expect(
+      (await corrections()).map((c) => [c.confirmed, c.reporters]),
+    ).toEqual([[true, 4]])
+    expect(await queue()).toEqual([])
+  })
+
+  it('caches GET /v1/sun like prices and keeps the admin routes behind the token', async () => {
+    const response = await api.call('/v1/sun?nocache=1')
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=300')
+    expect((await api.call('/v1/admin/sun')).status).toBe(401)
+    expect(
+      (
+        await api.call(
+          '/v1/admin/sun/resolve',
+          postJson({ ids: [1], status: 'maybe' }, { Authorization: ADMIN }),
+        )
+      ).status,
+    ).toBe(400)
   })
 })

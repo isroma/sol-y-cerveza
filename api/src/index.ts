@@ -1,5 +1,5 @@
 /**
- * Price suggestions API (Cloudflare Worker + D1).
+ * Visitor suggestions API (Cloudflare Worker + D1): prices, venue reports, sun.
  *
  * - POST /v1/suggestions: a visitor suggests a price. Turnstile-verified (our
  *   hostname and action), one vote per voter (salted hash of the IPv4 address
@@ -28,6 +28,12 @@
  *   behind one bot check (action 'change'), checked and capped as the two
  *   endpoints above would, and stored together or not at all.
  * - GET /v1/admin/reports, POST /v1/admin/reports/resolve: the reports queue.
+ * - Sun reports (ADR-0012): `sun: true` in POST /v1/changes says the sun is on
+ *   the terrace now; the Worker works out where the sun is (refused when it is
+ *   under MIN_SUN_ALTITUDE). GET /v1/sun serves the horizon corrections that
+ *   SUN_THRESHOLD networks agree on (approximate) or the owner accepted
+ *   (confirmed), cached like /v1/prices; GET /v1/admin/sun and POST
+ *   /v1/admin/sun/resolve are their queue. The owner's own is stored accepted.
  *
  * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
  * that hash addresses, and a Turnstile test secret only passes on localhost.
@@ -49,6 +55,7 @@ import {
   report,
   resolveReports,
 } from './routes/reports.ts'
+import { pendingSun, resolveSun, sun } from './routes/sun.ts'
 
 async function route(
   request: Request,
@@ -58,6 +65,8 @@ async function route(
   const { pathname } = new URL(request.url)
   if (pathname === '/v1/prices' && request.method === 'GET')
     return prices(request, env, ctx)
+  if (pathname === '/v1/sun' && request.method === 'GET')
+    return sun(request, env, ctx)
   if (pathname === '/v1/suggestions' && request.method === 'POST')
     return suggest(request, env)
   if (pathname === '/v1/changes' && request.method === 'POST')
@@ -94,6 +103,10 @@ async function route(
       return pendingReports(env)
     if (pathname === '/v1/admin/reports/resolve' && request.method === 'POST')
       return resolveReports(request, env)
+    if (pathname === '/v1/admin/sun' && request.method === 'GET')
+      return pendingSun(env)
+    if (pathname === '/v1/admin/sun/resolve' && request.method === 'POST')
+      return resolveSun(request, env)
   }
   return json({ error: 'not found' }, 404)
 }

@@ -21,6 +21,7 @@ describe('parseChange', () => {
           { kind: 'move', venueId: 'osm:node/1', ...move },
           { kind: 'closed', venueId: 'osm:node/1' },
         ],
+        sun: false,
       },
       token: 't',
     })
@@ -30,6 +31,11 @@ describe('parseChange', () => {
     expect(parseChange({ ...base, price }).ok).toBe(true)
     expect(parseChange({ ...base, move }).ok).toBe(true)
     expect(parseChange({ ...base, closed: true }).ok).toBe(true)
+    expect(parseChange({ ...base, sun: true })).toEqual({
+      ok: true,
+      value: { venueId: 'osm:node/1', price: null, reports: [], sun: true },
+      token: 't',
+    })
   })
 
   it.each([
@@ -37,6 +43,10 @@ describe('parseChange', () => {
     ['empty', base],
     ['empty', { ...base, closed: undefined }],
     ['closed', { ...base, closed: false }],
+    ['sun', { ...base, sun: false }],
+    ['sun', { ...base, sun: 'yes', closed: true }],
+    ['venueId', { ...base, venueId: 'google:1', sun: true }],
+    ['token', { ...base, token: undefined, sun: true }],
     ['token', { ...base, closed: true, token: '' }],
     ['venueId', { venueId: 1, token: 't', closed: true }],
     ['venueId', { ...base, venueId: 'google:1', closed: true }],

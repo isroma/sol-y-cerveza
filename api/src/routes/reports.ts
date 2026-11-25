@@ -20,7 +20,9 @@ import {
   type Report,
   type ReportRow,
 } from '../reports.ts'
+import { sighting } from '../sun.ts'
 import { suggestionWrite } from './prices.ts'
+import { sunWrites } from './sun.ts'
 
 /**
  * Why a report about a published venue is refused (unknown venue, or a
@@ -121,8 +123,8 @@ export async function report(request: Request, env: Env): Promise<Response> {
 
 /**
  * Everything a visitor suggests for one venue from the card's back (a price,
- * a move, closed) behind one bot check, stored together or not at all. Each
- * part counts towards the caps as its own request would.
+ * a move, closed, sun now) behind one bot check, stored together or not at
+ * all. Each part counts towards the caps as its own request would.
  */
 export async function change(request: Request, env: Env): Promise<Response> {
   const salt = ipSalt(env)
@@ -150,10 +152,14 @@ export async function change(request: Request, env: Env): Promise<Response> {
     const refused = reportRefused(published, value)
     if (refused) return refused
   }
+  const now = Date.now()
+  const sun = parsed.value.sun
+    ? sighting(published.get(venueId), new Date(now))
+    : null
+  if (sun && !sun.ok) return json({ error: sun.error }, 400)
 
   const { voterHash, netHash } = await identity(salt, ip)
-  const now = Date.now()
-  const parts = (price ? 1 : 0) + reports.length
+  const parts = (price ? 1 : 0) + reports.length + (sun ? 1 : 0)
   const capped = await takeAllowance(
     env,
     voterHash,
@@ -169,6 +175,7 @@ export async function change(request: Request, env: Env): Promise<Response> {
     ...reports.flatMap((value) =>
       reportWrites(env, value, voterHash, netHash, now),
     ),
+    ...(sun ? sunWrites(env, venueId, sun.value, voterHash, netHash, now) : []),
   ])
   return json({ ok: true }, 201)
 }
