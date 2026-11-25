@@ -30,6 +30,7 @@ import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { HeightShadowLayer } from './heightShadows.ts'
+import { addLidarBuildings, LIDAR_BUILDINGS } from './lidarBuildings.ts'
 import { addTreeCrowns } from './treeCrowns.ts'
 import { ShadowCache } from './shadowLayer.ts'
 
@@ -236,12 +237,15 @@ export function MapView({
           map.on('idle', refreshShadows)
           addDotLayers(map, (id) => onSelectRef.current(id))
           dotsKeyRef.current = null
-          // The trees whose shade the GPU shadows draw (pipeline trees.py).
-          if (GPU_SHADOWS)
-            addTreeCrowns(
+          // The buildings and trees the GPU shadows are cast from, at their
+          // LiDAR heights (pipeline buildings.py and trees.py).
+          if (GPU_SHADOWS) {
+            addLidarBuildings(
               map,
               map.getLayer('building-3d') ? 'building-3d' : undefined,
             )
+            addTreeCrowns(map, LIDAR_BUILDINGS)
+          }
           nightSwitchRef.current = createNightSwitch(map, new Set([SHADOWS]))
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.

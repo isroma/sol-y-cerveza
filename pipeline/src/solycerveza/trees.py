@@ -16,7 +16,7 @@ of its cells), capped where the next band takes over, so no crown is drawn talle
 Unmapped buildings, kiosks and awnings that pass the filters are drawn as trees too.
 
 Output: a compact JSON (``encode``), decoded in the app's map workers by
-``web/src/map/treeCodec.ts``; coordinates in WGS84 rounded to 1e-5 degrees (about 1 m),
+``web/src/map/extrusionCodec.ts``; coordinates in WGS84 rounded to 1e-5 degrees (about 1 m),
 ordered by band then position (deterministic).
 """
 
@@ -131,7 +131,7 @@ def band_shapes(
 
 
 def encode(bands: Sequence[tuple[float, float, Polygon]], crs: str) -> dict[str, Any]:
-    """The crowns in the compact format ``web/src/map/treeCodec.ts`` decodes.
+    """Extrusions (crowns, buildings) in the format ``web/src/map/extrusionCodec.ts`` decodes.
 
     ``{"v": 1, "g": [[base, top, polygons], ...]}``, one group per (base, top), in order. A
     polygon is a list of rings; a ring is a flat list of ``x, y`` steps in ``UNIT`` degrees

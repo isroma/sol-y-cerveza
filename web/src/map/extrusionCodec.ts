@@ -1,31 +1,32 @@
 import type { Feature, FeatureCollection, Polygon, Position } from 'geojson'
 import * as z from 'zod/mini'
 
-/** Coordinates in trees.json are integers in this unit (1e-5°, about 1 m). */
+/** Coordinates in the files are integers in this unit (1e-5°, about 1 m). */
 const UNIT = 1e5
 
 /**
- * trees.json, written by the pipeline (trees.py): crowns grouped by extrusion,
+ * Extruded outlines (trees.json, buildings.json), written by the pipeline
+ * (`encode` in trees.py): polygons grouped by extrusion,
  * `[base m, top m, polygons]`. A polygon is a list of rings, a ring a flat list
  * of `x, y` steps in UNIT, open (the closing point is implied). Each step is
  * from the previous point; a ring's first point is from the first point of the
  * ring before it, so the numbers stay small.
  */
-const TreesFile = z.object({
+const ExtrusionsFile = z.object({
   v: z.literal(1),
   g: z.array(
     z.tuple([z.number(), z.number(), z.array(z.array(z.array(z.int())))]),
   ),
 })
 
-export type TreeProperties = { b: number; h: number }
+export type ExtrusionProperties = { b: number; h: number }
 
-/** trees.json as GeoJSON polygons with their `b` base and `h` top. */
-export function decodeTrees(
+/** The file as GeoJSON polygons with their `b` base and `h` top, in metres. */
+export function decodeExtrusions(
   raw: unknown,
-): FeatureCollection<Polygon, TreeProperties> {
-  const { g } = TreesFile.parse(raw)
-  const features: Feature<Polygon, TreeProperties>[] = []
+): FeatureCollection<Polygon, ExtrusionProperties> {
+  const { g } = ExtrusionsFile.parse(raw)
+  const features: Feature<Polygon, ExtrusionProperties>[] = []
   let firstX = 0
   let firstY = 0
   for (const [b, h, polygons] of g) {
@@ -55,20 +56,20 @@ export function decodeTrees(
 }
 
 /**
- * Custom protocol for the crowns: `trees://<absolute url of trees.json, URI-encoded>`
+ * Custom protocol for these files: `extrusions://<absolute url, URI-encoded>`
  * (encoded, because MapLibre collapses a `//` inside the URL).
  */
-export const TREES_PROTOCOL = 'trees'
+export const EXTRUSIONS_PROTOCOL = 'extrusions'
 
 /** The protocol's handler, in MapLibre's workers or, as a fallback, on the main thread. */
-export async function loadTrees(
+export async function loadExtrusions(
   params: { url: string },
   abort: AbortController,
-): Promise<{ data: FeatureCollection<Polygon, TreeProperties> }> {
+): Promise<{ data: FeatureCollection<Polygon, ExtrusionProperties> }> {
   const url = decodeURIComponent(
-    params.url.slice(`${TREES_PROTOCOL}://`.length),
+    params.url.slice(`${EXTRUSIONS_PROTOCOL}://`.length),
   )
   const response = await fetch(url, { signal: abort.signal })
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
-  return { data: decodeTrees(await response.json()) }
+  return { data: decodeExtrusions(await response.json()) }
 }

@@ -121,7 +121,7 @@ Apple Maps-like and warm. The map is the stage, not the star: low contrast, so t
 | Land             | `#F6EEE2`                                                          |
 | Residential      | `#F1E5D2`                                                          |
 | Buildings (flat) | `#F0E4D3`, outline `#E5D5BF`                                       |
-| Buildings (3D)   | walls `#F2E6D6`, roof caps `#FCF8F1`, soft warm light, antialiased |
+| Buildings (3D)   | walls `#F2E6D6`, roof caps `#FCF8F1`, soft warm light, antialiased; basemap heights × 1.4, or with `?shade=gpu` real LiDAR heights |
 | Parks            | `#CDE5AE`                                                          |
 | Water            | `#9ACBEF`                                                          |
 | Streets          | `#FFFFFF`, casing `#E4D6C3` (major `#E6CFA8`)                      |

@@ -48,6 +48,9 @@ const DROPPED_LAYERS = new Set([
 const TEXT_ONLY_LAYERS = new Set(['poi_r1'])
 
 /** Warm, Apple Maps-like palette: sandy land, white streets, soft blue water. */
+/** Whitewashed, warm stucco walls of the 3D buildings. */
+export const WALL_COLOR = '#F2E6D6'
+
 const PAINT: Record<string, Record<string, unknown>> = {
   background: { 'background-color': '#F6EEE2' },
   landuse_residential: { 'fill-color': '#F1E5D2', 'fill-opacity': 0.7 },
@@ -68,7 +71,7 @@ const PAINT: Record<string, Record<string, unknown>> = {
   building: { 'fill-color': '#F0E4D3', 'fill-outline-color': '#E5D5BF' },
   'building-3d': {
     // Whitewashed, warm stucco walls; the light shades the sides.
-    'fill-extrusion-color': '#F2E6D6',
+    'fill-extrusion-color': WALL_COLOR,
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
     'fill-extrusion-height': [
       '*',
@@ -135,7 +138,7 @@ export function sunlitStyle(base: StyleSpecification): StyleSpecification {
 /** Roof caps a touch lighter than the walls, so roofs read clearly from above. */
 export const ROOF_COLOR = '#FCF8F1'
 /** Thickness of a roof cap, in metres (before BUILDING_HEIGHT_SCALE). */
-const ROOF_M = 0.6
+export const ROOF_M = 0.6
 
 /**
  * Adds a thin, lighter roof cap on top of every 3D building: a second

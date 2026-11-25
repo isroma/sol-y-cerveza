@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { decodeTrees, loadTrees } from './treeCodec.ts'
+import { decodeExtrusions, loadExtrusions } from './extrusionCodec.ts'
 
 // Two crowns in one group (base 0, top 6) and one in another (4.5 to 11).
 // Steps are in 1e-5°; each ring's first point steps from the previous ring's.
@@ -11,9 +11,9 @@ const FILE = {
   ],
 }
 
-describe('decodeTrees', () => {
+describe('decodeExtrusions', () => {
   it('turns the steps back into closed GeoJSON rings', () => {
-    const { features } = decodeTrees(FILE)
+    const { features } = decodeExtrusions(FILE)
     expect(features.map((f) => f.properties)).toEqual([
       { b: 0, h: 6 },
       { b: 0, h: 6 },
@@ -41,13 +41,15 @@ describe('decodeTrees', () => {
 
   it('rejects anything else, such as plain GeoJSON', () => {
     expect(() =>
-      decodeTrees({ type: 'FeatureCollection', features: [] }),
+      decodeExtrusions({ type: 'FeatureCollection', features: [] }),
     ).toThrow()
-    expect(() => decodeTrees({ v: 1, g: [[0, 6, [[[1.5, 2]]]]] })).toThrow()
+    expect(() =>
+      decodeExtrusions({ v: 1, g: [[0, 6, [[[1.5, 2]]]]] }),
+    ).toThrow()
   })
 })
 
-describe('loadTrees', () => {
+describe('loadExtrusions', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('fetches the encoded URL and returns GeoJSON', async () => {
@@ -55,8 +57,8 @@ describe('loadTrees', () => {
       async (_url: string) => new Response(JSON.stringify(FILE)),
     )
     vi.stubGlobal('fetch', fetch)
-    const { data } = await loadTrees(
-      { url: 'trees://https%3A%2F%2Fexample.org%2Fdata%2Ftrees.json' },
+    const { data } = await loadExtrusions(
+      { url: 'extrusions://https%3A%2F%2Fexample.org%2Fdata%2Ftrees.json' },
       new AbortController(),
     )
     expect(fetch.mock.calls[0]?.[0]).toBe('https://example.org/data/trees.json')
@@ -66,8 +68,8 @@ describe('loadTrees', () => {
   it('fails on an HTTP error', async () => {
     vi.stubGlobal('fetch', async () => new Response('', { status: 404 }))
     await expect(
-      loadTrees(
-        { url: 'trees://https%3A%2F%2Fx%2Ft.json' },
+      loadExtrusions(
+        { url: 'extrusions://https%3A%2F%2Fx%2Ft.json' },
         new AbortController(),
       ),
     ).rejects.toThrow('404')

@@ -6,7 +6,7 @@ How the site and the API are deployed and configured, how the offline cache beha
 
 - **Web (GitHub Pages).** CI deploys `main` once `ci-ok` passes on it: the `deploy-pages` job in `.github/workflows/ci.yml` calls `.github/workflows/deploy-pages.yml`, which builds the commit CI tested. Running the **Deploy web to GitHub Pages** workflow by hand (Actions → Run workflow, on `main`) deploys `main` at once, without waiting for CI. Only `main`'s newest commit is deployed: an older run skips, and one Pages deploy runs at a time.
 - **API (Cloudflare Worker + D1).** The `deploy-api` job in `ci.yml` calls `.github/workflows/deploy-api.yml` the same way, once the `DEPLOY_API` variable is set; until then the Worker is deployed by hand. First deploy, updates, migrations and turning on deploys from GitHub: [api/README.md](../api/README.md#deploys-from-github).
-- **Shadow height tiles** live on the `height-tiles` branch, not on `main`: every Pages deploy copies them into `data/heights/` ([pipeline](pipeline.md#shadow-height-tiles)). The deploy fails if that branch is missing.
+- **Shadow height tiles** (and `trees.json`, `buildings.json`) live on the `height-tiles` branch, not on `main`: every Pages deploy copies them into `data/heights/` (and `data/`) ([pipeline](pipeline.md#shadow-height-tiles)). The deploy fails if that branch is missing.
 - **Data.** The admin's Publish pushes a `data/venue-review-*` branch; the **Publish review** and **Publish review PR** workflows check it, open its PR and enable auto-merge ([admin guide](admin.md#publish)). Once merged, the deploy above ships it.
 - **Mobile** is paused: `.github/workflows/mobile.yml` only runs by hand ([mobile](mobile.md)).
 
