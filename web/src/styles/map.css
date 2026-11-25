@@ -291,6 +291,12 @@
     white-space: nowrap;
   }
 
+  /* While a card is open the legend steps aside, so the card has the room
+     down to the time bar. */
+  .map-wrap.has-card .map-bottom {
+    display: none;
+  }
+
   /* Centred over the legend, which is centred on the screen. */
   .map-info {
     right: auto;
