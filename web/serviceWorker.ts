@@ -5,9 +5,46 @@ import { transformWithOxc, type Plugin } from 'vite'
 import { BASEMAP_STYLE_URL } from './src/config.ts'
 import type { SwManifest } from './sw/manifest.ts'
 
-/** The build's hashed files, the ones the worker precaches. */
-export function precacheList(fileNames: Iterable<string>): string[] {
-  return [...fileNames]
+/** What precacheList needs to know about a file of the build's bundle. */
+export type BundleFile =
+  | {
+      type: 'chunk'
+      fileName: string
+      isEntry: boolean
+      facadeModuleId: string | null
+      /** Static imports only; dynamic ones are in `dynamicImports`. */
+      imports: readonly string[]
+    }
+  | { type: 'asset'; fileName: string }
+
+/** The lazy map chunk (src/map/LazyMapView.tsx): every visitor loads it. */
+const MAP_MODULE = '/src/map/MapView.tsx'
+
+/**
+ * The build's hashed files the worker precaches: the entry and map chunks
+ * and what they statically import, plus every non-JavaScript file (CSS,
+ * the MapLibre worker). Other chunks are only reachable through dynamic
+ * imports off those paths, such as exifr for the owner's photo upload: the
+ * worker fetches and caches them on first use instead (sw.ts cacheFirst).
+ */
+export function precacheList(bundle: Record<string, BundleFile>): string[] {
+  const files = Object.values(bundle)
+  const byName = new Map(files.map((file) => [file.fileName, file]))
+  const reached = new Set<string>()
+  const visit = (name: string) => {
+    const file = byName.get(name)
+    if (!file || reached.has(name)) return
+    reached.add(name)
+    if (file.type === 'chunk') file.imports.forEach(visit)
+  }
+  for (const file of files)
+    if (
+      file.type === 'asset' ||
+      file.isEntry ||
+      file.facadeModuleId?.endsWith(MAP_MODULE)
+    )
+      visit(file.fileName)
+  return [...reached]
     .filter((name) => name.startsWith('assets/') && !name.endsWith('.map'))
     .sort()
 }
@@ -50,7 +87,7 @@ export function serviceWorker(): Plugin {
     async generateBundle(_options, bundle) {
       const killSwitch = env['VITE_SW_KILL_SWITCH'] === '1'
       const file = join(root, 'sw', killSwitch ? 'kill-switch.ts' : 'sw.ts')
-      const assets = precacheList(Object.keys(bundle))
+      const assets = precacheList(bundle)
       const manifest: SwManifest = {
         build: buildId(assets),
         assets,
