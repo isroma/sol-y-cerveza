@@ -33,11 +33,20 @@ function blankImage({ width, height }: { width: number; height: number }) {
 const isSunny = (status: VenueStatus) =>
   status.category === 'sun' || status.category === 'soon'
 
+/** Each map's canvas height in CSS px, kept by addTerraceNameLayers. */
+const heights = new WeakMap<MapLibreMap, number>()
+
 export function addTerraceNameLayers(
   map: MapLibreMap,
   onSelect: (id: string) => void,
 ): void {
   const empty = { type: 'FeatureCollection' as const, features: [] }
+  // The canvas only changes size when the map resizes (MapLibre sets its
+  // height then), so its height is read here and on every resize instead of
+  // on every update, where it would force a layout of the whole page.
+  const measure = () => heights.set(map, map.getCanvas().clientHeight)
+  measure()
+  map.on('resize', measure)
   if (!map.hasImage('badge-box')) map.addImage('badge-box', blankImage(BOX))
   if (!map.hasImage('badge-box-priced'))
     map.addImage('badge-box-priced', blankImage(PRICED_BOX))
@@ -179,7 +188,8 @@ export function updateTerraceNames(
   const names = map.getSource<GeoJSONSource>(NAMES_SOURCE)
   const badges = map.getSource<GeoJSONSource>(BADGES_SOURCE)
   if (!names || !badges) return
-  const cut = map.getCanvas().clientHeight * farShare(map.getPitch())
+  const height = heights.get(map) ?? map.getCanvas().clientHeight
+  const cut = height * farShare(map.getPitch())
   const far = (lon: number, lat: number) =>
     cut > 0 && map.project([lon, lat]).y < cut
   const last = sent.get(map) ?? { names: '', boxes: '', dots: '' }

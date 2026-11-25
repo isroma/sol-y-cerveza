@@ -1,6 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import type { Map as MapLibreMap } from 'maplibre-gl'
+import { describe, expect, it, vi } from 'vitest'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import { farShare, terraceNamesData } from './terraceNames.ts'
+import {
+  addTerraceNameLayers,
+  farShare,
+  terraceNamesData,
+  updateTerraceNames,
+} from './terraceNames.ts'
 
 const status = (
   id: string,
@@ -47,6 +53,74 @@ describe('terraceNamesData', () => {
     expect(data.features.map((f) => f.properties)).toEqual([
       expect.objectContaining({ id: 'b', priced: true, named: false }),
     ])
+  })
+})
+
+/** A tilted map 800 px tall; `y` gives each point's screen height. */
+function fakeMap(y: (lon: number, lat: number) => number) {
+  let height = 800
+  const reads = { height: 0 }
+  const handlers = new Map<string, () => void>()
+  const setFilter = vi.fn()
+  const canvas = {
+    style: {},
+    get clientHeight() {
+      reads.height++
+      return height
+    },
+  }
+  const map = {
+    hasImage: () => false,
+    addImage: () => {},
+    addSource: () => {},
+    addLayer: () => {},
+    on: (event: string, ...rest: unknown[]) => {
+      const handler = rest.at(-1)
+      if (rest.length === 1 && typeof handler === 'function')
+        handlers.set(event, () => {
+          handler()
+        })
+    },
+    getSource: () => ({ setData: () => Promise.resolve() }),
+    getLayer: () => ({}),
+    setFilter,
+    getCanvas: () => canvas,
+    getPitch: () => 60,
+    project: ([lon, lat]: [number, number]) => ({ x: 0, y: y(lon, lat) }),
+  }
+  const resize = (to: number) => {
+    height = to
+    handlers.get('resize')?.()
+  }
+  return {
+    map: map as unknown as MapLibreMap,
+    reads,
+    setFilter,
+    resize,
+  }
+}
+
+describe('updateTerraceNames', () => {
+  const data = terraceNamesData([], null, new Set())
+
+  it('hides the far dots without reading the canvas size each time', () => {
+    // A dot 200 px from the top: far while the far share (35 %) of the
+    // canvas is more than 200 px.
+    const { map, reads, setFilter, resize } = fakeMap(() => 200)
+    addTerraceNameLayers(map, () => {})
+    const dots = [{ id: 'd', lon: -6.97, lat: 38.88 }]
+    updateTerraceNames(map, data, dots)
+    updateTerraceNames(map, data, dots)
+    expect(reads.height).toBe(1)
+    expect(setFilter).toHaveBeenLastCalledWith(expect.any(String), [
+      '!',
+      ['in', ['get', 'id'], ['literal', ['d']]],
+    ])
+    // Shorter than 200 ÷ 0.35 px: the dot is near again.
+    resize(500)
+    updateTerraceNames(map, data, dots)
+    expect(reads.height).toBe(2)
+    expect(setFilter).toHaveBeenLastCalledWith(expect.any(String), null)
   })
 })
 
