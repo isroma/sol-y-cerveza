@@ -9,7 +9,7 @@ import {
   nextReview,
   type Review,
 } from './review.ts'
-import type { SuggestionGroup } from './SuggestionsQueue.tsx'
+import type { SuggestionGroup } from './inbox.ts'
 import { today } from './today.ts'
 
 type Options = {
