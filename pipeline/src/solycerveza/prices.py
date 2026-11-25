@@ -31,18 +31,19 @@ COLUMNS = ("venue_id", "item", "brand", "cents", "seen")
 
 Item = Literal["cana", "tercio"]
 # The tercio brands most poured in Spain and in Badajoz; Portuguese ones are common at the border.
-# Keep in sync with BRANDS in web/src/data/prices.ts.
+# "other" is any brand not listed. Keep in sync with BRANDS in web/src/data/prices.ts.
 Brand = Literal[
-    "cruzcampo",
-    "mahou-5-estrellas",
-    "estrella-galicia",
-    "amstel",
-    "heineken",
     "alhambra-especial",
-    "san-miguel",
+    "amstel",
+    "cruzcampo",
     "estrella-damm",
-    "super-bock",
+    "estrella-galicia",
+    "heineken",
+    "mahou-5-estrellas",
     "sagres",
+    "san-miguel",
+    "super-bock",
+    "other",
 ]
 
 
