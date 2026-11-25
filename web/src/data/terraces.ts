@@ -15,18 +15,21 @@ const latLonSchema = z.object({
 })
 
 /** A horizon bin: a whole number of tenths of a degree, 0 to 90°. */
-const isHorizonBin = (bin: number) =>
-  Number.isSafeInteger(bin) && bin >= 0 && bin <= 900
+const isHorizonBin = (bin: unknown) =>
+  typeof bin === 'number' && Number.isSafeInteger(bin) && bin >= 0 && bin <= 900
 
-// One check over the array rather than a schema per bin: the same rule as
-// z.int().check(z.minimum(0), z.maximum(900)) on each element, at about a
-// third of the parse time on 360-bin arrays.
-const horizonSchema = z.array(z.number()).check(
-  z.length(HORIZON_BINS),
-  z.refine((horizon) => horizon.every(isHorizonBin), {
-    message: 'horizon bins are integers from 0 to 900',
-  }),
-)
+const isHorizon = (value: unknown): value is number[] =>
+  Array.isArray(value) &&
+  value.length === HORIZON_BINS &&
+  value.every((bin: unknown) => isHorizonBin(bin))
+
+// One plain check over the whole array rather than zod on every bin: the same
+// rule as z.array(z.int().check(z.minimum(0), z.maximum(900))) of length 360,
+// but the file has hundreds of these arrays, and this cuts about a quarter of
+// its validation time at startup.
+const horizonSchema = z.custom<number[]>(isHorizon, {
+  message: 'a horizon is 360 integer bins from 0 to 900',
+})
 
 const priceSchema = z
   .object({
