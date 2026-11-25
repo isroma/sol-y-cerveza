@@ -176,7 +176,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - A slim brand bar on top (32 px mark, 20 px title) with a **menu button** (44 px) on the right.
 - The map fills the middle and the **time bar is the footer**, always in view.
 - The menu opens over the map, between the brand bar and the footer, with search, filters and the list. The button turns into a close icon; Escape or picking a venue closes it, so the venue's map card shows.
-- The legend (as wide as its rows, 56 px tall) is centred at the bottom of the map; it steps aside while a venue card is open, so the card has the room down to the time bar.
+- The legend (as wide as its rows, 56 px tall) is centred at the bottom of the map; it steps aside while a venue card shows its back (Sugerir un cambio), so the card has the room down to the time bar.
 - While the report picker is open (§7), the time footer and that bottom group are hidden: the picker's bar takes the bottom of the map, centred. On desktop the bar sits bottom-left (16 px inset, at most 420 px wide), clear of the legend.
 
 ### Map overlays

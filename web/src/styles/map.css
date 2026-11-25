@@ -291,9 +291,9 @@
     white-space: nowrap;
   }
 
-  /* While a card is open the legend steps aside, so the card has the room
-     down to the time bar. */
-  .map-wrap.has-card .map-bottom {
+  /* While a card shows its back ("Sugerir un cambio") the legend steps
+     aside, so the card has the room down to the time bar. */
+  .map-wrap.has-card:has(.pin-card .change) .map-bottom {
     display: none;
   }
 
