@@ -16,5 +16,36 @@
         "allow": ["warn", "error"]
       }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/**", "sw/**"],
+      "excludeFiles": ["src/admin/**", "**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "zod",
+                "message": "Visitor code imports 'zod/mini'; classic 'zod' is for admin and dev-server code only."
+              },
+              {
+                "name": "zod/v4",
+                "message": "Visitor code imports 'zod/mini'; classic 'zod' is for admin and dev-server code only."
+              },
+              {
+                "name": "zod/v4/classic",
+                "message": "Visitor code imports 'zod/mini'; classic 'zod' is for admin and dev-server code only."
+              },
+              {
+                "name": "zod/v3",
+                "message": "Visitor code imports 'zod/mini'; classic 'zod' is for admin and dev-server code only."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

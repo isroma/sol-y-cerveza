@@ -19,8 +19,6 @@ export * from '../data/photoReading.ts'
  * (web/pricePhotoServer.ts), which sends the photo to the Claude API.
  */
 
-export const PHOTO_API = '/__admin/prices/photo'
-
 // --- Upload (browser -> dev server) -----------------------------------------
 
 export type PhotoUpload = { image: string; mediaType: PhotoMediaType }
