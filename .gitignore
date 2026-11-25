@@ -37,3 +37,4 @@ pipeline/.cache/
 .claude/worktrees/
 web/public/data/heights/
 web/public/data/trees.json
+web/public/data/buildings.json
