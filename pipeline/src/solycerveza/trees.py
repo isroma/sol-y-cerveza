@@ -13,7 +13,8 @@ bands (``BANDS_M``), and each band becomes smoothed polygons extruded from the b
 so a crown reads as a stepped dome. Each polygon's top is its own crown's height (95th percentile
 of its cells), capped where the next band takes over, so no crown is drawn taller than it is.
 
-Unmapped buildings, kiosks and awnings that pass the filters are drawn as trees too.
+Unmapped buildings, kiosks and awnings that pass the filters are drawn as trees too, except the
+``structure`` areas of ``data/surface_corrections.geojson``, which ``buildings`` draws.
 
 With the leaf-off surface model (``python -m solycerveza.leafoff``, ADR-0007), the crown cells it
 lowers (deciduous) and the ones it keeps are polygonized apart, and the deciduous polygons are
@@ -37,11 +38,12 @@ import numpy.typing as npt
 import rasterio
 import shapely
 from pyproj import Transformer
-from rasterio.features import rasterize, shapes
+from rasterio.features import geometry_mask, rasterize, shapes
 from shapely.geometry import LinearRing, MultiPolygon, Polygon, shape
 
 from solycerveza.leafoff import LEAFOFF_DSM_PATH, dilate, load_structures, structures_mask
 from solycerveza.obstacles import Grid
+from solycerveza.surface_corrections import areas, load_corrections
 from solycerveza.venues import CACHE_DIR
 
 MIN_HEIGHT_M = 2.5
@@ -217,6 +219,12 @@ def build(
                 data[data == nodata] = np.nan
     heights = smoothed(surface - terrain)
     structures = structures_mask(load_structures(cache_dir=cache_dir), grid)
+    # Unmapped structures the review found: buildings, not trees (buildings.py draws them).
+    built = areas(load_corrections(), "structure", grid.crs)
+    if built:
+        structures |= geometry_mask(
+            built, out_shape=structures.shape, transform=grid.transform, invert=True
+        )
     crowns = crown_cells(heights, structures)
     if leafoff_path is None:
         return encode(band_polygons(crowns, heights, grid), grid.crs)

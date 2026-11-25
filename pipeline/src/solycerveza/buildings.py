@@ -21,7 +21,8 @@ a 15 m block. So inside each LiDAR-measured footprint, connected areas of at lea
 ``PART_MIN_M2`` that stand ``PART_RISE_M`` or more above the building's height are drawn as their
 own blocks at their own height (``tall_parts``). A part traced from the 2 m grid has
 stair-stepped edges, so one that fills at least ``STRAIGHTEN_FILL`` of its minimum rotated
-rectangle becomes that rectangle (``straighten``), except the round domes in ``KEEP_SHAPE``.
+rectangle becomes that rectangle (``straighten``), except the round domes in ``KEEP_SHAPE``;
+parts that are tree canopy (``CANOPY_PARTS``) are dropped.
 The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``), and the old
 town's landmarks are modelled by hand (``landmarks.py``).
 
@@ -57,6 +58,7 @@ from shapely.ops import polygonize, substring, unary_union
 from solycerveza.geo import BADAJOZ_BBOX
 from solycerveza.leafoff import structures_query
 from solycerveza.obstacles import Grid
+from solycerveza.surface_corrections import areas, load_corrections
 from solycerveza.trees import encode
 from solycerveza.venues import CACHE_DIR, cached_overpass
 
@@ -83,6 +85,8 @@ KEEP_SHAPE = frozenset(
         "way/568389126#part",
     }
 )
+# Tall parts that are tree canopy over a low building, not part of it (PNOA photos, #440).
+CANOPY_PARTS = frozenset({"way/631575056#part", "way/301780606#part"})
 CRENELLATED = frozenset({"relation/9755446#part"})  # the cathedral's tower
 MERLON_M = 1.2  # side of each merlon
 MERLON_EVERY_M = 2.4
@@ -241,6 +245,14 @@ def tall_parts(measured: Sequence[Measured], heights: FloatArray, grid: Grid) ->
     return out
 
 
+def drop_canopy(parts: Sequence[Measured]) -> list[Measured]:
+    """``parts`` without the ``CANOPY_PARTS``, which must all be among them."""
+    ids = {p.building.osm_id for p in parts}
+    if missing := sorted(CANOPY_PARTS - ids):
+        raise ValueError(f"CANOPY_PARTS not found: {missing}")
+    return [p for p in parts if p.building.osm_id not in CANOPY_PARTS]
+
+
 def straighten(parts: Sequence[Measured]) -> list[Measured]:
     """Each part as its minimum rotated rectangle when it fills at least ``STRAIGHTEN_FILL`` of
     it, except those in ``KEEP_SHAPE``, which must all be among ``parts``."""
@@ -359,8 +371,13 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, An
     raw = load_osm(cache_dir)
     to_grid = Transformer.from_crs("EPSG:4326", grid.crs, always_xy=True)
     heights = surface - terrain
-    measured = measure(footprints(raw, to_grid), heights, grid)
-    parts, merlons = crenellate(straighten(tall_parts(measured, heights, grid)))
+    # Unmapped structures the review found (surface_corrections.py) are drawn as buildings.
+    built = [
+        Building(f"correction/{i}", area, None)
+        for i, area in enumerate(areas(load_corrections(), "structure", grid.crs))
+    ]
+    measured = measure([*footprints(raw, to_grid), *built], heights, grid)
+    parts, merlons = crenellate(straighten(drop_canopy(tall_parts(measured, heights, grid))))
     measured = [*measured, *parts]
     # landmarks.py builds on this module's types, so it is imported here, not at the top.
     from solycerveza import landmarks

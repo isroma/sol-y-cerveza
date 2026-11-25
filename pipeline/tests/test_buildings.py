@@ -13,6 +13,7 @@ from solycerveza.buildings import (
     Measured,
     crenellate,
     dissolve,
+    drop_canopy,
     footprints,
     measure,
     parse_levels,
@@ -201,3 +202,14 @@ def test_crenellate_sinks_the_tower_and_stands_merlons_on_its_walls(
         assert merlon.area == pytest.approx(1.44)
         assert tower.contains(merlon)
         assert merlon.exterior.distance(tower.exterior) == pytest.approx(0.0, abs=1e-9)
+
+
+def test_drop_canopy_removes_the_listed_parts_and_needs_them_all(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("solycerveza.buildings.CANOPY_PARTS", frozenset({"way/2#part"}))
+    tower = part("way/1#part", box(0, 0, 4, 4))
+    canopy = part("way/2#part", box(10, 0, 14, 4), 11.0)
+    assert drop_canopy([tower, canopy]) == [tower]
+    with pytest.raises(ValueError, match="way/2#part"):
+        drop_canopy([tower])
