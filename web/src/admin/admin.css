@@ -221,6 +221,49 @@ body {
   cursor: grab;
 }
 
+/* Basemap toggle (AdminMap.tsx): top right, clear of the panels on the left. */
+.admin-basemap {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+
+.admin-basemap button {
+  padding: 7px 14px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 18px rgb(59 50 40 / 18%);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.admin-basemap button[aria-pressed='true'] {
+  background: var(--ink);
+  color: white;
+}
+
+/* The PNOA credit (CC BY 4.0), shown for as long as the photo is. */
+.admin-basemap-credit {
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 85%);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: right;
+}
+
 .admin-title {
   display: flex;
   flex-wrap: wrap;
@@ -746,4 +789,40 @@ body {
 
 .admin-dismissing .admin-actions {
   margin-top: 6px;
+}
+
+/* Phones (under 900 px): the list on top, the map below it, panels over the map. */
+@media (max-width: 899px) {
+  .admin {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 40dvh) minmax(0, 1fr);
+  }
+
+  .admin-side {
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .admin-panel {
+    width: auto;
+    right: 12px;
+    max-height: calc(60% - 12px);
+  }
+
+  /* Under the panels, so the toggle never covers the venue's buttons; the
+     credit beside it, clear of MapLibre's attribution on the right. */
+  .admin-basemap {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: auto;
+    flex-direction: row;
+    align-items: center;
+    max-width: calc(100% - 120px);
+  }
+
+  .admin-basemap-credit {
+    text-align: left;
+  }
 }

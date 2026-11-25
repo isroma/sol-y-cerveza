@@ -14,6 +14,17 @@ import { BADAJOZ_CENTER, BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
 import { parseBasemapStyle, sunlitStyle } from '../map/mapStyle.ts'
 import { STATE_COLORS, type MapVenue } from './mapState.ts'
+import {
+  dotStroke,
+  loadOrthoPreference,
+  ORTHO_CREDIT,
+  ORTHO_LAYER,
+  ORTHO_SOURCE,
+  orthoBeforeId,
+  orthoLayer,
+  orthoSource,
+  saveOrthoPreference,
+} from './ortho.ts'
 
 setWorkerUrl(workerUrl)
 
@@ -116,6 +127,8 @@ export function AdminMap({
     selected,
   })
   const [ready, setReady] = useState(false)
+  const [ortho, setOrtho] = useState(loadOrthoPreference)
+  const orthoRef = useRef(ortho)
 
   useEffect(() => {
     callbacks.current = {
@@ -141,9 +154,10 @@ export function AdminMap({
       })
       .then((base) => {
         if (cancelled) return
+        const style = flatStyle(base)
         const m = new MapLibreMap({
           container,
-          style: flatStyle(base),
+          style,
           center: BADAJOZ_CENTER,
           zoom: 15,
           minZoom: 12,
@@ -162,6 +176,8 @@ export function AdminMap({
         m.touchZoomRotate.disableRotation()
         m.keyboard.disableRotation()
         m.on('load', () => {
+          m.addSource(ORTHO_SOURCE, orthoSource)
+          m.addLayer(orthoLayer(orthoRef.current), orthoBeforeId(style))
           m.addSource(SOURCE, {
             type: 'geojson',
             data: collection([], null),
@@ -193,8 +209,8 @@ export function AdminMap({
                 STATE_COLORS.not_venue,
                 STATE_COLORS.unknown,
               ],
-              'circle-stroke-color': '#3B3228',
-              'circle-stroke-width': 1.2,
+              'circle-stroke-color': dotStroke(orthoRef.current).color,
+              'circle-stroke-width': dotStroke(orthoRef.current).width,
             },
           })
           m.addLayer({
@@ -247,6 +263,18 @@ export function AdminMap({
       mapRef.current = null
     }
   }, [])
+
+  // The photo basemap, and dot rings that read on it.
+  useEffect(() => {
+    orthoRef.current = ortho
+    saveOrthoPreference(ortho)
+    const map = mapRef.current
+    if (!map || !ready) return
+    map.setLayoutProperty(ORTHO_LAYER, 'visibility', ortho ? 'visible' : 'none')
+    const stroke = dotStroke(ortho)
+    map.setPaintProperty(DOTS, 'circle-stroke-color', stroke.color)
+    map.setPaintProperty(DOTS, 'circle-stroke-width', stroke.width)
+  }, [ready, ortho])
 
   // Venue dots (the selected one is a draggable marker instead).
   const selectedId = selected?.id ?? null
@@ -352,9 +380,22 @@ export function AdminMap({
   }, [ready, ghosts])
 
   return (
-    <div
-      ref={containerRef}
-      className={pinning ? 'admin-map admin-pinning' : 'admin-map'}
-    />
+    <>
+      <div
+        ref={containerRef}
+        className={pinning ? 'admin-map admin-pinning' : 'admin-map'}
+      />
+      <div className="admin-basemap">
+        <button
+          type="button"
+          aria-pressed={ortho}
+          title="PNOA orthophoto (IGN) as the basemap"
+          onClick={() => setOrtho(!ortho)}
+        >
+          Orthophoto
+        </button>
+        {ortho && <p className="admin-basemap-credit">{ORTHO_CREDIT}</p>}
+      </div>
+    </>
   )
 }
