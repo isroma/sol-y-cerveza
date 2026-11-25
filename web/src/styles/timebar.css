@@ -1,10 +1,10 @@
 /* Sunrise, sunset and "now" marks sit on the time bar itself. */
 .time-track {
-  /* The gap above the slider's track: the "Ahora" bubble clears the time by
-     a little less than the room above the time, so the time reads centred
-     (the solid bubble weighs more). The room stays when the bubble is hidden,
-     so nothing jumps. The marks below sit at the same height. */
-  --slider-top: 37px;
+  /* The gap above the slider's track: the time sits optically centred
+     between the search bar and the track, with the small "Ahora" label
+     clearing it. The room stays when the label is hidden, so nothing jumps.
+     The marks below sit at the same height. */
+  --slider-top: 16px;
   position: relative;
 }
 
@@ -49,7 +49,8 @@
   color: #9a3b1c;
 }
 
-/* "Now": a deep amber "Ahora" bubble over a dot on the bar; tap it to come back. */
+/* "Now": a small deep amber "Ahora" label over a dot on the bar; tap it to
+   come back. */
 .time-now-layer {
   position: absolute;
   top: var(--slider-top);
@@ -67,7 +68,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   padding: 0 6px 10px;
   border: 0;
   background: transparent;
@@ -75,13 +76,11 @@
 }
 
 .time-now-bubble {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--sun-dark);
-  color: #fff;
-  font-size: 11px;
+  color: var(--sun-dark);
+  font-size: 10px;
   font-weight: 700;
-  line-height: 1.4;
+  letter-spacing: 0.02em;
+  line-height: 1;
   transition: scale 0.15s;
 }
 
