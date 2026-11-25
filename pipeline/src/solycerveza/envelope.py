@@ -10,6 +10,11 @@ Points are the pin plus ``SAMPLE_COUNT`` points evenly spaced on a circle of
 ``SAMPLE_RADIUS_M`` around it, the first due north, then clockwise. A point counts only on the
 ground: the surface model at most ``MAX_GROUND_HEIGHT_M`` above the terrain there (not under a
 canopy, a crown or on a roof), and outside every closed OSM structure outline.
+
+The file stores each envelope as a 360-character string, one character per bin, in whole degrees
+(``pack_low``/``pack_high``): a string parses far faster than 360 numbers, and the app decodes it
+only when it shows partial sun. The low envelope rounds down and the high one up, so rounding only
+widens the partial band, by under 1° (one 5-minute step of the sun's motion at most).
 """
 
 import math
@@ -26,6 +31,11 @@ MAX_GROUND_HEIGHT_M = 1.0
 
 # Metres per degree of latitude; good to 0.5 % at Badajoz, which is far below a pin's error.
 _M_PER_DEG_LAT = 111_320.0
+
+# Whole degrees 0-90 as one character each: the 91 printable ASCII characters from "#" (35) to
+# "~" (126) without the backslash, so a packed string needs no escaping in JSON.
+PACK_ALPHABET = "".join(chr(c) for c in range(35, 127) if c != 92)
+PACKED_PATTERN = r"^[#-\[\]-~]{360}$"
 
 LatLonPair = tuple[float, float]
 Envelope = tuple[list[int], list[int]]
@@ -83,3 +93,18 @@ def envelope(horizons: Sequence[Sequence[int]]) -> Envelope:
     low = [min(values) for values in zip(*horizons, strict=True)]
     high = [max(values) for values in zip(*horizons, strict=True)]
     return low, high
+
+
+def pack_low(tenths: Sequence[int]) -> str:
+    """A low envelope in tenths of a degree as a packed string, rounded down to whole degrees."""
+    return "".join(PACK_ALPHABET[value // 10] for value in tenths)
+
+
+def pack_high(tenths: Sequence[int]) -> str:
+    """A high envelope in tenths of a degree as a packed string, rounded up to whole degrees."""
+    return "".join(PACK_ALPHABET[-(-value // 10)] for value in tenths)
+
+
+def unpack(packed: str) -> list[int]:
+    """A packed envelope back to whole degrees per bin."""
+    return [PACK_ALPHABET.index(char) for char in packed]

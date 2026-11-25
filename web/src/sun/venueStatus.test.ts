@@ -3,6 +3,7 @@ import type { Terrace } from '../data/terraces.ts'
 import {
   calleMenacho,
   horizonFromRuns,
+  packedFlat,
   paseoSanFrancisco,
   plazaAlta,
   withoutHorizon,
@@ -145,8 +146,8 @@ describe('venueStatus with an envelope (Sol parcial)', () => {
   // The pin sees 8.3°; across the terrace the obstacles run from 0° to 30°.
   const mixed: Terrace = {
     ...plazaAlta,
-    horizon_low: flat(0),
-    horizon_high: flat(300),
+    horizon_low: packedFlat(0),
+    horizon_high: packedFlat(30),
   }
   const partialAt = (venue: Terrace, track: typeof winter, clock: string) => {
     const minutes = parseClock(clock)
@@ -185,8 +186,8 @@ describe('venueStatus with an envelope (Sol parcial)', () => {
   it('starts "Sol en" at the first sun anywhere on the terrace', () => {
     const late: Terrace = {
       ...plazaAlta,
-      horizon_low: flat(150),
-      horizon_high: flat(300),
+      horizon_low: packedFlat(15),
+      horizon_high: packedFlat(30),
     }
     const status = partialAt(late, summer, '08:00')
     expect(status.category).not.toBe('sun')

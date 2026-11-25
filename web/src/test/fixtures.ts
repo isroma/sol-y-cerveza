@@ -11,6 +11,17 @@ export function horizonFromRuns(
   return horizon
 }
 
+/** A packed envelope (docs/data-contract.md) of whole degrees per bin. */
+export function packDegrees(degrees: readonly number[]): string {
+  return degrees
+    .map((d) => String.fromCharCode(d + 35 + (d + 35 >= 92 ? 1 : 0)))
+    .join('')
+}
+
+/** A packed envelope with the same whole degrees in every bin. */
+export const packedFlat = (degrees: number) =>
+  packDegrees(new Array<number>(360).fill(degrees))
+
 // Same positions and horizon shapes as the sample terraces in
 // public/data/terraces.json, copied so tests survive the real data (#12).
 

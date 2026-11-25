@@ -40,6 +40,7 @@ from typing import Annotated, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from solycerveza.csvfile import read_rows
+from solycerveza.envelope import PACKED_PATTERN, unpack
 from solycerveza.geo import distance_m
 from solycerveza.overture import name_similarity
 from solycerveza.prices import Price
@@ -106,6 +107,9 @@ class CuratedTerrace(BaseModel):
         return LatLon(lat=self.terrace_lat, lon=self.terrace_lon)
 
 
+PackedEnvelope = Annotated[str, Field(pattern=PACKED_PATTERN)]
+
+
 def _is_none(value: object) -> bool:
     return value is None
 
@@ -126,13 +130,13 @@ class Terrace(BaseModel):
     # Leaf-off profile (ADR-0007); None when it equals `horizon` or was not computed.
     horizon_winter: Horizon | None = None
     # Envelope across the terrace (solycerveza.envelope): lowest and highest obstacle per bin over
-    # the ground points round the pin. None when they all equal `horizon` or were not computed.
-    # Left out of the file when None, so venues without one cost nothing.
-    horizon_low: Horizon | None = Field(default=None, exclude_if=_is_none)
-    horizon_high: Horizon | None = Field(default=None, exclude_if=_is_none)
+    # the ground points round the pin, packed in whole degrees. None when they all equal `horizon`
+    # or were not computed. Left out of the file when None, so venues without one cost nothing.
+    horizon_low: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
+    horizon_high: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
     # The same on the leaf-off model; None when it equals the summer envelope.
-    horizon_low_winter: Horizon | None = Field(default=None, exclude_if=_is_none)
-    horizon_high_winter: Horizon | None = Field(default=None, exclude_if=_is_none)
+    horizon_low_winter: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
+    horizon_high_winter: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
     prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -150,7 +154,7 @@ class Terrace(BaseModel):
             if low is not None and high is not None:
                 if self.horizon is None:
                     raise ValueError("an envelope needs a horizon")
-                if any(lo > hi for lo, hi in zip(low, high, strict=True)):
+                if any(lo > hi for lo, hi in zip(unpack(low), unpack(high), strict=True)):
                     raise ValueError("an envelope's low horizon must not exceed its high one")
         return self
 

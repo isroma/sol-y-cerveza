@@ -25,7 +25,15 @@ import rasterio
 from pydantic import BaseModel, ConfigDict, field_serializer
 from pyproj import Transformer
 
-from solycerveza.envelope import LatLonPair, Structures, envelope, ground_points, sample_points
+from solycerveza.envelope import (
+    LatLonPair,
+    Structures,
+    envelope,
+    ground_points,
+    pack_high,
+    pack_low,
+    sample_points,
+)
 from solycerveza.horizon import terrace_horizon
 from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
 from solycerveza.prices import prices_by_venue, read_prices
@@ -85,7 +93,8 @@ def add_horizons(
     `horizon`: null means "same as horizon", which keeps the file small.
 
     With `points_for`, which gives the ground points across the terrace (`solycerveza.envelope`),
-    also sets the envelope `horizon_low`/`horizon_high` over them, and its leaf-off twin with
+    also sets the envelope `horizon_low`/`horizon_high` over them (packed, see
+    `solycerveza.envelope`), and its leaf-off twin with
     `winter_for`. Each is null where it adds nothing to what the app would use without it: the
     summer envelope when every point sees `horizon`, the winter one when it equals the summer
     envelope (or, without one, `horizon_winter` at every point).
@@ -108,12 +117,16 @@ def add_horizons(
         }
         points = [] if points_for is None else points_for(*pin)
         if points:
-            summer = envelope([horizon if p == pin else horizon_for(*p) for p in points])
-            if summer != (horizon, horizon):
+            low, high = envelope([horizon if p == pin else horizon_for(*p) for p in points])
+            summer = (pack_low(low), pack_high(high))
+            if (low, high) != (horizon, horizon):
                 record["horizon_low"], record["horizon_high"] = summer
             if winter_for is not None and winter is not None:
-                leafoff = envelope([winter if p == pin else winter_for(*p) for p in points])
-                fallback = summer if summer != (horizon, horizon) else (winter, winter)
+                low, high = envelope([winter if p == pin else winter_for(*p) for p in points])
+                leafoff = (pack_low(low), pack_high(high))
+                fallback = (
+                    summer if "horizon_low" in record else (pack_low(winter), pack_high(winter))
+                )
                 if leafoff != fallback:
                     record["horizon_low_winter"], record["horizon_high_winter"] = leafoff
         result.append(Terrace.model_validate(record))
@@ -189,7 +202,7 @@ def render(file: TerracesFile) -> str:
     """
     text = json.dumps(file.model_dump(mode="json"), ensure_ascii=False, indent=2)
     text = re.sub(
-        r'"(horizon(?:_low|_high)?(?:_winter)?)": \[([^\]]*)\]',
+        r'"(horizon|horizon_winter)": \[([^\]]*)\]',
         lambda m: f'"{m.group(1)}": [' + re.sub(r"\s+", "", m.group(2)) + "]",
         text,
     )

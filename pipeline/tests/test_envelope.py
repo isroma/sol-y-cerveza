@@ -4,10 +4,14 @@ import pytest
 
 from solycerveza.envelope import (
     MAX_GROUND_HEIGHT_M,
+    PACK_ALPHABET,
     Structures,
     envelope,
     ground_points,
+    pack_high,
+    pack_low,
     sample_points,
+    unpack,
 )
 from solycerveza.leafoff import Outline
 
@@ -61,3 +65,15 @@ def test_envelope_is_the_per_bin_min_and_max() -> None:
 def test_envelope_needs_a_horizon() -> None:
     with pytest.raises(ValueError, match="at least one"):
         envelope([])
+
+
+def test_packing_rounds_low_down_and_high_up_to_whole_degrees() -> None:
+    tenths = [0, 1, 9, 10, 11, 899, 900]
+    assert unpack(pack_low(tenths)) == [0, 0, 0, 1, 1, 89, 90]
+    assert unpack(pack_high(tenths)) == [0, 1, 1, 1, 2, 90, 90]
+
+
+def test_the_pack_alphabet_needs_no_json_escaping() -> None:
+    assert len(PACK_ALPHABET) == 91
+    assert '"' not in PACK_ALPHABET and "\\" not in PACK_ALPHABET
+    assert all(35 <= ord(c) <= 126 for c in PACK_ALPHABET)
