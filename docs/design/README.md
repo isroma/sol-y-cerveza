@@ -186,7 +186,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - Map attribution: no MapLibre attribution control. The legend's "i" is the only info button; its "Sobre los datos" panel lists the basemap credits (OpenFreeMap, OpenMapTiles, OpenStreetMap, as links) above the data licence lines.
 - Legend: 16 px padding, 12 px between rows and between icon and label, 16 px radius; the info button is centred on the last row, 12 px from the right edge.
 - Info panel: 16 px padding and radius, opens 12 px above the legend, at most 340 px wide.
-- Owner badge (owner mode only, never seen by visitors): an `ink` pill after the name in the header, "Modo dueño" in 13 px semibold `bg` text with a 24 px "×" that leaves owner mode. A bad owner link shows its one-line notice in the same place as a `bg` pill with a `line` ring. Owner mode has no other UI: the card's back says "Editar" and "Guardar" instead of "Sugerir un cambio" and "Enviar", with no bot check.
+- Admin pill (owner mode only, never seen by visitors): after the name in the header, on phones before the menu button, styled like the card's "Sugerir un cambio" (ink at 6 % on the background, `text-soft`, 13 px semibold, 28 px high; 12 px and 26 px on phones, where the header's gap drops to 8 px so the name, the pill and the menu fit on one line). It opens a `bg` panel with `--shadow` under the header: the login (Usuario, Contraseña on `field`, Cancelar and an `ink` Entrar) at `/admin`, or "Cerrar sesión". Owner mode has no other UI: the card's back says "Editar" and "Guardar" instead of "Sugerir un cambio" and "Enviar", with no bot check.
 
 ### Depth and borders
 

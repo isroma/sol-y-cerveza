@@ -7,4 +7,7 @@ export type Env = {
   ADMIN_TOKEN?: string
   IP_SALT?: string
   OWNER_TOKEN?: string
+  /** The owner's login (POST /v1/login), which hands out OWNER_TOKEN. */
+  OWNER_USERNAME?: string
+  OWNER_PASSWORD?: string
 }

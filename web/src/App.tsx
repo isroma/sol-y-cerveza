@@ -11,7 +11,7 @@ import {
   type Filters,
 } from './filters/filters.ts'
 import { MapView } from './map/LazyMapView.tsx'
-import { OwnerBadge } from './prices/OwnerBadge.tsx'
+import { AdminButton } from './prices/AdminButton.tsx'
 import { useCanSend } from './prices/owner.ts'
 import { DraftContext, type ChangeDraft } from './reports/draft.ts'
 import { StartMoveContext, type Picking } from './reports/picking.ts'
@@ -233,7 +233,7 @@ export function App() {
       <header className="brand">
         <Logo />
         <h1>Sol y Cerveza</h1>
-        <OwnerBadge />
+        <AdminButton />
         {phone && (
           <button
             type="button"
