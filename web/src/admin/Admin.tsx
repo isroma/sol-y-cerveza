@@ -1,26 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { LatLon, Terrace } from '../data/terraces.ts'
+import type { LatLon } from '../data/terraces.ts'
+import { AddVenuePanel, type Adding } from './AddVenuePanel.tsx'
 import { AdminMap } from './AdminMap.tsx'
-import { PricesEditor } from './PricesEditor.tsx'
+import { AdminToolbar } from './AdminToolbar.tsx'
 import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue } from './SuggestionsQueue.tsx'
 import { ReportsQueue } from './ReportsQueue.tsx'
 import { fetchReports, type VenueReport } from './reports.ts'
 import { priceKey } from './pricesCsv.ts'
-import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
+import { stateOf, type MapVenue } from './mapState.ts'
 import { dayTrack } from '../sun/dayTrack.ts'
 import { toMadridLocal } from '../time/madrid.ts'
-import {
-  LOOK_REASONS,
-  needsALook,
-  referenceDates,
-  type LookReason,
-} from './needsLook.ts'
-import { SunPreview } from './SunPreview.tsx'
+import { needsALook, referenceDates, type LookReason } from './needsLook.ts'
 import { BADAJOZ_CENTER } from '../config.ts'
 import { BatchDismiss } from './BatchDismiss.tsx'
 import { junkSignalsAll, likelyJunk } from './junk.ts'
-import { ProposalBox } from './ProposalBox.tsx'
 import { acceptChange, openProposals, type Proposal } from './proposals.ts'
 import { scoreVenues } from './queueScore.ts'
 import type { Ghost } from './AdminMap.tsx'
@@ -28,16 +22,12 @@ import {
   ADDED_PREFIX,
   addedId,
   cleanName,
-  KINDS,
   nextReview,
-  type Kind,
   type Review,
 } from './review.ts'
 import {
-  describe,
   IDLE,
   isActive,
-  isBusy,
   publishStatusSchema,
   type PublishStatus,
 } from './publishStatus.ts'
@@ -46,6 +36,8 @@ import { today } from './today.ts'
 import { useAdminData } from './useAdminData.ts'
 import { useReportActions } from './useReportActions.ts'
 import { useReviewQueue } from './useReviewQueue.ts'
+import { VenueListPanel } from './VenueListPanel.tsx'
+import { VenuePanel } from './VenuePanel.tsx'
 
 const CENTRE: LatLon = { lat: BADAJOZ_CENTER[1], lon: BADAJOZ_CENTER[0] }
 /** How long a batch "not a venue" waits for Undo before it is saved. */
@@ -60,31 +52,11 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'look', label: 'Needs a look' },
 ]
 
-const STATE_LABELS: Record<MapState, string> = {
-  terrace: 'Terrace',
-  no_terrace: 'No terrace',
-  not_venue: 'Not a venue',
-  data_terrace: 'Terrace in data, unreviewed',
-  unknown: 'Unreviewed',
-}
-
-function stateOf(venue: Terrace, review: Review | undefined): MapState {
-  if (review?.status) return review.status
-  return venue.terrace ? 'data_terrace' : 'unknown'
-}
-
 function matches(filter: Filter, review: Review | undefined): boolean {
   if (filter === 'all' || filter === 'look') return true
   if (filter === 'todo') return !review?.status
   return review?.status === filter
 }
-
-function osmUrl(id: string): string | null {
-  const match = /^osm:(node|way)\/(\d+)$/.exec(id)
-  return match ? `https://www.openstreetmap.org/${match[1]}/${match[2]}` : null
-}
-
-type Adding = { name: string; kind: Kind; at: LatLon | null }
 
 export function Admin() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -502,92 +474,35 @@ export function Admin() {
       ),
     [selectedProposals],
   )
-  const osm = selectedId ? osmUrl(selectedId) : null
 
   return (
     <div className="admin">
       <aside className="admin-side">
         <header className="admin-head">
-          <div className="admin-title">
-            <h1>Venue review</h1>
-            <span className="admin-title-actions">
-              <button
-                type="button"
-                aria-pressed={queueMode}
-                onClick={openQueue}
-              >
-                Review queue
-              </button>
-              <button
-                type="button"
-                aria-pressed={junkOpen}
-                onClick={() => setJunkOpen(!junkOpen)}
-              >
-                Not venues ({junk.length})
-              </button>
-              <button
-                type="button"
-                aria-pressed={queueOpen}
-                onClick={() => setQueueOpen(!queueOpen)}
-              >
-                Suggestions
-              </button>
-              <button
-                type="button"
-                aria-pressed={reportsOpen}
-                onClick={() => {
-                  setReportsOpen(!reportsOpen)
-                  setProposed(null)
-                }}
-              >
-                Reports{reportCount ? ` (${reportCount})` : ''}
-              </button>
-              <button
-                type="button"
-                aria-pressed={candidatesOpen}
-                onClick={() => setCandidatesOpen(!candidatesOpen)}
-              >
-                Website prices
-              </button>
-              <button type="button" onClick={startAdding}>
-                + Add venue
-              </button>
-            </span>
-          </div>
-          <p>
-            {reviewed} of {venues.length} reviewed
-            {dropped > 0 && (
-              <span className="admin-message" role="alert">
-                {' '}
-                · {dropped} invalid {dropped === 1 ? 'record' : 'records'} in
-                terraces.json left out
-              </span>
-            )}
-            {message && <span className="admin-message"> · {message}</span>}
-          </p>
-          <div className="admin-publish" aria-live="polite">
-            <button
-              type="button"
-              disabled={isBusy(publish)}
-              onClick={() => void runPublish()}
-            >
-              {isBusy(publish) ? 'Publishing…' : 'Publish'}
-            </button>
-            <p className={`admin-publish-${publish.step}`}>
-              {isActive(publish) && <span className="admin-spinner" />}
-              {describe(publish)}{' '}
-              {publish.url && (
-                <a href={publish.url} target="_blank" rel="noreferrer">
-                  {publish.pr ? 'Open PR' : 'GitHub'}
-                </a>
-              )}
-            </p>
-            {isActive(publish) && (
-              <p>
-                You can keep editing: new changes go out with the next Publish.
-              </p>
-            )}
-          </div>
+          <AdminToolbar
+            queueMode={queueMode}
+            onQueue={openQueue}
+            junkOpen={junkOpen}
+            junkCount={junk.length}
+            onJunk={() => setJunkOpen(!junkOpen)}
+            suggestionsOpen={queueOpen}
+            onSuggestions={() => setQueueOpen(!queueOpen)}
+            reportsOpen={reportsOpen}
+            reportCount={reportCount}
+            onReports={() => {
+              setReportsOpen(!reportsOpen)
+              setProposed(null)
+            }}
+            candidatesOpen={candidatesOpen}
+            onCandidates={() => setCandidatesOpen(!candidatesOpen)}
+            onAdd={startAdding}
+            reviewed={reviewed}
+            total={venues.length}
+            dropped={dropped}
+            message={message}
+            publish={publish}
+            onPublish={() => void runPublish()}
+          />
           {queueOpen && (
             <SuggestionsQueue
               nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
@@ -721,38 +636,14 @@ export function Admin() {
           </ol>
         )}
         {!queueMode && (
-          <ol className="admin-list">
-            {listed.map((v) => {
-              const state = stateOf(v, reviews.get(v.id))
-              return (
-                <li key={v.id}>
-                  <button
-                    type="button"
-                    aria-current={v.id === selectedId ? 'true' : undefined}
-                    onClick={() => select(v.id)}
-                  >
-                    <span
-                      className="admin-dot"
-                      style={{ background: STATE_COLORS[state] }}
-                      title={STATE_LABELS[state]}
-                    />
-                    <span className="admin-name">
-                      {v.name}
-                      {filter === 'look' && (
-                        <span className="admin-look">
-                          {(looks.get(v.id) ?? [])
-                            .map((r) => LOOK_REASONS[r])
-                            .join(' · ')}
-                          {pinMoved(v.id) && ' · pin moved since the build'}
-                        </span>
-                      )}
-                    </span>
-                    <span className="admin-kind">{v.kind}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
+          <VenueListPanel
+            venues={listed}
+            reviews={reviews}
+            selectedId={selectedId}
+            onSelect={select}
+            looks={filter === 'look' ? looks : null}
+            pinMoved={pinMoved}
+          />
         )}
       </aside>
       <main className="admin-main">
@@ -781,56 +672,12 @@ export function Admin() {
           }
         />
         {adding && (
-          <section className="admin-panel" aria-label="Add a venue">
-            <h2>Add a venue</h2>
-            <p className="admin-help">
-              For a bar or restaurant that is missing from the list. Click the
-              map where it is, then name it.
-            </p>
-            <label className="admin-field">
-              Name
-              <input
-                autoFocus
-                value={adding.name}
-                onChange={(e) => setAdding({ ...adding, name: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveAdded()
-                  if (e.key === 'Escape') setAdding(null)
-                }}
-              />
-            </label>
-            <label className="admin-field">
-              Kind
-              <select
-                value={adding.kind}
-                onChange={(e) => {
-                  const kind = KINDS.find((k) => k === e.target.value)
-                  if (kind) setAdding({ ...adding, kind })
-                }}
-              >
-                {KINDS.map((k) => (
-                  <option key={k}>{k}</option>
-                ))}
-              </select>
-            </label>
-            <p className="admin-meta">
-              {adding.at
-                ? 'Placed. Drag the pin or click again to adjust.'
-                : 'Not placed yet: click the map.'}
-            </p>
-            <div className="admin-actions">
-              <button
-                type="button"
-                disabled={!adding.at || !cleanName(adding.name)}
-                onClick={saveAdded}
-              >
-                Save venue
-              </button>
-              <button type="button" onClick={() => setAdding(null)}>
-                Cancel
-              </button>
-            </div>
-          </section>
+          <AddVenuePanel
+            adding={adding}
+            onChange={setAdding}
+            onSave={saveAdded}
+            onCancel={() => setAdding(null)}
+          />
         )}
         {queueMode && !adding && !selectedVenue && (
           <section className="admin-panel" aria-label="Review queue">
@@ -843,146 +690,33 @@ export function Admin() {
           </section>
         )}
         {!adding && selectedVenue && selectedMap && (
-          <section className="admin-panel" aria-label="Selected venue">
-            {queueMode && (
-              <p className="admin-queue-head">
-                Review queue · {Math.min(progress.done + 1, progress.total)} of{' '}
-                {progress.total}
-                {queueItem && (
-                  <span className="admin-reason"> {queueItem.reason}</span>
-                )}
-              </p>
+          <VenuePanel
+            venue={selectedVenue}
+            state={selectedMap.state}
+            review={review}
+            queueMode={queueMode}
+            progress={progress}
+            queueReason={queueItem?.reason ?? null}
+            proposals={selectedProposals}
+            onAcceptProposal={acceptProposal}
+            onIgnoreProposal={(p) => void ignoreProposal(p)}
+            onTerrace={startPinning}
+            onDecide={decide}
+            onLooksRight={looksRightAndGo}
+            onSkip={skip}
+            pinning={pinning}
+            onKeepPosition={() => {
+              setPinning(false)
+              if (selectedId) advance(selectedId)
+            }}
+            preview={preview}
+            prices={[...prices.values()].filter(
+              (p) => p.venueId === selectedVenue.id,
             )}
-            <h2>{selectedVenue.name}</h2>
-            <p className="admin-meta">
-              {selectedVenue.kind} · {selectedVenue.sources.join(', ')} ·{' '}
-              {STATE_LABELS[selectedMap.state]}
-              {review?.venue &&
-                !selectedVenue.id.startsWith(ADDED_PREFIX) &&
-                ' · moved'}
-              {review?.looksRight && ' · looks right'}
-            </p>
-            <p className="admin-meta">
-              {osm ? (
-                <a href={osm} target="_blank" rel="noreferrer">
-                  {selectedVenue.id}
-                </a>
-              ) : (
-                selectedVenue.id
-              )}
-            </p>
-            <ProposalBox
-              proposals={selectedProposals}
-              onAccept={acceptProposal}
-              onIgnore={(p) => void ignoreProposal(p)}
-            />
-            <div
-              className={
-                queueMode ? 'admin-actions admin-actions-big' : 'admin-actions'
-              }
-            >
-              <button
-                type="button"
-                aria-pressed={review?.status === 'terrace'}
-                onClick={startPinning}
-              >
-                Terrace <kbd>T</kbd>
-              </button>
-              <button
-                type="button"
-                aria-pressed={review?.status === 'no_terrace'}
-                onClick={() => decide('no_terrace')}
-              >
-                No terrace <kbd>N</kbd>
-              </button>
-              {!selectedVenue.id.startsWith(ADDED_PREFIX) && (
-                <button
-                  type="button"
-                  aria-pressed={review?.status === 'not_venue'}
-                  onClick={() => decide('not_venue')}
-                >
-                  Not a venue <kbd>X</kbd>
-                </button>
-              )}
-              <button
-                type="button"
-                aria-pressed={review?.looksRight === true}
-                title="Right as it is: keeps the terrace where it is (or no terrace) and leaves Needs a look"
-                onClick={looksRightAndGo}
-              >
-                Looks right <kbd>Y</kbd>
-              </button>
-              {queueMode && (
-                <button type="button" onClick={skip}>
-                  Skip <kbd>S</kbd>
-                </button>
-              )}
-            </div>
-            {pinning ? (
-              <p className="admin-pin-mode">
-                Click the map where the tables are
-                {queueMode ? (
-                  <>
-                    , or{' '}
-                    <button
-                      type="button"
-                      className="admin-link"
-                      onClick={() => {
-                        setPinning(false)
-                        if (selectedId) advance(selectedId)
-                      }}
-                    >
-                      keep the venue position
-                    </button>{' '}
-                    <kbd>Enter</kbd>. Esc cancels.
-                  </>
-                ) : (
-                  '. Esc cancels.'
-                )}
-              </p>
-            ) : queueMode ? (
-              <p className="admin-help">
-                Each decision moves on to the next venue. T then a click on the
-                map pins the terrace; Y keeps what the data says; Skip puts the
-                venue at the end.
-              </p>
-            ) : (
-              <p className="admin-help">
-                T marks a terrace and lets you place its pin with one click;
-                press T again to move it. Drag the dark pin to fix the venue
-                position.
-              </p>
-            )}
-            {preview && <SunPreview at={preview} />}
-            <h3 className="admin-subhead">Beer prices</h3>
-            <PricesEditor
-              key={selectedVenue.id}
-              venueId={selectedVenue.id}
-              prices={[...prices.values()].filter(
-                (p) => p.venueId === selectedVenue.id,
-              )}
-              today={today()}
-              onSave={(p) => void savePrice(priceKey(p), p)}
-              onRemove={(key) => void savePrice(key, null)}
-            />
-            <div className="admin-actions">
-              {!queueMode && (
-                <button type="button" onClick={nextToReview}>
-                  Next to review <kbd>J</kbd>
-                </button>
-              )}
-              {review && (
-                <button
-                  type="button"
-                  onClick={() => void save(selectedVenue.id, null)}
-                >
-                  {selectedVenue.id.startsWith(ADDED_PREFIX)
-                    ? 'Delete venue'
-                    : 'Undo review'}
-                </button>
-              )}
-            </div>
-          </section>
+            onSavePrice={(key, next) => void savePrice(key, next)}
+            onNextToReview={nextToReview}
+            onUndo={() => void save(selectedVenue.id, null)}
+          />
         )}
       </main>
     </div>
