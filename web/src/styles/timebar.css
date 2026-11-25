@@ -1,16 +1,10 @@
-/* The time sits optically centred between what's above it and the "Ahora"
-   bubble: a little more room above (4px nudge) than below, as the solid bubble
-   weighs more. The room is kept even when the bubble is hidden, so nothing
-   jumps. */
-.time {
-  margin-top: 4px;
-}
-
 /* Sunrise, sunset and "now" marks sit on the time bar itself. */
 .time-track {
-  /* The gap above the slider's track, tall enough for the "Ahora" bubble to
-     clear the time; the marks below sit at the same height. */
-  --slider-top: 45px;
+  /* The gap above the slider's track: the "Ahora" bubble clears the time by
+     a little less than the room above the time, so the time reads centred
+     (the solid bubble weighs more). The room stays when the bubble is hidden,
+     so nothing jumps. The marks below sit at the same height. */
+  --slider-top: 37px;
   position: relative;
 }
 
