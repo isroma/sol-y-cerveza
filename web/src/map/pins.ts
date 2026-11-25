@@ -24,16 +24,19 @@ export function updatePin(
   el: HTMLButtonElement,
   status: VenueStatus,
   selected: boolean,
-  /** The caña price to show on the badge, or null for the icon alone. */
+  /** The venue's caña price, or null: kept in the badge so it can fade. */
   price: BadgePrice | null = null,
+  /** Whether the price shows now (not selected, not crowded out). */
+  showPrice = false,
 ): void {
+  const shown = showPrice && price !== null
   const pin = el.querySelector('.pin')
   if (pin)
-    pin.className = `pin pin--${status.category}${selected ? ' pin--selected' : ''}`
+    pin.className = `pin pin--${status.category}${selected ? ' pin--selected' : ''}${shown ? ' pin--priced' : ''}`
   const text = price ? badgePriceText(price) : ''
   el.setAttribute(
     'aria-label',
-    `${status.venue.name}: ${categoryLabel(status)}${text ? `, caña ${text}` : ''}`,
+    `${status.venue.name}: ${categoryLabel(status)}${shown ? `, caña ${text}` : ''}`,
   )
   el.setAttribute('aria-pressed', String(selected))
   const priceEl = el.querySelector('.pin-price')

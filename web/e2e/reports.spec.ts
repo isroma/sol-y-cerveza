@@ -310,15 +310,32 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
     timeout: 15_000,
   })
   await page.waitForFunction(() => window.__map !== undefined)
-  const badge = page.locator(
-    '.pin-marker[aria-label^="Bar Sol Uno"] .pin-price',
-  )
-  // Zoomed out the badges shrink and show no price.
-  await expect(badge).toHaveText('')
+  const marker = page.locator('.pin-marker[aria-label^="Bar Sol Uno"]')
+  const price = marker.locator('.pin-price')
+  // Zoomed out the badges shrink and show no price (it fades out, so it
+  // stays in the page; .pin--priced is what shows it).
+  await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
   await page.evaluate(() =>
     window.__map?.jumpTo({ center: [-6.9698, 38.8826], zoom: 17 }),
   )
   await settled(page)
-  await expect(badge).toHaveText('~1,50 €')
+  await expect(marker.locator('.pin')).toHaveClass(/pin--priced/)
+  await expect(price).toHaveText('~1,50 €')
+  await expect(marker).toHaveAttribute('aria-label', /caña ~1,50 €/)
+  // Opening the card fades the price out with the badge, instead of
+  // removing it: it is still there, mid-fade, right after the tap.
+  await marker.click()
+  const fading = await price.evaluate((el) => ({
+    text: el.textContent,
+    opacity: Number(getComputedStyle(el).opacity),
+    transition: getComputedStyle(el).transitionProperty,
+  }))
+  expect(fading.text).toBe('~1,50 €')
+  expect(fading.transition).toContain('opacity')
+  expect(fading.opacity).toBeGreaterThan(0)
+  await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
+  await expect
+    .poll(() => price.evaluate((el) => getComputedStyle(el).opacity))
+    .toBe('0')
   await shot(page, 'badge-price')
 })
