@@ -20,7 +20,21 @@ Keys in `web/.env.local` the admin uses (none is `VITE_`-prefixed except the API
 | `ANTHROPIC_API_KEY`      | "Read prices from a photo" (a Claude API key); unset, you type prices by hand                     |
 | `PROBE_DSM`, `PROBE_DTM` | LiDAR rasters for the sun preview, if not `pipeline/.cache/badajoz_dsm.tif` and `badajoz_dtm.tif` |
 
+Under 900 px wide (a phone) the list sits above the map and scrolls, and the venue panel covers the top of the map.
+
 The sun preview needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza.obstacles`, see the [pipeline guide](pipeline.md#rebuilding-the-data)); everything else works without them, and without them the panel says how to get them.
+
+## Orthophoto
+
+**Orthophoto**, at the top right of the map (bottom left on a phone), swaps the flat map for the PNOA máxima actualidad orthophoto of the IGN, so tables and parasols show from the desk and a terrace can be pinned without walking there. It is the imagery the pipeline reads (`pipeline/src/solycerveza/ortho.py`), served here by IGN's WMTS (`https://www.ign.es/wmts/pnoa-ma`, layer `OI.OrthoimageCoverage`, tile matrix set `GoogleMapsCompatible`) rather than the WMS: that set is the Web Mercator tile grid MapLibre asks for, so tiles come pre-cut and cached instead of rendered per request (`web/src/admin/ortho.ts`).
+
+- Tiles are fetched up to zoom 19, about 0.23 m a pixel in Badajoz, the PNOA's own resolution; from 19 to the map's maximum, 21, they are enlarged.
+- The photo sits under the basemap's labels, so street names stay on top. Venue dots get a white ring while it is on; the pins already have one.
+- The credit "PNOA cedido por © Instituto Geográfico Nacional de España" (CC BY 4.0) shows next to the button for as long as the photo does.
+- The choice is remembered in this browser (`localStorage`, key `admin-ortho`).
+- The photo can be a few years old and is taken from above: a terrace that may have moved, or sits under trees or awnings, still wants a look on the ground.
+
+Pins placed on it are ordinary review rows (`review` in the record's `sources`). The build adds the PNOA credit to `terraces.json` only when a terrace is `curated` today; crediting review pins as well is #264, a pipeline change of its own.
 
 ## Deciding venues
 
