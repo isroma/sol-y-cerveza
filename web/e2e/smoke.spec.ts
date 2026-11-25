@@ -13,7 +13,11 @@ import {
 type MapHandle = {
   getZoom(): number
   getBearing(): number
-  jumpTo(options: { bearing?: number; zoom?: number }): void
+  jumpTo(options: {
+    bearing?: number
+    zoom?: number
+    center?: [number, number]
+  }): void
   getLayer(id: string): { type: string } | undefined
   getLayoutProperty(layer: string, name: string): unknown
   isMoving(): boolean

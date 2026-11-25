@@ -286,3 +286,39 @@ test('Escape cancels the picker, back to the card', async ({
   ).toContainText('Mover en el mapa')
   expect(reports).toEqual([])
 })
+
+test('shows the caña price on its badge once zoomed in', async ({ page }) => {
+  // Visitors agree on a price for Bar Sol Uno: an estimate, so "~".
+  await page.route(/\/v1\/prices/, (route) =>
+    route.fulfill({
+      json: {
+        prices: [
+          {
+            venueId: 'test:0',
+            item: 'cana',
+            brand: null,
+            cents: 150,
+            voters: 5,
+            last: '2026-06-01T10:00:00Z',
+          },
+        ],
+      },
+    }),
+  )
+  await page.goto('./')
+  await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT, {
+    timeout: 15_000,
+  })
+  await page.waitForFunction(() => window.__map !== undefined)
+  const badge = page.locator(
+    '.pin-marker[aria-label^="Bar Sol Uno"] .pin-price',
+  )
+  // Zoomed out the badges shrink and show no price.
+  await expect(badge).toHaveText('')
+  await page.evaluate(() =>
+    window.__map?.jumpTo({ center: [-6.9698, 38.8826], zoom: 17 }),
+  )
+  await settled(page)
+  await expect(badge).toHaveText('~1,50 €')
+  await shot(page, 'badge-price')
+})
