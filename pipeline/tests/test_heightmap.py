@@ -1,8 +1,9 @@
 import math
+
 import numpy as np
 
 from solycerveza.geo import BADAJOZ_BBOX
-from solycerveza.heightmap import TILE_PX, ZOOM, encode, tile_range, tile_transform
+from solycerveza.heightmap import TILE_PX, encode, tile_range, tile_transform
 
 
 def test_tiles_cover_badajoz() -> None:
@@ -32,4 +33,3 @@ def test_encode_packs_surface_and_height_above_ground() -> None:
 
 def test_encode_caps_the_height_above_ground() -> None:
     assert encode(np.array([[300.0]]), np.array([[170.0]]))[0, 0, 2] == 255
-
