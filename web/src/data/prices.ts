@@ -31,6 +31,16 @@ export const BRAND_NAMES: Record<Brand, string> = {
   sagres: 'Sagres',
 }
 
+/**
+ * The prices, in integer cents and inclusive, that visitors may suggest for
+ * each item: anything outside is a typo or a joke. The API enforces it and
+ * the app's form checks it before sending.
+ */
+export const SUGGEST_RANGE: Record<Item, readonly [number, number]> = {
+  cana: [50, 600],
+  tercio: [80, 800],
+}
+
 /** Integer cents as Spanish euros: 150 -> "1,50 €". */
 export function formatCents(cents: number): string {
   const euros = Math.trunc(cents / 100)
