@@ -1,5 +1,5 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
-import { distanceM } from '../prices/owner.ts'
+import { distanceMetres } from '../data/geo.ts'
 import {
   isStrong,
   JUNK_LABELS,
@@ -131,9 +131,9 @@ export function scoreVenues(
   return venues.map((venue) => {
     const review = reviews.get(venue.id)
     const at = positionOf(venue, review)
-    const fromCentre = distanceM(at, centre)
+    const fromCentre = distanceMetres(at, centre)
     const near = confirmed.filter(
-      (c) => c.id !== venue.id && distanceM(c.at, at) <= CLUSTER_M,
+      (c) => c.id !== venue.id && distanceMetres(c.at, at) <= CLUSTER_M,
     ).length
     const source = sourceValue(venue)
     const best = proposals.get(venue.id)?.[0]

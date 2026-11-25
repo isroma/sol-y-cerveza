@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { distanceMetres } from '../../web/src/data/geo.ts'
 import {
-  distanceMetres,
   MAX_MOVE_METRES,
   MAX_PIN_METRES,
   maxDistance,

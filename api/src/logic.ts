@@ -6,6 +6,7 @@ import {
   type Brand,
   type Item,
 } from '../../web/src/data/prices.ts'
+import { VENUE_ID } from '../../web/src/data/geo.ts'
 
 /** Distinct people who must suggest the same price before the app shows it. */
 export const THRESHOLD = 5
@@ -35,9 +36,6 @@ export type CrowdPrice = Suggestion & {
   last: string
   confirmed: boolean
 }
-
-export const VENUE_ID =
-  /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
 
 function isItem(value: unknown): value is Item {
   return ITEMS.some((item) => item === value)

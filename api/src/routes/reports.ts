@@ -8,15 +8,14 @@ import {
   turnstileOk,
 } from '../guard.ts'
 import { json, jsonBody } from '../http.ts'
+import { distanceMetres, type LatLon } from '../../../web/src/data/geo.ts'
 import {
-  distanceMetres,
   maxDistance,
   newVenueKey,
   parseReport,
   parseResolution,
   REPORT_TURNSTILE_ACTION,
   reportQueue,
-  type LatLon,
   type Report,
   type ReportRow,
 } from '../reports.ts'

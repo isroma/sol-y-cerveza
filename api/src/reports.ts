@@ -3,7 +3,12 @@
  * `move`, `closed`, `add` (#201); `terrace` yes/no and `pin`, where the
  * terrace is (#210, ADR-0009).
  */
-import { VENUE_ID } from './logic.ts'
+import {
+  BADAJOZ_BBOX,
+  cleanVenueName,
+  VENUE_ID,
+  type LatLon,
+} from '../../web/src/data/geo.ts'
 
 /** The Turnstile action the app's report widget declares. */
 export const REPORT_TURNSTILE_ACTION = 'report'
@@ -20,13 +25,6 @@ export function newVenueKey({ lat, lon }: LatLon): string {
 export const MAX_MOVE_METRES = 500
 /** A terrace sits by its venue: a `pin` at most this far from the published venue position. */
 export const MAX_PIN_METRES = 150
-/** Reports must point inside Badajoz. */
-export const BOX = {
-  south: 38.84,
-  west: -7.04,
-  north: 38.92,
-  east: -6.92,
-} as const
 export const VENUE_KINDS = [
   'bar',
   'pub',
@@ -36,7 +34,6 @@ export const VENUE_KINDS = [
 ] as const
 
 export type VenueKind = (typeof VENUE_KINDS)[number]
-export type LatLon = { lat: number; lon: number }
 
 export type Report =
   | { kind: 'move'; venueId: string; lat: number; lon: number }
@@ -74,14 +71,6 @@ function coordinate(value: unknown, min: number, max: number): number | null {
   return Math.round(value * 1e6) / 1e6
 }
 
-/** A venue name with commas, quotes and line breaks turned into spaces and whitespace collapsed. */
-export function cleanName(name: string): string {
-  return name
-    .replace(/[,"'“”‘’«»\r\n]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 /** The report and Turnstile token in a request body, or why it is invalid. */
 export function parseReport(
   body: unknown,
@@ -103,16 +92,17 @@ export function parseReport(
     (typeof venueId !== 'string' || !VENUE_ID.test(venueId))
   )
     return { ok: false, error: 'venueId' }
+  // Reports must point inside Badajoz.
   const point = {
-    lat: coordinate(lat, BOX.south, BOX.north),
-    lon: coordinate(lon, BOX.west, BOX.east),
+    lat: coordinate(lat, BADAJOZ_BBOX.south, BADAJOZ_BBOX.north),
+    lon: coordinate(lon, BADAJOZ_BBOX.west, BADAJOZ_BBOX.east),
   }
   const placed = kind === 'move' || kind === 'add' || kind === 'pin'
   if (placed && point.lat === null) return { ok: false, error: 'lat' }
   if (placed && point.lon === null) return { ok: false, error: 'lon' }
   if (kind === 'terrace' && typeof terrace !== 'boolean')
     return { ok: false, error: 'terrace' }
-  const cleaned = typeof name === 'string' ? cleanName(name) : ''
+  const cleaned = typeof name === 'string' ? cleanVenueName(name) : ''
   if (kind === 'add') {
     if (cleaned.length < 2 || cleaned.length > 60 || /http|www/i.test(cleaned))
       return { ok: false, error: 'name' }
@@ -145,17 +135,6 @@ export function parseReport(
     },
     token,
   }
-}
-
-/** Great-circle distance in metres. */
-export function distanceMetres(a: LatLon, b: LatLon): number {
-  const rad = Math.PI / 180
-  const dLat = (b.lat - a.lat) * rad
-  const dLon = (b.lon - a.lon) * rad
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2
-  return 2 * 6_371_000 * Math.asin(Math.sqrt(h))
 }
 
 /** A row of `venue_reports`, as the admin query reads it. */
