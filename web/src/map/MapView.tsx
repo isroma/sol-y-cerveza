@@ -30,6 +30,7 @@ import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { HeightShadowLayer } from './heightShadows.ts'
+import { addTreeCrowns } from './treeCrowns.ts'
 import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
@@ -235,6 +236,12 @@ export function MapView({
           map.on('idle', refreshShadows)
           addDotLayers(map, (id) => onSelectRef.current(id))
           dotsKeyRef.current = null
+          // The trees whose shade the GPU shadows draw (pipeline trees.py).
+          if (GPU_SHADOWS)
+            addTreeCrowns(
+              map,
+              map.getLayer('building-3d') ? 'building-3d' : undefined,
+            )
           nightSwitchRef.current = createNightSwitch(map, new Set([SHADOWS]))
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.
