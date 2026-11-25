@@ -57,7 +57,7 @@ The map's sun shadows (`web/src/map/prismShadows.ts`) are flat polygons cast on 
 
 Against the list, at the list's terraces and sun steps, the prisms agree 85.6 % of the time (an earlier prototype that marched through height tiles of the DSM and DTM agreed 94.5 % on the same data, and was dropped for it): no terrain, one height per building, merged and simplified outlines and banded crowns cost about 9 points. The owner prefers the clean polygons; the list's answer still comes from the full horizon.
 
-Large files stay off `main`: `buildings.json` and `trees.json` live on the orphan branch `height-tiles` (the name is historical; the deploy uses it), which every Pages deploy copies into the site's `data/` (`.github/workflows/deploy-pages.yml`). To update one, rebuild it (below) and replace it there in one commit:
+Large files stay off `main`: `buildings.json` and `trees.json` live on the orphan branch `height-tiles` (the name is historical; the deploy uses it), which every Pages deploy copies into the site's `data/` (`.github/workflows/build-pages.yml`). To update one, rebuild it (below) and replace it there in one commit:
 
 ```sh
 git worktree add ../height-tiles height-tiles
