@@ -70,12 +70,7 @@ type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
  * Every mount needs a new check (each turn of the card), and the first in a
  * session also loads Cloudflare's script: while one runs, a spinner.
  */
-export function Turnstile({
-  siteKey,
-  onToken,
-  action,
-  run = true,
-}: Props) {
+export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<CheckState>('checking')
   const onTokenRef = useRef(onToken)
