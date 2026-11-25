@@ -122,7 +122,9 @@ jobs:
 
   # Browser smoke tests: the real app and map in Chromium (web/e2e/), one job per
   # group of Playwright projects, each starting only the web servers it needs
-  # (E2E_PROJECTS in web/playwright.config.ts).
+  # (E2E_PROJECTS in web/playwright.config.ts). The slowest job gates ci-ok, so
+  # the groups are balanced: the two reports projects share their server and a
+  # job of their own, leaving phone and desktop 16 tests each.
   e2e:
     name: e2e (${{ matrix.group }})
     needs: changes
@@ -134,9 +136,11 @@ jobs:
       matrix:
         include:
           - group: phone
-            projects: phone,reports-phone
+            projects: phone
           - group: desktop
-            projects: desktop,reports-desktop
+            projects: desktop
+          - group: reports
+            projects: reports-phone,reports-desktop
           - group: offline
             projects: offline
     defaults:

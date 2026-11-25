@@ -60,7 +60,7 @@ Parked: not now. They may come back later, but don't propose or start them unles
 ## Quality gates
 
 - web: `cd web && npm ci && npm run check` (prettier, oxlint, vitest, tsc, vite build)
-- web e2e: `cd web && npm run e2e` (Playwright smoke tests in `web/e2e/` on a real map in Chromium, phone and desktop; stubbed basemap and data, no network). Not part of `npm run check`; CI runs it as three `e2e` jobs (phone, desktop, offline), each with `E2E_PROJECTS` set to its projects (`web/playwright.config.ts`), which you can also set locally to run only some. Run it when a change touches the map, the layout or the venue card. Selectors are Spanish roles and labels; it uses the dev-only `window.__map`.
+- web e2e: `cd web && npm run e2e` (Playwright smoke tests in `web/e2e/` on a real map in Chromium, phone and desktop; stubbed basemap and data, no network). Not part of `npm run check`; CI runs it as four `e2e` jobs (phone, desktop, reports, offline), each with `E2E_PROJECTS` set to its projects (`web/playwright.config.ts`), which you can also set locally to run only some. Run it when a change touches the map, the layout or the venue card. Selectors are Spanish roles and labels; it uses the dev-only `window.__map`.
 - pipeline: `cd pipeline && uv sync && uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest`
 - api: `cd api && npm ci && npm run check`; CI's `api` job also runs `npm run build:dry` and applies every migration to a fresh local D1 (`npx wrangler d1 migrations apply sol-y-cerveza --local`).
 - CI skips the jobs a PR can't affect (path filter in `.github/scripts/ci-changes.sh`; a skipped job counts as passed for `ci-ok`), so a docs-only PR runs none of web, e2e, pipeline or api.
