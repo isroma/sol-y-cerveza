@@ -10,37 +10,43 @@ A breaking change bumps `version` and updates, in the same PR: this document, th
 
 ```ts
 type TerracesFile = {
-  version: 2
-  generated: string // ISO 8601 UTC timestamp of the pipeline run
-  sample: boolean // true while the file holds fake data; the app shows a notice
-  attribution: string[] // shown in the app, one line each
-  terraces: Terrace[] // one per named venue, sorted by id
-}
+  version: 2;
+  generated: string; // ISO 8601 UTC timestamp of the pipeline run
+  sample: boolean; // true while the file holds fake data; the app shows a notice
+  attribution: string[]; // shown in the app, one line each
+  terraces: Terrace[]; // one per named venue, sorted by id
+};
 
 type Terrace = {
-  id: string // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "junta:<hash>", "review:<slug>" (added in the admin view), "curated:<slug>", "sample:<slug>"
-  name: string
-  kind: 'bar' | 'pub' | 'cafe' | 'restaurant' | 'biergarten'
-  venue: LatLon // the venue itself (building or entrance)
-  terrace: LatLon | null // where the tables are (horizon computed from here); null = no known terrace
-  sources: string[] // e.g. ["curated", "osm"], ["overture"], ["junta"] or ["osm", "review"], sorted
-  verified: string | null // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
-  horizon: number[] | null // 360 integers, see below; null if not computed yet or terrace is null
-  horizon_winter?: number[] | null // the same with deciduous trees bare (ADR-0007); null or absent = same as horizon
-  prices: Price[] // beer prices seen at the venue, caña first, then tercios by brand; [] if none
-}
+  id: string; // stable: "osm:node/123", "osm:way/456", "overture:<GERS id>", "junta:<hash>", "review:<slug>" (added in the admin view), "curated:<slug>", "sample:<slug>"
+  name: string;
+  kind: "bar" | "pub" | "cafe" | "restaurant" | "biergarten";
+  venue: LatLon; // the venue itself (building or entrance)
+  terrace: LatLon | null; // where the tables are (horizon computed from here); null = no known terrace
+  sources: string[]; // e.g. ["curated", "osm"], ["overture"], ["junta"] or ["osm", "review"], sorted
+  verified: string | null; // YYYY-MM-DD of the last on-site check of the terrace position; null if terrace is null
+  horizon: number[] | null; // 360 integers, see below; null if not computed yet or terrace is null
+  horizon_winter?: number[] | null; // the same with deciduous trees bare (ADR-0007); null or absent = same as horizon
+  horizon_low?: number[] | null; // envelope across the terrace, lowest obstacle per bin; absent = every point sees horizon
+  horizon_high?: number[] | null; // envelope across the terrace, highest obstacle per bin; set together with horizon_low
+  horizon_low_winter?: number[] | null; // the envelope on the leaf-off model; absent = same as the envelope above
+  horizon_high_winter?: number[] | null;
+  prices: Price[]; // beer prices seen at the venue, caña first, then tercios by brand; [] if none
+};
 
 type Price = {
-  item: 'cana' | 'tercio' // a draught caña, or a 33 cl bottle
-  brand: string | null // tercio only: cruzcampo, mahou-5-estrellas, estrella-galicia, amstel, heineken, alhambra-especial, san-miguel, estrella-damm, super-bock, sagres; null for a caña
-  cents: number // integer euro cents (money is never a float)
-  seen: string // YYYY-MM-DD the price was seen
-}
+  item: "cana" | "tercio"; // a draught caña, or a 33 cl bottle
+  brand: string | null; // tercio only: cruzcampo, mahou-5-estrellas, estrella-galicia, amstel, heineken, alhambra-especial, san-miguel, estrella-damm, super-bock, sagres; null for a caña
+  cents: number; // integer euro cents (money is never a float)
+  seen: string; // YYYY-MM-DD the price was seen
+};
 
-type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
+type LatLon = { lat: number; lon: number }; // WGS84 degrees, max 6 decimals
 ```
 
-`horizon_winter` (added 2026-11-23, not a breaking change) is the horizon of the *leaf-off surface model*: the surface with deciduous tree crowns lowered to the ground ([ADR-0007](adr/0007-seasonal-trees.md)). Same encoding as `horizon`. The pipeline writes it only where it differs from `horizon`, and `null` everywhere else, including every terrace when the leaf-off model wasn't built. It must be `null` when `horizon` is `null`. Files without the key are valid.
+`horizon_winter` (added 2026-11-23, not a breaking change) is the horizon of the _leaf-off surface model_: the surface with deciduous tree crowns lowered to the ground ([ADR-0007](adr/0007-seasonal-trees.md)). Same encoding as `horizon`. The pipeline writes it only where it differs from `horizon`, and `null` everywhere else, including every terrace when the leaf-off model wasn't built. It must be `null` when `horizon` is `null`. Files without the key are valid.
+
+`horizon_low`, `horizon_high`, `horizon_low_winter` and `horizon_high_winter` (added 2026-11-25, #409, not a breaking change) are the **horizon envelope** across the terrace; see "Horizon envelope" below. Each pair is both set or both absent, needs a `horizon`, and has `low[i] <= high[i]` in every bin. The pipeline leaves the keys out when there is nothing to add, so files without them are valid.
 
 `prices` (added 2026-11-23, not a breaking change) holds prices a curator confirmed in the admin view (`pipeline/data/venue_prices.csv`). Prices users suggest are not in this file: the app reads them at runtime from the suggestions API.
 
@@ -51,6 +57,16 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 - Observer: eye height 1.2 m above the ground at `terrace`.
 - Obstacles are everything in the surface model (buildings, trees, terrain) within 300 m. Negative angles (ground dropping away) are clamped to 0.
 
+## Horizon envelope
+
+A terrace is several metres across, and a pin is rarely placed to better than a few metres: moving it 2 m changes the single-point answer at about 7 % of daylight times. The envelope samples the terrace instead (`pipeline/src/solycerveza/envelope.py`):
+
+- Points: the pin and 8 points on a 3 m circle round it, the first due north, then clockwise.
+- A point counts only on open ground: the surface model at most 1 m above the terrain there (not on a roof, under an awning or under a tree crown), and outside every closed OSM structure outline (`leafoff.load_structures`).
+- Each kept point gets a horizon like the pin's (same encoding, observer and range). `horizon_low[i]` is the lowest of them in bin `i`, `horizon_high[i]` the highest. The pin is one of the points only when it is on open ground itself, so `horizon` can lie outside the envelope.
+- `horizon_low`/`horizon_high` are left out when no point is on open ground, or when every kept point sees exactly `horizon`.
+- `horizon_low_winter`/`horizon_high_winter` are the same on the leaf-off model, left out when they equal the summer envelope (or, without one, `horizon_winter` at every point).
+
 ## Sun / shade rule (client)
 
 1. Compute the sun's altitude `alt` and compass azimuth `az`, in degrees, for the chosen instant at `terrace`.
@@ -59,6 +75,7 @@ type LatLon = { lat: number; lon: number } // WGS84 degrees, max 6 decimals
 4. If `horizon` is `null`, the result is **unknown**.
 5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
 6. **Leaf-off period** (1 December to 15 March, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
+7. **Envelope** (prototype, only with `?partial=1` in the app's URL): when the terrace has an envelope, it replaces steps 3 and 6. In the leaf-off period use `horizon_low_winter`/`horizon_high_winter` when present, else `horizon_low`/`horizon_high`. Then **sun** if `alt * 10 > high[bin]`, **shade** if `alt * 10 <= low[bin]`, and **partial** in between: part of the terrace in sun.
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 
@@ -68,7 +85,7 @@ Times are entered and shown in `Europe/Madrid`.
 
 - Keys appear in the order above, and `terraces` is sorted by `id`.
 - Coordinates are rounded to 6 decimals.
-- UTF-8, 2-space indent, each `horizon` and `horizon_winter` array on a single line, trailing newline.
+- UTF-8, 2-space indent, each `horizon`, `horizon_winter` and envelope array on a single line, trailing newline. Null envelope keys are left out.
 
 These rules keep data refresh PRs reviewable.
 

@@ -75,14 +75,17 @@ Colour carries meaning here: **yellow means sun**. Keep it for sun and for the o
 
 Every badge is a 160° gradient, light to deep, with a 2 px white ring.
 
-| State     | Copy                  | Solid     | Badge gradient                      | Size                                       |
-| --------- | --------------------- | --------- | ----------------------------------- | ------------------------------------------ |
-| `sun`     | Con sol ahora         | `#F59E0B` | `#FFC53D → #F59E0B`                 | 100 % (highlighted when zoomed out: 112 %) |
-| `soon`    | Sol pronto            | `#F7C948` | `#FFF1B8 → #F7C948`, icon `#A16207` | 100 %                                      |
-| `nosun`   | Sin sol               | `#9CA3AF` | `#C6CBD3 → #8B919C`                 | 78 % (56 % zoomed out)                     |
-| `unknown` | Terraza sin confirmar | `#B59A80` | `#DCC8B4 → #A88D73`                 | 78 % (56 % zoomed out)                     |
+| State     | Copy                  | Solid     | Badge gradient                                                       | Size                                       |
+| --------- | --------------------- | --------- | -------------------------------------------------------------------- | ------------------------------------------ |
+| `sun`     | Con sol ahora         | `#F59E0B` | `#FFC53D → #F59E0B`                                                  | 100 % (highlighted when zoomed out: 112 %) |
+| `partial` | Sol parcial           | `#F59E0B` | `#FFC53D` / `#8B919C`, split in half at 160° (half sun, half no sun) | 100 %                                      |
+| `soon`    | Sol pronto            | `#F7C948` | `#FFF1B8 → #F7C948`, icon `#A16207`                                  | 100 %                                      |
+| `nosun`   | Sin sol               | `#9CA3AF` | `#C6CBD3 → #8B919C`                                                  | 78 % (56 % zoomed out)                     |
+| `unknown` | Terraza sin confirmar | `#B59A80` | `#DCC8B4 → #A88D73`                                                  | 78 % (56 % zoomed out)                     |
 
 Rules: sunny badges always sit above grey ones; only sunny terraces are ever enlarged; taupe is reserved for "unconfirmed" so it never reads as "no sun".
+
+**Sol parcial** (prototype, only with `?partial=1`; `docs/data-contract.md`, "Horizon envelope"): part of the terrace is in sun, part in shade. It needs no new colour: its badge is the sun and no-sun colours split in half, its icon (`SunPartialIcon`) a half-filled sun with the right-hand rays faded, in `sun`. It sits with the sunny badges (above the grey ones, full size, never enlarged), sorts after full sun and before sun soon, counts in "Con sol ahora" (the filter and the list's count), and shows in the legend between Con sol ahora and Sol pronto. In the card's day strip a partial stretch is diagonal stripes of `sun-soft` and `toggle-off`. Its times count any sun: "Sol hasta las …" is when the last of the terrace loses the sun, and "Sol en …" when the first of it gets sun; the minutes of sun count partial minutes too. Card: "Sol parcial" over "Parte de la terraza al sol, hasta las …"; list: "Sol parcial hasta las … (…)".
 
 ### Neutrals (day)
 

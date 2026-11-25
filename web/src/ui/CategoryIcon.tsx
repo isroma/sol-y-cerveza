@@ -1,6 +1,12 @@
 import type { SunCategory } from '../sun/venueStatus.ts'
 import { CATEGORY_COLORS } from './categoryStyle.ts'
-import { SunIcon, SunOffIcon, SunSoonIcon, TerraceIcon } from './icons.tsx'
+import {
+  SunIcon,
+  SunOffIcon,
+  SunPartialIcon,
+  SunSoonIcon,
+  TerraceIcon,
+} from './icons.tsx'
 
 export function CategoryIcon({
   category,
@@ -11,6 +17,8 @@ export function CategoryIcon({
 }) {
   const style = { color: CATEGORY_COLORS[category] }
   if (category === 'sun') return <SunIcon size={size} style={style} />
+  if (category === 'partial')
+    return <SunPartialIcon size={size} style={style} />
   if (category === 'soon') return <SunSoonIcon size={size} style={style} />
   if (category === 'nosun') return <SunOffIcon size={size} style={style} />
   return <TerraceIcon size={size} style={style} />

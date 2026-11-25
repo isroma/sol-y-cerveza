@@ -1,11 +1,28 @@
 import type { Terrace } from '../data/terraces.ts'
 import { MINUTES_PER_DAY } from '../time/madrid.ts'
 import { stepIndex, type DayTrack } from './dayTrack.ts'
-import { horizonFor } from './leafOff.ts'
-import { STEP_MINUTES, sunState, type SunState } from './sunState.ts'
+import { envelopeFor, horizonFor } from './leafOff.ts'
+import {
+  envelopeState,
+  STEP_MINUTES,
+  sunState,
+  type SunState,
+} from './sunState.ts'
 
-/** How a venue is drawn: sunny now, sunny within SOON_MINUTES, no sun, or unknown. */
-export type SunCategory = 'sun' | 'soon' | 'nosun' | 'unknown'
+/**
+ * How a venue is drawn: sunny now, partly sunny now, sunny within
+ * SOON_MINUTES, no sun, or unknown.
+ */
+export type SunCategory = 'sun' | 'partial' | 'soon' | 'nosun' | 'unknown'
+
+/**
+ * Some sun on the terrace: all of it (`sun`) or part (`partial`). The
+ * "Sol hasta" and "Sol en" edges, the soon window and the minutes left all
+ * count any sun, so a partial stretch extends a sun spell.
+ */
+export function hasSun(state: SunState): boolean {
+  return state === 'sun' || state === 'partial'
+}
 
 export const SOON_MINUTES = 60
 
@@ -23,21 +40,37 @@ export type VenueStatus = {
   category: SunCategory
   /** Per-step states for the whole day (see DayTrack), null without a horizon. */
   timeline: SunState[] | null
-  /** While in sun: the minute the sun goes (MINUTES_PER_DAY if it lasts until midnight). */
+  /**
+   * While in any sun: the minute the last of it goes (MINUTES_PER_DAY if it
+   * lasts until midnight).
+   */
   sunUntil: number | null
-  /** While not in sun: the minute the sun next arrives today, if it does. */
+  /** While in no sun: the minute some sun next arrives today, if it does. */
   nextSun: number | null
-  /** Minutes of sun from the chosen minute until the end of the day. */
+  /** Minutes of any sun from the chosen minute until the end of the day. */
   minutesLeft: number | null
 }
 
-export function venueDay(venue: Terrace, track: DayTrack): VenueDay {
+/**
+ * With `partial`, a terrace with an envelope follows the envelope rule and
+ * can be `partial`; without it, only the single horizon counts, as before.
+ */
+export function venueDay(
+  venue: Terrace,
+  track: DayTrack,
+  { partial = false }: { partial?: boolean } = {},
+): VenueDay {
   const horizon = horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
     return { venue, timeline: null }
+  const envelope = partial ? envelopeFor(venue, track.date) : null
   return {
     venue,
-    timeline: track.positions.map((position) => sunState(horizon, position)),
+    timeline: track.positions.map((position) =>
+      envelope === null
+        ? sunState(horizon, position)
+        : envelopeState(envelope, position),
+    ),
   }
 }
 
@@ -71,19 +104,18 @@ export function venueStatus(day: VenueDay, minutes: number): VenueStatus {
 
   const index = stepIndex(minutes)
   const state = timeline[index] ?? 'unknown'
-  const sunUntil =
-    state === 'sun'
-      ? (firstIndex(timeline, index, (s) => s !== 'sun') ?? timeline.length) *
-        STEP_MINUTES
-      : null
-  const nextIndex =
-    state === 'sun' ? null : firstIndex(timeline, index, (s) => s === 'sun')
+  const sunNow = hasSun(state)
+  const sunUntil = sunNow
+    ? (firstIndex(timeline, index, (s) => !hasSun(s)) ?? timeline.length) *
+      STEP_MINUTES
+    : null
+  const nextIndex = sunNow ? null : firstIndex(timeline, index, hasSun)
   const nextSun = nextIndex === null ? null : nextIndex * STEP_MINUTES
-  const minutesLeft =
-    timeline.slice(index).filter((s) => s === 'sun').length * STEP_MINUTES
+  const minutesLeft = timeline.slice(index).filter(hasSun).length * STEP_MINUTES
 
   let category: SunCategory = 'nosun'
   if (state === 'sun') category = 'sun'
+  else if (state === 'partial') category = 'partial'
   else if (nextSun !== null && nextSun - minutes <= SOON_MINUTES)
     category = 'soon'
 
@@ -101,12 +133,16 @@ export function venueStatus(day: VenueDay, minutes: number): VenueStatus {
 
 const CATEGORY_ORDER: Record<SunCategory, number> = {
   sun: 0,
-  soon: 1,
-  nosun: 2,
-  unknown: 3,
+  partial: 1,
+  soon: 2,
+  nosun: 3,
+  unknown: 4,
 }
 
-/** Sunny first, then sun soon, then by minutes of sun left, then by name. */
+/**
+ * Sunny first, then partly sunny, then sun soon, then by minutes of sun left,
+ * then by name.
+ */
 export function compareStatus(a: VenueStatus, b: VenueStatus): number {
   return (
     CATEGORY_ORDER[a.category] - CATEGORY_ORDER[b.category] ||
@@ -115,13 +151,13 @@ export function compareStatus(a: VenueStatus, b: VenueStatus): number {
   )
 }
 
-/** Sun-run segments of a timeline, as [startMinute, endMinute) pairs. */
+/** Spells of any sun in a timeline, as [startMinute, endMinute) pairs. */
 export function sunRuns(timeline: readonly SunState[]): [number, number][] {
   const runs: [number, number][] = []
   let start: number | null = null
   timeline.forEach((state, i) => {
-    if (state === 'sun' && start === null) start = i
-    if (state !== 'sun' && start !== null) {
+    if (hasSun(state) && start === null) start = i
+    if (!hasSun(state) && start !== null) {
       runs.push([start * STEP_MINUTES, i * STEP_MINUTES])
       start = null
     }

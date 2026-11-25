@@ -55,15 +55,44 @@ const terraceSchema = z.object({
   // The same with deciduous trees bare, used from 1 Dec to 15 Mar
   // (ADR-0007). Null or absent: same as `horizon`.
   horizon_winter: z.optional(z.nullable(horizonSchema)),
+  // Lowest and highest obstacle per bin over ground points across the
+  // terrace ("Sol parcial"). Null or absent: every point sees `horizon`.
+  horizon_low: z.optional(z.nullable(horizonSchema)),
+  horizon_high: z.optional(z.nullable(horizonSchema)),
+  // The same in the leaf-off period. Null or absent: same as the envelope above.
+  horizon_low_winter: z.optional(z.nullable(horizonSchema)),
+  horizon_high_winter: z.optional(z.nullable(horizonSchema)),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.optional(z.array(priceSchema)),
 })
+
+type Bins = readonly number[] | null | undefined
+
+/** Both halves or neither, and the low one never above the high one. */
+function validEnvelope(low: Bins, high: Bins): boolean {
+  if (!low || !high) return !low && !high
+  return low.every((value, i) => value <= (high[i] ?? -1))
+}
 
 /** One record, with the rules that span its fields. */
 const terraceRecordSchema = terraceSchema.check(
   z.refine((t) => t.horizon !== null || (t.horizon_winter ?? null) === null, {
     message: 'horizon_winter needs a horizon',
   }),
+  z.refine(
+    (t) =>
+      t.horizon !== null ||
+      [t.horizon_low, t.horizon_low_winter].every(
+        (low) => (low ?? null) === null,
+      ),
+    { message: 'an envelope needs a horizon' },
+  ),
+  z.refine(
+    (t) =>
+      validEnvelope(t.horizon_low, t.horizon_high) &&
+      validEnvelope(t.horizon_low_winter, t.horizon_high_winter),
+    { message: 'an envelope needs both halves, with low <= high in every bin' },
+  ),
 )
 
 /** The whole file, every record valid (what the pipeline must produce). */

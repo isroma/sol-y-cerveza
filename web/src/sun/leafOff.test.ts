@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { horizonFor, isLeafOff } from './leafOff.ts'
+import { envelopeFor, horizonFor, isLeafOff } from './leafOff.ts'
 
 describe('isLeafOff', () => {
   it.each([
@@ -37,5 +37,41 @@ describe('horizonFor', () => {
 
   it('has nothing without a horizon', () => {
     expect(horizonFor({ horizon: null }, '2027-01-10')).toBeNull()
+  })
+})
+
+describe('envelopeFor', () => {
+  const low = new Array<number>(360).fill(10)
+  const high = new Array<number>(360).fill(90)
+  const lowWinter = new Array<number>(360).fill(5)
+  const highWinter = new Array<number>(360).fill(50)
+  const venue = {
+    horizon: low,
+    horizon_low: low,
+    horizon_high: high,
+    horizon_low_winter: lowWinter,
+    horizon_high_winter: highWinter,
+  }
+
+  it('uses the leaf-off envelope only in the leaf-off period', () => {
+    expect(envelopeFor(venue, '2026-06-21')).toEqual({ low, high })
+    expect(envelopeFor(venue, '2026-12-21')).toEqual({
+      low: lowWinter,
+      high: highWinter,
+    })
+  })
+
+  it('falls back to the summer envelope without a leaf-off one', () => {
+    const summerOnly = {
+      ...venue,
+      horizon_low_winter: null,
+      horizon_high_winter: null,
+    }
+    expect(envelopeFor(summerOnly, '2026-12-21')).toEqual({ low, high })
+  })
+
+  it('is null without an envelope or a horizon', () => {
+    expect(envelopeFor({ horizon: low }, '2026-06-21')).toBeNull()
+    expect(envelopeFor({ ...venue, horizon: null }, '2026-06-21')).toBeNull()
   })
 })

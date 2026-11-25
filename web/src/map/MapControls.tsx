@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import { BADAJOZ_BBOX } from '../data/geo.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
+import { PARTIAL_SUN } from '../sun/partialFlag.ts'
 import { CATEGORY_LABELS, LEAF_OFF_INFO } from '../ui/categoryStyle.ts'
 import {
   ChevronDownIcon,
@@ -173,7 +174,10 @@ export function MapControls({
       <div className="map-bottom">
         <aside className="map-legend" aria-label="Leyenda">
           <ul>
-            {(['sun', 'soon', 'nosun'] as const).map((category) => (
+            {(PARTIAL_SUN
+              ? (['sun', 'partial', 'soon', 'nosun'] as const)
+              : (['sun', 'soon', 'nosun'] as const)
+            ).map((category) => (
               <li key={category}>
                 <CategoryIcon category={category} size={22} />
                 {CATEGORY_LABELS[category]}

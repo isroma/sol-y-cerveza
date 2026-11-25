@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { VenueStatus } from '../sun/venueStatus.ts'
+import { hasSun, type VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from './CategoryIcon.tsx'
 import { sunSummary } from './categoryStyle.ts'
 
@@ -25,7 +25,7 @@ export function VenueList({
   onAdd,
 }: Props) {
   const [limit, setLimit] = useState(PAGE)
-  const sunny = statuses.filter((s) => s.category === 'sun').length
+  const sunny = statuses.filter((s) => hasSun(s.state)).length
   const shown = statuses.slice(0, limit)
   return (
     <section className="results" aria-labelledby="results-title">
