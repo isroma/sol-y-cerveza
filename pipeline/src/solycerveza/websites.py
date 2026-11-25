@@ -12,7 +12,11 @@ from it whose link text or address looks like a menu (`MENU_WORDS`). It is polit
 - timeouts, at most `MAX_BYTES` per response, redirects followed by hand (each hop is checked
   against the denylist, the site and robots.txt);
 - HTML only. Menus published as PDF or image files are never downloaded: their links are
-  returned as leads for the owner to read by hand.
+  returned as leads for the owner to read by hand;
+- public hosts only: IP literals and `localhost` names are refused as addresses
+  (`normalize_url`), and before each download the host is resolved and refused if any of its
+  addresses is not global (private, loopback, link-local, reserved...), so a `website` tag
+  can't point the crawler at the owner's network (`check_public_host`).
 
 Every answer except network failures and 5xx errors (both usually transient) is cached in
 `.cache/websites/`, one JSON file per URL, so re-running the extraction needs no network. A cached
@@ -21,9 +25,11 @@ robots.txt is fetched again once it is `ROBOTS_MAX_AGE` old, so a site's new rul
 """
 
 import hashlib
+import ipaddress
 import json
 import logging
 import re
+import socket
 import time
 import unicodedata
 import urllib.robotparser
@@ -108,6 +114,9 @@ MENU_WORDS = re.compile(r"carta|menu|bebidas|precios|drinks")
 # Files that are menus but not HTML: recorded as leads, never downloaded.
 LEAD_SUFFIXES = (".pdf", ".jpg", ".jpeg", ".png", ".webp")
 HTML_TYPES = ("text/html", "application/xhtml+xml")
+# A last host label that makes URL parsers read the host as an IPv4 address, in any of the
+# forms they accept (127.1, 0x7f.1, 2130706433...).
+NUMERIC_LABEL = re.compile(r"(0x[0-9a-f]*|[0-9]+)")
 
 
 def plain(text: str) -> str:
@@ -129,11 +138,60 @@ def normalize_url(raw: str) -> str | None:
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname or "." not in parts.hostname:
         return None
-    if parts.username is not None:
+    if parts.username is not None or not is_public_name(parts.hostname):
         return None
     if not parts.path:
         url += "/"
     return url
+
+
+def is_public_name(hostname: str) -> bool:
+    """Whether `hostname` is a DNS name that may be public: not an IP literal or localhost."""
+    host = hostname.lower().rstrip(".")
+    if not host or ":" in host or "[" in host or "%" in host:
+        return False  # an IPv6 literal (or junk)
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        return False
+    if NUMERIC_LABEL.fullmatch(host.rsplit(".", 1)[-1]):
+        return False  # an IPv4 address in shorthand, octal, hex or decimal form
+    return host != "localhost" and not host.endswith(".localhost")
+
+
+def is_public_address(text: str) -> bool:
+    """Whether the IP address `text` is globally reachable (IPv4-mapped IPv6 as its IPv4)."""
+    try:
+        address = ipaddress.ip_address(text.split("%", 1)[0])
+    except ValueError:
+        return False
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        address = address.ipv4_mapped
+    return address.is_global and not address.is_multicast
+
+
+def resolve_host(host: str, port: int) -> list[str]:
+    """Every address `host` resolves to (raises OSError when it doesn't resolve)."""
+    infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    return sorted({str(info[4][0]) for info in infos})
+
+
+def check_public_host(url: str, resolve: Callable[[str, int], list[str]]) -> str | None:
+    """Why `url` must not be fetched (its host is not public), or None when it may be."""
+    parts = urlsplit(url)
+    if not parts.hostname or not is_public_name(parts.hostname):
+        return "not a public host name"
+    try:
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+        addresses = resolve(parts.hostname, port)
+    except (OSError, ValueError) as error:  # ValueError: a malformed port
+        return f"does not resolve ({error})"
+    private = [a for a in addresses if not is_public_address(a)]
+    if not addresses or private:
+        return f"resolves to a non-public address ({', '.join(private) or 'none'})"
+    return None
 
 
 def host_of(url: str) -> str:
@@ -363,6 +421,8 @@ class Fetcher:
     max_bytes: int = MAX_BYTES
     sleep: Callable[[float], None] = time.sleep
     clock: Callable[[], float] = time.monotonic
+    # Host and port -> addresses; every download first checks they are all public.
+    resolve: Callable[[str, int], list[str]] = resolve_host
     requests: int = 0
     _last: dict[str, float] = field(default_factory=dict)
     _robots: dict[str, urllib.robotparser.RobotFileParser | None] = field(default_factory=dict)
@@ -416,9 +476,13 @@ class Fetcher:
 
     def _download(self, url: str) -> Response:
         host = host_of(url)
+        failed = Response(url, 0, "", None, self.today, "")
+        refused = check_public_host(url, self.resolve)
+        if refused is not None:
+            logger.info("%s: %s, skipped", url, refused)
+            return failed
         self._wait(host)
         self.requests += 1
-        failed = Response(url, 0, "", None, self.today, "")
         try:
             with self.client.stream(
                 "GET", url, headers={"User-Agent": USER_AGENT}, timeout=TIMEOUT
@@ -456,7 +520,7 @@ class Fetcher:
             for _ in range(MAX_REDIRECTS):  # e.g. http -> https, or to the www. host
                 if answer.status not in (301, 302, 303, 307, 308) or not answer.location:
                     break
-                robots_url = urljoin(robots_url, answer.location)
+                robots_url = normalize_url(urljoin(robots_url, answer.location)) or ""
                 if is_denied(robots_url) or site_of(robots_url) != site_of(url):
                     break
                 answer = self.response(robots_url)
@@ -481,7 +545,7 @@ class Fetcher:
     def page(self, url: str, site: str) -> Page | None:
         """The HTML page at `url`, following redirects that stay on `site`; None otherwise."""
         for _ in range(MAX_REDIRECTS + 1):
-            if is_denied(url) or site_of(url) != site:
+            if normalize_url(url) is None or is_denied(url) or site_of(url) != site:
                 logger.info("%s: leaves %s, skipped", url, site)
                 return None
             if not self.allowed(url):
