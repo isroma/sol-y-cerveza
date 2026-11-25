@@ -362,7 +362,9 @@ body {
 
 .admin-publish {
   display: flex;
-  align-items: center;
+  /* Publish's label on the title's baseline: "Venue review" is mostly
+     lowercase, so centring the boxes leaves the button reading high. */
+  align-items: baseline;
   justify-content: space-between;
   margin-top: 10px;
   font-size: 13px;
