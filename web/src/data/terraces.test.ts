@@ -10,7 +10,22 @@ function withTerrace(overrides: Record<string, unknown>): unknown {
   }
 }
 
+/** A valid 360-bin horizon (0 to 900) with `bin` in the middle. */
+function oneBin(bin: unknown): unknown[] {
+  const horizon: unknown[] = Array.from({ length: 360 }, (_, i) => i % 901)
+  horizon[180] = bin
+  return horizon
+}
+
 describe('terracesFileSchema', () => {
+  it('accepts horizon bins at both bounds', () => {
+    const horizon = Array.from({ length: 360 }, (_, i) => (i % 2 ? 900 : 0))
+    const file = withTerrace({ horizon, horizon_winter: horizon })
+    expect(terracesFileSchema.safeParse(file).success).toBe(true)
+    const control = withTerrace({ horizon: oneBin(450) })
+    expect(terracesFileSchema.safeParse(control).success).toBe(true)
+  })
+
   it('accepts the file shipped in public/data, every record of it', () => {
     const json: unknown = JSON.parse(shippedFile)
     expect(terracesFileSchema.safeParse(json).error).toBeUndefined()
@@ -51,6 +66,28 @@ describe('terracesFileSchema', () => {
     ['a horizon with 359 bins', withTerrace({ horizon: Array(359).fill(0) })],
     ['a horizon above 900', withTerrace({ horizon: Array(360).fill(901) })],
     ['a fractional horizon', withTerrace({ horizon: Array(360).fill(1.5) })],
+    ['a horizon with 361 bins', withTerrace({ horizon: Array(361).fill(0) })],
+    ['a horizon with one bin above 900', withTerrace({ horizon: oneBin(901) })],
+    ['a horizon with one negative bin', withTerrace({ horizon: oneBin(-1) })],
+    [
+      'a horizon with one fractional bin',
+      withTerrace({ horizon: oneBin(0.5) }),
+    ],
+    ['a horizon with one NaN bin', withTerrace({ horizon: oneBin(NaN) })],
+    ['a horizon with one string bin', withTerrace({ horizon: oneBin('10') })],
+    ['a horizon with one null bin', withTerrace({ horizon: oneBin(null) })],
+    [
+      'a horizon with an undefined bin',
+      withTerrace({ horizon: oneBin(undefined) }),
+    ],
+    [
+      'a leaf-off horizon with one fractional bin',
+      withTerrace({ horizon_winter: oneBin(0.5) }),
+    ],
+    [
+      'a leaf-off horizon with one bin above 900',
+      withTerrace({ horizon_winter: oneBin(901) }),
+    ],
     ['an unknown kind', withTerrace({ kind: 'disco' })],
     ['an out-of-range latitude', withTerrace({ terrace: { lat: 91, lon: 0 } })],
     ['a malformed verified date', withTerrace({ verified: '20/11/2026' })],
