@@ -12,7 +12,7 @@ Issue #364 asked whether visitors could correct this. The owner asked for it to 
 
 ## Decision
 
-From the venue card's back, a visitor can say **"the sun is on this terrace now"**. It is one more part of the card back's one request (`sun: true` in `POST /v1/changes`, ADR-0010), and it lowers that terrace's horizon where the sun was, once enough people agree. The API side is built here (`api/src/sun.ts`, `api/src/routes/sun.ts`, migration `0009_sun_reports.sql`); the app and admin sides land in follow-up PRs.
+From the venue card's back, a visitor can say **"the sun is on this terrace now"**. It is one more part of the card back's one request (`sun: true` in `POST /v1/changes`, ADR-0010), and it lowers that terrace's horizon where the sun was, once enough people agree. The API side is built here (`api/src/sun.ts`, `api/src/routes/sun.ts`, migration `0009_sun_reports.sql`); the app side is `web/src/sun/corrections.ts` and the card back (`web/src/reports/SuggestChange.tsx`), and the admin side the Inbox's Sun filter ([docs/admin.md](../admin.md#sun-reports)).
 
 1. **Sun only, no shade.** Shade can be a cloud, and the app ignores weather by design (owner, 2026-11-23). A visitor in shade under a clear sky and one under a cloud look the same to us; a visitor in sun is unambiguous.
 2. **The server decides where the sun was.** The Worker stamps the report with the instant it receives it and computes the sun's azimuth and altitude itself, with suncalc (the app's library and version), at the venue's published position. Nothing comes from the device: no clock, no geolocation, no free text. A report is refused with `400 {error: "sun is down"}` when the sun is under `MIN_SUN_ALTITUDE = 2°`, and a venue without a published position is refused too.
