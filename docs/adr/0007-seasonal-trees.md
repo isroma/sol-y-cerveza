@@ -18,41 +18,43 @@ We need two things for each surface-model cell: is it vegetation or a building, 
 
 ### Vegetation or building
 
-| Option | What it gives | Licence | Practical here |
-| --- | --- | --- | --- |
-| **nDSM** (DSM − DTM) outside **building footprints** | Something above the ground that isn't a building | Already in the pipeline (CC-BY 4.0 scne.es) plus footprints | Yes. Footprints come from OSM (ODbL, already the base of the dataset) |
-| Catastro INSPIRE buildings (footprints) | The full cadastral footprint set, with floors | Free reuse with attribution (Dirección General del Catastro) | Possible, not done: the ATOM download is per municipality, and the code Catastro uses for Badajoz needs checking. OSM buildings in Spain are largely a Catastro import anyway |
-| PNOA-LiDAR point cloud, classes 3–5 (vegetation) and 6 (building) | Point-level classification | CC-BY 4.0 | Not practical: 2 × 2 km LAZ tiles sit behind the same CNIG download captcha as MDS02 (see [lidar research](../research/lidar.md)), and gridding them is new work |
-| MDSnV / MDSnE (normalized vegetation / building surface, 2.5 m) | Vegetation height directly | CC-BY 4.0 | The only one listed on datos.gob.es is from the **1st coverage** (2009–2010). I found no 2nd-coverage MDSnV. Older than our DSM, so it would mix two epochs |
+| Option                                                            | What it gives                                    | Licence                                                      | Practical here                                                                                                                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **nDSM** (DSM − DTM) outside **building footprints**              | Something above the ground that isn't a building | Already in the pipeline (CC-BY 4.0 scne.es) plus footprints  | Yes. Footprints come from OSM (ODbL, already the base of the dataset)                                                                                                         |
+| Catastro INSPIRE buildings (footprints)                           | The full cadastral footprint set, with floors    | Free reuse with attribution (Dirección General del Catastro) | Possible, not done: the ATOM download is per municipality, and the code Catastro uses for Badajoz needs checking. OSM buildings in Spain are largely a Catastro import anyway |
+| PNOA-LiDAR point cloud, classes 3–5 (vegetation) and 6 (building) | Point-level classification                       | CC-BY 4.0                                                    | Not practical: 2 × 2 km LAZ tiles sit behind the same CNIG download captcha as MDS02 (see [lidar research](../research/lidar.md)), and gridding them is new work              |
+| MDSnV / MDSnE (normalized vegetation / building surface, 2.5 m)   | Vegetation height directly                       | CC-BY 4.0                                                    | The only one listed on datos.gob.es is from the **1st coverage** (2009–2010). I found no 2nd-coverage MDSnV. Older than our DSM, so it would mix two epochs                   |
 
 ### Deciduous or evergreen
 
 LiDAR alone can't tell. Options:
 
-| Option | Verdict |
-| --- | --- |
-| **Sentinel-2 NDVI, summer vs winter** (10 m) | **Chosen.** Bare deciduous crowns lose most of their NDVI in winter, while evergreens keep it. Open data, attribution required ("Contains modified Copernicus Sentinel data"). L2A scenes are public, as Cloud-Optimized GeoTIFFs on AWS (`sentinel-cogs`, no account), so the pipeline can fetch them and cache them |
-| PNOA orthophoto, near-infrared band | Only one date per flight (usually summer), so it can't see a seasonal change |
-| Municipal tree inventory | Badajoz doesn't seem to publish one (searched datos.gob.es and the Diputación's portal on 2026-11-23: nothing for the city). Not relied on |
-| OSM `natural=tree` + `leaf_cycle` | Too sparse in Badajoz to drive anything. Could later override the satellite per tree |
-| Conservative rule: every non-building, non-ground cell counts as "maybe bare" | Rejected as the default: it would claim sun under orange trees, palms and pines all winter. Kept as a fallback idea only if Sentinel-2 ever becomes unavailable, and then with stronger wording |
+| Option                                                                        | Verdict                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sentinel-2 NDVI, summer vs winter** (10 m)                                  | **Chosen.** Bare deciduous crowns lose most of their NDVI in winter, while evergreens keep it. Open data, attribution required ("Contains modified Copernicus Sentinel data"). L2A scenes are public, as Cloud-Optimized GeoTIFFs on AWS (`sentinel-cogs`, no account), so the pipeline can fetch them and cache them |
+| PNOA orthophoto, near-infrared band                                           | Only one date per flight (usually summer), so it can't see a seasonal change                                                                                                                                                                                                                                          |
+| Municipal tree inventory                                                      | Badajoz doesn't seem to publish one (searched datos.gob.es and the Diputación's portal on 2026-11-23: nothing for the city). Not relied on                                                                                                                                                                            |
+| OSM `natural=tree` + `leaf_cycle`                                             | Too sparse in Badajoz to drive anything. Could later override the satellite per tree                                                                                                                                                                                                                                  |
+| Conservative rule: every non-building, non-ground cell counts as "maybe bare" | Rejected as the default: it would claim sun under orange trees, palms and pines all winter. Kept as a fallback idea only if Sentinel-2 ever becomes unavailable, and then with stronger wording                                                                                                                       |
 
 ## Decision
 
-1. **A second, leaf-off horizon per terrace.** The pipeline builds a *leaf-off surface model*: the DSM where cells classified as deciduous vegetation are lowered to the terrain (DTM). It ray-marches that surface with the same code as today. A cell is lowered only if **all** of these hold:
+1. **A second, leaf-off horizon per terrace.** The pipeline builds a _leaf-off surface model_: the DSM where cells classified as deciduous vegetation are lowered to the terrain (DTM). It ray-marches that surface with the same code as today. A cell is lowered only if **all** of these hold:
    - it is at least 1 m above the terrain (DSM − DTM ≥ 1 m), with both rasters valid;
    - it is **not** within 2 m (one cell) of an OSM building footprint (`building=*`, `building:part=*`, `man_made` structures, city walls and walls). **Buildings are never removed**, and the tests check that;
    - its 10 m Sentinel-2 pixel is green in summer (median NDVI ≥ 0.40, July–August)
    - and loses at least 0.20 NDVI in winter (median, January–February of the same year).
 
    Clouds and shadows are masked with the L2A scene classification, and only scenes whose bbox is at least 95 % clear are used.
+
 2. **Data contract:** a new optional field, `horizon_winter`, holds the leaf-off profile. It is `null` (or absent, in older files) when it would equal `horizon`, or when there is no leaf-off surface model. The app then uses `horizon`. Old files stay valid, so this is not a version bump.
 3. **The leaf-off period runs from 1 December to 15 March, by Madrid date.** In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
 4. **What the app says.** Nothing new on the venue card: the owner wants the UI as simple as possible, so the leaf-off horizon just changes the answer (badge, list, filters, card, sun bar). The "Sobre los datos" panel explains the rule, but only when the file has leaf-off horizons:
 
-   > Del 1 de diciembre al 15 de marzo contamos con que los árboles de hoja caduca, detectados con imágenes de satélite Sentinel-2, no tienen hoja. Los de hoja perenne siguen dando sombra. Es una estimación: un árbol mal clasificado puede dar sombra donde marcamos sol.
+   > Del 1 de diciembre al 15 de marzo damos por hecho que los árboles que pierden la hoja no dan sombra; los de hoja perenne, sí. Los distinguimos con imágenes del satélite Sentinel-2, así que puede haber algún fallo.
 
    The attribution gains `Contiene datos modificados de Copernicus Sentinel (<year>)` (Copernicus' required wording, in Spanish like the other lines).
+
 5. **Failure mode: when in doubt, shade.** Every uncertain case keeps today's behaviour:
    - Without the Sentinel-2 composite or the building footprints, the build writes no `horizon_winter`.
    - A mixed 10 m pixel, a deciduous tree over winter-green grass (common in Badajoz, where grass greens up with the autumn rain), or a crown too small for Sentinel-2 keeps its leaves in the model.
