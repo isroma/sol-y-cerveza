@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { loadTerraces, type LatLon, type Terrace } from '../data/terraces.ts'
+import type { LatLon, Terrace } from '../data/terraces.ts'
 import { AdminMap } from './AdminMap.tsx'
 import { PricesEditor } from './PricesEditor.tsx'
 import { PriceCandidates } from './PriceCandidates.tsx'
-import { SuggestionsQueue, type SuggestionGroup } from './SuggestionsQueue.tsx'
+import { SuggestionsQueue } from './SuggestionsQueue.tsx'
 import { ReportsQueue } from './ReportsQueue.tsx'
-import { fetchReports, reportChange, type VenueReport } from './reports.ts'
-import { BRANDS } from '../data/prices.ts'
-import { priceKey, venuePriceSchema, type VenuePrice } from './pricesCsv.ts'
+import { fetchReports, type VenueReport } from './reports.ts'
+import { priceKey } from './pricesCsv.ts'
 import { STATE_COLORS, type MapState, type MapVenue } from './mapState.ts'
 import { dayTrack } from '../sun/dayTrack.ts'
 import { toMadridLocal } from '../time/madrid.ts'
@@ -22,15 +21,8 @@ import { BADAJOZ_CENTER } from '../config.ts'
 import { BatchDismiss } from './BatchDismiss.tsx'
 import { junkSignalsAll, likelyJunk } from './junk.ts'
 import { ProposalBox } from './ProposalBox.tsx'
-import {
-  acceptChange,
-  openProposals,
-  proposalKey,
-  proposalsResponseSchema,
-  type Proposal,
-  type ProposalsResponse,
-} from './proposals.ts'
-import { queueOrder, scoreVenues } from './queueScore.ts'
+import { acceptChange, openProposals, type Proposal } from './proposals.ts'
+import { scoreVenues } from './queueScore.ts'
 import type { Ghost } from './AdminMap.tsx'
 import {
   ADDED_PREFIX,
@@ -38,10 +30,8 @@ import {
   cleanName,
   KINDS,
   nextReview,
-  reviewSchema,
   type Kind,
   type Review,
-  type Status,
 } from './review.ts'
 import {
   describe,
@@ -52,15 +42,14 @@ import {
   type PublishStatus,
 } from './publishStatus.ts'
 import { ADMIN_ENDPOINTS } from './endpoints.ts'
+import { today } from './today.ts'
+import { useAdminData } from './useAdminData.ts'
+import { useReportActions } from './useReportActions.ts'
+import { useReviewQueue } from './useReviewQueue.ts'
 
 const CENTRE: LatLon = { lat: BADAJOZ_CENTER[1], lon: BADAJOZ_CENTER[0] }
 /** How long a batch "not a venue" waits for Undo before it is saved. */
 const DISMISS_UNDO_MS = 10_000
-const NO_PROPOSALS: ProposalsResponse = {
-  proposals: [],
-  ignored: [],
-  errors: [],
-}
 
 type Filter = 'todo' | 'not_venue' | 'all' | 'look'
 
@@ -77,13 +66,6 @@ const STATE_LABELS: Record<MapState, string> = {
   not_venue: 'Not a venue',
   data_terrace: 'Terrace in data, unreviewed',
   unknown: 'Unreviewed',
-}
-
-function today(): string {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
 }
 
 function stateOf(venue: Terrace, review: Review | undefined): MapState {
@@ -104,57 +86,26 @@ function osmUrl(id: string): string | null {
 
 type Adding = { name: string; kind: Kind; at: LatLon | null }
 
-/** A venue added in the admin view, shaped like a dataset record. */
-function addedVenue(review: Review): Terrace | null {
-  if (!review.venueId.startsWith(ADDED_PREFIX)) return null
-  if (!review.name || !review.kind || !review.venue) return null
-  return {
-    id: review.venueId,
-    name: review.name,
-    kind: review.kind,
-    venue: review.venue,
-    terrace: null,
-    sources: ['review'],
-    verified: null,
-    horizon: null,
-  }
-}
-
-async function fetchPrices(): Promise<Map<string, VenuePrice>> {
-  const response = await fetch(ADMIN_ENDPOINTS.prices)
-  if (!response.ok)
-    throw new Error(`GET ${ADMIN_ENDPOINTS.prices}: HTTP ${response.status}`)
-  const rows = venuePriceSchema.array().parse(await response.json())
-  return new Map(rows.map((p) => [priceKey(p), p]))
-}
-
-/** The machine proposals; none when the file or the endpoint is missing. */
-async function fetchProposals(): Promise<ProposalsResponse> {
-  const response = await fetch(ADMIN_ENDPOINTS.proposals)
-  if (!response.ok)
-    throw new Error(`GET ${ADMIN_ENDPOINTS.proposals}: HTTP ${response.status}`)
-  return proposalsResponseSchema.parse(await response.json())
-}
-
-async function fetchReviews(): Promise<Map<string, Review>> {
-  const response = await fetch(ADMIN_ENDPOINTS.review)
-  if (!response.ok)
-    throw new Error(`GET ${ADMIN_ENDPOINTS.review}: HTTP ${response.status}`)
-  const rows = reviewSchema.array().parse(await response.json())
-  return new Map(rows.map((r) => [r.venueId, r]))
-}
-
 export function Admin() {
-  const [dataVenues, setVenues] = useState<Terrace[]>([])
-  // Records of terraces.json this client can't read, so not on the map.
-  const [dropped, setDropped] = useState(0)
-  const [adding, setAdding] = useState<Adding | null>(null)
-  const [reviews, setReviews] = useState(new Map<string, Review>())
-  const [prices, setPrices] = useState(new Map<string, VenuePrice>())
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const {
+    dataVenues,
+    dropped,
+    venues,
+    reviews,
+    prices,
+    message,
+    setMessage,
+    proposalData,
+    saveAll,
+    save,
+    savePrice,
+    change,
+    ignoreProposal,
+  } = useAdminData(selectedId)
+  const [adding, setAdding] = useState<Adding | null>(null)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('todo')
-  const [message, setMessage] = useState('Loading…')
   const [pinning, setPinning] = useState(false)
   // The terrace pin while it is being dragged, for a live sun preview.
   const [dragging, setDragging] = useState<LatLon | null>(null)
@@ -165,19 +116,12 @@ export function Admin() {
   // Where a selected visitor report would put a venue.
   const [proposed, setProposed] = useState<LatLon | null>(null)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
-  // Review queue: venues one at a time, best value first (queueScore.ts).
-  const [queueMode, setQueueMode] = useState(false)
-  const [skipped, setSkipped] = useState<string[]>([])
-  // The venues without a decision when the queue was opened, for progress.
-  const [queueBase, setQueueBase] = useState<ReadonlySet<string>>(new Set())
   const [junkOpen, setJunkOpen] = useState(false)
   const [dismissing, setDismissing] = useState<{
     ids: string[]
     until: number
     saving: boolean
   } | null>(null)
-  const [proposalData, setProposalData] =
-    useState<ProposalsResponse>(NO_PROPOSALS)
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id)
@@ -205,23 +149,6 @@ export function Admin() {
     return out
   }, [dataVenues, tracks, reviews])
 
-  useEffect(() => {
-    Promise.all([loadTerraces(), fetchReviews(), fetchPrices()])
-      .then(([{ file, dropped }, rows, priceRows]) => {
-        setVenues(file.terraces)
-        setDropped(dropped)
-        setReviews(rows)
-        setPrices(priceRows)
-        setMessage('')
-      })
-      .catch((error: unknown) => setMessage(String(error)))
-    fetchProposals()
-      .then(setProposalData)
-      .catch((error: unknown) =>
-        setMessage(`Machine proposals unavailable: ${String(error)}`),
-      )
-  }, [])
-
   // Picks up a Publish already running (e.g. after a reload), then follows it.
   const active = isActive(publish)
   useEffect(() => {
@@ -243,15 +170,6 @@ export function Admin() {
       window.clearInterval(timer)
     }
   }, [active])
-
-  const venues = useMemo(
-    () =>
-      [
-        ...dataVenues,
-        ...[...reviews.values()].flatMap((r) => addedVenue(r) ?? []),
-      ].sort((a, b) => a.name.localeCompare(b.name, 'es')),
-    [dataVenues, reviews],
-  )
 
   const mapVenues = useMemo<MapVenue[]>(
     () =>
@@ -283,10 +201,6 @@ export function Admin() {
   const scored = useMemo(
     () => scoreVenues(venues, reviews, proposals, CENTRE, junkSignals),
     [venues, reviews, proposals, junkSignals],
-  )
-  const queue = useMemo(
-    () => queueOrder(scored, reviews, skipped),
-    [scored, reviews, skipped],
   )
   const junk = useMemo(() => {
     const staged = new Set(dismissing?.ids)
@@ -336,107 +250,6 @@ export function Admin() {
     return !!pinned && (pinned.lat !== data?.lat || pinned.lon !== data.lon)
   }
 
-  // Rows show at once; on a failed write the file's rows come back.
-  const saveAll = useCallback(
-    async (changes: readonly { venueId: string; next: Review | null }[]) => {
-      setReviews((current) => {
-        const copy = new Map(current)
-        for (const { venueId, next } of changes) {
-          if (next) copy.set(venueId, next)
-          else copy.delete(venueId)
-        }
-        return copy
-      })
-      try {
-        for (const { venueId, next } of changes) {
-          const response = next
-            ? await fetch(ADMIN_ENDPOINTS.review, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(next),
-              })
-            : await fetch(
-                `${ADMIN_ENDPOINTS.review}?venue_id=${encodeURIComponent(venueId)}`,
-                {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              )
-          if (!response.ok) throw new Error(await response.text())
-        }
-        setMessage('Saved')
-        return true
-      } catch (error) {
-        setMessage(`Not saved: ${String(error)}`)
-        setReviews(await fetchReviews())
-        return false
-      }
-    },
-    [],
-  )
-
-  const save = useCallback(
-    async (venueId: string, next: Review | null) => {
-      return await saveAll([{ venueId, next }])
-    },
-    [saveAll],
-  )
-
-  const savePrice = useCallback(
-    async (key: string, next: VenuePrice | null) => {
-      setPrices((current) => {
-        const copy = new Map(current)
-        if (next) copy.set(key, next)
-        else copy.delete(key)
-        return copy
-      })
-      try {
-        const response = next
-          ? await fetch(ADMIN_ENDPOINTS.prices, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(next),
-            })
-          : await fetch(
-              `${ADMIN_ENDPOINTS.prices}?key=${encodeURIComponent(key)}`,
-              {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-              },
-            )
-        if (!response.ok) throw new Error(await response.text())
-        setMessage('Saved')
-      } catch (error) {
-        setMessage(`Not saved: ${String(error)}`)
-        setPrices(await fetchPrices())
-      }
-    },
-    [],
-  )
-
-  const change = useCallback(
-    (
-      change:
-        | { kind: 'status'; status: Status }
-        | { kind: 'terrace'; at: LatLon }
-        | { kind: 'venue'; at: LatLon }
-        | { kind: 'looksRight' },
-    ) => {
-      if (!selectedId) return
-      if (
-        change.kind === 'status' &&
-        change.status === 'not_venue' &&
-        selectedId.startsWith(ADDED_PREFIX)
-      )
-        return
-      void save(
-        selectedId,
-        nextReview(reviews.get(selectedId), selectedId, change, today()),
-      )
-    },
-    [save, selectedId, reviews],
-  )
-
   const startPinning = useCallback(() => {
     if (!selectedId) return
     if (pinning) return setPinning(false)
@@ -458,42 +271,30 @@ export function Admin() {
     )
   }, [change, hasTerrace])
 
-  // The queue's next venue after `fromId` is decided or skipped: the best
-  // one left (the order can change as terraces get confirmed).
-  // Applied in the render that already has the decision, so the next venue
-  // comes from the new order (a confirmed terrace raises its neighbours).
-  const [advanceFrom, setAdvanceFrom] = useState<string | null>(null)
-  const advance = useCallback((fromId: string) => setAdvanceFrom(fromId), [])
-  if (advanceFrom !== null) {
-    setAdvanceFrom(null)
-    select(queue.find((s) => s.venue.id !== advanceFrom)?.venue.id ?? null)
-  }
-
-  const skip = useCallback(() => {
-    if (!selectedId) return
-    setSkipped((current) => [
-      ...current.filter((id) => id !== selectedId),
-      selectedId,
-    ])
-    advance(selectedId)
-  }, [selectedId, advance])
-
-  // A decision on the selected venue; in the queue it moves on to the next.
-  const decide = useCallback(
-    (status: 'no_terrace' | 'not_venue') => {
-      if (!selectedId) return
-      setPinning(false)
-      change({ kind: 'status', status })
-      if (queueMode) advance(selectedId)
-    },
-    [selectedId, change, queueMode, advance],
-  )
-
-  const looksRightAndGo = useCallback(() => {
-    if (!selectedId) return
-    markLooksRight()
-    if (queueMode) advance(selectedId)
-  }, [selectedId, markLooksRight, queueMode, advance])
+  // Review queue: venues one at a time, best value first (queueScore.ts).
+  const {
+    queueMode,
+    setQueueMode,
+    skipped,
+    queue,
+    queueItem,
+    progress,
+    advance,
+    skip,
+    decide,
+    looksRightAndGo,
+    startQueue,
+    nextToReview,
+  } = useReviewQueue({
+    venues,
+    reviews,
+    scored,
+    selectedId,
+    select,
+    change,
+    setPinning,
+    markLooksRight,
+  })
 
   const selectedProposals = useMemo(
     () => (selectedId ? (proposals.get(selectedId) ?? []) : []),
@@ -515,32 +316,10 @@ export function Admin() {
     [save, reviews, queueMode, selectedId, advance],
   )
 
-  const ignoreProposal = useCallback(async (p: Proposal) => {
-    const key = proposalKey(p)
-    setProposalData((current) => ({
-      ...current,
-      ignored: [...current.ignored, key],
-    }))
-    try {
-      const response = await fetch(ADMIN_ENDPOINTS.proposals, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
-      })
-      if (!response.ok) throw new Error(await response.text())
-      setMessage('Proposal ignored')
-    } catch (error) {
-      setMessage(`Not saved: ${String(error)}`)
-      setProposalData(await fetchProposals().catch(() => NO_PROPOSALS))
-    }
-  }, [])
-
   const openQueue = () => {
     if (queueMode) return setQueueMode(false)
     setAdding(null)
-    setQueueMode(true)
-    setQueueBase(new Set(queue.map((s) => s.venue.id)))
-    select(queue[0]?.venue.id ?? null)
+    startQueue()
   }
 
   // Batch "not a venue": staged for DISMISS_UNDO_MS, then saved one by one
@@ -563,7 +342,7 @@ export function Admin() {
       setDismissing(null)
       if (saved) setMessage(`Marked ${ids.length} as not a venue`)
     },
-    [saveAll],
+    [saveAll, setMessage],
   )
 
   useEffect(() => {
@@ -574,13 +353,6 @@ export function Admin() {
     )
     return () => window.clearTimeout(timer)
   }, [dismissing, commitDismiss])
-
-  const nextToReview = useCallback(() => {
-    const start = venues.findIndex((v) => v.id === selectedId)
-    const order = [...venues.slice(start + 1), ...venues.slice(0, start + 1)]
-    const next = order.find((v) => !reviews.get(v.id)?.status)
-    if (next) select(next.id)
-  }, [venues, reviews, selectedId, select])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -690,17 +462,13 @@ export function Admin() {
     }
   }
 
-  const acceptSuggestion = async (g: SuggestionGroup) => {
-    const brand = BRANDS.find((b) => b === g.brand) ?? null
-    const price: VenuePrice = {
-      venueId: g.venue_id,
-      item: g.item,
-      brand,
-      cents: g.cents,
-      seen: g.last.slice(0, 10),
-    }
-    await savePrice(priceKey(price), price)
-  }
+  const { acceptReport, acceptSuggestion } = useReportActions({
+    venues,
+    reviews,
+    save,
+    savePrice,
+    onReportSaved: () => setProposed(null),
+  })
 
   // Pending reports, for the count on the Reports button.
   useEffect(() => {
@@ -717,66 +485,7 @@ export function Admin() {
     if ('lat' in r) setProposed({ lat: r.lat, lon: r.lon })
   }
 
-  /** Applies a visitor report through the review rows; true once saved. */
-  const acceptReport = async (r: VenueReport): Promise<boolean> => {
-    let saved: boolean
-    if (r.kind === 'add') {
-      const name = cleanName(r.name)
-      const venueId = addedId(name, new Set(venues.map((v) => v.id)))
-      saved = await save(venueId, {
-        venueId,
-        status: r.terrace ? 'terrace' : null,
-        name,
-        kind: r.venueKind,
-        venue: { lat: r.lat, lon: r.lon },
-        terrace: null,
-        reviewed: today(),
-        looksRight: false,
-      })
-    } else if (r.kind === 'closed' && r.venueId.startsWith(ADDED_PREFIX)) {
-      saved = await save(r.venueId, null)
-    } else {
-      const current = reviews.get(r.venueId)
-      const data = venues.find((v) => v.id === r.venueId)?.terrace
-      // Same rule as the selected venue's terrace pin above.
-      const hasTerrace = current?.status
-        ? current.status === 'terrace' && !!(current.terrace ?? data)
-        : !!data
-      saved = await save(
-        r.venueId,
-        nextReview(current, r.venueId, reportChange(r, hasTerrace), today()),
-      )
-    }
-    if (saved) setProposed(null)
-    return saved
-  }
-
   const reviewed = venues.filter((v) => reviews.get(v.id)?.status).length
-
-  // Queue progress over the venues that were open when it was opened; the
-  // value share weighs each by its current score.
-  const progress = useMemo(() => {
-    let done = 0
-    let doneValue = 0
-    let allValue = 0
-    for (const s of scored) {
-      if (!queueBase.has(s.venue.id)) continue
-      const value = Math.max(0, s.score)
-      allValue += value
-      if (reviews.get(s.venue.id)?.status) {
-        done++
-        doneValue += value
-      }
-    }
-    const total = queueBase.size
-    return {
-      done,
-      total,
-      percent: total ? Math.floor((done / total) * 100) : 0,
-      value: allValue ? Math.floor((doneValue / allValue) * 100) : 0,
-    }
-  }, [scored, queueBase, reviews])
-  const queueItem = queue.find((s) => s.venue.id === selectedId) ?? null
 
   const ghosts = useMemo<Ghost[]>(
     () =>
