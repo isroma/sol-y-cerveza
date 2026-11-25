@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatCents, parseEuros } from './prices.ts'
+import { BRAND_NAMES, BRANDS, formatCents, parseEuros } from './prices.ts'
 
 describe('prices', () => {
   it('formats cents as Spanish euros', () => {
@@ -14,5 +14,14 @@ describe('prices', () => {
     expect(parseEuros('2')).toBe(200)
     expect(parseEuros('abc')).toBeNull()
     expect(parseEuros('1,505')).toBeNull()
+  })
+})
+
+describe('brands', () => {
+  it('are listed by name, with "Otra marca" last', () => {
+    const names = BRANDS.map((b) => BRAND_NAMES[b])
+    expect(names.at(-1)).toBe('Otra marca')
+    const listed = names.slice(0, -1)
+    expect(listed).toEqual([...listed].sort((a, b) => a.localeCompare(b, 'es')))
   })
 })

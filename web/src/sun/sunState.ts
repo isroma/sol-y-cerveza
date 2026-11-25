@@ -1,11 +1,7 @@
 import { getPosition } from 'suncalc'
 import type { LatLon } from '../data/terraces.ts'
 
-/** `partial`: some of the terrace in sun, some in shade (`envelopeState`). */
-export type SunState = 'sun' | 'partial' | 'shade' | 'night' | 'unknown'
-
-/** Lowest and highest obstacle per bin across a terrace, tenths of a degree. */
-export type Envelope = { low: readonly number[]; high: readonly number[] }
+export type SunState = 'sun' | 'shade' | 'night' | 'unknown'
 
 /** Degrees. Azimuth is compass: 0 = north, 90 = east, clockwise. */
 export type SunPosition = { altitude: number; azimuth: number }
@@ -39,20 +35,32 @@ export function sunState(
 }
 
 /**
- * The envelope rule from docs/data-contract.md: sun when the sun clears the
- * highest obstacle over the terrace's points, shade when it clears none of
- * them, partial in between.
+ * Shade shorter than this between two sunny stretches counts as sun: mostly
+ * noise in the surface model (a lamp post, the edge of a crown). With
+ * 5-minute steps, gaps of up to 3 steps (15 minutes).
  */
-export function envelopeState(
-  envelope: Envelope,
-  position: SunPosition,
-): SunState {
-  if (position.altitude <= 0) return 'night'
-  const bin = horizonBin(position.azimuth)
-  const low = envelope.low[bin]
-  const high = envelope.high[bin]
-  if (low === undefined || high === undefined) return 'unknown'
-  const altitude = position.altitude * 10
-  if (altitude > high) return 'sun'
-  return altitude > low ? 'partial' : 'shade'
+export const SHORT_SHADE_UNDER_MINUTES = 20
+
+/**
+ * `timeline` with every shade gap under SHORT_SHADE_UNDER_MINUTES between two
+ * sun steps turned into sun. Shade before the first sun and after the last
+ * stays, and so does a gap with night in it.
+ */
+export function fillShortShade(timeline: readonly SunState[]): SunState[] {
+  const maxSteps = Math.ceil(SHORT_SHADE_UNDER_MINUTES / STEP_MINUTES) - 1
+  const filled = [...timeline]
+  let lastSun: number | null = null
+  timeline.forEach((state, i) => {
+    if (state !== 'sun') return
+    const gap = lastSun === null ? 0 : i - lastSun - 1
+    if (
+      lastSun !== null &&
+      gap > 0 &&
+      gap <= maxSteps &&
+      timeline.slice(lastSun + 1, i).every((s) => s === 'shade')
+    )
+      filled.fill('sun', lastSun + 1, i)
+    lastSun = i
+  })
+  return filled
 }

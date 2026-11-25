@@ -8,8 +8,9 @@ import {
   plazaAlta,
   withoutHorizon,
 } from '../test/fixtures.ts'
-import { parseClock } from '../time/madrid.ts'
+import { formatClock, parseClock } from '../time/madrid.ts'
 import { dayTrack, stepIndex } from './dayTrack.ts'
+import { sunState } from './sunState.ts'
 import {
   compareStatus,
   sunRuns,
@@ -141,86 +142,75 @@ describe('sunRuns', () => {
   })
 })
 
-describe('venueStatus with an envelope (Sol parcial)', () => {
+describe('venueStatus with an envelope', () => {
   const flat = (value: number) => new Array<number>(360).fill(value)
-  // The pin sees 8.3°; across the terrace the obstacles run from 0° to 30°.
+  // The pin sees 8.3°; across the terrace the lowest obstacle is 15°.
   const mixed: Terrace = {
     ...plazaAlta,
-    horizon_low: packedFlat(0),
-    horizon_high: packedFlat(30),
+    horizon_low: packedFlat(15),
   }
-  const partialAt = (venue: Terrace, track: typeof winter, clock: string) => {
-    const minutes = parseClock(clock)
-    if (minutes === null) throw new Error(clock)
-    return venueStatus(venueDay(venue, track), minutes)
-  }
-  /** First minute from `from` at which the sun is above `tenths`. */
-  const firstAbove = (track: typeof winter, tenths: number, from = 0) =>
-    track.positions.findIndex(
-      (p, i) => i * 5 >= from && p.altitude * 10 > tenths,
-    ) * 5
-  const lastAbove = (track: typeof winter, tenths: number) =>
-    (track.positions.findLastIndex((p) => p.altitude * 10 > tenths) + 1) * 5
+  /** The same day for a terrace whose only obstacle is `tenths` high. */
+  const open = (tenths: number, clock: string) =>
+    at({ ...plazaAlta, horizon: flat(tenths) }, summer, clock)
 
-  it('follows the single horizon without an envelope, or with a malformed one', () => {
-    const broken: Terrace = { ...mixed, horizon_high: 'x' }
+  it('is in sun when any part of the terrace is: the low envelope answers', () => {
+    for (const clock of ['07:30', '08:30', '09:00', '14:30', '20:30']) {
+      expect(at(mixed, summer, clock)).toEqual({
+        ...open(150, clock),
+        venue: mixed,
+      })
+    }
+    expect(at(mixed, summer, '08:30').state).not.toBe(
+      at(plazaAlta, summer, '08:30').state,
+    )
+  })
+
+  it('takes "Sol hasta" and "Sol en" from the first and last sun anywhere', () => {
+    const noon = at(mixed, summer, '14:30')
+    expect(noon.category).toBe('sun')
+    expect(noon.sunUntil).toBe(open(150, '14:30').sunUntil)
+    expect(at(mixed, summer, '07:30').nextSun).toBe(open(150, '07:30').nextSun)
+  })
+
+  it('follows the single horizon with a malformed envelope', () => {
+    const broken: Terrace = { ...mixed, horizon_low: 'x' }
     expect(at(broken, summer, '08:30')).toEqual({
       ...at(plazaAlta, summer, '08:30'),
       venue: broken,
     })
-    expect(at(mixed, summer, '08:30').category).toBe('partial')
   })
+})
 
-  it('is partial while the sun is between the lowest and highest obstacle', () => {
-    const status = partialAt(mixed, summer, '08:30')
-    expect(status.state).toBe('partial')
-    expect(status.category).toBe('partial')
-    expect(partialAt(mixed, summer, '14:30').category).toBe('sun')
-  })
+describe('venueStatus with a short shade gap', () => {
+  const clockOf = (minutes: number) => formatClock(minutes)
+  // A thin obstacle (a lamp post) due south: 3° wide, up to 80°, so the
+  // midday sun crosses it in under 20 minutes in summer.
+  const post: Terrace = {
+    ...plazaAlta,
+    horizon: horizonFromRuns([
+      [0, 359, 50],
+      [179, 181, 800],
+    ]),
+  }
 
-  it('ends "Sol hasta" at the last sun anywhere on the terrace', () => {
-    const sunset = lastAbove(summer, 0)
-    expect(partialAt(mixed, summer, '14:30').sunUntil).toBe(sunset)
-    expect(partialAt(mixed, summer, '08:30').sunUntil).toBe(sunset)
-  })
-
-  it('starts "Sol en" at the first sun anywhere on the terrace', () => {
-    const late: Terrace = {
-      ...plazaAlta,
-      horizon_low: packedFlat(15),
-      horizon_high: packedFlat(30),
-    }
-    const status = partialAt(late, summer, '08:00')
-    expect(status.category).not.toBe('sun')
-    expect(status.nextSun).toBe(
-      firstAbove(summer, 150, parseClock('08:00') ?? 0),
+  it('counts the gap as sun: one spell, sun all through it', () => {
+    const horizon = post.horizon ?? []
+    const raw = summer.positions.map((p) => sunState(horizon, p))
+    // The raw midday gap behind the post: 1 to 3 steps of shade with the sun high.
+    const gap = raw.flatMap((state, i) =>
+      state === 'shade' && (summer.positions[i]?.altitude ?? 0) > 30 ? [i] : [],
     )
-  })
+    expect(gap.length).toBeGreaterThan(0)
+    expect(gap.length).toBeLessThanOrEqual(3)
 
-  it('counts partial minutes as sun left', () => {
-    const status = partialAt(mixed, summer, '08:30')
-    expect(status.minutesLeft).toBe(
-      partialAt({ ...plazaAlta, horizon: flat(0) }, summer, '08:30')
-        .minutesLeft,
+    const timeline = venueDay(post, summer).timeline ?? []
+    expect(gap.every((i) => timeline[i] === 'sun')).toBe(true)
+    expect(sunRuns(timeline)).toHaveLength(1)
+    const inGap = at(post, summer, clockOf((gap[0] ?? 0) * 5))
+    expect(inGap.category).toBe('sun')
+    expect(inGap.sunUntil).toBe(sunRuns(timeline)[0]?.[1])
+    expect(inGap.minutesLeft).toBe(
+      timeline.slice(gap[0]).filter((s) => s === 'sun').length * 5,
     )
-  })
-
-  it('sorts partial after full sun and before sun soon', () => {
-    const sun = partialAt(mixed, summer, '14:30')
-    const partial = partialAt(mixed, summer, '08:30')
-    const soon = { ...partial, category: 'soon' as const }
-    expect([soon, partial, sun].sort(compareStatus)).toEqual([
-      sun,
-      partial,
-      soon,
-    ])
-  })
-
-  it('takes partial stretches into the sun spells', () => {
-    const { timeline } = venueDay(mixed, summer)
-    expect(timeline).not.toBeNull()
-    expect(sunRuns(timeline ?? [])).toEqual([
-      [firstAbove(summer, 0), lastAbove(summer, 0)],
-    ])
   })
 })

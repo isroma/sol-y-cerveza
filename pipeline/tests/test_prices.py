@@ -17,10 +17,12 @@ def test_read_prices_parses_canas_and_tercios(tmp_path: Path) -> None:
     path.write_text(
         HEADER
         + "osm:node/1,cana,,150,2026-11-23\n"
-        + "osm:node/1,tercio,cruzcampo,200,2026-11-23\n",
+        + "osm:node/1,tercio,cruzcampo,200,2026-11-23\n"
+        + "osm:node/1,tercio,other,220,2026-11-23\n",
         encoding="utf-8",
     )
-    cana, tercio = read_prices(path)
+    cana, tercio, other = read_prices(path)
+    assert other.brand == "other"
     assert (cana.item, cana.brand, cana.cents) == ("cana", None, 150)
     assert (tercio.brand, tercio.seen) == ("cruzcampo", date(2026, 11, 23))
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { hasSun, type VenueStatus } from '../sun/venueStatus.ts'
+import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from './CategoryIcon.tsx'
 import { sunSummary } from './categoryStyle.ts'
 
@@ -9,8 +9,12 @@ type Props = {
   minutes: number
   selectedId: string | null
   onSelect: (id: string) => void
-  /** Opens the picker to report a missing venue; unset hides the button. */
-  onAdd?: () => void
+  /** Opens the picker to report a missing venue (optionally named); unset hides it. */
+  onAdd?: (name?: string) => void
+  /** The search, to offer adding the bar it doesn't find. */
+  query?: string
+  /** No venue at all has that name (filters aside). */
+  nameUnknown?: boolean
 }
 
 /** Rows shown at first and added per "Ver más": the full list is hundreds long. */
@@ -23,19 +27,47 @@ export function VenueList({
   selectedId,
   onSelect,
   onAdd,
+  query = '',
+  nameUnknown = false,
 }: Props) {
   const [limit, setLimit] = useState(PAGE)
-  const sunny = statuses.filter((s) => hasSun(s.state)).length
+  const sunny = statuses.filter((s) => s.category === 'sun').length
   const shown = statuses.slice(0, limit)
   return (
     <section className="results" aria-labelledby="results-title">
-      <h2 id="results-title" className="results-title">
-        {statuses.length === total
-          ? `${total} bares`
-          : `${statuses.length} de ${total} bares`}
-        <span> · {sunny} con sol ahora</span>
-      </h2>
-      {statuses.length === 0 ? (
+      <div className="results-head">
+        <h2 id="results-title" className="results-title">
+          {statuses.length === total
+            ? `${total} bares`
+            : `${statuses.length} de ${total} bares`}
+          <span> · {sunny} con sol ahora</span>
+        </h2>
+        {onAdd && (
+          <button
+            type="button"
+            className="add-venue"
+            aria-label="Añadir un bar que falta"
+            title="¿Falta un bar? Añádelo"
+            onClick={() => onAdd()}
+          >
+            + Añadir
+          </button>
+        )}
+      </div>
+      {statuses.length === 0 && nameUnknown ? (
+        <div className="empty empty--search">
+          <p>No hay bares con ese nombre.</p>
+          {onAdd && (
+            <button
+              type="button"
+              className="add-venue-offer"
+              onClick={() => onAdd(query.trim())}
+            >
+              ¿Falta? <strong>Añádelo</strong>
+            </button>
+          )}
+        </div>
+      ) : statuses.length === 0 ? (
         <p className="empty">Ningún bar cumple los filtros.</p>
       ) : (
         <ol className="venue-list">
@@ -68,11 +100,6 @@ export function VenueList({
           onClick={() => setLimit(limit + PAGE)}
         >
           Ver más ({statuses.length - shown.length})
-        </button>
-      )}
-      {onAdd && (
-        <button type="button" className="add-venue" onClick={onAdd}>
-          ¿Falta un bar? Añádelo
         </button>
       )}
     </section>

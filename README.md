@@ -1,9 +1,32 @@
-# Sol y Cerveza ☀️🍺
+<div align="center">
 
-Which bar and restaurant terraces in Badajoz get sun or shade today, at any time of day, and what a beer costs there.
+<img src="web/public/icon-192.png" width="96" alt="">
 
-- **Web:** <https://isroma.github.io/sol-y-cerveza/>
-- **iOS / Android:** Capacitor shells exist, paused until the web version is polished ([mobile](docs/mobile.md))
+# Sol y Cerveza
+
+**Which terraces in Badajoz are in the sun right now — and what a caña costs there.**
+
+[![CI](https://github.com/isroma/sol-y-cerveza/actions/workflows/ci.yml/badge.svg)](https://github.com/isroma/sol-y-cerveza/actions/workflows/ci.yml)
+[![Live](https://img.shields.io/badge/live-isroma.github.io%2Fsol--y--cerveza-f59e0b)](https://isroma.github.io/sol-y-cerveza/)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-1f2328)](LICENSE)
+[![Data: ODbL](https://img.shields.io/badge/data-ODbL-b45309)](#license)
+
+[**Open the app**](https://isroma.github.io/sol-y-cerveza/) · [Watch the 23 s demo](https://github.com/isroma/sol-y-cerveza/releases/tag/demo-2026-11) · [Roadmap](docs/roadmap.md) · [Contributing](CONTRIBUTING.md)
+
+<img src="docs/images/map.jpg" width="240" alt="3D map with buildings, trees and their shadows">&nbsp;
+<img src="docs/images/card.jpg" width="240" alt="A terrace card: sun left today, the day strip, caña and tercio prices">&nbsp;
+<img src="docs/images/overview.jpg" width="240" alt="The area overview, sunny terraces and best prices on the badges">
+
+</div>
+
+## Features
+
+- ☀️ **Sun or shade, terrace by terrace**, for today at any time: drag the time bar and watch the shade move.
+- 🏙️ **A 3D map** of Badajoz's buildings and trees from LiDAR, with their shadows cast on the GPU.
+- 🍺 **Beer prices** — a caña and tercios by brand — from the owner or agreed by visitors.
+- 🗺️ **Every terrace's day at a glance**: when the sun comes, how long it stays.
+- ✍️ **Suggest a change** from any card: a price, a moved or closed venue, a missing bar.
+- 📴 **Works offline** for the areas you've already seen.
 
 ## How it works
 
@@ -14,62 +37,51 @@ LiDAR surface model ────────┴─► horizon profile ──► 
                                  per terrace (360°)   terraces.json       chosen time vs. horizon → sun / shade
 ```
 
-Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. The map draws the buildings and tree crowns from the same LiDAR and casts their shadows on the GPU for the chosen time ([pipeline](docs/pipeline.md#lidar-buildings)). Beer prices and visitors' suggestions and venue reports go through a small API (`api/`, a Cloudflare Worker). Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
-
-## Status
-
-The sun/shade map, the phone layout, the admin, beer prices (the owner's and visitors' suggestions), visitor venue reports, the seasonal-tree code and offline use are built. What is left and why: [review and roadmap](docs/roadmap.md).
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. Prices, suggestions and reports go through a small API (`api/`, a Cloudflare Worker). More in [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Quick start
 
 You need Node 26 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-cp web/.env.example web/.env.local     # optional: API, Turnstile and admin keys (see the comments in it)
-cd web && npm ci && npm run dev        # web app on http://localhost:5173
-cd pipeline && uv sync && uv run pytest
+cd web && npm ci && npm run dev        # http://localhost:5173
 ```
 
-To try prices and reports against a local API (`api/README.md`, "Local development"), run the Worker and point the app at it:
+Local API, admin, owner mode and browser tests: [development guide](docs/development.md).
 
-```bash
-cd api && cp .dev.vars.example .dev.vars && npm ci && npm run migrate:local
-npm run dev                            # API on http://localhost:8787
-```
+## Project
 
-Then set `VITE_PRICES_API=http://localhost:8787` in `web/.env.local` (the example's Turnstile site key always passes on localhost) and restart `npm run dev` in `web/`. For the admin's Suggestions and Reports queues set `PRICES_ADMIN_TOKEN` to the `ADMIN_TOKEN` in `api/.dev.vars`; for owner mode, open the app at `#owner=` followed by its `OWNER_TOKEN`.
+|             |                                                               |
+| ----------- | ------------------------------------------------------------- |
+| `web/`      | The app: Vite, React, TypeScript, MapLibre GL JS              |
+| `pipeline/` | Offline data build: venues, terraces, LiDAR horizons (Python) |
+| `api/`      | Prices, suggestions and reports: Cloudflare Worker + D1       |
+| `docs/`     | Guides, design standards, architecture decisions, research    |
 
-Browser smoke tests (Playwright, `web/e2e/`) drive the real app and map in Chromium, with a stubbed basemap and a small fixed data set, so they need no network:
-
-```bash
-cd web && npx playwright install --with-deps chromium   # once
-npm run e2e                                             # every Playwright project
-```
-
-The five projects and how to run only some (`E2E_PROJECTS`) are in [operations](docs/operations.md#ci). To rebuild the data, see the [pipeline guide](docs/pipeline.md); to curate venues, terraces and prices, the [admin guide](docs/admin.md).
-
-## Contributing
-
-Every change goes through a PR with green CI. [CLAUDE.md](CLAUDE.md) has the workflow, the quality gates and the conventions.
+**Status:** the sun/shade map, prices, suggestions, offline use and the admin are built; the iOS and Android shells are paused. What's next: [roadmap](docs/roadmap.md).
 
 ## Documentation
 
-- [Admin guide](docs/admin.md): the dev-only admin, deciding venues, fixing a terrace, prices, reports, machine proposals, Publish.
-- [Pipeline guide](docs/pipeline.md): building `terraces.json`, the LiDAR rasters, seasonal trees, website price candidates, machine proposals, OSM write-back, the files in `pipeline/data/`.
-- [Operations](docs/operations.md): deploys, variables and secrets, the service worker and its kill switch, CI, brand images.
-- [API](api/README.md): endpoints, spam and bot guardrails, local development, deploys.
-- [Design standards](docs/design/README.md): brand, colours, typography, components, copy.
-- [Data contract](docs/data-contract.md): the format of `terraces.json`.
-- [Architecture decisions](docs/adr/) and [research notes](docs/research/) (data sources, LiDAR, orthophotos).
-- [Mobile](docs/mobile.md): the paused Capacitor shells.
+| Guide                                                                                                              | What's in it                                                    |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| [Development](docs/development.md)                                                                                 | Running everything locally, tests, the admin and owner mode     |
+| [Design standards](docs/design/README.md)                                                                          | Brand, palette, typography, components, copy                    |
+| [Pipeline](docs/pipeline.md)                                                                                       | Building `terraces.json`, LiDAR, seasonal trees, OSM write-back |
+| [Admin](docs/admin.md)                                                                                             | Curating venues, terraces and prices; Publish                   |
+| [API](api/README.md)                                                                                               | Endpoints, guardrails, deploys                                  |
+| [Operations](docs/operations.md)                                                                                   | Deploys, secrets, the service worker, CI                        |
+| [Data contract](docs/data-contract.md) · [ADRs](docs/adr/) · [Research](docs/research/) · [Mobile](docs/mobile.md) |                                                                 |
 
-## Design
+## Contributing
 
-Brand, colours, typography, components, copy and templates: [design standards](docs/design/README.md).
+Spotted a wrong or missing terrace? You don't need GitHub: open it in [the app](https://isroma.github.io/sol-y-cerveza/) and use **Sugerir un cambio**. For code, see [CONTRIBUTING.md](CONTRIBUTING.md); every change goes through a PR with green CI.
 
-![Sol y Cerveza palette](docs/design/palette.svg)
+## Credits and license
 
-## Data and attribution
+Code is [MIT](LICENSE). `terraces.json` and the map's `buildings.json` contain OpenStreetMap data and are [ODbL](https://opendatacommons.org/licenses/odbl/).
+
+<details>
+<summary>Data sources and attribution</summary>
 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL). Basemap tiles by [OpenFreeMap](https://openfreemap.org). The service worker keeps a bounded copy of the basemap files a visitor has already loaded in that visitor's browser (at most 600 files, 30 days), so areas already seen work offline; the project does not store or redistribute them.
 - More venues from [Overture Maps](https://overturemaps.org) (CDLA-Permissive-2.0, [licence text](web/public/data/licenses/CDLA-Permissive-2.0.txt)); see [ADR-0003](docs/adr/0003-venue-base-osm-plus-overture.md).
@@ -78,6 +90,6 @@ Brand, colours, typography, components, copy and templates: [design standards](d
 - Surface and terrain models (PNOA-LiDAR 2nd coverage, flown 2018–19, 2 m): `Obra derivada de MDS02 2015-2021 CC-BY 4.0 scne.es` and `Obra derivada de MDT02-cob2 2015-2021 CC-BY 4.0 scne.es` (IGN/CNIG); [details](docs/research/lidar.md).
 - Deciduous trees for the winter horizons (when built): `Contiene datos modificados de Copernicus Sentinel (2025)` (Sentinel-2 L2A, Copernicus open licence); [ADR-0007](docs/adr/0007-seasonal-trees.md).
 
-## License
+Other sources are credited inside the data file ([data sources](docs/research/data-sources.md), [ADR-0002](docs/adr/0002-terrace-data-sources.md)).
 
-Code is MIT. `web/public/data/terraces.json` and the map's `buildings.json` (OSM outlines at LiDAR heights) contain OpenStreetMap data and are released under the [ODbL](https://opendatacommons.org/licenses/odbl/); its other sources are credited inside the file ([data sources](docs/research/data-sources.md), [ADR-0002](docs/adr/0002-terrace-data-sources.md)).
+</details>

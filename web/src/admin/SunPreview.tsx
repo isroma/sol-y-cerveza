@@ -81,8 +81,6 @@ function useProbe(at: LatLon | null): {
 
 const STRIP_COLORS: Record<SunState, string> = {
   sun: 'var(--accent)',
-  // The admin preview has a single point, so never partial.
-  partial: 'var(--accent)',
   shade: 'var(--muted)',
   night: 'var(--line)',
   unknown: 'var(--line)',

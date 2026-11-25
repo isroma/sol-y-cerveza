@@ -40,7 +40,9 @@ type Props = {
  * here; a move goes back to its card's back with Listo, sent with the rest.
  */
 export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
-  const [name, setName] = useState('')
+  const [name, setName] = useState(
+    picking.kind === 'add' ? (picking.name ?? '') : '',
+  )
   const [kind, setKind] = useState<AddKind>('bar')
   const [terrace, setTerrace] = useState(true)
   const [token, setToken] = useState<string | null>(null)

@@ -345,16 +345,67 @@
   background: var(--surface-hover);
 }
 
-/* "¿Falta un bar? Añádelo": a quiet link under the list (issue #201). */
-.add-venue {
+/* Adding a missing venue (issue #201): "+ Añadir" beside the list's count,
+   and an offer when a search finds no bar of that name. */
+.results-head {
   display: flex;
-  align-items: center;
-  min-height: var(--control);
-  margin-top: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+}
+
+.results-head .results-title {
+  margin: 0;
+}
+
+.add-venue {
+  flex: none;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--sun-dark);
+  font: inherit;
   font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-venue:hover {
   text-decoration: underline;
+}
+
+.empty--search {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  text-align: center;
+}
+
+.empty--search p {
+  margin: 0;
+}
+
+.add-venue-offer {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.add-venue-offer strong {
+  color: var(--sun-dark);
+}
+
+/* At night the dark amber is too dim on the dark sidebar. */
+.app.is-night .add-venue,
+.app.is-night .add-venue-offer strong {
+  color: var(--sun-soft);
 }

@@ -6,7 +6,13 @@ import {
   plazaAlta,
 } from '../test/fixtures.ts'
 import { fromMadridLocal } from '../time/madrid.ts'
-import { envelopeState, horizonBin, sunPosition, sunState } from './sunState.ts'
+import {
+  fillShortShade,
+  horizonBin,
+  sunPosition,
+  sunState,
+  type SunState,
+} from './sunState.ts'
 
 const madrid = (date: string, time: string) => {
   const [hours = 0, minutes = 0] = time.split(':').map(Number)
@@ -94,31 +100,30 @@ describe('sunState', () => {
   })
 })
 
-describe('envelopeState', () => {
-  const flat = (value: number) => new Array<number>(360).fill(value)
-  const at = (altitude: number) => ({ altitude, azimuth: 180 })
+describe('fillShortShade', () => {
+  /** "n" night, "s" sun, "." shade, one character per 5-minute step. */
+  const parse = (text: string): SunState[] =>
+    [...text].map((c) => (c === 's' ? 'sun' : c === 'n' ? 'night' : 'shade'))
+  const fill = (text: string) =>
+    fillShortShade(parse(text))
+      .map((s) => (s === 'sun' ? 's' : s === 'night' ? 'n' : '.'))
+      .join('')
 
-  it('is sun above the highest obstacle, shade at or below the lowest, partial between', () => {
-    const envelope = { low: flat(200), high: flat(400) }
-    expect(envelopeState(envelope, at(45))).toBe('sun')
-    expect(envelopeState(envelope, at(30))).toBe('partial')
-    expect(envelopeState(envelope, at(40))).toBe('partial')
-    expect(envelopeState(envelope, at(20))).toBe('shade')
-    expect(envelopeState(envelope, at(10))).toBe('shade')
+  it('turns shade under 20 minutes (up to 3 steps) between sun into sun', () => {
+    expect(fill('nn..ss.ss..ss...ss..nn')).toBe('nn..ssssssssssssss..nn')
   })
 
-  it('reads the bin of the sun azimuth', () => {
-    const envelope = {
-      low: horizonFromRuns([[170, 190, 300]]),
-      high: horizonFromRuns([[170, 190, 600]]),
-    }
-    expect(envelopeState(envelope, { altitude: 40, azimuth: 180 })).toBe(
-      'partial',
-    )
-    expect(envelopeState(envelope, { altitude: 40, azimuth: 90 })).toBe('sun')
+  it('keeps longer gaps, like a tower that hides the sun for 25 minutes', () => {
+    expect(fill('ss....ss')).toBe('ss....ss')
+    expect(fill('ss.....ss')).toBe('ss.....ss')
   })
 
-  it('is night with the sun down', () => {
-    expect(envelopeState({ low: flat(0), high: flat(0) }, at(-1))).toBe('night')
+  it('keeps shade before the first sun and after the last', () => {
+    expect(fill('n...ss.ss...n')).toBe('n...sssss...n')
+    expect(fill('...')).toBe('...')
+  })
+
+  it('keeps a gap with night in it', () => {
+    expect(fill('s.n.s')).toBe('s.n.s')
   })
 })

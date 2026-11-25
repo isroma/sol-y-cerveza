@@ -17,6 +17,11 @@ const valid = {
 }
 
 describe('parseSuggestion', () => {
+  it('accepts a tercio of a brand not listed, as "other"', () => {
+    const other = parseSuggestion({ ...valid, brand: 'other' })
+    expect(other.ok && other.value.brand).toBe('other')
+  })
+
   it('accepts a plausible caña or tercio', () => {
     expect(parseSuggestion(valid)).toEqual({
       ok: true,
