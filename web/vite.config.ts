@@ -1,13 +1,19 @@
 import react from '@vitejs/plugin-react'
-import type { Plugin } from 'vite'
+import type { HtmlTagDescriptor, Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 import { reviewServer } from './reviewServer.ts'
 import { serviceWorker } from './serviceWorker.ts'
+import { BASEMAP_STYLE_URL } from './src/config.ts'
 
 /**
  * The map is a lazy chunk (src/map/LazyMapView.tsx), so the browser would only
  * ask for it once the entry chunk has run. Hint it in index.html instead, so
  * MapLibre downloads in parallel with the app shell.
+ *
+ * The basemap style is preloaded too: MapView fetches it as it mounts, and
+ * nothing on the map can load before it. `crossorigin` (anonymous) and
+ * `as="fetch"` match MapView's plain `fetch(BASEMAP_STYLE_URL)` (mode cors,
+ * credentials same-origin), so that fetch reuses the preloaded response.
  */
 function preloadMapChunk(): Plugin {
   return {
@@ -24,6 +30,16 @@ function preloadMapChunk(): Plugin {
         if (chunk?.type !== 'chunk') return []
         const css = [...(chunk.viteMetadata?.importedCss ?? [])]
         return [
+          {
+            tag: 'link',
+            attrs: {
+              rel: 'preload',
+              as: 'fetch',
+              crossorigin: true,
+              href: BASEMAP_STYLE_URL,
+            },
+            injectTo: 'head',
+          },
           {
             tag: 'link',
             attrs: {
@@ -49,13 +65,49 @@ function preloadMapChunk(): Plugin {
   }
 }
 
+/**
+ * The prices API (VITE_PRICES_API) is first called when a venue card opens:
+ * open its connection early. Only when the build has one.
+ */
+function preconnectPricesApi(): Plugin {
+  let api: string | undefined
+  return {
+    name: 'preconnect-prices-api',
+    apply: 'build',
+    configResolved(config) {
+      api = config.env['VITE_PRICES_API'] || undefined
+    },
+    transformIndexHtml(): HtmlTagDescriptor[] {
+      if (!api) return []
+      return [
+        {
+          tag: 'link',
+          // Its fetches are CORS without credentials, hence `crossorigin`.
+          attrs: {
+            rel: 'preconnect',
+            crossorigin: true,
+            href: new URL(api).origin,
+          },
+          injectTo: 'head',
+        },
+      ]
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Relative asset paths work both on GitHub Pages (/sol-y-cerveza/) and inside Capacitor.
   base: './',
   // reviewServer: dev-only API for the admin page (admin.html, `npm run admin`).
   // serviceWorker: emits dist/sw.js, the offline cache (sw/sw.ts).
-  plugins: [react(), reviewServer(), preloadMapChunk(), serviceWorker()],
+  plugins: [
+    react(),
+    reviewServer(),
+    preloadMapChunk(),
+    preconnectPricesApi(),
+    serviceWorker(),
+  ],
   // MapLibre's worker is an ES module.
   worker: { format: 'es' },
   test: {

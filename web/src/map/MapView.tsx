@@ -2,6 +2,7 @@ import {
   AttributionControl,
   Map as MapLibreMap,
   Marker,
+  prewarm,
   setWorkerUrl,
   type GeoJSONSource,
 } from 'maplibre-gl'
@@ -32,6 +33,10 @@ import { ShadowCache } from './shadowLayer.ts'
 // MapLibre looks for its worker next to its own module, which bundling breaks.
 // Let Vite bundle the worker and tell MapLibre where it ended up.
 setWorkerUrl(workerUrl)
+// Start the worker now, so its download and compile overlap the basemap style
+// fetch instead of waiting for the Map to be constructed. The worker then
+// stays for the page's lifetime, which the app (one map) wants anyway.
+prewarm()
 
 const SHADOWS = 'building-shadows'
 const DOTS_SOURCE = 'venues-unconfirmed'
