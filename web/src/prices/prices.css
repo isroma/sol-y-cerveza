@@ -79,16 +79,19 @@
   cursor: pointer;
 }
 
-/* Phones: the name, the pill and the menu button share one line. */
+/* Phones: the pill sits midway between the name and the menu icon, which has
+   10 px of space inside its 44 px button. The header's spacing stays as it is
+   without the pill, so only the pill appears. */
 @media (max-width: 899px) {
-  .brand:has(.admin-pill) {
-    gap: var(--space-2);
-  }
-
   .admin-pill {
     height: 26px;
+    margin-inline: auto;
     padding: 0 8px;
     font-size: 12px;
+  }
+
+  .admin-pill + .menu-button {
+    margin-left: -10px;
   }
 }
 
@@ -161,8 +164,9 @@
 }
 
 .admin-panel-actions .admin-panel-main {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--sun-soft);
+  color: #1f2328;
+  font-weight: 700;
 }
 
 .admin-panel-actions button:disabled {

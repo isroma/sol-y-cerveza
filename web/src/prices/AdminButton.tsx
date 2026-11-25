@@ -146,7 +146,7 @@ export function AdminButton() {
                     className="admin-panel-main"
                     disabled={busy || !username.trim() || !password}
                   >
-                    {busy ? 'Entrando…' : 'Entrar'}
+                    {busy ? 'Iniciando sesión…' : 'Iniciar sesión'}
                   </button>
                 </div>
               </form>
