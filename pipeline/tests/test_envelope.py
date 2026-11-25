@@ -9,9 +9,8 @@ from solycerveza.envelope import (
     MAX_GROUND_HEIGHT_M,
     PACK_ALPHABET,
     Structures,
-    envelope,
     ground_points,
-    pack_high,
+    lowest,
     pack_low,
     sample_points,
     terrace_points,
@@ -60,21 +59,18 @@ def test_structures_contain_points_inside_closed_outlines_only() -> None:
     assert not structures.contains(0.5, 2.5)
 
 
-def test_envelope_is_the_per_bin_min_and_max() -> None:
-    low, high = envelope([[1, 5, 3], [4, 2, 3], [2, 2, 9]])
-    assert low == [1, 2, 3]
-    assert high == [4, 5, 9]
+def test_lowest_is_the_per_bin_min() -> None:
+    assert lowest([[1, 5, 3], [4, 2, 3], [2, 2, 9]]) == [1, 2, 3]
 
 
-def test_envelope_needs_a_horizon() -> None:
+def test_lowest_needs_a_horizon() -> None:
     with pytest.raises(ValueError, match="at least one"):
-        envelope([])
+        lowest([])
 
 
-def test_packing_rounds_low_down_and_high_up_to_whole_degrees() -> None:
+def test_packing_rounds_down_to_whole_degrees() -> None:
     tenths = [0, 1, 9, 10, 11, 899, 900]
     assert unpack(pack_low(tenths)) == [0, 0, 0, 1, 1, 89, 90]
-    assert unpack(pack_high(tenths)) == [0, 1, 1, 1, 2, 90, 90]
 
 
 def test_the_pack_alphabet_needs_no_json_escaping() -> None:

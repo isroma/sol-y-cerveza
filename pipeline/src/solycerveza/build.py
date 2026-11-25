@@ -4,8 +4,8 @@
 2. Surface and terrain rasters: run `python -m solycerveza.obstacles` once beforehand.
 3. One horizon profile per terrace (`solycerveza.horizon`), plus a leaf-off one
    (`horizon_winter`, ADR-0007) when `python -m solycerveza.leafoff` has written its surface model.
-4. A horizon envelope across each terrace (`horizon_low`/`horizon_high` and their leaf-off twins,
-   `solycerveza.envelope`): the lowest and highest obstacle over ground points round the pin.
+4. A horizon envelope across each terrace (`horizon_low` and its leaf-off twin,
+   `solycerveza.envelope`): the lowest obstacle over ground points round the pin.
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
 venues from Overpass instead of using the cache.
@@ -28,8 +28,7 @@ from pyproj import Transformer
 from solycerveza.envelope import (
     LatLonPair,
     Structures,
-    envelope,
-    pack_high,
+    lowest,
     pack_low,
     terrace_points,
 )
@@ -92,11 +91,11 @@ def add_horizons(
     `horizon`: null means "same as horizon", which keeps the file small.
 
     With `points_for`, which gives the ground points across the terrace (`solycerveza.envelope`),
-    also sets the envelope `horizon_low`/`horizon_high` over them (packed, see
-    `solycerveza.envelope`), and its leaf-off twin with
-    `winter_for`. Each is null where it adds nothing to what the app would use without it: the
-    summer envelope when every point sees `horizon`, the winter one when it equals the summer
-    envelope (or, without one, `horizon_winter` at every point).
+    also sets the envelope `horizon_low`, the lowest obstacle over them (packed, see
+    `solycerveza.envelope`), and its leaf-off twin `horizon_low_winter` with `winter_for`. Each
+    is null where it adds nothing to what the app would use without it: the summer one when it
+    equals `horizon`, the winter one when it equals the summer one (or, without one,
+    `horizon_winter`).
 
     Venues without a terrace are returned unchanged. Re-validates every record, so a malformed
     profile fails here rather than in the app.
@@ -116,18 +115,18 @@ def add_horizons(
         }
         points = [] if points_for is None else points_for(*pin)
         if points:
-            low, high = envelope([horizon if p == pin else horizon_for(*p) for p in points])
-            summer = (pack_low(low), pack_high(high))
-            if (low, high) != (horizon, horizon):
-                record["horizon_low"], record["horizon_high"] = summer
+            low = lowest([horizon if p == pin else horizon_for(*p) for p in points])
+            if low != horizon:
+                record["horizon_low"] = pack_low(low)
             if winter_for is not None and winter is not None:
-                low, high = envelope([winter if p == pin else winter_for(*p) for p in points])
-                leafoff = (pack_low(low), pack_high(high))
-                fallback = (
-                    summer if "horizon_low" in record else (pack_low(winter), pack_high(winter))
+                low_winter = lowest([winter if p == pin else winter_for(*p) for p in points])
+                same = (
+                    pack_low(low_winter) == record["horizon_low"]
+                    if "horizon_low" in record
+                    else low_winter == winter
                 )
-                if leafoff != fallback:
-                    record["horizon_low_winter"], record["horizon_high_winter"] = leafoff
+                if not same:
+                    record["horizon_low_winter"] = pack_low(low_winter)
         result.append(Terrace.model_validate(record))
     return result
 
@@ -259,7 +258,7 @@ def build(
 
     terraces = add_horizons(terraces, horizon_for, winter_for, points_for)
     logger.info(
-        "%d terraces get a sun envelope (partial sun), %d a leaf-off one",
+        "%d terraces get a sun envelope, %d a leaf-off one",
         sum(t.horizon_low is not None for t in terraces),
         sum(t.horizon_low_winter is not None for t in terraces),
     )

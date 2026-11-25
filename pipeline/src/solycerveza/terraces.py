@@ -40,7 +40,7 @@ from typing import Annotated, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from solycerveza.csvfile import read_rows
-from solycerveza.envelope import PACKED_PATTERN, unpack
+from solycerveza.envelope import PACKED_PATTERN
 from solycerveza.geo import distance_m
 from solycerveza.overture import name_similarity
 from solycerveza.prices import Price
@@ -129,14 +129,12 @@ class Terrace(BaseModel):
     horizon: Horizon | None = None
     # Leaf-off profile (ADR-0007); None when it equals `horizon` or was not computed.
     horizon_winter: Horizon | None = None
-    # Envelope across the terrace (solycerveza.envelope): lowest and highest obstacle per bin over
-    # the ground points round the pin, packed in whole degrees. None when they all equal `horizon`
-    # or were not computed. Left out of the file when None, so venues without one cost nothing.
+    # Envelope across the terrace (solycerveza.envelope): the lowest obstacle per bin over the
+    # ground points round the pin, packed in whole degrees. None when it equals `horizon` or was
+    # not computed. Left out of the file when None, so venues without one cost nothing.
     horizon_low: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
-    horizon_high: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
-    # The same on the leaf-off model; None when it equals the summer envelope.
+    # The same on the leaf-off model; None when it equals the summer one.
     horizon_low_winter: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
-    horizon_high_winter: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
     prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -145,17 +143,10 @@ class Terrace(BaseModel):
             raise ValueError("verified and horizon must be null when terrace is null")
         if self.horizon is None and self.horizon_winter is not None:
             raise ValueError("horizon_winter needs a horizon")
-        for low, high in (
-            (self.horizon_low, self.horizon_high),
-            (self.horizon_low_winter, self.horizon_high_winter),
+        if self.horizon is None and (
+            self.horizon_low is not None or self.horizon_low_winter is not None
         ):
-            if (low is None) != (high is None):
-                raise ValueError("an envelope needs both its low and its high horizon")
-            if low is not None and high is not None:
-                if self.horizon is None:
-                    raise ValueError("an envelope needs a horizon")
-                if any(lo > hi for lo, hi in zip(unpack(low), unpack(high), strict=True)):
-                    raise ValueError("an envelope's low horizon must not exceed its high one")
+            raise ValueError("an envelope needs a horizon")
         return self
 
 
