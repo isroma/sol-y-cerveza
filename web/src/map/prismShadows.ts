@@ -203,7 +203,10 @@ type GlState = {
 }
 
 /** Asks a one-off worker for the arrays (prismWorker.ts). */
-function requestArrays(frame: PrismFrame): Promise<PrismArrays> {
+function requestArrays(
+  frame: PrismFrame,
+  leafOff: boolean,
+): Promise<PrismArrays> {
   const worker = new Worker(new URL('./prismWorker.ts', import.meta.url), {
     type: 'module',
   })
@@ -212,6 +215,7 @@ function requestArrays(frame: PrismFrame): Promise<PrismArrays> {
       (url) => new URL(url, location.href).href,
     ),
     ...frame,
+    leafOff,
   }
   return new Promise<PrismArrays>((resolve, reject) => {
     worker.onmessage = ({ data }: MessageEvent<PrismReply>) => {
@@ -236,9 +240,20 @@ export class PrismShadowLayer implements CustomLayerInterface {
   private gl: WebGL2RenderingContext | null = null
   private state: GlState | null = null
   private sun: SunPosition = { altitude: -1, azimuth: 0 }
+  /** From 1 Dec to 15 Mar deciduous crowns cast no shadow, as in the list (ADR-0007). */
+  private leafOff = false
+  /** Counts requests for the arrays, so a late answer to an older one is dropped. */
+  private request = 0
 
   constructor(id: string) {
     this.id = id
+  }
+
+  /** Casts deciduous crowns' shadows (false) or not (true); rebuilds the arrays on a change. */
+  setLeafOff(leafOff: boolean) {
+    if (leafOff === this.leafOff) return
+    this.leafOff = leafOff
+    if (this.gl) this.load(this.gl)
   }
 
   setSun(sun: SunPosition) {
@@ -256,12 +271,21 @@ export class PrismShadowLayer implements CustomLayerInterface {
   onAdd(map: MapLibreMap, gl: WebGL2RenderingContext) {
     this.map = map
     this.gl = gl
-    // Fetched and built again after a lost context: the arrays aren't kept
-    // on the main thread once uploaded (about 10 MB), and the files come
-    // from the HTTP cache by then.
-    requestArrays(this.frame).then(
+    this.load(gl)
+  }
+
+  /**
+   * Fetches and builds the arrays, then swaps them in. Also after a lost
+   * context: the arrays aren't kept on the main thread once uploaded (about
+   * 10 MB), and the files come from the HTTP cache by then.
+   */
+  private load(gl: WebGL2RenderingContext) {
+    const request = ++this.request
+    requestArrays(this.frame, this.leafOff).then(
       (arrays) => {
-        if (this.gl !== gl || gl.isContextLost()) return
+        if (request !== this.request || this.gl !== gl || gl.isContextLost())
+          return
+        this.release(gl)
         this.state = this.upload(gl, arrays)
         this.map?.triggerRepaint()
       },
@@ -271,7 +295,7 @@ export class PrismShadowLayer implements CustomLayerInterface {
     )
   }
 
-  onRemove(_map: MapLibreMap, gl: WebGL2RenderingContext) {
+  private release(gl: WebGL2RenderingContext) {
     const state = this.state
     if (state && !gl.isContextLost()) {
       gl.deleteProgram(state.edgeProgram.program)
@@ -281,6 +305,10 @@ export class PrismShadowLayer implements CustomLayerInterface {
       gl.deleteVertexArray(state.capVao)
     }
     this.state = null
+  }
+
+  onRemove(_map: MapLibreMap, gl: WebGL2RenderingContext) {
+    this.release(gl)
     this.map = null
     this.gl = null
   }

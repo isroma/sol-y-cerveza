@@ -39,6 +39,15 @@ describe('decodeExtrusions', () => {
     ])
   })
 
+  it('marks the crowns of groups flagged deciduous', () => {
+    const { features } = decodeExtrusions({ ...FILE, d: [0, 1] })
+    expect(features.map((f) => f.properties)).toEqual([
+      { b: 0, h: 6 },
+      { b: 0, h: 6 },
+      { b: 4.5, h: 11, d: 1 },
+    ])
+  })
+
   it('rejects anything else, such as plain GeoJSON', () => {
     expect(() =>
       decodeExtrusions({ type: 'FeatureCollection', features: [] }),

@@ -96,6 +96,18 @@ describe('prismArrays', () => {
     ])
   })
 
+  it('leaves out deciduous crowns in the leaf-off period only', () => {
+    const bare = {
+      ...square(0, 0, 6, 3, 9),
+      properties: { b: 3, h: 9, d: 1 as const },
+    }
+    const files = [collection(square(20, 0, 10, 0, 12), bare)]
+    expect(prismArrays(files, frame).edges.length).toBe(8 * EDGE_FLOATS)
+    const winter = prismArrays(files, frame, true)
+    expect(winter.edges.length).toBe(4 * EDGE_FLOATS)
+    expect(winter.caps.length).toBe(0)
+  })
+
   it('skips prisms with no height', () => {
     const arrays = prismArrays([collection(square(0, 0, 10, 4, 4))], frame)
     expect(arrays.edges.length).toBe(0)
