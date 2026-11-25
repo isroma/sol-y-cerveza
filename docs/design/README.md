@@ -80,14 +80,13 @@ The line icons for `sun` and `soon` (legend, list, filters, card) fill their dis
 | State     | Copy                  | Solid     | Badge gradient                      | Size                                       |
 | --------- | --------------------- | --------- | ----------------------------------- | ------------------------------------------ |
 | `sun`     | Con sol ahora         | `#F59E0B` | `#FFC53D → #F59E0B`                 | 100 % (highlighted when zoomed out: 112 %) |
-| `partial` | Sol parcial           | `#F59E0B` | `#FFC53D` / `#8B919C`, split        | 100 %                                      |
 | `soon`    | Sol pronto            | `#F7C948` | `#FFF1B8 → #F7C948`, icon `#A16207` | 100 %                                      |
 | `nosun`   | Sin sol               | `#9CA3AF` | `#C6CBD3 → #8B919C`                 | 78 % (56 % zoomed out)                     |
 | `unknown` | Terraza sin confirmar | `#B59A80` | `#DCC8B4 → #A88D73`                 | 78 % (56 % zoomed out)                     |
 
 Rules: sunny badges always sit above grey ones; only sunny terraces are ever enlarged; taupe is reserved for "unconfirmed" so it never reads as "no sun".
 
-**Sol parcial** (`docs/data-contract.md`, "Horizon envelope"): part of the terrace is in sun, part in shade; terraces without an envelope keep the single-point answer. It needs no new colour: its badge is the sun and no-sun colours (`#FFC53D`, `#8B919C`) split in half along the 160° gradient line, its icon (`SunPartialIcon`) a half-filled sun with the right-hand rays faded, in `sun`. It sits with the sunny badges (above the grey ones, full size, never enlarged), sorts after full sun and before sun soon, counts in "Con sol ahora" (the filter and the list's count), and shows in the legend between Con sol ahora and Sol pronto. In the card's day strip a partial stretch is diagonal stripes of `sun-soft` and `toggle-off`. Its times count any sun: "Sol hasta las …" is when the last of the terrace loses the sun, and "Sol en …" when the first of it gets sun; the minutes of sun count partial minutes too. Card: "Sol parcial" over "Parte de la terraza al sol, hasta las …"; list: "Sol parcial hasta las … (…)".
+**A terrace partly in sun is in sun** (`docs/data-contract.md`, "Horizon envelope"): where the data samples several points across a terrace, it counts as sun as soon as any of them gets sun, and looks exactly like sun everywhere (badge, list, card, day strip, sort, "Con sol ahora"). "Sol hasta las …" is when the last of the terrace loses the sun, "Sol en …" when the first of it gets sun. There is no separate partial state. Terraces without an envelope keep the single-point answer.
 
 ### Neutrals (day)
 

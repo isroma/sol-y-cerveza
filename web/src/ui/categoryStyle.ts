@@ -4,7 +4,6 @@ import { formatClock, formatDuration } from '../time/madrid.ts'
 /** Shared by the map pins, the list, the card and the legend. */
 export const CATEGORY_COLORS: Record<SunCategory, string> = {
   sun: '#F59E0B',
-  partial: '#F59E0B',
   soon: '#F7C948',
   nosun: '#9CA3AF',
   unknown: '#B59A80',
@@ -12,7 +11,6 @@ export const CATEGORY_COLORS: Record<SunCategory, string> = {
 
 export const CATEGORY_LABELS: Record<SunCategory, string> = {
   sun: 'Con sol ahora',
-  partial: 'Sol parcial',
   soon: 'Sol pronto',
   nosun: 'Sin sol',
   unknown: 'Terraza sin confirmar',
@@ -36,9 +34,6 @@ export function sunSummary(status: VenueStatus, minutes: number): string {
     return status.hasTerrace
       ? 'Aún no sabemos qué sombra le da'
       : 'No sabemos si tiene terraza'
-  }
-  if (status.category === 'partial' && status.sunUntil !== null) {
-    return `Sol parcial hasta las ${formatClock(status.sunUntil % (24 * 60))} (${formatDuration(status.sunUntil - minutes)})`
   }
   if (status.sunUntil !== null) {
     return `Sol hasta las ${formatClock(status.sunUntil % (24 * 60))} (${formatDuration(status.sunUntil - minutes)})`
@@ -65,11 +60,6 @@ export function sunBox(
   status: VenueStatus,
   minutes: number,
 ): { title: string; detail: string | null } {
-  if (status.category === 'partial' && status.sunUntil !== null)
-    return {
-      title: 'Sol parcial',
-      detail: `Parte de la terraza al sol, hasta las ${formatClock(status.sunUntil % (24 * 60))}`,
-    }
   if (status.sunUntil !== null)
     return {
       title: `${formatDuration(status.sunUntil - minutes)} de sol`,

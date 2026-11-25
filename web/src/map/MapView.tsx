@@ -414,9 +414,7 @@ export function MapView({
           ? '4'
           : top || priced.has(id)
             ? '3'
-            : status.category === 'sun' ||
-                status.category === 'partial' ||
-                status.category === 'soon'
+            : status.category === 'sun' || status.category === 'soon'
               ? '2'
               : '1'
     }

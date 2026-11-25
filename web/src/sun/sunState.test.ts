@@ -6,7 +6,7 @@ import {
   plazaAlta,
 } from '../test/fixtures.ts'
 import { fromMadridLocal } from '../time/madrid.ts'
-import { envelopeState, horizonBin, sunPosition, sunState } from './sunState.ts'
+import { horizonBin, sunPosition, sunState } from './sunState.ts'
 
 const madrid = (date: string, time: string) => {
   const [hours = 0, minutes = 0] = time.split(':').map(Number)
@@ -91,34 +91,5 @@ describe('sunState', () => {
   ])('on %s at %s, %s is %s', (date, time, terrace, expected) => {
     const position = sunPosition(madrid(date, time), terrace.terrace)
     expect(sunState(terrace.horizon, position)).toBe(expected)
-  })
-})
-
-describe('envelopeState', () => {
-  const flat = (value: number) => new Array<number>(360).fill(value)
-  const at = (altitude: number) => ({ altitude, azimuth: 180 })
-
-  it('is sun above the highest obstacle, shade at or below the lowest, partial between', () => {
-    const envelope = { low: flat(200), high: flat(400) }
-    expect(envelopeState(envelope, at(45))).toBe('sun')
-    expect(envelopeState(envelope, at(30))).toBe('partial')
-    expect(envelopeState(envelope, at(40))).toBe('partial')
-    expect(envelopeState(envelope, at(20))).toBe('shade')
-    expect(envelopeState(envelope, at(10))).toBe('shade')
-  })
-
-  it('reads the bin of the sun azimuth', () => {
-    const envelope = {
-      low: horizonFromRuns([[170, 190, 300]]),
-      high: horizonFromRuns([[170, 190, 600]]),
-    }
-    expect(envelopeState(envelope, { altitude: 40, azimuth: 180 })).toBe(
-      'partial',
-    )
-    expect(envelopeState(envelope, { altitude: 40, azimuth: 90 })).toBe('sun')
-  })
-
-  it('is night with the sun down', () => {
-    expect(envelopeState({ low: flat(0), high: flat(0) }, at(-1))).toBe('night')
   })
 })
