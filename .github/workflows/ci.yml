@@ -161,9 +161,29 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - if: steps.browsers.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-      - if: steps.browsers.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: npx playwright install chromium
+      # The runner image already has every library Chromium links against, so
+      # `install-deps` only added nine font packages from the Ubuntu mirror (CJK,
+      # Thai, unifont, X11 fonts; none is a fallback for the UI's Latin text, and
+      # no test compares pixels): about 11 s a job, and over 2 min when the
+      # mirror stalls. It runs only if a library is missing or no binary is found.
+      # Playwright skips its own launch check once DEPENDENCIES_VALIDATED is in
+      # the cached browser folder, so this check stands in for it; a missing
+      # library would fail the launch, never pass a test.
+      - name: Install Chromium's system libraries if any is missing
+        run: |
+          bins=$(find ~/.cache/ms-playwright -path '*chromium*' -type f \
+            \( -name chrome -o -name chrome-headless-shell -o -name '*.so' -o -name '*.so.*' \))
+          missing=$(printf '%s\n' "$bins" | xargs -d '\n' ldd 2>/dev/null | grep 'not found' || true)
+          if [ -z "$bins" ]; then
+            echo "No Chromium binary found: installing its system libraries."
+            npx playwright install-deps chromium
+          elif [ -n "$missing" ]; then
+            printf 'Missing libraries:\n%s\n' "$missing"
+            npx playwright install-deps chromium
+          else
+            echo "Every library Chromium needs is installed."
+          fi
       - run: npm run e2e
         env:
           E2E_PROJECTS: ${{ matrix.projects }}
