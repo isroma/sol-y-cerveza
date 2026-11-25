@@ -176,9 +176,10 @@
 
 /* Never taller than the free map area (fitCard sets --card-max): the body
    scrolls inside the card instead of running off the screen. The tab above
-   it takes about 64px. */
+   it takes 42px: 3px border + 8px padding + the 52px badge, less the 18px
+   it hangs into the card, + 1px, less the 4px overlap with the body. */
 .pin-card-body {
-  max-height: calc(var(--card-max, 100vh) - 64px);
+  max-height: calc(var(--card-max, 100vh) - 42px);
   overflow-y: auto;
   overscroll-behavior: contain;
 }

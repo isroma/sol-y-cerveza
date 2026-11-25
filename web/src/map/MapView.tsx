@@ -485,17 +485,25 @@ export function MapView({
     const wrap = containerRef.current?.parentElement
     if (!ready || !map || !wrap || !selectedId) return
     let frame = 0
-    const observer = new ResizeObserver(() => {
+    const refit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         if (!map.isMoving()) fitCard(map, cardEl, wrap)
       })
-    })
+    }
+    const observer = new ResizeObserver(refit)
+    // A capped card keeps its size when its content changes (turning to the
+    // back): refit then too, so it gets the room the new content needs.
+    const content = new MutationObserver(refit)
     const card = cardEl.querySelector('.pin-card')
-    if (card) observer.observe(card)
+    if (card) {
+      observer.observe(card)
+      content.observe(card, { childList: true, subtree: true })
+    }
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      content.disconnect()
     }
   }, [ready, selectedId, cardEl])
 

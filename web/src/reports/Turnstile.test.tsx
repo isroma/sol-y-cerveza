@@ -48,6 +48,23 @@ describe('Turnstile', () => {
     expect(onToken).toHaveBeenCalledWith('token')
   })
 
+  it('leaves the spinner to the caller when told about the check', async () => {
+    const onChecking = vi.fn()
+    render(
+      <Turnstile
+        siteKey="key"
+        action="change"
+        onToken={vi.fn()}
+        onChecking={onChecking}
+      />,
+    )
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(onChecking).toHaveBeenLastCalledWith(true)
+    const check = await rendered()
+    act(() => check['before-interactive-callback']())
+    expect(onChecking).toHaveBeenLastCalledWith(false)
+  })
+
   it('hides it when Cloudflare shows its own box', async () => {
     render(<Turnstile siteKey="key" action="change" onToken={vi.fn()} />)
     const check = await rendered()
