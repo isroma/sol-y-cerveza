@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in Sol y Cerveza. [CLAUDE.md](CLAUDE.md) is the full guide (architecture, workflow, conventions); this page is the short version.
+Thanks for your interest in Sol y Cerveza. [CLAUDE.md](CLAUDE.md) is the full guide (architecture, workflow, conventions); this page is the short version. How-tos: [the admin](docs/admin.md), [the data pipeline](docs/pipeline.md) and [operations](docs/operations.md).
 
 **A venue or terrace is wrong or missing?** You don't need GitHub: in [the app](https://isroma.github.io/sol-y-cerveza/), open the venue and use **Sugerir un cambio**, or add a missing bar with **¿Falta un bar? Añádelo** in the list. Reports of moved, closed or missing venues change the map only after the owner reviews them.
 
