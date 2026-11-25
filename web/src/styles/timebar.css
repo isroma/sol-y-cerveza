@@ -10,6 +10,8 @@
 
 .time-markers {
   position: absolute;
+  /* Over the knob and the hour marks. */
+  z-index: 2;
   /* Lined up with the 8px track inside the slider. */
   top: var(--slider-top);
   right: 0;
@@ -53,6 +55,8 @@
    come back. */
 .time-now-layer {
   position: absolute;
+  /* Over the knob and the hour marks. */
+  z-index: 2;
   top: var(--slider-top);
   right: 0;
   left: 0;
