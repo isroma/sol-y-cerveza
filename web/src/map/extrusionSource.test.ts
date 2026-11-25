@@ -4,14 +4,22 @@ const maplibre = vi.hoisted(() => ({
   addProtocol: vi.fn(),
   importScriptInWorkers: vi.fn<(url: string) => Promise<void>>(),
   GeoJSONSource: class {
-    setData = vi.fn()
+    listeners = new Set<() => void>()
+    /** What setData does: load fine, or fire an error first. */
+    fails = false
+    setData = vi.fn(async () => {
+      if (this.fails) for (const listener of this.listeners) listener()
+    })
+    on = (_type: string, listener: () => void) => this.listeners.add(listener)
+    off = (_type: string, listener: () => void) =>
+      this.listeners.delete(listener)
   },
 }))
 vi.mock('maplibre-gl', () => maplibre)
 vi.mock('./extrusionWorker.ts?worker&url', () => ({
   default: '/assets/extrusionWorker.js',
 }))
-vi.stubGlobal('location', { href: 'https://example.org/app/?shade=gpu' })
+vi.stubGlobal('location', { href: 'https://example.org/app/' })
 
 const { addExtrusionSource, extrusionData } =
   await import('./extrusionSource.ts')
@@ -23,6 +31,7 @@ function fakeMap() {
   const getSource = vi.fn()
   getSource.mockReturnValue(source)
   return {
+    source,
     setData: source.setData,
     map: { addSource: vi.fn(), getSource },
   }
@@ -56,10 +65,7 @@ describe('addExtrusionSource', () => {
     )
     await vi.waitFor(() =>
       expect(setData).toHaveBeenCalledWith(
-        extrusionData(
-          './data/trees.json',
-          'https://example.org/app/?shade=gpu',
-        ),
+        extrusionData('./data/trees.json', 'https://example.org/app/'),
       ),
     )
   })
@@ -70,12 +76,26 @@ describe('addExtrusionSource', () => {
     addExtrusionSource(map, 'crowns', './data/trees.json')
     await vi.waitFor(() => expect(setData).toHaveBeenCalledOnce())
   })
+
+  it('resolves to whether the file loaded', async () => {
+    maplibre.importScriptInWorkers.mockResolvedValue()
+    const ok = fakeMap()
+    await expect(
+      addExtrusionSource(ok.map, 'crowns', './data/trees.json'),
+    ).resolves.toBe(true)
+    const missing = fakeMap()
+    missing.source.fails = true
+    await expect(
+      addExtrusionSource(missing.map, 'crowns', './data/trees.json'),
+    ).resolves.toBe(false)
+    expect(missing.source.listeners.size).toBe(0)
+  })
 })
 
 describe('extrusionData', () => {
   it('is the data file, absolute and encoded, under the extrusions protocol', () => {
-    expect(
-      extrusionData('./data/trees.json', 'https://example.org/app/?shade=gpu'),
-    ).toBe('extrusions://https%3A%2F%2Fexample.org%2Fapp%2Fdata%2Ftrees.json')
+    expect(extrusionData('./data/trees.json', 'https://example.org/app/')).toBe(
+      'extrusions://https%3A%2F%2Fexample.org%2Fapp%2Fdata%2Ftrees.json',
+    )
   })
 })

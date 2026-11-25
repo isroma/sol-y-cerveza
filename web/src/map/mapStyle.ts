@@ -6,7 +6,7 @@ import type {
 } from 'maplibre-gl'
 import * as z from 'zod/mini'
 import type { SunPosition } from '../sun/sunState.ts'
-import { BUILDING_HEIGHT_SCALE, EXTRUSION_OPACITY } from './camera.ts'
+import { EXTRUSION_OPACITY } from './camera.ts'
 
 /**
  * The minimal shape of a MapLibre style, checked before the basemap's JSON
@@ -70,19 +70,12 @@ const PAINT: Record<string, Record<string, unknown>> = {
   waterway_other: { 'line-color': '#9ACBEF' },
   building: { 'fill-color': '#F0E4D3', 'fill-outline-color': '#E5D5BF' },
   'building-3d': {
-    // Whitewashed, warm stucco walls; the light shades the sides.
+    // Whitewashed, warm stucco walls; the light shades the sides. Only until
+    // the LiDAR buildings load (lidarBuildings.ts), or offline without them.
     'fill-extrusion-color': WALL_COLOR,
     'fill-extrusion-opacity': EXTRUSION_OPACITY,
-    'fill-extrusion-height': [
-      '*',
-      BUILDING_HEIGHT_SCALE,
-      ['get', 'render_height'],
-    ],
-    'fill-extrusion-base': [
-      '*',
-      BUILDING_HEIGHT_SCALE,
-      ['coalesce', ['get', 'render_min_height'], 0],
-    ],
+    'fill-extrusion-height': ['get', 'render_height'],
+    'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
     'fill-extrusion-vertical-gradient': true,
   },
   poi_r1: { 'text-color': '#6B5E4B', 'text-halo-color': '#FFFFFF' },
@@ -137,7 +130,7 @@ export function sunlitStyle(base: StyleSpecification): StyleSpecification {
 
 /** Roof caps a touch lighter than the walls, so roofs read clearly from above. */
 export const ROOF_COLOR = '#FCF8F1'
-/** Thickness of a roof cap, in metres (before BUILDING_HEIGHT_SCALE). */
+/** Thickness of a roof cap, in metres. */
 export const ROOF_M = 0.6
 
 /**
@@ -149,11 +142,7 @@ function withRoofs(layers: LayerSpecification[]): LayerSpecification[] {
   return layers.flatMap((layer) => {
     if (layer.id !== 'building-3d' || layer.type !== 'fill-extrusion')
       return [layer]
-    const top: ExpressionSpecification = [
-      '*',
-      BUILDING_HEIGHT_SCALE,
-      ['get', 'render_height'],
-    ]
+    const top: ExpressionSpecification = ['get', 'render_height']
     const roof: LayerSpecification = {
       ...layer,
       id: 'building-roof',
@@ -161,7 +150,7 @@ function withRoofs(layers: LayerSpecification[]): LayerSpecification[] {
         'fill-extrusion-color': ROOF_COLOR,
         'fill-extrusion-opacity': EXTRUSION_OPACITY,
         'fill-extrusion-base': top,
-        'fill-extrusion-height': ['+', top, ROOF_M * BUILDING_HEIGHT_SCALE],
+        'fill-extrusion-height': ['+', top, ROOF_M],
         'fill-extrusion-vertical-gradient': false,
       },
     }
@@ -176,7 +165,7 @@ const LIGHT_POLAR = 35
  * Map light for the 3D buildings. It comes from the sun's real azimuth, so the
  * sunlit facades turn with the time, but at a fixed, flattering elevation:
  * MapLibre darkens roofs as the light drops, and the real elevation is shown
- * by the cast shadows instead (see shadows.ts).
+ * by the cast shadows instead (see prismShadows.ts).
  */
 export function sunLight(sun: SunPosition): LightSpecification {
   if (sun.altitude <= 0) {

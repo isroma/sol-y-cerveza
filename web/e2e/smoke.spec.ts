@@ -1,6 +1,7 @@
 import { expect, test as base, type Page } from '@playwright/test'
 import {
   basemapStyle,
+  lidarFile,
   SUNNY_COUNT,
   SUNNY_INSTANT,
   TERRACE_COUNT,
@@ -14,6 +15,7 @@ type MapHandle = {
   getBearing(): number
   jumpTo(options: { bearing?: number; zoom?: number }): void
   getLayer(id: string): { type: string } | undefined
+  getLayoutProperty(layer: string, name: string): unknown
   isMoving(): boolean
   isStyleLoaded(): boolean | void
   getLight(): { intensity?: number }
@@ -53,6 +55,8 @@ const test = base.extend<{ errors: string[] }>({
           })
         if (url.pathname.endsWith('/data/terraces.json'))
           return route.fulfill({ json: terracesFile })
+        const lidar = lidarFile(url.pathname)
+        if (lidar) return route.fulfill({ json: lidar })
         if (LOCAL_HOSTS.has(url.hostname)) return route.continue()
         errors.push(`unexpected request: ${url.href}`)
         return route.abort('blockedbyclient')
@@ -115,15 +119,50 @@ test('loads the map with pins, legend and attribution slot', async ({
   ).toBeVisible()
   // 13:00 in June: the open terraces are sunny pins.
   await expect(page.locator('.pin--sun')).toHaveCount(SUNNY_COUNT)
-  // Ground shadows: a paper-thin extrusion layer under the 3D buildings.
+  // Ground shadows cast on the GPU, the LiDAR buildings and the tree crowns.
   const layers = await page.evaluate(() => ({
     shadows: window.__map?.getLayer('building-shadows')?.type,
-    buildings: window.__map?.getLayer('building-3d')?.type,
+    buildings: window.__map?.getLayer('lidar-buildings')?.type,
+    trees: window.__map?.getLayer('tree-crowns')?.type,
   }))
   expect(layers).toEqual({
-    shadows: 'fill-extrusion',
+    shadows: 'custom',
     buildings: 'fill-extrusion',
+    trees: 'fill-extrusion',
   })
+  // Once ours load, the basemap's own 3D buildings are hidden.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.__map?.getLayoutProperty('building-3d', 'visibility'),
+      ),
+    )
+    .toBe('none')
+})
+
+test('without the LiDAR files the basemap buildings stay', async ({
+  page,
+  errors,
+}) => {
+  // Offline with nothing cached, or a 404: buildings, no shadows.
+  await page.route(/\/data\/(buildings|trees)\.json$/, (route) =>
+    route.fulfill({ status: 404, body: 'Not found' }),
+  )
+  await openApp(page)
+  await page.waitForFunction(() => window.__map?.isMoving() === false)
+  await page.waitForTimeout(1000)
+  expect(
+    await page.evaluate(() =>
+      window.__map?.getLayoutProperty('building-3d', 'visibility'),
+    ),
+  ).not.toBe('none')
+  await expect(page.locator('.pin--sun')).toHaveCount(SUNNY_COUNT)
+  // Only the browser's own note of the 404s.
+  errors.splice(
+    0,
+    errors.length,
+    ...errors.filter((e) => !/Failed to load resource.*404/.test(e)),
+  )
 })
 
 test('no service worker in dev', async ({ page }) => {
@@ -175,15 +214,18 @@ test('picking a venue from the list opens its card', async ({ page }) => {
   // The map flies in close enough for the full card.
   expect(await settledZoom(page)).toBeGreaterThanOrEqual(16.5)
   await expect(page.locator('.map-wrap')).not.toHaveClass(/is-card-folded/)
-  // Up close at midday, the buildings cast ground shadows.
-  await expect
-    .poll(() =>
-      page.evaluate(async () => {
-        const source = window.__map?.getSource('building-shadows')
-        return (await source?.getData())?.features?.length ?? 0
-      }),
-    )
-    .toBeGreaterThan(0)
+  // Up close, the LiDAR buildings and crowns next to it.
+  for (const source of ['lidar-buildings', 'tree-crowns'])
+    await expect
+      .poll(() =>
+        page.evaluate(
+          async (id) =>
+            (await window.__map?.getSource(id)?.getData())?.features?.length ??
+            0,
+          source,
+        ),
+      )
+      .toBe(2)
 })
 
 test('the card folds into its badge when zoomed out', async ({ page }) => {
@@ -265,43 +307,49 @@ async function loseAndRestoreContext(page: Page) {
   })
 }
 
-for (const gpu of [false, true])
-  test(`the map comes back whole after a lost WebGL context${gpu ? ' (?shade=gpu)' : ''}`, async ({
-    page,
-  }) => {
-    if (gpu) {
-      // No LiDAR files in the tests: empty ones.
-      await page.route(/\/data\/(buildings|trees)\.json$/, (route) =>
-        route.fulfill({ json: { v: 1, g: [] } }),
-      )
-    }
-    await openApp(page, gpu ? './?shade=gpu' : './')
-    const before = await page.evaluate(() => window.__map?.getLight())
-    expect(before?.intensity).toBeGreaterThan(0)
-    const shadows = gpu ? 'custom' : 'fill-extrusion'
-    await expect
-      .poll(() =>
-        page.evaluate(() => window.__map?.getLayer('building-shadows')?.type),
-      )
-      .toBe(shadows)
+test('the map comes back whole after a lost WebGL context', async ({
+  page,
+}) => {
+  await openApp(page)
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.__map?.getLayoutProperty('building-3d', 'visibility'),
+      ),
+    )
+    .toBe('none')
+  const before = await page.evaluate(() => window.__map?.getLight())
+  expect(before?.intensity).toBeGreaterThan(0)
+  const shadows = 'custom'
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__map?.getLayer('building-shadows')?.type),
+    )
+    .toBe(shadows)
 
-    await loseAndRestoreContext(page)
+  await loseAndRestoreContext(page)
 
-    // The sun's light (else the buildings come back washed out), the shadows
-    // (MapLibre drops custom layers) and the grey dots.
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const map = window.__map
-          // No style at all until the context is back.
-          if (!map?.isStyleLoaded()) return null
-          return {
-            light: map.getLight(),
-            shadows: map.getLayer('building-shadows')?.type,
-            dots: map.getLayer('venues-unconfirmed')?.type,
-          }
-        }),
-      )
-      .toEqual({ light: before, shadows, dots: 'circle' })
-    await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT)
-  })
+  // The sun's light (else the buildings come back washed out), the shadows
+  // (MapLibre drops custom layers) and the grey dots.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const map = window.__map
+        // No style at all until the context is back.
+        if (!map?.isStyleLoaded()) return null
+        return {
+          light: map.getLight(),
+          shadows: map.getLayer('building-shadows')?.type,
+          dots: map.getLayer('venues-unconfirmed')?.type,
+          basemapBuildings: map.getLayoutProperty('building-3d', 'visibility'),
+        }
+      }),
+    )
+    .toEqual({
+      light: before,
+      shadows,
+      dots: 'circle',
+      basemapBuildings: 'none',
+    })
+  await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT)
+})

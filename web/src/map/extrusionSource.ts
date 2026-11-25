@@ -22,9 +22,14 @@ export function extrusionData(url: string, page: string): string {
  * source is there at once, empty, so its layers can be added (and the night
  * paint covers them); the data follows once MapLibre's workers have the
  * decoder (extrusionWorker.ts). The main thread decodes too, should a worker
- * not have it.
+ * not have it. Resolves to whether the file loaded: false when it failed
+ * (offline with nothing cached, a 404), and the source stays empty.
  */
-export function addExtrusionSource(map: ExtrusionMap, id: string, url: string) {
+export function addExtrusionSource(
+  map: ExtrusionMap,
+  id: string,
+  url: string,
+): Promise<boolean> {
   map.addSource(id, {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
@@ -33,15 +38,23 @@ export function addExtrusionSource(map: ExtrusionMap, id: string, url: string) {
     maxzoom: EXTRUSION_MAX_ZOOM,
   })
   addProtocol(EXTRUSIONS_PROTOCOL, loadExtrusions)
-  const load = () => {
+  const load = async () => {
     const source = map.getSource(id)
-    if (source instanceof GeoJSONSource)
-      source.setData(extrusionData(url, location.href))
+    if (!(source instanceof GeoJSONSource)) return false
+    // setData resolves either way; a failed load fires an error on the
+    // source (and, with a listener here, not on the console).
+    let failed = false
+    const onError = () => {
+      failed = true
+    }
+    source.on('error', onError)
+    await source.setData(extrusionData(url, location.href))
+    source.off('error', onError)
+    return !failed
   }
   // MapLibre import()s a URL ending in .mjs as it is; any other it fetches and
   // runs from a blob: URL, where the module's own imports (in dev) can't resolve.
-  importScriptInWorkers(`${new URL(workerUrl, location.href).href}#.mjs`).then(
-    load,
-    load,
-  )
+  return importScriptInWorkers(
+    `${new URL(workerUrl, location.href).href}#.mjs`,
+  ).then(load, load)
 }

@@ -7,7 +7,8 @@
 //
 // - assets/*-<hash>.* : precached per build, cache-first (they never change).
 //   Chunks only owner tools import (exifr) are cached on first use instead.
-// - the page and data/terraces.json (and other unhashed files): network-first
+// - the page, data/terraces.json, data/buildings.json and data/trees.json
+//   (and other unhashed files): network-first
 //   with a short timeout; the cache only when offline, slow or the server
 //   errors. A response that arrives after the timeout still updates the
 //   cache, so the next load uses it.
@@ -38,6 +39,17 @@ const APP_CACHE = `${APP_PREFIX}${MANIFEST.build}`
 const PAGES_CACHE = `${PREFIX}pages-v1`
 const BASEMAP_CACHE = `${PREFIX}basemap-v1`
 const PRICES_CACHE = `${PREFIX}prices-v1`
+
+/**
+ * The data the map needs, seeded at install: the venues, and the LiDAR
+ * buildings and tree crowns the shadows are cast from (deployed from the
+ * height-tiles branch, about 0.5 MB gzipped together).
+ */
+const DATA_FILES = [
+  'data/terraces.json',
+  'data/buildings.json',
+  'data/trees.json',
+]
 
 /** How long to wait for the network before falling back to the cache. */
 const NETWORK_TIMEOUT_MS = 3000
@@ -87,7 +99,10 @@ async function precacheAssets(): Promise<void> {
  * Best effort; when offline, the page fills the caches as it loads.
  */
 async function seed(): Promise<void> {
-  const pages = [SHELL_URL, new URL('data/terraces.json', SCOPE).href]
+  const pages = [
+    SHELL_URL,
+    ...DATA_FILES.map((file) => new URL(file, SCOPE).href),
+  ]
   await Promise.all([
     ...pages.map((url) =>
       fetchAndStore(PAGES_CACHE, url, { cache: 'no-cache' }),

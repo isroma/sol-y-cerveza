@@ -14,7 +14,7 @@ LiDAR surface model ────────┴─► horizon profile ──► 
                                  per terrace (360°)   terraces.json       chosen time vs. horizon → sun / shade
 ```
 
-Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. Beer prices and visitors' suggestions and venue reports go through a small API (`api/`, a Cloudflare Worker). Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
+Shade is precomputed as each terrace's horizon: how high the surrounding buildings and trees rise in every direction. The app then only needs the sun's position, which it computes on the device. The map draws the buildings and tree crowns from the same LiDAR and casts their shadows on the GPU for the chosen time ([pipeline](docs/pipeline.md#lidar-buildings)). Beer prices and visitors' suggestions and venue reports go through a small API (`api/`, a Cloudflare Worker). Details: [ADR-0001](docs/adr/0001-architecture.md) and the [data contract](docs/data-contract.md).
 
 ## Status
 
@@ -80,4 +80,4 @@ Brand, colours, typography, components, copy and templates: [design standards](d
 
 ## License
 
-Code is MIT. `web/public/data/terraces.json` contains OpenStreetMap data and is released under the [ODbL](https://opendatacommons.org/licenses/odbl/); its other sources are credited inside the file ([data sources](docs/research/data-sources.md), [ADR-0002](docs/adr/0002-terrace-data-sources.md)).
+Code is MIT. `web/public/data/terraces.json` and the map's `buildings.json` (OSM outlines at LiDAR heights) contain OpenStreetMap data and are released under the [ODbL](https://opendatacommons.org/licenses/odbl/); its other sources are credited inside the file ([data sources](docs/research/data-sources.md), [ADR-0002](docs/adr/0002-terrace-data-sources.md)).

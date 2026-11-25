@@ -57,7 +57,8 @@ export function addTreeCrowns(
   map: ExtrusionMap & Pick<MapLibreMap, 'addLayer'>,
   before: string | undefined,
 ) {
-  addExtrusionSource(map, TREES, TREES_URL)
+  // Without the file (offline, nothing cached) the map just has no crowns.
+  void addExtrusionSource(map, TREES, TREES_URL)
   map.addLayer(TREE_LAYER, before)
 }
 

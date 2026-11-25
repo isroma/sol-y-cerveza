@@ -1,6 +1,7 @@
 import { expect, test as base, type Page } from '@playwright/test'
 import {
   basemapStyle,
+  lidarFile,
   SUNNY_INSTANT,
   TERRACE_COUNT,
   terracesFile,
@@ -56,6 +57,8 @@ const test = base.extend<{ reports: unknown[] }>({
           })
         if (url.pathname.endsWith('/data/terraces.json'))
           return route.fulfill({ json: terracesFile })
+        const lidar = lidarFile(url.pathname)
+        if (lidar) return route.fulfill({ json: lidar })
         if (url.hostname === 'challenges.cloudflare.com')
           return route.fulfill({
             contentType: 'text/javascript',

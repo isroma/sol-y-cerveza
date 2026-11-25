@@ -18,7 +18,7 @@ const DUSK = {
   water: '#2E4A72',
   building: '#454B62',
   buildingTop: '#525870',
-  // The tree crowns (?shade=gpu): a dark sage, a step lighter than the parks.
+  // The tree crowns: a dark sage, a step lighter than the parks.
   tree: '#4B5E50',
   road: '#535A72',
   text: '#D9DEEA',

@@ -13,12 +13,7 @@ import { BASEMAP_STYLE_URL } from '../config.ts'
 import type { LatLon } from '../data/terraces.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
-import {
-  cardFolded,
-  pitchForZoom,
-  RELIEF_ZOOM,
-  SHADOW_OPACITY,
-} from './camera.ts'
+import { cardFolded, pitchForZoom } from './camera.ts'
 import { fitCard, focusVenue, sizeCard } from './cardFit.ts'
 import { addDotLayers, DOTS_SOURCE } from './dotLayers.ts'
 import { dotsUpdate } from './dots.ts'
@@ -30,9 +25,12 @@ import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
 import { PrismShadowLayer } from './prismShadows.ts'
-import { addLidarBuildings, LIDAR_BUILDINGS } from './lidarBuildings.ts'
+import {
+  addLidarBuildings,
+  hideBasemapBuildings,
+  LIDAR_BUILDINGS,
+} from './lidarBuildings.ts'
 import { addTreeCrowns, setLeafOff, TREES } from './treeCrowns.ts'
-import { ShadowCache } from './shadowLayer.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
 // Let Vite bundle the worker and tell MapLibre where it ended up.
@@ -42,12 +40,8 @@ setWorkerUrl(workerUrl)
 // stays for the page's lifetime, which the app (one map) wants anyway.
 prewarm()
 
+/** Sun shadows of the LiDAR buildings and trees, cast on the GPU (prismShadows.ts). */
 const SHADOWS = 'building-shadows'
-
-/** Prototype: `?shade=gpu` casts shadows on the GPU from the LiDAR buildings and trees (prismShadows.ts). */
-const GPU_SHADOWS =
-  typeof window !== 'undefined' &&
-  new URLSearchParams(window.location.search).get('shade') === 'gpu'
 
 /** Close enough to place a venue within a few metres (the report picker). */
 const PICK_ZOOM = 18
@@ -65,8 +59,8 @@ type Props = {
   /** The data has leaf-off horizons (ADR-0007). */
   leafOffTrees?: boolean
   /**
-   * Today the list uses those horizons (1 Dec to 15 Mar): with `?shade=gpu`,
-   * deciduous crowns are drawn bare and cast no shadow.
+   * Today the list uses those horizons (1 Dec to 15 Mar): deciduous crowns
+   * are drawn bare and cast no shadow.
    */
   leafOff?: boolean
   /** While set, gets the map's centre now and as the map moves (the report picker). */
@@ -77,20 +71,6 @@ type Props = {
 
 /** How long the card takes to shrink back into its badge (see .is-closing). */
 const CARD_CLOSE_MS = 220
-
-/** How often the shadows are recast at most while the map moves. */
-const SHADOW_THROTTLE_MS = 120
-
-/** Shows the building shadows when new buildings or a new sun changed them. */
-function castShadows(map: MapLibreMap, sun: SunPosition, cache: ShadowCache) {
-  if (GPU_SHADOWS) return
-  const change = cache.update(map, sun)
-  const source = map.getSource<GeoJSONSource>(SHADOWS)
-  if (!change || !source) return
-  if ('data' in change) void source.setData(change.data)
-  // Only the new streets: re-sending every shadow stutters as they add up.
-  else void source.updateData(change)
-}
 
 type PinEntry = { marker: Marker; el: HTMLButtonElement }
 
@@ -119,13 +99,13 @@ export function MapView({
   const pinsRef = useRef(new Map<string, PinEntry>())
   /** What the dots source holds now (see dotsUpdate). */
   const dotsKeyRef = useRef<string | null>(null)
-  /** The buildings seen so far and their shadows (see ShadowCache). */
-  const shadowCacheRef = useRef(new ShadowCache())
   const onSelectRef = useRef(onSelect)
   const onCenterChangeRef = useRef(onCenterChange)
   const sunRef = useRef(sun)
   const leafOffRef = useRef(leafOff)
   const prismLayerRef = useRef<PrismShadowLayer | null>(null)
+  /** buildings.json loaded: the basemap's 3D buildings are hidden. */
+  const lidarLoadedRef = useRef(false)
   const nightSwitchRef = useRef<((depth: number | null) => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -200,51 +180,35 @@ export function MapView({
          */
         const setup = () => {
           if (!map) return
-          // Ground shadows of the buildings, under the 3D extrusions.
-          if (!map.getSource(SHADOWS))
-            map.addSource(SHADOWS, {
-              type: 'geojson',
-              data: { type: 'FeatureCollection', features: [] },
-            })
+          // Ground shadows of the buildings and trees, under the 3D extrusions.
           if (!map.getLayer(SHADOWS)) {
-            if (GPU_SHADOWS) {
-              prismLayerRef.current ??= new PrismShadowLayer(SHADOWS)
-              // Before it is added, so it builds its arrays once.
-              prismLayerRef.current.setLeafOff(leafOffRef.current)
-            }
+            prismLayerRef.current ??= new PrismShadowLayer(SHADOWS)
+            // Before it is added, so it builds its arrays once.
+            prismLayerRef.current.setLeafOff(leafOffRef.current)
             map.addLayer(
-              prismLayerRef.current ?? {
-                id: SHADOWS,
-                // A paper-thin extrusion rather than a fill: MapLibre draws
-                // an extrusion layer in one pass and fades the layer as a
-                // whole, so where shadows overlap (neighbouring buildings,
-                // the same building twice at a tile edge) they don't stack
-                // darker.
-                type: 'fill-extrusion',
-                source: SHADOWS,
-                minzoom: RELIEF_ZOOM,
-                paint: {
-                  'fill-extrusion-color': '#6B5848',
-                  'fill-extrusion-opacity': SHADOW_OPACITY,
-                  'fill-extrusion-height': 0.05,
-                  'fill-extrusion-vertical-gradient': false,
-                },
-              },
+              prismLayerRef.current,
               map.getLayer('building') ? 'building' : undefined,
             )
           }
           if (!map.getSource(DOTS_SOURCE))
             addDotLayers(map, (id) => onSelectRef.current(id))
-          // The buildings and trees the GPU shadows are cast from, at their
-          // LiDAR heights (pipeline buildings.py and trees.py).
-          if (GPU_SHADOWS && !map.getSource(LIDAR_BUILDINGS))
-            addLidarBuildings(
+          // The buildings and trees the shadows are cast from, at their
+          // LiDAR heights (pipeline buildings.py and trees.py). The basemap's
+          // buildings stand in until ours load, and for good if they don't
+          // (offline with nothing cached): buildings without shadows.
+          if (!map.getSource(LIDAR_BUILDINGS)) {
+            const current = map
+            void addLidarBuildings(
               map,
               map.getLayer('building-3d') ? 'building-3d' : undefined,
-            )
-          if (GPU_SHADOWS && !map.getSource(TREES))
-            addTreeCrowns(map, LIDAR_BUILDINGS)
-          if (GPU_SHADOWS) setLeafOff(map, leafOffRef.current)
+            ).then((loaded) => {
+              if (!loaded || cancelled) return
+              lidarLoadedRef.current = true
+              hideBasemapBuildings(current)
+            })
+          } else if (lidarLoadedRef.current) hideBasemapBuildings(map)
+          if (!map.getSource(TREES)) addTreeCrowns(map, LIDAR_BUILDINGS)
+          setLeafOff(map, leafOffRef.current)
           // Made once, from the day paint, and kept across a restore: the
           // snapshot holds whatever paint the night had set.
           nightSwitchRef.current ??= createNightSwitch(map, new Set([SHADOWS]))
@@ -252,8 +216,6 @@ export function MapView({
           map.setLight(sunLight(sun))
           prismLayerRef.current?.setSun(sun)
           nightSwitchRef.current(nightDepth(sun.altitude))
-          shadowCacheRef.current = new ShadowCache()
-          castShadows(map, sun, shadowCacheRef.current)
           const dots = dotsUpdate(
             null,
             statusesRef.current,
@@ -265,6 +227,12 @@ export function MapView({
             dotsKeyRef.current = dots.key
           }
         }
+        // A LiDAR file that doesn't load is handled above (the basemap's
+        // buildings stay); MapLibre would log it as an error. Others it logs.
+        map.on('error', (event) => {
+          const id = 'sourceId' in event ? event.sourceId : null
+          if (id !== LIDAR_BUILDINGS && id !== TREES) console.error(event.error)
+        })
         map.on('webglcontextrestored', () => {
           if (!map) return
           if (map.isStyleLoaded()) setup()
@@ -273,26 +241,6 @@ export function MapView({
         map.on('load', () => {
           if (!map) return
           setup()
-          // Check as the map moves (at most every SHADOW_THROTTLE_MS), as
-          // building tiles arrive and when it settles, so shadows keep up
-          // with zooms, pans and flights. Most checks redo nothing (see
-          // ShadowCache): only buildings new to it or a new sun are cast.
-          let shadowTimer: ReturnType<typeof setTimeout> | null = null
-          const refreshShadows = () => {
-            if (shadowTimer) clearTimeout(shadowTimer)
-            shadowTimer = null
-            if (map) castShadows(map, sunRef.current, shadowCacheRef.current)
-          }
-          const scheduleShadows = () => {
-            shadowTimer ??= setTimeout(refreshShadows, SHADOW_THROTTLE_MS)
-          }
-          map.on('move', scheduleShadows)
-          map.on('moveend', refreshShadows)
-          map.on('sourcedata', (event) => {
-            if (event.sourceId === 'openmaptiles' && event.tile)
-              scheduleShadows()
-          })
-          map.on('idle', refreshShadows)
           mapRef.current = map
           // Dev-only handle for debugging and visual checks from the console.
           if (import.meta.env.DEV) {
@@ -342,14 +290,13 @@ export function MapView({
     if (!ready || !map) return
     map.setLight(sunLight(sun))
     prismLayerRef.current?.setSun(sun)
-    castShadows(map, sun, shadowCacheRef.current)
   }, [ready, sun])
 
   // Bare deciduous crowns, without shadows, while the list uses leaf-off horizons.
   useEffect(() => {
     leafOffRef.current = leafOff
     const map = mapRef.current
-    if (!ready || !map || !GPU_SHADOWS) return
+    if (!ready || !map) return
     setLeafOff(map, leafOff)
     prismLayerRef.current?.setLeafOff(leafOff)
   }, [ready, leafOff])
