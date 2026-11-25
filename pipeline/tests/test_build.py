@@ -208,7 +208,7 @@ def test_position_warnings_flag_points_on_roofs(tmp_path: Path) -> None:
     assert position_warnings([_terrace()], street, dtm) == []
 
 
-def test_attribution_credits_pnoa_only_for_curated_positions(tmp_path: Path) -> None:
+def test_attribution_credits_pnoa_for_curated_and_review_positions(tmp_path: Path) -> None:
     dsm = _raster(tmp_path / "dsm.tif", {"SOURCE": "MDS"})
     dtm = _raster(tmp_path / "dtm.tif", {"SOURCE": "MDT"})
     osm_only = _terrace("osm:node/1").model_copy(update={"sources": ["osm"]})
@@ -219,6 +219,9 @@ def test_attribution_credits_pnoa_only_for_curated_positions(tmp_path: Path) -> 
         "MDT",
     ]
     assert attribution_lines([_terrace()], dsm, dtm)[-1] == PNOA_ATTRIBUTION
+    # Admin pins with no curated terrace left still need the credit (#264).
+    review_only = _terrace("osm:node/2").model_copy(update={"sources": ["osm", "review"]})
+    assert attribution_lines([osm_only, review_only], dsm, dtm)[-1] == PNOA_ATTRIBUTION
 
 
 def test_attribution_credits_sentinel_only_when_winter_horizons_exist(tmp_path: Path) -> None:

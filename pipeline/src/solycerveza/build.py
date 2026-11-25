@@ -152,7 +152,9 @@ def attribution_lines(
     lines = [OSM_ATTRIBUTION, raster_attribution(dsm_path), raster_attribution(dtm_path)]
     if leafoff_path is not None and any(t.horizon_winter is not None for t in terraces):
         lines.append(raster_attribution(leafoff_path))
-    if any("curated" in t.sources for t in terraces):
+    # Positions read off the PNOA orthophoto: curated terraces and pins placed in
+    # the admin (`review`, which may use its orthophoto basemap).
+    if any({"curated", "review"} & set(t.sources) for t in terraces):
         lines.append(PNOA_ATTRIBUTION)
     if any("overture" in t.sources for t in terraces):
         lines.append(OVERTURE_ATTRIBUTION)
