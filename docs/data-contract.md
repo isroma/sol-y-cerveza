@@ -34,7 +34,7 @@ type Terrace = {
 
 type Price = {
   item: 'cana' | 'tercio' // a draught caña, or a 33 cl bottle
-  brand: string | null // tercio only: cruzcampo, mahou-5-estrellas, estrella-galicia, amstel, heineken, alhambra-especial, san-miguel, estrella-damm, super-bock, sagres; null for a caña
+  brand: string | null // tercio only: alhambra-especial, amstel, cruzcampo, estrella-damm, estrella-galicia, heineken, mahou-5-estrellas, sagres, san-miguel, super-bock, or other (a brand not listed); null for a caña
   cents: number // integer euro cents (money is never a float)
   seen: string // YYYY-MM-DD the price was seen
 }

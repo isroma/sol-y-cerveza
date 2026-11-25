@@ -3,17 +3,19 @@ export const ITEMS = ['cana', 'tercio'] as const
 export type Item = (typeof ITEMS)[number]
 
 /** The tercio brands most poured in Spain and in Badajoz; Portuguese ones are common at the border. */
+/** Alphabetical by name, then "other" (any brand not listed) last. */
 export const BRANDS = [
-  'cruzcampo',
-  'mahou-5-estrellas',
-  'estrella-galicia',
-  'amstel',
-  'heineken',
   'alhambra-especial',
-  'san-miguel',
+  'amstel',
+  'cruzcampo',
   'estrella-damm',
-  'super-bock',
+  'estrella-galicia',
+  'heineken',
+  'mahou-5-estrellas',
   'sagres',
+  'san-miguel',
+  'super-bock',
+  'other',
 ] as const
 export type Brand = (typeof BRANDS)[number]
 
@@ -29,6 +31,7 @@ export const BRAND_NAMES: Record<Brand, string> = {
   'estrella-damm': 'Estrella Damm',
   'super-bock': 'Super Bock',
   sagres: 'Sagres',
+  other: 'Otra marca',
 }
 
 /**
