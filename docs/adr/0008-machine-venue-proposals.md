@@ -3,7 +3,7 @@
 - Status: accepted (2026-11-24)
 - Date: 2026-11-24
 - Amended (2026-11-25): the proposers and the trial shipped in #214, and the admin shows proposals with Accept and Ignore in #216. The trial has not been run yet: its numbers must come from the owner's machine (Consequences), so no kind has a measured threshold. The admin shows every row the CSV holds, highest confidence first; until the trial runs, the only filter is `--min-confidence` when the file is written.
-- Amended (2026-11-25, #350): the position proposer also geocodes each venue's own OSM `addr:*` or Overture `addresses` line, as two more sources (`osm-addr+cartociudad`, `overture-addr+cartociudad`) that the trial scores apart from the register (Decision 3 and 5). Not trialled yet: the session that built it could not reach CartoCiudad or Overpass.
+- Amended (2026-11-25, #350): the position proposer also geocodes each venue's own OSM `addr:*` or Overture `addresses` line, as two more sources (`osm-addr+cartociudad`, `overture-addr+cartociudad`) that the trial scores apart from the register (Decision 3 and 5). The position trial was run (Consequences): **no position source reaches 90 % precision, so all three stay off**; none of their 20 proposals on reviewed venues was right. CartoCiudad matches must now be in the city's postcodes (the municipality's villages share street names).
 - Issue: #211
 
 ## Context
@@ -58,8 +58,22 @@ Earlier research on the PNOA orthophoto found automatic table detection unusable
 
 ## Consequences
 
-- The trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
-- The own-address trial needs the Overpass cache (OSM `addr:*`), an Overture parquet with `addresses` (re-run `python -m solycerveza.overture`, which needs `extensions.duckdb.org` for `httpfs` and the Overture S3 bucket) and `www.cartociudad.es`. The session that added it (#350) could reach only the S3 bucket.
+- The vision and not-a-venue trial numbers must come from the owner's machine: it has the caches, the network and the API key. The session that built this could reach none of IGN, CartoCiudad, the Junta site or the DuckDB extension host, and had no API key, so no real numbers exist yet.
+- **Position trial (2026-11-25, #350).** Run with `--evaluate --only position` on the pre-review baseline (`164f946^`), Overture release `2026-11-18.0`, and the Overpass, Junta and CartoCiudad answers of that day. A proposal is right within 15 m of the owner's position.
+
+  | Source                      | Venues with an address (moved by the owner) | Proposals | Right | Recall of moved | 90 % threshold | Distance from the owner's position (median, p90) |
+  | --------------------------- | ------------------------------------------- | --------- | ----- | --------------- | -------------- | ------------------------------------------------ |
+  | `junta+cartociudad`         | 106 looked at (14)                          | 7         | 0     | 0/14            | none           | 46 m, 190 m                                      |
+  | `osm-addr+cartociudad`      | 6 (1)                                       | 2         | 0     | 0/1             | none           | 26 m, 115 m                                      |
+  | `overture-addr+cartociudad` | 48 (6)                                      | 11        | 0     | 0/6             | none           | 382 m, 821 m                                     |
+  | most confident per venue    | 106 looked at (14)                          | 20        | 0     | 0/14            | none           | 137 m, 821 m                                     |
+  - The pre-review position was 0 m from the owner's for every venue proposed for except one (the only moved venue with a proposal: the owner moved it 14 m, and the register portal was 26 m from their position, farther than doing nothing). Doing nothing was within 15 m every time.
+  - Why: the owner's 14 moves are small, 3 to 33 m (median 12 m), and 13 of them are under the 25 m rule, so no address proposer could catch them. The portals, in turn, land 25 to 821 m from venues the owner left in place. Overture's addresses are the worst: five venues listed on "Avenida de Elvas" got portals 311 to 821 m from where the owner keeps them.
+  - The first run also found Overture addresses matched to Valdebótoa, a village 12 km away with the same street name. `pick_portal` now keeps only city postcodes (06000 to 06012), and the portal cache moved to `cartociudad_portals_v2.json`, so the register is geocoded again on the next build.
+  - Confidences and penalties are left as they were: with no right proposal there is nothing to fit them to. The sample is thin (20 proposals, 14 moves), but 0 right out of 20 gives no reason to show any of these.
+  - Unreviewed venues on the same day: 298 Overture and 35 OSM venues have a usable address; 195 of these geocode to a city portal. That would give 101 `position` proposals at the default 0.5 cut (59 Overture, 38 register, 4 OSM), all from sources the trial says to ignore.
+  - The owner's own check of a position is what fixes venues today; a future position proposer would need metre-level evidence (the orthophoto, an entrance in OSM), not a street address.
+
 - The answer key is small: 87 terrace decisions, 79 Overture venues and 14 moves. A threshold met on a handful of proposals is a hint. Re-run the trial after each review batch.
 - `venue_proposals.csv` holds only its header in the repository. Rows are a local work list, and Publish does not ship them.
 - Terrace positions confirmed from these proposals are read off the PNOA orthophoto, so they need the PNOA credit in the app. Today `build.py` adds that credit only when a curated row is present. That is a follow-up.
