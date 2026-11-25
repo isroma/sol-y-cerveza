@@ -13,6 +13,7 @@ from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, register_id
 from solycerveza.ortho import Crop, OrthoFetcher, cached_crop
 from solycerveza.proposals import (
+    DEFAULT_PROPOSERS,
     AskAll,
     OvertureAttrs,
     Proposal,
@@ -30,6 +31,7 @@ from solycerveza.proposals import (
     read_proposals,
     read_records,
     run_proposers,
+    selected_proposers,
     vision_proposals,
     vision_to_ask,
     write_proposals,
@@ -581,3 +583,25 @@ def test_read_records_reads_a_terraces_file(tmp_path: Path) -> None:
     }
     path.write_text(json.dumps(data), encoding="utf-8")
     assert [t.id for t in read_records(path)] == ["osm:node/2"]
+
+
+def test_position_is_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert "position" not in DEFAULT_PROPOSERS
+    assert selected_proposers(",".join(DEFAULT_PROPOSERS)) == {"vision", "overture"}
+    assert selected_proposers("position") == {"position"}
+    with pytest.raises(ValueError, match="unknown proposers: nope"):
+        selected_proposers("position,nope")
+
+    seen: list[set[str]] = []
+
+    def stop(_targets: object, only: set[str], **_kwargs: object) -> None:
+        seen.append(only)
+        raise SystemExit(0)
+
+    monkeypatch.setattr("solycerveza.proposals.run_proposers", stop)
+    monkeypatch.setattr("solycerveza.proposals.read_review", list)
+    monkeypatch.setattr("solycerveza.proposals.read_records", lambda _path: [])
+    for argv, expected in (([], {"vision", "overture"}), (["--only", "position"], {"position"})):
+        with pytest.raises(SystemExit):
+            main(argv)
+        assert seen.pop() == expected

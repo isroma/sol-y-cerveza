@@ -5,7 +5,8 @@
 The owner confirms or rejects each one in the admin, which records the decision in
 `venue_review.csv` as usual.
 
-Three proposers, each optional (`--only`) and each cached in `.cache/`:
+Three proposers, each optional (`--only`) and each cached in `.cache/`. `position` is opt-in
+(not in `DEFAULT_PROPOSERS`): its trial found no right proposal (ADR-0008).
 
 - `vision`: a terrace read from the PNOA orthophoto by the Claude API (`solycerveza.ortho`,
   `solycerveza.terrace_vision`). Proposes `terrace` (with the tables' position) or
@@ -103,6 +104,12 @@ EVAL_REPORT = CACHE_DIR / "proposals_eval.md"
 EVAL_CSV = CACHE_DIR / "proposals_eval.csv"
 COLUMNS = ("venue_id", "kind", "lat", "lon", "confidence", "evidence", "source", "generated")
 PROPOSERS = ("vision", "position", "overture")
+#: Run without `--only`. `position` is opt-in: its trial (2026-11-25, #350) found 0 of 20
+#: proposals right on every address source, so it must not fill the admin's queue by default.
+DEFAULT_PROPOSERS = ("vision", "overture")
+OPT_IN_REASONS = {
+    "position": "opt-in: its trial found 0 of 20 proposals right (ADR-0008, Consequences)",
+}
 VISION_SOURCE = MODELS[MODEL]
 JUNTA_SOURCE = "junta+cartociudad"
 ADDRESS_SOURCES: dict[Origin, str] = {
@@ -660,12 +667,22 @@ def _non_negative(text: str) -> int:
     return value
 
 
+def selected_proposers(text: str) -> set[str]:
+    """The proposers an `--only` value names (`position` runs only when named)."""
+    only = {name.strip() for name in text.split(",") if name.strip()}
+    unknown = only - set(PROPOSERS)
+    if unknown:
+        raise ValueError(f"unknown proposers: {', '.join(sorted(unknown))}")
+    return only
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Proposals for unreviewed venues (ADR-0008).")
     parser.add_argument(
         "--only",
-        default=",".join(PROPOSERS),
-        help=f"comma-separated proposers to run (default: {','.join(PROPOSERS)})",
+        default=",".join(DEFAULT_PROPOSERS),
+        help=f"comma-separated proposers to run, of {','.join(PROPOSERS)} (default: "
+        f"{','.join(DEFAULT_PROPOSERS)}; position is {OPT_IN_REASONS['position']})",
     )
     budget = parser.add_mutually_exclusive_group()
     budget.add_argument("--yes", action="store_true", help="make every Claude API call needed")
@@ -698,10 +715,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    only = {name.strip() for name in args.only.split(",") if name.strip()}
-    unknown = only - set(PROPOSERS)
-    if unknown:
-        parser.error(f"unknown proposers: {', '.join(sorted(unknown))}")
+    try:
+        only = selected_proposers(args.only)
+    except ValueError as error:
+        parser.error(str(error))
     ask_limit: AskBudget = AskAll() if args.yes else args.limit
     vision_model = SESSION_MODEL if args.vision == "session" else MODEL
     today = date.today()
