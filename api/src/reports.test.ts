@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { VENUE_ID } from './logic.ts'
 import {
-  cleanName,
+  cleanVenueName,
   distanceMetres,
+  VENUE_ID,
+} from '../../web/src/data/geo.ts'
+import {
   MAX_MOVE_METRES,
   newVenueKey,
   parseReport,
@@ -104,12 +106,12 @@ describe('parseReport', () => {
   })
 })
 
-describe('cleanName', () => {
+describe('cleanVenueName', () => {
   it('turns commas, quotes and line breaks into spaces and collapses whitespace', () => {
-    expect(cleanName('  Bar "El Patio",\n  Badajoz ')).toBe(
+    expect(cleanVenueName('  Bar "El Patio",\n  Badajoz ')).toBe(
       'Bar El Patio Badajoz',
     )
-    expect(cleanName('La «Tasca» de ‘Pepe’')).toBe('La Tasca de Pepe')
+    expect(cleanVenueName('La «Tasca» de ‘Pepe’')).toBe('La Tasca de Pepe')
   })
 
   it('counts length after cleaning', () => {
