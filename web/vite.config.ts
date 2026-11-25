@@ -67,6 +67,30 @@ function preloadMapChunk(): Plugin {
 }
 
 /**
+ * MapLibre belongs in the lazy map chunk only. A single value import of it
+ * from code the entry chunk reaches (even through a constant) pulls all of it
+ * into the entry, which then holds back first paint: fail the build instead.
+ */
+function keepMaplibreOutOfEntry(): Plugin {
+  return {
+    name: 'keep-maplibre-out-of-entry',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type !== 'chunk' || !file.isEntry) continue
+        const maplibre = file.moduleIds.find((id) =>
+          id.includes('/node_modules/maplibre-gl/'),
+        )
+        if (maplibre)
+          this.error(
+            `${file.fileName} bundles ${maplibre}: import MapLibre only from the map chunk (src/map/MapView.tsx and what it imports)`,
+          )
+      }
+    },
+  }
+}
+
+/**
  * The prices API (VITE_PRICES_API) is first called when a venue card opens:
  * open its connection early. Only when the build has one.
  */
@@ -108,6 +132,7 @@ export default defineConfig({
     maplibreCss(),
     reviewServer(),
     preloadMapChunk(),
+    keepMaplibreOutOfEntry(),
     preconnectPricesApi(),
     serviceWorker(),
   ],

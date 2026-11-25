@@ -4,8 +4,8 @@ import type {
 } from 'maplibre-gl'
 import { EXTRUSION_OPACITY, RELIEF_ZOOM } from './camera.ts'
 import { addExtrusionSource, type ExtrusionMap } from './extrusionSource.ts'
+import { TREES } from './layerIds.ts'
 
-export const TREES = 'tree-crowns'
 /**
  * Deployed from the height-tiles branch; in dev, written by the pipeline
  * (trees.py). A compact format, decoded by extrusionCodec.ts.

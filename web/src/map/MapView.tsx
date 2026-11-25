@@ -44,7 +44,8 @@ import {
   hideBasemapBuildings,
   LIDAR_BUILDINGS,
 } from './lidarBuildings.ts'
-import { addTreeCrowns, setLeafOff, TREES } from './treeCrowns.ts'
+import { TREES } from './layerIds.ts'
+import { addTreeCrowns, setLeafOff } from './treeCrowns.ts'
 
 // MapLibre looks for its worker next to its own module, which bundling breaks.
 // Let Vite bundle the worker and tell MapLibre where it ended up.
