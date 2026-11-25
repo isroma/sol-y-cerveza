@@ -46,8 +46,9 @@ from typing import Annotated, Literal, Self
 
 import duckdb
 import httpx
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from solycerveza.csvfile import blank_to_none, read_rows
 from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, load_register, register_id
 from solycerveza.ortho import ORTHO_CACHE, Crop, OrthoFetcher, cached_crop
@@ -140,20 +141,7 @@ def sort_key(p: Proposal) -> tuple[str, str, float, str]:
 def read_proposals(path: Path = PROPOSALS_CSV) -> list[Proposal]:
     if not path.exists():
         return []
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != COLUMNS:
-            raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
-        rows: list[Proposal] = []
-        for row in reader:
-            if None in row:
-                raise ValueError(f"{path}:{reader.line_num}: more cells than columns")
-            cells = {k: (v or "").strip() or None for k, v in row.items()}
-            try:
-                rows.append(Proposal.model_validate(cells))
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
-    return rows
+    return read_rows(path, COLUMNS, Proposal, clean=blank_to_none)
 
 
 def write_proposals(rows: Iterable[Proposal], path: Path = PROPOSALS_CSV) -> None:
