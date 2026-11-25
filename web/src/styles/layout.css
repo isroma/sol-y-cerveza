@@ -1,0 +1,128 @@
+/* Layout */
+
+/* Desktop: brand and sidebar on the left, the map on the right. */
+.app {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+.brand {
+  grid-area: 1 / 1;
+  padding: var(--space-6) var(--space-6) 0;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+  z-index: 1;
+}
+
+.sidebar {
+  display: flex;
+  grid-area: 2 / 1;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-height: 0;
+  padding: var(--space-6);
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+  z-index: 1;
+}
+
+.map-area {
+  position: relative;
+  grid-area: 1 / 2 / 3;
+  min-height: 0;
+}
+
+/* Phones: a slim brand bar on top with the menu button, the map in the
+   middle and the time bar as the footer. Search, filters and the list open
+   from the menu, over the map. */
+@media (max-width: 899px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .brand {
+    grid-area: 1 / 1;
+    gap: var(--space-2);
+    padding: calc(env(safe-area-inset-top) + var(--space-2)) var(--space-2)
+      var(--space-2) var(--space-4);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand > svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand h1 {
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+
+  .menu-button {
+    display: grid;
+    place-items: center;
+    width: var(--control);
+    height: var(--control);
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--ink);
+  }
+
+  .menu-button:hover {
+    background: var(--surface-hover);
+  }
+
+  .map-area {
+    grid-area: 2 / 1;
+  }
+
+  /* The menu covers the map, between the brand bar and the time bar. */
+  .sidebar {
+    grid-area: 2 / 1;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    border-right: 0;
+    overscroll-behavior: contain;
+    z-index: 3;
+  }
+
+  .sidebar[hidden] {
+    display: none;
+  }
+
+  .filters,
+  .results {
+    padding-top: var(--space-4);
+  }
+
+  .filters-header h2 {
+    font-size: 17px;
+  }
+
+  .time-footer {
+    grid-area: 3 / 1;
+    padding: var(--space-3) var(--space-4)
+      calc(env(safe-area-inset-bottom) + var(--space-3));
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    z-index: 2;
+  }
+
+  .time-footer .time-value {
+    font-size: 20px;
+  }
+
+  .time-footer .time-track {
+    --slider-top: var(--space-3);
+  }
+}

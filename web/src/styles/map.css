@@ -1,0 +1,325 @@
+/* Map */
+
+.map-wrap,
+.terrace-map {
+  position: absolute;
+  inset: 0;
+}
+
+/* The map and its pins form one layer, so every overlay after it in the DOM
+   (city, locate and zoom, toast, legend, error) stays above the pins. */
+.terrace-map {
+  z-index: 0;
+}
+
+/* Pins and the pin card live in the canvas container: keep them below the
+   map's attribution, too. */
+.maplibregl-canvas-container {
+  isolation: isolate;
+}
+
+/* While the map chunk loads: the map's land colour, dark at night. */
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #f6eee2;
+  color: var(--text-soft);
+}
+
+.map-loading p {
+  margin: 0;
+}
+
+.app.is-night .map-loading {
+  background: var(--bg);
+}
+
+.map-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+.map-city {
+  position: absolute;
+  top: var(--map-inset);
+  left: var(--map-inset);
+}
+
+.map-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 999px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 17px;
+  font-weight: 500;
+  min-height: var(--control);
+}
+
+.map-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 220px;
+  margin: 0;
+  padding: var(--space-1);
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  list-style: none;
+}
+
+.map-menu li {
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-m);
+  font-size: 15px;
+}
+
+.map-menu li[aria-checked='true'] {
+  background: var(--highlight);
+  font-weight: 600;
+}
+
+.map-buttons {
+  position: absolute;
+  top: var(--map-inset);
+  right: var(--map-inset);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.map-round,
+.map-zoom button {
+  display: grid;
+  place-items: center;
+  width: var(--control);
+  height: var(--control);
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+}
+
+.map-round {
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+}
+
+.map-zoom {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: calc(var(--control) / 2);
+  box-shadow: var(--shadow);
+}
+
+.map-zoom button + button {
+  border-top: 1px solid var(--line);
+}
+
+.map-round:hover,
+.map-zoom button:hover {
+  background: var(--surface-hover);
+}
+
+.map-toast {
+  position: absolute;
+  top: calc(var(--map-inset) + var(--control) + var(--space-3));
+  left: var(--map-inset);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(360px, calc(100% - 100px));
+  margin: 0;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-m);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+/* The map's attribution "i" and the legend, side by side: bottom-right on
+   desktop, centred as one group on phones. */
+.map-bottom {
+  position: absolute;
+  right: var(--map-inset);
+  bottom: var(--map-inset);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.map-attrib {
+  flex: none;
+}
+
+.map-legend {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) 52px var(--space-4) var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--legend-bg);
+  box-shadow: var(--shadow);
+}
+
+.map-legend > ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-legend > ul > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 15px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #c2a88e;
+  box-shadow: 0 0 0 1px #d9c7b5;
+}
+
+.legend-info {
+  /* Centred on the last legend row, in the bottom-right corner. */
+  position: absolute;
+  right: var(--space-3);
+  bottom: 11px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--ink);
+}
+
+.map-info {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-3));
+  width: min(340px, calc(100vw - 2 * var(--map-inset)));
+  max-height: 60dvh;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+}
+
+.map-info h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 16px;
+}
+
+.map-info p {
+  margin: 0 0 var(--space-2);
+}
+
+.map-info-sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Licence lines carry long unbroken names and URLs. */
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 899px) {
+  /* The attribution button sits left of the legend, both at the bottom. */
+  .map-wrap {
+    --legend-height: 56px;
+  }
+
+  .map-bottom {
+    right: auto;
+    bottom: var(--space-3);
+    left: 50%;
+    translate: -50% 0;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100% - 2 * var(--space-3));
+  }
+
+  .map-legend {
+    align-items: center;
+    min-width: 0;
+    height: var(--legend-height);
+    /* Room on the right for the info button. */
+    padding: var(--space-2) 40px var(--space-2) var(--space-3);
+    border-radius: 14px;
+  }
+
+  .map-legend > ul {
+    display: grid;
+    flex: 1;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 4px var(--space-4);
+  }
+
+  .map-legend > ul > li {
+    gap: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .legend-info {
+    right: var(--space-1);
+  }
+
+  .map-legend > ul > li svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    margin: 0 3px;
+  }
+
+  .map-city {
+    top: 12px;
+    left: 12px;
+  }
+
+  .map-buttons {
+    top: 12px;
+    right: 12px;
+    gap: 10px;
+  }
+
+  .map-round,
+  .map-zoom button {
+    width: 44px;
+    height: 44px;
+  }
+}
