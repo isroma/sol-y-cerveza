@@ -66,6 +66,8 @@ const test = base.extend<{ reports: unknown[] }>({
           })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/prices')
           return route.fulfill({ json: { prices: [] } })
+        if (url.hostname === 'prices.test' && url.pathname === '/v1/sun')
+          return route.fulfill({ json: { corrections: [] } })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/changes') {
           reports.push({ change: request.postDataJSON() })
           return route.fulfill({ status: 201, json: { ok: true } })
@@ -122,6 +124,10 @@ test('reports a closed venue from the back of its card', async ({
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
   await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
   await expect(card.locator('.change-title')).toBeFocused()
+  // In sun now: nothing to say about the sun.
+  await expect(
+    card.getByRole('switch', { name: 'Ahora mismo da el sol' }),
+  ).toHaveCount(0)
   // The check runs as soon as the back opens.
   await expect.poll(() => checks(page)).toBe(1)
   await shot(page, '2-card-back')
@@ -228,6 +234,71 @@ test('moves a venue and sends it with a price, behind one check', async ({
       move: {},
     },
   })
+})
+
+test('says the sun is here now, where the app says shade', async ({
+  page,
+  reports,
+}) => {
+  await openCard(page, 'Café Sombra Dos')
+  const card = page.locator('.pin-card')
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  const sun = card.getByRole('switch', { name: 'Ahora mismo da el sol' })
+  await expect(sun).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Enviar' })).toBeDisabled()
+  await sun.check()
+  // Enviar stays in view below the extra row.
+  await expect(card.getByRole('button', { name: 'Enviar' })).toBeInViewport()
+  await shot(page, '2c-card-back-sun')
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
+    '¡Gracias! Marcaremos el sol cuando tres personas coincidan.',
+  )
+  expect(reports).toEqual([
+    { change: { venueId: 'test:6', token: 'test-token', sun: true } },
+  ])
+})
+
+test("shows visitors' sun with a ~ on the card and the day strip", async ({
+  page,
+}) => {
+  // Three networks saw sun at Bar Sombra Uno (85° all round) around midday:
+  // the sun clears 64° there, 13:00 being inside that stretch.
+  await page.route(/\/v1\/sun/, (route) =>
+    route.fulfill({
+      json: {
+        corrections: [
+          {
+            venueId: 'test:5',
+            leafOff: false,
+            from: 90,
+            to: 270,
+            altitude: 640,
+            confirmed: false,
+            reporters: 3,
+            last: '2026-06-20T11:00:00.000Z',
+          },
+        ],
+      },
+    }),
+  )
+  await openCard(page, 'Bar Sombra Uno')
+  const card = page.locator('.pin-card')
+  await expect(card.locator('.pin-card-sun')).toContainText(/~\d+ h/)
+  await expect(card.locator('.pin-card-sun')).toContainText(
+    'Según los visitantes',
+  )
+  await expect(card.locator('.sun-day-part.is-visitors')).toHaveCount(1)
+  await expect(
+    card.getByRole('img', { name: /según los visitantes/ }),
+  ).toBeVisible()
+  await shot(page, '1b-card-front-visitors-sun')
+  // In sun now, so the back doesn't offer the sun row.
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(
+    card.getByRole('switch', { name: 'Ahora mismo da el sol' }),
+  ).toHaveCount(0)
 })
 
 test('adds a missing venue from the menu', async ({ page, reports }) => {

@@ -35,11 +35,13 @@ export function sunSummary(status: VenueStatus, minutes: number): string {
       ? 'Aún no sabemos qué sombra le da'
       : 'No sabemos si tiene terraza'
   }
+  // "~" when that sun leans on visitors' reports, as on the card.
+  const about = status.byVisitors ? '~' : ''
   if (status.sunUntil !== null) {
-    return `Sol hasta las ${formatClock(status.sunUntil % (24 * 60))} (${formatDuration(status.sunUntil - minutes)})`
+    return `Sol hasta las ${formatClock(status.sunUntil % (24 * 60))} (${about}${formatDuration(status.sunUntil - minutes)})`
   }
   if (status.nextSun !== null) {
-    return `Sol desde las ${formatClock(status.nextSun)} (en ${formatDuration(status.nextSun - minutes)})`
+    return `Sol desde las ${formatClock(status.nextSun)} (en ${about}${formatDuration(status.nextSun - minutes)})`
   }
   return status.state === 'night'
     ? 'De noche · sin más sol hoy'
@@ -55,19 +57,27 @@ export const KIND_LABELS = {
   biergarten: 'Cervecería al aire libre',
 } as const
 
-/** Headline and detail of the sun box for a venue at the chosen minute. */
+/** Under the sun box's detail when its sun leans on visitors' reports. */
+export const VISITORS_NOTE = 'Según los visitantes'
+
+/**
+ * Headline and detail of the sun box for a venue at the chosen minute. When
+ * that sun spell leans on visitors' unconfirmed reports, the duration gets a
+ * "~", like a visitors' price.
+ */
 export function sunBox(
   status: VenueStatus,
   minutes: number,
 ): { title: string; detail: string | null } {
+  const about = status.byVisitors ? '~' : ''
   if (status.sunUntil !== null)
     return {
-      title: `${formatDuration(status.sunUntil - minutes)} de sol`,
+      title: `${about}${formatDuration(status.sunUntil - minutes)} de sol`,
       detail: `Hasta las ${formatClock(status.sunUntil % (24 * 60))}`,
     }
   if (status.nextSun !== null)
     return {
-      title: `Sol en ${formatDuration(status.nextSun - minutes)}`,
+      title: `Sol en ${about}${formatDuration(status.nextSun - minutes)}`,
       detail: `Desde las ${formatClock(status.nextSun)}`,
     }
   if (status.category === 'unknown')

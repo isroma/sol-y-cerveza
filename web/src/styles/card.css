@@ -290,6 +290,11 @@
   font-size: 13px;
 }
 
+/* "Según los visitantes": the sun above leans on visitors' reports. */
+.pin-card-sun .pin-card-sun-note {
+  font-size: 12px;
+}
+
 .sun-day {
   margin-top: var(--space-3);
 }
@@ -316,6 +321,18 @@
 
 .sun-day-part.is-sun {
   background: linear-gradient(to right, #ffc53d, #f59e0b);
+}
+
+/* Sun only visitors saw (not yet confirmed): the sun colours in diagonal
+   stripes, sun-soft over a pale sun-soft (washed out with the card's
+   background, so it stays pale by day and dim by night). Reads as
+   "approximate" even at 8 px. */
+.sun-day-part.is-visitors {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sun-soft) 0 3px,
+    color-mix(in srgb, var(--sun-soft) 35%, var(--bg)) 3px 6px
+  );
 }
 
 .sun-day-part.is-shade {

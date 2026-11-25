@@ -28,6 +28,8 @@ function status(
     state: category === 'sun' ? 'sun' : 'shade',
     category,
     timeline,
+    approximate: null,
+    byVisitors: false,
     sunUntil: null,
     nextSun: null,
     minutesLeft: null,

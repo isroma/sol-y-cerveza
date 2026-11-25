@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
-import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
+import { KIND_LABELS, sunBox, VISITORS_NOTE } from '../ui/categoryStyle.ts'
 import { SunDay } from './SunDay.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useCanSend, useOwner } from '../prices/owner.ts'
@@ -199,11 +199,15 @@ export function PinCard({ status, minutes }: Props) {
                 <div>
                   <strong>{box.title}</strong>
                   {box.detail && <span>{box.detail}</span>}
+                  {status.byVisitors && (
+                    <span className="pin-card-sun-note">{VISITORS_NOTE}</span>
+                  )}
                 </div>
               </div>
               {status.timeline && bar && (
                 <SunDay
                   timeline={status.timeline}
+                  approximate={status.approximate}
                   minutes={minutes}
                   middle={suggest}
                 />

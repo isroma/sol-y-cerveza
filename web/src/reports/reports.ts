@@ -60,6 +60,8 @@ export function ownerAddVenue(
 /** What the owner sees after saving a change or adding a venue. */
 export const OWNER_RESULT_TEXT = {
   price: 'Guardado. El precio ya se ve en el mapa.',
+  sun: 'Guardado. El sol ya se ve en el mapa.',
+  now: 'Guardado. Ya se ve en el mapa.',
   later: 'Guardado. Se aplicará en la próxima publicación.',
   error: 'No se ha podido guardar. Inténtalo de nuevo.',
 }
@@ -81,6 +83,15 @@ export const PRICE_RESULT_TEXT: Record<SuggestResult, string> = {
   error: 'No se ha podido enviar. Inténtalo más tarde.',
 }
 
+/**
+ * What a visitor sees after saying only that the sun is here now: it shows
+ * once 3 networks agree (SUN_THRESHOLD in the API).
+ */
+export const SUN_RESULT_TEXT: Record<SuggestResult, string> = {
+  ...RESULT_TEXT,
+  ok: '¡Gracias! Marcaremos el sol cuando tres personas coincidan.',
+}
+
 /** Everything a visitor suggests from a card's back, behind one bot check. */
 export type Change = {
   venueId: string
@@ -88,6 +99,8 @@ export type Change = {
   price?: { item: Item; brand: Brand | null; cents: number }
   move?: LatLon
   closed?: true
+  /** The sun is on the terrace now; the API stamps the time and the sun's place. */
+  sun?: true
 }
 
 function rounded<T extends { move?: LatLon }>(change: T): T {

@@ -19,6 +19,8 @@ export type ChangeDraft = {
   /** The price as typed. */
   text: string
   closed: boolean
+  /** "Ahora mismo da el sol": sun on the terrace right now, where the app says shade. */
+  sun: boolean
   /** Where the visitor placed the venue on the map, if they moved it. */
   move: LatLon | null
   /**
@@ -36,6 +38,7 @@ export function emptyDraft(venueId: string): ChangeDraft {
     brand: 'cruzcampo',
     text: '',
     closed: false,
+    sun: false,
     move: null,
     token: null,
     tokenAt: 0,

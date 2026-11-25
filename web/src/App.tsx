@@ -20,7 +20,13 @@ import { ReportPicker } from './reports/ReportPicker.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { isLeafOff } from './sun/leafOff.ts'
-import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
+import { correctionsByVenue, useSunCorrections } from './sun/corrections.ts'
+import {
+  compareStatus,
+  correctDays,
+  venueDay,
+  venueStatus,
+} from './sun/venueStatus.ts'
 import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
 import { CloseIcon, Logo, MenuIcon } from './ui/icons.tsx'
@@ -124,12 +130,18 @@ export function App() {
 
   const track = useMemo(() => dayTrack(date), [date])
   // Sun/shade per venue for the whole day: recomputed only when the day changes.
-  const days = useMemo(
+  const modelDays = useMemo(
     () =>
       load.status === 'ready'
         ? load.file.terraces.map((venue) => venueDay(venue, track))
         : [],
     [load, track],
+  )
+  // Visitors' sun reports: only the venues they correct are computed again.
+  const corrections = useSunCorrections()
+  const days = useMemo(
+    () => correctDays(modelDays, correctionsByVenue(corrections), track),
+    [modelDays, corrections, track],
   )
   const leafOffTrees = useMemo(
     () =>

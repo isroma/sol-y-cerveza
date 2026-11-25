@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   BRAND_NAMES,
   BRANDS,
@@ -18,11 +18,14 @@ import {
   OWNER_RESULT_TEXT,
   PRICE_RESULT_TEXT,
   RESULT_TEXT,
+  SUN_RESULT_TEXT,
   sendChange,
   sendOwnerChange,
 } from './reports.ts'
 import { useOwner } from '../prices/owner.ts'
 import { refreshCrowdPrices } from '../prices/crowd.ts'
+import { refreshSunCorrections, useSunCorrections } from '../sun/corrections.ts'
+import { canReportSun } from '../sun/reportable.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
@@ -32,7 +35,8 @@ const TOKEN_TTL_MS = 240_000
 
 /**
  * The back of the venue card: every change a visitor can suggest on one
- * card (a beer price, a new location, "Ya no existe"), sent as one request
+ * card (sun right now where the app says shade, a beer price, a new
+ * location, "Ya no existe"), sent as one request
  * behind one bot check. The check runs as soon as the back opens (the
  * owner's call), so its token is usually ready by the first edit.
  * "Ubicación" hands over to the map picker, which brings the spot back here.
@@ -53,6 +57,16 @@ export function SuggestChange({
   const startMove = useContext(StartMoveContext)
   const owner = useOwner().token !== null
   const { item, brand, text, closed, move } = draft
+  // "Ahora mismo da el sol" is about the real present, so it shows only
+  // while the app says shade here now with the sun up (checked as the back
+  // opens; the corrections can still change while it is open).
+  const corrections = useSunCorrections()
+  const [openedAt] = useState(() => new Date())
+  const sunRow = useMemo(
+    () => canReportSun(venue, corrections, openedAt),
+    [venue, corrections, openedAt],
+  )
+  const sun = sunRow && draft.sun
   // A token from before the trip to the map is used if still fresh.
   const [token, setToken] = useState(() =>
     draft.token !== null && Date.now() - draft.tokenAt < TOKEN_TTL_MS
@@ -100,7 +114,7 @@ export function SuggestChange({
   // The range the API accepts for this item.
   const [minCents, maxCents] = SUGGEST_RANGE[item]
   const priceOk = cents !== null && cents >= minCents && cents <= maxCents
-  const edited = hasPrice || closed || move !== null
+  const edited = hasPrice || closed || move !== null || sun
   const ready = edited && (!hasPrice || priceOk) && (owner || token !== null)
   // How far from its badge the visitor placed it.
   const moved = move
@@ -122,20 +136,30 @@ export function SuggestChange({
         : {}),
       ...(move ? { move } : {}),
       ...(closed ? { closed: true as const } : {}),
+      ...(sun ? { sun: true as const } : {}),
     }
-    const priceOnly = hasPrice && !closed && move === null
+    // Shown without review: a price and sun (on agreement, or at once for
+    // the owner). A move or a closure waits for review or Publish.
+    const reviewed = closed || move !== null
+    const priceOnly = hasPrice && !reviewed && !sun
+    const sunOnly = sun && !reviewed && !hasPrice
     if (owner) {
       setSending(true)
       const answer = await sendOwnerChange(parts)
       setSending(false)
       if (answer === 'ok' && hasPrice) void refreshCrowdPrices()
-      // A price shows at once; a move or closure at the next Publish.
+      if (answer === 'ok' && sun) void refreshSunCorrections()
+      // A price or sun shows at once; a move or closure at the next Publish.
       setResult(
         answer !== 'ok'
           ? OWNER_RESULT_TEXT.error
-          : priceOnly
-            ? OWNER_RESULT_TEXT.price
-            : OWNER_RESULT_TEXT.later,
+          : reviewed
+            ? OWNER_RESULT_TEXT.later
+            : priceOnly
+              ? OWNER_RESULT_TEXT.price
+              : sunOnly
+                ? OWNER_RESULT_TEXT.sun
+                : OWNER_RESULT_TEXT.now,
       )
       return
     }
@@ -143,8 +167,12 @@ export function SuggestChange({
     setSending(true)
     const answer = await sendChange({ ...parts, token })
     setSending(false)
-    // A price alone waits for agreement; anything else for review.
-    setResult((priceOnly ? PRICE_RESULT_TEXT : RESULT_TEXT)[answer])
+    // A price or sun waits for agreement; a move or closure for review.
+    setResult(
+      (reviewed ? RESULT_TEXT : sunOnly ? SUN_RESULT_TEXT : PRICE_RESULT_TEXT)[
+        answer
+      ],
+    )
   }
 
   return (
@@ -189,6 +217,18 @@ export function SuggestChange({
             void send()
           }}
         >
+          {sunRow && (
+            <div className="change-group">
+              <label className="change-row">
+                <span aria-hidden="true">Ahora mismo da el sol</span>
+                <Toggle
+                  checked={draft.sun}
+                  onChange={(on) => onChange({ sun: on })}
+                  label="Ahora mismo da el sol"
+                />
+              </label>
+            </div>
+          )}
           <div className="change-group">
             <div className="change-row change-row--segmented">
               <div

@@ -6,6 +6,7 @@ import { emptyDraft, type ChangeDraft } from './draft.ts'
 import { StartMoveContext } from './picking.ts'
 import { SuggestChange } from './SuggestChange.tsx'
 import { logIn, logOut } from '../prices/owner.ts'
+import { refreshSunCorrections } from '../sun/corrections.ts'
 
 // The API and the bot check as a build with both configured has them.
 vi.mock('../apiClient.ts', async (original) => {
@@ -36,6 +37,13 @@ vi.mock('./Turnstile.tsx', () => ({
   },
 }))
 
+// Visitors' sun corrections as the API would serve them; none by default.
+vi.mock('../sun/corrections.ts', async (original) => ({
+  ...(await original<typeof import('../sun/corrections.ts')>()),
+  useSunCorrections: () => [],
+  refreshSunCorrections: vi.fn(),
+}))
+
 const venue: Terrace = {
   id: 'osm:node/1',
   name: 'Bar Uno',
@@ -51,14 +59,16 @@ const venue: Terrace = {
 function Back({
   start = {},
   onBack = () => {},
+  of = venue,
 }: {
   start?: Partial<ChangeDraft>
   onBack?: () => void
+  of?: Terrace
 }) {
-  const [draft, setDraft] = useState({ ...emptyDraft(venue.id), ...start })
+  const [draft, setDraft] = useState({ ...emptyDraft(of.id), ...start })
   return (
     <SuggestChange
-      venue={venue}
+      venue={of}
       draft={draft}
       onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
       onBack={onBack}
@@ -79,7 +89,23 @@ function stubFetch(status = 201): Sent[] {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
+
+/** Under trees, 31° all round: shade all day at the winter solstice. */
+const shady: Terrace = {
+  ...venue,
+  terrace: venue.venue,
+  horizon: new Array<number>(360).fill(310),
+}
+const sunRow = () =>
+  screen.queryByRole('switch', { name: 'Ahora mismo da el sol' })
+
+/** The real present: 13:40 in Madrid at the winter solstice, sun 28° up. */
+function middayInWinter() {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-12-21T12:40:00Z'))
+}
 
 const send = () => screen.getByRole('button', { name: 'Enviar' })
 const check = () => screen.getByTestId('turnstile')
@@ -243,6 +269,89 @@ describe('SuggestChange', () => {
   })
 })
 
+describe('SuggestChange: the sun right now', () => {
+  it('offers it where the app says shade now, with the sun up', () => {
+    middayInWinter()
+    render(<Back of={shady} />)
+    expect(sunRow()).not.toBeChecked()
+  })
+
+  it('not without a horizon', () => {
+    middayInWinter()
+    render(<Back />)
+    expect(sunRow()).toBeNull()
+  })
+
+  it('not with the sun down', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-12-21T21:00:00Z'))
+    render(<Back of={shady} />)
+    expect(sunRow()).toBeNull()
+  })
+
+  it('sends it alone and says it shows once three people agree', async () => {
+    middayInWinter()
+    const sent = stubFetch()
+    render(<Back of={shady} />)
+    expect(send()).toBeDisabled()
+    fireEvent.click(sunRow() ?? document.body)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Marcaremos el sol cuando tres personas coincidan.',
+    )
+    expect(sent).toEqual([
+      {
+        url: 'https://api.test/v1/changes',
+        body: { venueId: venue.id, token: 'token-change', sun: true },
+      },
+    ])
+  })
+
+  it('sends it with a price as one change', async () => {
+    middayInWinter()
+    const sent = stubFetch()
+    render(<Back of={shady} start={{ sun: true, text: '1,50' }} />)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
+    )
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      price: { item: 'cana', brand: null, cents: 150 },
+      sun: true,
+    })
+  })
+
+  it('waits for review when sent with a closure', async () => {
+    middayInWinter()
+    stubFetch()
+    render(<Back of={shady} start={{ sun: true, closed: true }} />)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Lo revisaremos antes de publicarlo.',
+    )
+  })
+
+  it('never sends it while the row is hidden', async () => {
+    const sent = stubFetch()
+    render(<Back start={{ sun: true, closed: true }} />)
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).not.toHaveProperty('sun')
+  })
+
+  it('shows a plain error when the API refuses it (sun down, older API)', async () => {
+    middayInWinter()
+    stubFetch(400)
+    render(<Back of={shady} start={{ sun: true }} />)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'No se ha podido enviar. Inténtalo más tarde.',
+    )
+  })
+})
+
 describe('SuggestChange in owner mode', () => {
   const ownerOn = async () => {
     vi.stubGlobal('fetch', async () => Response.json({ token: 'owner' }))
@@ -281,5 +390,21 @@ describe('SuggestChange in owner mode', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'próxima publicación',
     )
+  })
+
+  it('saves the sun at once, and fetches the corrections again', async () => {
+    await ownerOn()
+    middayInWinter()
+    const sent = stubFetch()
+    render(<Back of={shady} start={{ sun: true }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Guardado. El sol ya se ve en el mapa.',
+    )
+    expect(sent[0]).toEqual({
+      url: 'https://api.test/v1/owner/changes',
+      body: { venueId: venue.id, sun: true },
+    })
+    expect(refreshSunCorrections).toHaveBeenCalled()
   })
 })
