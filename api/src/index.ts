@@ -584,20 +584,24 @@ async function prices(
   if (cached) return pricesResponse(await cached.text())
 
   const since = new Date(now - WINDOW_DAYS * 86400_000).toISOString()
-  const { results } = await env.DB.prepare(
-    `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
-            MAX(created_at) AS last
-     FROM suggestions s
-     WHERE status != 'rejected' AND created_at >= ? AND ${NOT_REJECTED}
-     GROUP BY venue_id, item, brand, cents`,
-  )
-    .bind(since)
-    .all<PriceGroup>()
-  const owner = await env.DB.prepare(
-    'SELECT venue_id, item, brand, cents, seen FROM owner_prices',
-  ).all<OwnerRow>()
+  // One round trip to D1 for both reads.
+  const [suggested, owner] = await env.DB.batch<PriceGroup | OwnerRow>([
+    env.DB.prepare(
+      `SELECT venue_id, item, brand, cents, COUNT(DISTINCT net_hash) AS voters,
+              MAX(created_at) AS last
+       FROM suggestions s
+       WHERE status != 'rejected' AND created_at >= ? AND ${NOT_REJECTED}
+       GROUP BY venue_id, item, brand, cents`,
+    ).bind(since),
+    env.DB.prepare(
+      'SELECT venue_id, item, brand, cents, seen FROM owner_prices',
+    ),
+  ])
   const body = JSON.stringify({
-    prices: withOwnerPrices(consensus(results), owner.results),
+    prices: withOwnerPrices(
+      consensus((suggested?.results ?? []) as PriceGroup[]),
+      (owner?.results ?? []) as OwnerRow[],
+    ),
   })
   pricesMemo = { body, until: now + PRICES_MEMO_SECONDS * 1000 }
   ctx.waitUntil(caches.default.put(key, pricesResponse(body)))

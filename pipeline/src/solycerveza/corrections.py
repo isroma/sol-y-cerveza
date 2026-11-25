@@ -11,14 +11,14 @@ register keeps closed venues. Curators list such venues in `pipeline/data/venue_
 Wrong OSM venues should be fixed in OSM instead; `drop` is meant for Overture and Junta records.
 """
 
-import csv
 import logging
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field
 
+from solycerveza.csvfile import read_rows
 from solycerveza.venues import VENUE_ID_PATTERN, Venue
 
 logger = logging.getLogger(__name__)
@@ -36,19 +36,10 @@ class Correction(BaseModel):
 
 
 def read_corrections(path: Path = CORRECTIONS_CSV) -> list[Correction]:
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != COLUMNS:
-            raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
-        corrections: list[Correction] = []
-        for row in reader:
-            try:
-                corrections.append(
-                    Correction.model_validate({k: (v or "").strip() for k, v in row.items()})
-                )
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
-    return corrections
+    """The corrections. The file must exist; blank cells are empty strings, not None."""
+    return read_rows(
+        path, COLUMNS, Correction, clean=lambda row: {k: (v or "").strip() for k, v in row.items()}
+    )
 
 
 def apply_corrections(venues: Sequence[Venue], corrections: Sequence[Correction]) -> list[Venue]:

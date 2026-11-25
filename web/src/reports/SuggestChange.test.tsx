@@ -202,7 +202,30 @@ describe('SuggestChange', () => {
       { target: { value: '12' } },
     )
     expect(
-      screen.getByText('Escribe un precio entre 0,50 € y 8,00 €.'),
+      screen.getByText('Escribe un precio entre 0,50 € y 6,00 €.'),
+    ).toBeInTheDocument()
+    expect(send()).toBeDisabled()
+  })
+
+  it('uses the API range of each beer', () => {
+    render(<Back />)
+    const price = (name: string) => screen.getByRole('textbox', { name })
+    // A caña above 6,00 € is refused by the API, though a tercio may cost it.
+    fireEvent.change(price('Precio de la caña en euros'), {
+      target: { value: '6,50' },
+    })
+    expect(
+      screen.getByText('Escribe un precio entre 0,50 € y 6,00 €.'),
+    ).toBeInTheDocument()
+    expect(send()).toBeDisabled()
+    fireEvent.click(screen.getByRole('radio', { name: 'Tercio' }))
+    expect(screen.queryByText(/Escribe un precio/)).not.toBeInTheDocument()
+    // A tercio under 0,80 € is refused, though a caña may cost it.
+    fireEvent.change(price('Precio del tercio en euros'), {
+      target: { value: '0,60' },
+    })
+    expect(
+      screen.getByText('Escribe un precio entre 0,80 € y 8,00 €.'),
     ).toBeInTheDocument()
     expect(send()).toBeDisabled()
   })
