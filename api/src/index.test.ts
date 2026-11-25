@@ -64,7 +64,7 @@ beforeAll(async () => {
   bundle = result.outputFiles[0]?.text ?? ''
 })
 
-type Calls = { siteverify: number; anthropic: number }
+type Calls = { siteverify: number; ai: number }
 
 type Api = {
   /** Sends a request to the Worker; `path` is joined to `base`. */
@@ -86,18 +86,70 @@ async function startApi(
   /** Rows to insert just before the migration whose file name starts with `before`. */
   seed?: { before: string; sql: string[] },
 ): Promise<Api> {
-  const calls: Calls = { siteverify: 0, anthropic: 0 }
+  const calls: Calls = { siteverify: 0, ai: 0 }
   const secrets: Record<string, string> = {}
   const all = {
     TURNSTILE_SECRET: TEST_SECRET,
     ADMIN_TOKEN: 'test-admin-token',
     OWNER_TOKEN: 'test-owner-token',
     IP_SALT: SALT,
-    ANTHROPIC_API_KEY: 'test-anthropic-key',
     ...bindings,
   }
   for (const [name, value] of Object.entries(all))
     if (value !== undefined) secrets[name] = value
+
+  const outbound = async (request: MfRequest) => {
+    const url = new URL(request.url)
+    if (request.url === TERRACES_URL)
+      return MfResponse.json({
+        terraces: VENUES.map((id) => ({
+          id,
+          venue: { lat: 38.878, lon: -6.97 },
+        })),
+      })
+    if (url.hostname === 'challenges.cloudflare.com') {
+      calls.siteverify++
+      const form = await request.formData()
+      const token = String(form.get('response'))
+      // A token "ok:<action>" passes as that action from the site's hostname.
+      const [verdict, action] = token.split(':')
+      return MfResponse.json({
+        success: verdict === 'ok',
+        hostname: 'isroma.github.io',
+        action,
+      })
+    }
+    if (url.hostname === 'ai.test') {
+      calls.ai++
+      return MfResponse.json({
+        choices: [
+          {
+            index: 0,
+            finish_reason: 'stop',
+            message: {
+              role: 'assistant',
+              content: JSON.stringify({
+                prices: [
+                  {
+                    item: 'cana',
+                    brand: null,
+                    cents: 150,
+                    label: 'Caña 1,50',
+                    confidence: 'high',
+                  },
+                ],
+                notes: [],
+                bar_name: 'Bar de Prueba',
+              }),
+            },
+          },
+        ],
+      })
+    }
+    return new MfResponse(`unexpected fetch ${request.url}`, {
+      status: 599,
+    })
+  }
 
   // The options as wrangler 4 writes them; this Miniflare takes them converted, as wrangler does.
   const mf = new Miniflare(
@@ -109,61 +161,31 @@ async function startApi(
           compatibilityDate,
           d1Databases: { DB: 'test-db' },
           bindings: { ALLOWED_ORIGINS: ORIGINS, TERRACES_URL, ...secrets },
-          outboundService: async (request: MfRequest) => {
-            const url = new URL(request.url)
-            if (request.url === TERRACES_URL)
-              return MfResponse.json({
-                terraces: VENUES.map((id) => ({
-                  id,
-                  venue: { lat: 38.878, lon: -6.97 },
-                })),
-              })
-            if (url.hostname === 'challenges.cloudflare.com') {
-              calls.siteverify++
-              const form = await request.formData()
-              const token = String(form.get('response'))
-              // A token "ok:<action>" passes as that action from the site's hostname.
-              const [verdict, action] = token.split(':')
-              return MfResponse.json({
-                success: verdict === 'ok',
-                hostname: 'isroma.github.io',
-                action,
-              })
-            }
-            if (url.hostname === 'api.anthropic.com') {
-              calls.anthropic++
-              return MfResponse.json({
-                id: 'msg_test',
-                type: 'message',
-                role: 'assistant',
-                model: 'claude-opus-5-5',
-                content: [
-                  {
-                    type: 'text',
-                    text: JSON.stringify({
-                      prices: [
-                        {
-                          item: 'cana',
-                          brand: null,
-                          cents: 150,
-                          label: 'Caña 1,50',
-                          confidence: 'high',
-                        },
-                      ],
-                      notes: [],
-                      bar_name: 'Bar de Prueba',
-                    }),
-                  },
-                ],
-                stop_reason: 'end_turn',
-                stop_sequence: null,
-                usage: { input_tokens: 1, output_tokens: 1 },
-              })
-            }
-            return new MfResponse(`unexpected fetch ${request.url}`, {
-              status: 599,
-            })
-          },
+          outboundService: outbound,
+          // Workers AI, faked over RPC: run() posts to ai.test, answered by `outbound`.
+          serviceBindings: { AI: { name: 'fake-ai', entrypoint: 'FakeAi' } },
+        },
+        {
+          name: 'fake-ai',
+          modules: [
+            {
+              type: 'ESModule',
+              path: 'fake-ai.js',
+              contents: [
+                "import { WorkerEntrypoint } from 'cloudflare:workers'",
+                'export class FakeAi extends WorkerEntrypoint {',
+                '  async run(model, inputs) {',
+                '    const body = JSON.stringify({ model, inputs })',
+                "    const response = await fetch('https://ai.test/run', { method: 'POST', body })",
+                '    return response.json()',
+                '  }',
+                '}',
+                'export default { fetch: () => new Response(null, { status: 404 }) }',
+              ].join('\n'),
+            },
+          ],
+          compatibilityDate,
+          outboundService: outbound,
         },
       ],
     }),
@@ -836,12 +858,12 @@ describe('owner photos', () => {
       ),
     )
 
-  it(`are read by the Claude API, at most ${PHOTO_DAILY_LIMIT} a day`, async () => {
+  it(`are read by Workers AI, at most ${PHOTO_DAILY_LIMIT} a day`, async () => {
     const first = await photo()
     expect(first.status).toBe(200)
     const body = await readJson<{ barName: string }>(first)
     expect(body.barName).toBe('Bar de Prueba')
-    expect(api.calls.anthropic).toBe(1)
+    expect(api.calls.ai).toBe(1)
 
     // Readings older than a day don't count; the rest of today's fill the cap.
     const now = Date.now()
@@ -858,7 +880,7 @@ describe('owner photos', () => {
     const capped = await photo()
     expect(capped.status).toBe(429)
     expect(Number(capped.headers.get('Retry-After'))).toBeGreaterThan(0)
-    expect(api.calls.anthropic).toBe(1)
+    expect(api.calls.ai).toBe(1)
   })
 
   it("don't use up the cap with an invalid photo", async () => {
