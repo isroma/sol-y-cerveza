@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const maplibre = vi.hoisted(() => ({
   addProtocol: vi.fn(),
   importScriptInWorkers: vi.fn<(url: string) => Promise<void>>(),
+  GeoJSONSource: class {
+    setData = vi.fn()
+  },
 }))
 vi.mock('maplibre-gl', () => maplibre)
 vi.mock('./treesWorker.ts?worker&url', () => ({
@@ -15,14 +18,12 @@ const { addTreeCrowns, TREE_LAYER, TREES, treesData } =
 const { loadTrees, TREES_PROTOCOL } = await import('./treeCodec.ts')
 
 function fakeMap() {
-  const setData = vi.fn()
+  const source = new maplibre.GeoJSONSource()
+  const getSource = vi.fn()
+  getSource.mockReturnValue(source)
   return {
-    setData,
-    map: {
-      addSource: vi.fn(),
-      addLayer: vi.fn(),
-      getSource: vi.fn(() => ({ setData })),
-    },
+    setData: source.setData,
+    map: { addSource: vi.fn(), addLayer: vi.fn(), getSource },
   }
 }
 

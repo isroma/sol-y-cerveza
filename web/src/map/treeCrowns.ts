@@ -1,8 +1,8 @@
 import {
   addProtocol,
+  GeoJSONSource,
   importScriptInWorkers,
   type FillExtrusionLayerSpecification,
-  type GeoJSONSource,
   type Map as MapLibreMap,
 } from 'maplibre-gl'
 import { EXTRUSION_OPACITY, RELIEF_ZOOM } from './camera.ts'
@@ -58,8 +58,11 @@ export function addTreeCrowns(
   })
   map.addLayer(TREE_LAYER, before)
   addProtocol(TREES_PROTOCOL, loadTrees)
-  const load = () =>
-    map.getSource<GeoJSONSource>(TREES)?.setData(treesData(location.href))
+  const load = () => {
+    const source = map.getSource(TREES)
+    if (source instanceof GeoJSONSource)
+      source.setData(treesData(location.href))
+  }
   // MapLibre import()s a URL ending in .mjs as it is; any other it fetches and
   // runs from a blob: URL, where the module's own imports (in dev) can't resolve.
   importScriptInWorkers(

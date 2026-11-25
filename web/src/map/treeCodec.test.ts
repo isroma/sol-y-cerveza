@@ -51,7 +51,9 @@ describe('loadTrees', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('fetches the encoded URL and returns GeoJSON', async () => {
-    const fetch = vi.fn(async () => new Response(JSON.stringify(FILE)))
+    const fetch = vi.fn(
+      async (_url: string) => new Response(JSON.stringify(FILE)),
+    )
     vi.stubGlobal('fetch', fetch)
     const { data } = await loadTrees(
       { url: 'trees://https%3A%2F%2Fexample.org%2Fdata%2Ftrees.json' },
