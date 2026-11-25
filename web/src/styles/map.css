@@ -291,6 +291,13 @@
     white-space: nowrap;
   }
 
+  /* Centred over the legend, which is centred on the screen. */
+  .map-info {
+    right: auto;
+    left: 50%;
+    translate: -50% 0;
+  }
+
   .legend-info {
     /* Centred on the 56 px strip. */
     top: 12px;
