@@ -21,8 +21,6 @@ type Props = {
   attribution: readonly string[]
   /** The data has leaf-off horizons (ADR-0007): explain the winter rule. */
   leafOffTrees: boolean
-  /** Where MapView mounts the map's attribution control, next to the legend. */
-  attributionSlot: RefObject<HTMLDivElement | null>
 }
 
 export function MapControls({
@@ -30,7 +28,6 @@ export function MapControls({
   ready,
   attribution,
   leafOffTrees,
-  attributionSlot,
 }: Props) {
   const [cityOpen, setCityOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -173,9 +170,7 @@ export function MapControls({
         </p>
       )}
 
-      {/* The map's attribution and the legend, side by side as one group. */}
       <div className="map-bottom">
-        <div className="map-attrib" ref={attributionSlot} />
         <aside className="map-legend" aria-label="Leyenda">
           <ul>
             {(['sun', 'soon', 'nosun'] as const).map((category) => (
@@ -212,6 +207,31 @@ export function MapControls({
               </p>
               {leafOffTrees && <p>{LEAF_OFF_INFO}</p>}
               <ul className="map-info-sources">
+                <li>
+                  Mapa base:{' '}
+                  <a
+                    href="https://openfreemap.org"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    OpenFreeMap
+                  </a>{' '}
+                  <a
+                    href="https://www.openmaptiles.org/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    © OpenMapTiles
+                  </a>
+                  , datos de{' '}
+                  <a
+                    href="https://www.openstreetmap.org/copyright"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    OpenStreetMap
+                  </a>
+                </li>
                 {attribution.map((line) => (
                   <li key={line}>{line}</li>
                 ))}

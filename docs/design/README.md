@@ -175,15 +175,15 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 - A slim brand bar on top (32 px mark, 20 px title) with a **menu button** (44 px) on the right.
 - The map fills the middle and the **time bar is the footer**, always in view.
 - The menu opens over the map, between the brand bar and the footer, with search, filters and the list. The button turns into a close icon; Escape or picking a venue closes it, so the venue's map card shows.
-- The map attribution "i" and the legend (as wide as its rows, 56 px tall) form one group, 8 px apart, centred at the bottom of the map.
+- The legend (as wide as its rows, 56 px tall) is centred at the bottom of the map.
 - While the report picker is open (§7), the time footer and that bottom group are hidden: the picker's bar takes the bottom of the map, centred. On desktop the bar sits bottom-left (16 px inset, at most 420 px wide), clear of the legend.
 
 ### Map overlays
 
-- Everything floating on the map sits on one **16 px inset** (`--map-inset`): city pill top-left, buttons top-right, legend bottom-right, attribution bottom-left.
+- Everything floating on the map sits on one **16 px inset** (`--map-inset`): city pill top-left, buttons top-right, legend bottom-right.
 - Map buttons and the city pill are **44 px tall** (`--control`, Apple's minimum touch target); buttons are round, the zoom pair is one 44 px-wide capsule; **12 px** between button groups.
 - Toasts appear 12 px under the top controls.
-- Map attribution: MapLibre's compact control, mounted in our own layout 8 px left of the legend (never in a map corner). It starts closed (just the "i", no focus ring); opened, the credits rise above it as a 24 px-wide vertical strip read bottom to top. It follows the theme (`bg`/`ink`, a light "i" at night).
+- Map attribution: no MapLibre attribution control. The legend's "i" is the only info button; its "Sobre los datos" panel lists the basemap credits (OpenFreeMap, OpenMapTiles, OpenStreetMap, as links) above the data licence lines.
 - Legend: 16 px padding, 12 px between rows and between icon and label, 16 px radius; the info button is centred on the last row, 12 px from the right edge.
 - Info panel: 16 px padding and radius, opens 12 px above the legend, at most 340 px wide.
 - Owner bar (owner mode only, never seen by visitors): top centre of the map, 12 px under the top controls, as `bg` pills with `--shadow` ("Modo dueño", "Foto de precios", "Salir", and one-line messages above them). On phones it sits left-aligned between the inset and the map buttons, without the "Modo dueño" label.

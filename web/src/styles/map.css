@@ -13,7 +13,7 @@
 }
 
 /* Pins and the pin card live in the canvas container: keep them below the
-   map's attribution, too. */
+   map's controls. */
 .maplibregl-canvas-container {
   isolation: isolate;
 }
@@ -150,8 +150,7 @@
   font-size: 14px;
 }
 
-/* The map's attribution "i" and the legend, side by side: bottom-right on
-   desktop, centred as one group on phones. */
+/* The legend: bottom-right on desktop, centred on phones. */
 .map-bottom {
   position: absolute;
   right: var(--map-inset);
@@ -159,10 +158,6 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-}
-
-.map-attrib {
-  flex: none;
 }
 
 .map-legend {
@@ -252,8 +247,11 @@
   font-size: 12px;
 }
 
+.map-info-sources a {
+  color: inherit;
+}
+
 @media (max-width: 899px) {
-  /* The attribution button sits left of the legend, both at the bottom. */
   .map-wrap {
     --legend-height: 56px;
   }
