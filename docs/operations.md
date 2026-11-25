@@ -66,4 +66,4 @@ Why network-first: [ADR-0011](adr/0011-network-first-service-worker.md). The bui
 
 ## Brand images
 
-The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && node scripts/brand-images.mjs` (needs Playwright's Chromium). See the [design standards](design/README.md).
+The app icons in the web manifest (`web/public/icon-*.png`) and the link preview image (`web/public/og.png`) come from `web/public/favicon.svg`: regenerate them with `cd web && npm run brand-images` (needs Playwright's Chromium, and uv for the lossless oxipng recompression it ends with). See the [design standards](design/README.md).
