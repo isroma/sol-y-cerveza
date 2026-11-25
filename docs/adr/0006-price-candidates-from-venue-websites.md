@@ -1,6 +1,6 @@
 # ADR-0006: Price candidates from venues' own websites
 
-- Status: accepted
+- Status: accepted (2026-11-23)
 - Date: 2026-11-23
 - Issue: #174
 

@@ -1,6 +1,6 @@
 # ADR-0003: Venue base is OSM plus Overture
 
-- Status: accepted
+- Status: accepted (2026-11-24)
 - Date: 2026-11-24
 - Supersedes: decision 3 of [ADR-0002](0002-terrace-data-sources.md) ("Overture is a to-do list only", option A)
 

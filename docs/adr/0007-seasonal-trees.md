@@ -1,6 +1,6 @@
 # ADR-0007: Bare deciduous trees in winter
 
-- Status: Accepted (owner, 2026-11-23)
+- Status: accepted (owner, 2026-11-23)
 - Date: 2026-11-23
 - Issue: #177
 
