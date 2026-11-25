@@ -1,5 +1,6 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState, type RefObject } from 'react'
+import { BADAJOZ_BBOX } from '../data/geo.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
 import { CATEGORY_LABELS, LEAF_OFF_INFO } from '../ui/categoryStyle.ts'
@@ -13,8 +14,6 @@ import {
   PinIcon,
   PlusIcon,
 } from '../ui/icons.tsx'
-
-const BADAJOZ_BOUNDS = { south: 38.84, west: -7.04, north: 38.92, east: -6.92 }
 
 type Props = {
   mapRef: RefObject<MapLibreMap | null>
@@ -81,10 +80,10 @@ export function MapControls({
           .setLngLat([lon, lat])
           .addTo(m)
         const inside =
-          lat > BADAJOZ_BOUNDS.south &&
-          lat < BADAJOZ_BOUNDS.north &&
-          lon > BADAJOZ_BOUNDS.west &&
-          lon < BADAJOZ_BOUNDS.east
+          lat > BADAJOZ_BBOX.south &&
+          lat < BADAJOZ_BBOX.north &&
+          lon > BADAJOZ_BBOX.west &&
+          lon < BADAJOZ_BBOX.east
         if (inside)
           m.flyTo({
             center: [lon, lat],

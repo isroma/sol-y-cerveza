@@ -12,7 +12,7 @@ import {
   VENUE_HOURLY_LIMIT,
   voterKeys,
 } from './logic.ts'
-import type { LatLon } from './reports.ts'
+import type { LatLon } from '../../web/src/data/geo.ts'
 
 let venues: { ids: Map<string, LatLon>; until: number } | null = null
 

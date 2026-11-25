@@ -1,5 +1,5 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
-import { distanceM } from '../prices/owner.ts'
+import { distanceMetres } from '../data/geo.ts'
 import type { Review } from './review.ts'
 
 /**
@@ -112,7 +112,7 @@ export function junkSignalsAll(
     let duplicate: JunkSignal | null = null
     for (const other of others) {
       if (other.id === venue.id) continue
-      const d = distanceM(venue.venue, other.at)
+      const d = distanceMetres(venue.venue, other.at)
       nearest = Math.min(nearest, d)
       if (d > DUPLICATE_M || other.name !== name) continue
       if (other.settled) duplicate = 'duplicate'
@@ -120,7 +120,7 @@ export function junkSignalsAll(
         duplicate = 'duplicate_overture'
     }
     if (duplicate) signals.push(duplicate)
-    if (distanceM(venue.venue, centre) > FAR_M) signals.push('far')
+    if (distanceMetres(venue.venue, centre) > FAR_M) signals.push('far')
     if (nearest > ISOLATED_M) signals.push('isolated')
     out.set(venue.id, signals)
   }

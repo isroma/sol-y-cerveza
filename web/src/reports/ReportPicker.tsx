@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import type { LatLon } from '../data/terraces.ts'
+import {
+  cleanVenueName,
+  distanceMetres,
+  insideBadajoz,
+  type LatLon,
+} from '../data/geo.ts'
 import { TURNSTILE_SITE_KEY, type SuggestResult } from '../prices/crowd.ts'
 import { Turnstile } from '../prices/Turnstile.tsx'
 import { KIND_LABELS } from '../ui/categoryStyle.ts'
 import { Toggle } from '../ui/Toggle.tsx'
 import type { Picking } from './picking.ts'
 import {
-  cleanName,
-  distanceMetres,
-  insideBadajoz,
   MAX_MOVE_M,
   MIN_MOVE_M,
   reportVenue,
@@ -98,7 +100,7 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
     setSending(true)
     const sent = reportVenue({
       kind: 'add',
-      name: cleanName(name),
+      name: cleanVenueName(name),
       venueKind: kind,
       terrace,
       lat: center.lat,

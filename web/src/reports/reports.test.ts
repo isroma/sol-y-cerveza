@@ -1,12 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  cleanName,
-  distanceMetres,
-  insideBadajoz,
-  reportVenue,
-  validName,
-  type Report,
-} from './reports.ts'
+import { reportVenue, validName, type Report } from './reports.ts'
 
 vi.mock('../prices/crowd.ts', () => ({
   PRICES_API: 'https://api.test',
@@ -17,12 +10,6 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('cleanName', () => {
-  it('turns commas, quotes and line breaks into single spaces', () => {
-    expect(cleanName('  Bar "El Sol",\n  Badajoz ')).toBe('Bar El Sol Badajoz')
-  })
-})
-
 describe('validName', () => {
   it('takes 2 to 60 characters after cleaning, without links', () => {
     expect(validName('Bar Nuevo')).toBe(true)
@@ -30,26 +17,6 @@ describe('validName', () => {
     expect(validName('x'.repeat(61))).toBe(false)
     expect(validName('www.bar.es')).toBe(false)
     expect(validName('Bar HTTPS')).toBe(false)
-  })
-})
-
-describe('insideBadajoz', () => {
-  it('accepts the city box only', () => {
-    expect(insideBadajoz({ lat: 38.878, lon: -6.97 })).toBe(true)
-    expect(insideBadajoz({ lat: 38.95, lon: -6.97 })).toBe(false)
-    expect(insideBadajoz({ lat: 38.878, lon: -7.05 })).toBe(false)
-  })
-})
-
-describe('distanceMetres', () => {
-  it('measures short distances in metres', () => {
-    // 0.001° of latitude is about 111 m.
-    const d = distanceMetres(
-      { lat: 38.878, lon: -6.97 },
-      { lat: 38.879, lon: -6.97 },
-    )
-    expect(d).toBeGreaterThan(110)
-    expect(d).toBeLessThan(112)
   })
 })
 
