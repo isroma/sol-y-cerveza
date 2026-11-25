@@ -15,6 +15,9 @@ type MapHandle = {
   jumpTo(options: { bearing?: number; zoom?: number }): void
   getLayer(id: string): { type: string } | undefined
   isMoving(): boolean
+  isStyleLoaded(): boolean | void
+  getLight(): { intensity?: number }
+  getCanvas(): HTMLCanvasElement
   getSource(
     id: string,
   ): { getData(): Promise<{ features?: unknown[] }> } | undefined
@@ -66,8 +69,8 @@ const test = base.extend<{ errors: string[] }>({
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 900
 
 /** Loads the app and waits for the map and its terrace pins. */
-async function openApp(page: Page) {
-  await page.goto('./')
+async function openApp(page: Page, path = './') {
+  await page.goto(path)
   await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT, {
     timeout: 15_000,
   })
@@ -247,3 +250,58 @@ test('"Con sol ahora" keeps only the sunny terraces', async ({ page }) => {
   await sunFilter.uncheck()
   await expect(page.locator('.venue-row')).toHaveCount(TERRACE_COUNT)
 })
+
+/** Loses the map's WebGL context and gets it back, as a phone may under memory pressure. */
+async function loseAndRestoreContext(page: Page) {
+  await page.evaluate(async () => {
+    const lose = window.__map
+      ?.getCanvas()
+      .getContext('webgl2')
+      ?.getExtension('WEBGL_lose_context')
+    if (!lose) throw new Error('no WEBGL_lose_context')
+    lose.loseContext()
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    lose.restoreContext()
+  })
+}
+
+for (const gpu of [false, true])
+  test(`the map comes back whole after a lost WebGL context${gpu ? ' (?shade=gpu)' : ''}`, async ({
+    page,
+  }) => {
+    if (gpu) {
+      // No LiDAR files in the tests: empty ones.
+      await page.route(/\/data\/(buildings|trees)\.json$/, (route) =>
+        route.fulfill({ json: { v: 1, g: [] } }),
+      )
+    }
+    await openApp(page, gpu ? './?shade=gpu' : './')
+    const before = await page.evaluate(() => window.__map?.getLight())
+    expect(before?.intensity).toBeGreaterThan(0)
+    const shadows = gpu ? 'custom' : 'fill-extrusion'
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.__map?.getLayer('building-shadows')?.type),
+      )
+      .toBe(shadows)
+
+    await loseAndRestoreContext(page)
+
+    // The sun's light (else the buildings come back washed out), the shadows
+    // (MapLibre drops custom layers) and the grey dots.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const map = window.__map
+          // No style at all until the context is back.
+          if (!map?.isStyleLoaded()) return null
+          return {
+            light: map.getLight(),
+            shadows: map.getLayer('building-shadows')?.type,
+            dots: map.getLayer('venues-unconfirmed')?.type,
+          }
+        }),
+      )
+      .toEqual({ light: before, shadows, dots: 'circle' })
+    await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT)
+  })

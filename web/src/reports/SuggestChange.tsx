@@ -64,6 +64,8 @@ export function SuggestChange({
     onChange({ token: fresh, tokenAt: Date.now() })
   }
   const [sending, setSending] = useState(false)
+  // Cloudflare's check is running unseen: Enviar shows a spinner.
+  const [checking, setChecking] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
   // The card is a map marker: stop drags, scrolls and keys natively so they
@@ -277,6 +279,7 @@ export function SuggestChange({
               action="change"
               run={token === null}
               onToken={keepToken}
+              onChecking={setChecking}
             />
           )}
           <button
@@ -284,6 +287,14 @@ export function SuggestChange({
             className="change-send"
             disabled={!ready || sending}
           >
+            {/* Cloudflare's unseen check: most visitors never get a box. */}
+            {checking && !sending && (
+              <span
+                className="change-send-spinner"
+                role="status"
+                aria-label="Verificando"
+              />
+            )}
             {owner
               ? sending
                 ? 'Guardando…'

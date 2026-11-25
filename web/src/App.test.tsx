@@ -134,21 +134,43 @@ describe('App', () => {
     stubFetch(Response.json(sampleFile))
     render(<App />)
     await listedNames()
-    expect(window.location.search).toBe('')
+    await waitFor(() => expect(window.location.search).toBe(''))
 
     fireEvent.change(screen.getByLabelText('Hora del día'), {
       target: { value: '1080' },
     })
-    expect(window.location.search).toBe('?t=18:00')
+    await waitFor(() => expect(window.location.search).toBe('?t=18:00'))
 
     fireEvent.click(
       screen.getByRole('button', { name: /Terraza de ejemplo · Plaza Alta/ }),
     )
-    expect(window.location.search).toBe('?t=18:00&v=sample:plaza-alta')
+    await waitFor(() =>
+      expect(window.location.search).toBe('?t=18:00&v=sample:plaza-alta'),
+    )
 
     // Back to now: the time follows the clock again and leaves the URL.
     fireEvent.click(screen.getByRole('button', { name: /Volver a ahora/ }))
-    expect(window.location.search).toBe('?v=sample:plaza-alta')
+    await waitFor(() =>
+      expect(window.location.search).toBe('?v=sample:plaza-alta'),
+    )
+  })
+
+  it('writes the URL once the slider rests, not on every step', async () => {
+    stubFetch(Response.json(sampleFile))
+    const replace = vi.spyOn(window.history, 'replaceState')
+    render(<App />)
+    await listedNames()
+    replace.mockClear()
+
+    // Safari throws past 100 calls in 10 s, which blanked the page (#371).
+    const slider = screen.getByLabelText('Hora del día')
+    for (let i = 0; i < 150; i++)
+      fireEvent.change(slider, {
+        target: { value: String(480 + (i % 50) * 15) },
+      })
+    await waitFor(() => expect(window.location.search).toBe('?t=20:15'))
+    expect(replace).toHaveBeenCalledTimes(1)
+    replace.mockRestore()
   })
 
   it('opens a shared link at its time with its venue selected', async () => {
@@ -161,7 +183,9 @@ describe('App', () => {
     expect(screen.getByTestId('map-selected')).toHaveTextContent(
       'sample:plaza-alta',
     )
-    expect(window.location.search).toBe('?t=18:00&v=sample:plaza-alta')
+    await waitFor(() =>
+      expect(window.location.search).toBe('?t=18:00&v=sample:plaza-alta'),
+    )
   })
 
   it('ignores bad values and unknown venues in the URL', async () => {
@@ -174,7 +198,7 @@ describe('App', () => {
     await waitFor(() =>
       expect(screen.getByTestId('map-selected')).toBeEmptyDOMElement(),
     )
-    expect(window.location.search).toBe('?utm=x')
+    await waitFor(() => expect(window.location.search).toBe('?utm=x'))
   })
 
   it('shows a linked venue without a terrace', async () => {

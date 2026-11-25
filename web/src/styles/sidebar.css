@@ -85,15 +85,15 @@
 
 /* Time */
 
-.time {
-  /* Pulls the time up to sit optically centred between the search bar and
-     the slider (the sidebar's 24 px gap is more than it needs). */
-  margin-top: -8px;
-}
-
 .time-header {
   display: flex;
   justify-content: center;
+}
+
+/* In the sidebar the time gets the same 24 px gap as every section, and room
+   under it for the "Ahora" bubble. The phone footer keeps its own spacing. */
+.sidebar .time-header {
+  margin-bottom: var(--space-3);
 }
 
 .time-value {

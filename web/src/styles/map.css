@@ -199,10 +199,12 @@
 }
 
 .legend-info {
-  /* Centred on the last legend row, in the bottom-right corner. */
+  /* Top-right corner, mirroring the first row's sun icon: its drawn ring
+     sits as far from the right edge (18 px) as the sun from the left, and
+     centred on the first row. */
   position: absolute;
-  right: var(--space-3);
-  bottom: 11px;
+  top: 11px;
+  right: 9px;
   display: grid;
   place-items: center;
   width: 32px;
@@ -289,7 +291,22 @@
     white-space: nowrap;
   }
 
+  /* While a card shows its back ("Sugerir un cambio") the legend steps
+     aside, so the card has the room down to the time bar. */
+  .map-wrap.has-card:has(.pin-card .change) .map-bottom {
+    display: none;
+  }
+
+  /* Centred over the legend, which is centred on the screen. */
+  .map-info {
+    right: auto;
+    left: 50%;
+    translate: -50% 0;
+  }
+
   .legend-info {
+    /* Centred on the 56 px strip. */
+    top: 12px;
     right: var(--space-1);
   }
 

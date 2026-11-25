@@ -60,6 +60,11 @@ type Props = {
    * once either way, so a deferred check starts without the script's delay.
    */
   run?: boolean
+  /**
+   * Told whether a check is running unseen. When given, the caller shows that
+   * (the card back's Enviar does) and this draws no spinner of its own.
+   */
+  onChecking?: (checking: boolean) => void
 }
 
 /** Where the check is: running unseen, showing its box, passed, or failed. */
@@ -70,13 +75,25 @@ type CheckState = 'checking' | 'interactive' | 'passed' | 'failed'
  * Every mount needs a new check (each turn of the card), and the first in a
  * session also loads Cloudflare's script: while one runs, a spinner.
  */
-export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
+export function Turnstile({
+  siteKey,
+  onToken,
+  action,
+  run = true,
+  onChecking,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<CheckState>('checking')
   const onTokenRef = useRef(onToken)
+  const onCheckingRef = useRef(onChecking)
   useEffect(() => {
     onTokenRef.current = onToken
+    onCheckingRef.current = onChecking
   })
+  const checking = run && state === 'checking'
+  useEffect(() => {
+    onCheckingRef.current?.(checking)
+  }, [checking])
 
   // Whether the check was asked for at render time; later, `run` executes it.
   const deferred = useRef(!run)
@@ -147,7 +164,7 @@ export function Turnstile({ siteKey, onToken, action, run = true }: Props) {
   return (
     <>
       {/* Only while a check runs: a deferred one waits for `run`. */}
-      {run && state === 'checking' && (
+      {checking && !onChecking && (
         <div className="turnstile-checking">
           <span
             className="turnstile-spinner"
