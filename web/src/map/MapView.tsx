@@ -17,6 +17,12 @@ import { cardFolded, pitchForZoom } from './camera.ts'
 import { fitCard, focusVenue, sizeCard } from './cardFit.ts'
 import { addDotLayers, DOTS_SOURCE } from './dotLayers.ts'
 import { dotsUpdate } from './dots.ts'
+import {
+  addTerraceNameLayers,
+  NAMES_SOURCE,
+  terraceNamesData,
+  updateTerraceNames,
+} from './terraceNames.ts'
 import { highlightedIds, OVERVIEW_ZOOM } from './highlights.ts'
 import { MapControls } from './MapControls.tsx'
 import { createNightSwitch, nightDepth } from './night.ts'
@@ -217,6 +223,8 @@ export function MapView({
           }
           if (!map.getSource(DOTS_SOURCE))
             addDotLayers(map, (id) => onSelectRef.current(id))
+          if (!map.getSource(NAMES_SOURCE))
+            addTerraceNameLayers(map, (id) => onSelectRef.current(id))
           // The buildings and trees the shadows are cast from, at their
           // LiDAR heights (pipeline buildings.py and trees.py). The basemap's
           // buildings stand in until ours load, and for good if they don't
@@ -420,6 +428,18 @@ export function MapView({
               ? '2'
               : '1'
     }
+    // Names beside the badges, and a clean far background (terraceNames.ts).
+    updateTerraceNames(
+      map,
+      terraceNamesData(statuses, selectedId, priced),
+      statuses
+        .filter((s) => !s.hasTerrace)
+        .map((s) => ({
+          id: s.venue.id,
+          lon: s.venue.venue.lon,
+          lat: s.venue.venue.lat,
+        })),
+    )
   }, [
     ready,
     statuses,

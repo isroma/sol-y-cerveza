@@ -2,8 +2,8 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { dotsData } from './dots.ts'
 
 export const DOTS_SOURCE = 'venues-unconfirmed'
-const DOTS_LAYER = 'venues-unconfirmed'
-const LABELS_LAYER = 'venues-unconfirmed-labels'
+export const DOTS_LAYER = 'venues-unconfirmed'
+export const LABELS_LAYER = 'venues-unconfirmed-labels'
 /** From this zoom, unconfirmed venues show their name next to the dot. */
 const LABELS_ZOOM = 16.5
 
