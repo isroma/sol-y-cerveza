@@ -148,7 +148,10 @@ export async function readPhoto(
   let output
   try {
     output = await ai.run(PHOTO_MODEL, {
-      max_tokens: 8192,
+      // Reading a board needs no reasoning, and with it on, Gemma reasons
+      // for minutes over a full-size photo and runs out of tokens.
+      chat_template_kwargs: { enable_thinking: false },
+      max_tokens: 2048,
       temperature: 0,
       response_format: {
         type: 'json_schema',

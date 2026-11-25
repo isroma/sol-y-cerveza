@@ -177,6 +177,9 @@ export type OwnerPhotoReading = {
   barName: string | null
 }
 
+/** A reading takes seconds; past this, give up rather than spin forever. */
+const PHOTO_TIMEOUT_MS = 90_000
+
 export async function readOwnerPhoto(photo: {
   image: string
   mediaType: 'image/jpeg'
@@ -185,7 +188,11 @@ export async function readOwnerPhoto(photo: {
   try {
     const response = await call(
       '/v1/owner/photo',
-      { method: 'POST', body: JSON.stringify(photo) },
+      {
+        method: 'POST',
+        body: JSON.stringify(photo),
+        signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS),
+      },
       state.token,
     )
     const parsed = photoAnswer.safeParse(await response.json())
