@@ -26,7 +26,7 @@ import { SearchBox } from './ui/SearchBox.tsx'
 import { TimeSlider } from './ui/TimeSlider.tsx'
 import { useMediaQuery } from './ui/useMediaQuery.ts'
 import { VenueList } from './ui/VenueList.tsx'
-import { readUrlState, writeUrlState } from './urlState.ts'
+import { startState, wasReloaded, writeUrlState } from './urlState.ts'
 
 type LoadState =
   | { status: 'loading' }
@@ -44,7 +44,10 @@ export function App() {
   const [now, setNow] = useState(madridNow)
   // Time and venue start from the URL (a shared link), else the current
   // time with nothing selected. A null time follows the clock.
-  const [linked] = useState(() => readUrlState(window.location.search))
+  // A reload goes back to the current time; a link keeps its own.
+  const [linked] = useState(() =>
+    startState(window.location.search, wasReloaded()),
+  )
   const [time, setTime] = useState(linked.time)
   const minutes = time ?? now.minutes
   const date = now.date
