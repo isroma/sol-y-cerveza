@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { packDegrees, packedFlat } from '../test/fixtures.ts'
 import {
-  envelopeFor,
+  anySunHorizon,
   horizonFor,
   isLeafOff,
-  unpackEnvelope,
+  unpackHorizon,
 } from './leafOff.ts'
 
 describe('isLeafOff', () => {
@@ -46,56 +46,45 @@ describe('horizonFor', () => {
   })
 })
 
-describe('unpackEnvelope', () => {
+describe('unpackHorizon', () => {
   it('reads whole degrees back as tenths', () => {
     const degrees = Array.from({ length: 360 }, (_, i) => i % 91)
-    const envelope = unpackEnvelope(packDegrees(degrees), packedFlat(90))
-    expect(envelope?.low).toEqual(degrees.map((d) => d * 10))
-    expect(envelope?.high).toEqual(new Array<number>(360).fill(900))
+    expect(unpackHorizon(packDegrees(degrees))).toEqual(
+      degrees.map((d) => d * 10),
+    )
   })
 
-  it('rejects a wrong length, a bad character or low above high', () => {
-    expect(unpackEnvelope(packedFlat(1).slice(1), packedFlat(2))).toBeNull()
-    expect(unpackEnvelope('\\'.repeat(360), packedFlat(2))).toBeNull()
-    expect(unpackEnvelope(packedFlat(5), packedFlat(4))).toBeNull()
+  it('rejects a wrong length or a bad character', () => {
+    expect(unpackHorizon(packedFlat(1).slice(1))).toBeNull()
+    expect(unpackHorizon('\\'.repeat(360))).toBeNull()
+    expect(unpackHorizon('"'.repeat(360))).toBeNull()
   })
 })
 
-describe('envelopeFor', () => {
+describe('anySunHorizon', () => {
   const tenths = (degrees: number) => new Array<number>(360).fill(degrees * 10)
   const venue = {
-    horizon: tenths(1),
+    horizon: tenths(3),
     horizon_low: packedFlat(1),
-    horizon_high: packedFlat(9),
     horizon_low_winter: packedFlat(0),
-    horizon_high_winter: packedFlat(5),
   }
 
-  it('uses the leaf-off envelope only in the leaf-off period', () => {
-    expect(envelopeFor(venue, '2026-06-21')).toEqual({
-      low: tenths(1),
-      high: tenths(9),
-    })
-    expect(envelopeFor(venue, '2026-12-21')).toEqual({
-      low: tenths(0),
-      high: tenths(5),
-    })
+  it('is the low envelope, the leaf-off one only in the leaf-off period', () => {
+    expect(anySunHorizon(venue, '2026-06-21')).toEqual(tenths(1))
+    expect(anySunHorizon(venue, '2026-12-21')).toEqual(tenths(0))
   })
 
   it('falls back to the summer envelope without a leaf-off one', () => {
-    const summerOnly = {
-      ...venue,
-      horizon_low_winter: null,
-      horizon_high_winter: null,
-    }
-    expect(envelopeFor(summerOnly, '2026-12-21')).toEqual({
-      low: tenths(1),
-      high: tenths(9),
-    })
+    expect(
+      anySunHorizon({ ...venue, horizon_low_winter: null }, '2026-12-21'),
+    ).toEqual(tenths(1))
   })
 
-  it('is null without an envelope or a horizon', () => {
-    expect(envelopeFor({ horizon: tenths(1) }, '2026-06-21')).toBeNull()
-    expect(envelopeFor({ ...venue, horizon: null }, '2026-06-21')).toBeNull()
+  it('is null without an envelope, with a malformed one or without a horizon', () => {
+    expect(anySunHorizon({ horizon: tenths(1) }, '2026-06-21')).toBeNull()
+    expect(
+      anySunHorizon({ ...venue, horizon_low: 'x' }, '2026-06-21'),
+    ).toBeNull()
+    expect(anySunHorizon({ ...venue, horizon: null }, '2026-06-21')).toBeNull()
   })
 })

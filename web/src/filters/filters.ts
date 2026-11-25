@@ -1,7 +1,7 @@
-import { hasSun, type VenueStatus } from '../sun/venueStatus.ts'
+import type { VenueStatus } from '../sun/venueStatus.ts'
 
 export type Filters = {
-  /** Only venues in sun at the chosen time, all of the terrace or part. */
+  /** Only venues in sun at the chosen time. */
   sunNow: boolean
   /** Hide venues without a known terrace. */
   onlyTerrace: boolean
@@ -34,7 +34,7 @@ export function applyFilters(
   return statuses.filter(
     (status) =>
       matchesQuery(status.venue.name, query) &&
-      (!filters.sunNow || hasSun(status.state)) &&
+      (!filters.sunNow || status.category === 'sun') &&
       (!filters.onlyTerrace || status.hasTerrace),
   )
 }

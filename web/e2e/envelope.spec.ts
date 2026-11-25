@@ -6,28 +6,28 @@ import {
   terracesFile,
 } from './fixtures.ts'
 
-// Sol parcial (docs/data-contract.md, "Horizon envelope"): the pin sees an
-// open 5° horizon, but obstacles across the terrace run from 0° to 85°, so at
-// midday (sun about 70° up) only part of it is in sun.
+// Horizon envelope (docs/data-contract.md): the pin is walled in (85°), but
+// the lowest obstacle across the terrace is 0°, so at midday (sun about 70°
+// up) part of it is in sun, and a terrace partly in sun is shown as in sun.
 
 const NAME = 'Bar Medio Sol'
 /** Packed whole degrees: "#" is 0°, "y" is 85° (one past the backslash). */
 const LOW = '#'.repeat(360)
 const HIGH = 'y'.repeat(360)
 
-const withPartial = {
+const withEnvelope = {
   ...terracesFile,
   terraces: [
     ...terracesFile.terraces,
     {
-      id: 'test:partial',
+      id: 'test:envelope',
       name: NAME,
       kind: 'bar',
       venue: { lat: 38.8795, lon: -6.9685 },
       terrace: { lat: 38.87954, lon: -6.96846 },
       sources: ['test'],
       verified: null,
-      horizon: Array.from({ length: 360 }, () => 50),
+      horizon: Array.from({ length: 360 }, () => 850),
       horizon_low: LOW,
       horizon_high: HIGH,
     },
@@ -67,7 +67,7 @@ const test = base.extend<{ errors: string[] }>({
 async function open(page: Page) {
   await page.clock.setFixedTime(SUNNY_INSTANT)
   await page.route('**/data/terraces.json', (route) =>
-    route.fulfill({ json: withPartial }),
+    route.fulfill({ json: withEnvelope }),
   )
   await page.route(/\/data\/(buildings|trees)\.json$/, (route) =>
     route.fulfill({ json: lidarFile(new URL(route.request().url()).pathname) }),
@@ -80,26 +80,25 @@ async function open(page: Page) {
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 900
 
-test('a partly sunny terrace shows Sol parcial on its badge, card, list and legend', async ({
+test('a terrace partly in sun looks like sun on its badge, card and list', async ({
   page,
 }) => {
   await open(page)
-  await expect(page.locator('.pin--partial')).toHaveCount(1)
-  await expect(
-    page.getByRole('complementary', { name: 'Leyenda' }),
-  ).toContainText('Sol parcial')
+  const legend = page.getByRole('complementary', { name: 'Leyenda' })
+  await expect(legend.getByRole('listitem')).toHaveCount(4)
+  await expect(legend).not.toContainText('parcial')
   if (isPhone(page))
     await page.getByRole('button', { name: 'Abrir menú' }).click()
   const row = page.locator('.venue-list').getByRole('button', { name: NAME })
-  await expect(row).toContainText('Sol parcial hasta las')
+  await expect(row).toContainText('Sol hasta las')
   await row.click()
   const card = page.locator('.pin-card')
-  await expect(card).toHaveClass(/pin-card--partial/)
-  await expect(card).toContainText('Sol parcial')
-  await expect(card).toContainText('Parte de la terraza al sol, hasta las')
+  await expect(card).toHaveClass(/pin-card--sun/)
+  await expect(card).toContainText('de sol')
+  await expect(page.locator('.pin--partial')).toHaveCount(0)
 })
 
-test('"Con sol ahora" keeps a partly sunny terrace', async ({ page }) => {
+test('"Con sol ahora" keeps a terrace partly in sun', async ({ page }) => {
   await open(page)
   if (isPhone(page))
     await page.getByRole('button', { name: 'Abrir menú' }).click()

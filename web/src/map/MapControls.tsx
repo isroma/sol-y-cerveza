@@ -173,7 +173,7 @@ export function MapControls({
       <div className="map-bottom">
         <aside className="map-legend" aria-label="Leyenda">
           <ul>
-            {(['sun', 'partial', 'soon', 'nosun'] as const).map((category) => (
+            {(['sun', 'soon', 'nosun'] as const).map((category) => (
               <li key={category}>
                 <CategoryIcon category={category} size={22} />
                 {CATEGORY_LABELS[category]}

@@ -56,10 +56,10 @@ const terraceSchema = z.object({
   // (ADR-0007). Null or absent: same as `horizon`.
   horizon_winter: z.optional(z.nullable(horizonSchema)),
   // Lowest and highest obstacle per bin over ground points across the
-  // terrace ("Sol parcial"), packed as 360 characters in whole degrees
-  // (docs/data-contract.md). Null or absent: every point sees `horizon`.
-  // Only the string type is checked here; `unpackEnvelope` checks the rest
-  // as it decodes, once per day, and treats a malformed envelope as absent.
+  // terrace, packed as 360 characters in whole degrees (docs/data-contract.md).
+  // Null or absent: every point sees `horizon`. The app reads only the low
+  // half (sun when any part of the terrace has it); `unpackHorizon` checks it
+  // as it decodes, once per day, and treats a malformed one as absent.
   horizon_low: z.optional(z.nullable(z.string())),
   horizon_high: z.optional(z.nullable(z.string())),
   // The same in the leaf-off period. Null or absent: same as the envelope above.
