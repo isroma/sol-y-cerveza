@@ -25,7 +25,7 @@ Sampling choices:
 
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 import rasterio
@@ -133,7 +133,8 @@ def terrace_horizon(
 ) -> list[int]:
     """Horizon profile of a terrace at WGS84 ``(lat, lon)``.
 
-    Reads only the part of the surface model within ``MAX_DISTANCE_M`` of the terrace.
+    Reads only the part of the surface model within ``MAX_DISTANCE_M`` of the terrace. For many
+    terraces, use ``HorizonModel``, which opens the rasters once.
 
     Args:
         lat: Terrace latitude, WGS84 degrees.
@@ -152,42 +153,117 @@ def terrace_horizon(
             raster is not in a projected metric CRS, the terrace is outside a raster, or the
             terrain model has no data under it.
     """
-    if dtm_path is not None and ground_elevation is None:
-        ground_elevation = _ground_elevation(dtm_path, lat, lon)
-    elif dtm_path is not None or ground_elevation is None:
+    if (dtm_path is None) == (ground_elevation is None):
         raise ValueError("give exactly one of dtm_path and ground_elevation")
+    with HorizonModel(dsm_path, dtm_path=dtm_path) as model:
+        return model.horizon(lat, lon, ground_elevation=ground_elevation)
 
-    with rasterio.open(dsm_path) as dsm:
-        x, y, true_north_bearing = _project(_metric_crs(dsm, dsm_path), lat, lon)
+
+class HorizonModel:
+    """Open surface (and terrain) models that give the horizon profile of many terraces.
+
+    Opening a raster and setting up its WGS84 transformer cost far more than one profile, so the
+    build opens them once for all terraces. Use it as a context manager, or call ``close``.
+
+    Args:
+        dsm_path: Surface model GeoTIFF (band 1, metres) in a projected metric CRS.
+        dtm_path: Terrain model GeoTIFF (band 1, metres) in a projected metric CRS, for the
+            ground elevation under each terrace. Without it, ``horizon`` needs
+            ``ground_elevation``.
+    """
+
+    def __init__(self, dsm_path: Path, *, dtm_path: Path | None = None) -> None:
+        self._dtm = None if dtm_path is None else _Raster(dtm_path)
+        try:
+            self._dsm = _Raster(dsm_path)
+        except BaseException:
+            if self._dtm is not None:
+                self._dtm.close()
+            raise
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self._dsm.close()
+        if self._dtm is not None:
+            self._dtm.close()
+
+    def horizon(
+        self, lat: float, lon: float, *, ground_elevation: float | None = None
+    ) -> list[int]:
+        """Horizon profile of a terrace at WGS84 ``(lat, lon)``, as ``terrace_horizon``.
+
+        The ground elevation comes from the terrain model unless ``ground_elevation`` is given.
+
+        Raises:
+            ValueError: If there is no ground elevation, a raster is not in a projected metric
+                CRS, the terrace is outside a raster, or the terrain model has no data under it.
+        """
+        if ground_elevation is None:
+            if self._dtm is None:
+                raise ValueError("give exactly one of dtm_path and ground_elevation")
+            ground_elevation = self._dtm.ground_elevation(lat, lon)
+
+        dsm = self._dsm.dataset
+        x, y, true_north_bearing = self._dsm.project(lat, lon)
         window = _window_around(dsm, x, y, MAX_DISTANCE_M)
         if window is None:
-            raise ValueError(f"terrace ({lat}, {lon}) is outside {dsm_path}")
+            raise ValueError(f"terrace ({lat}, {lon}) is outside {self._dsm.path}")
         surface = np.asarray(dsm.read(1, window=window), dtype=np.float64)
         transform: Affine = dsm.window_transform(window)
         nodata = None if dsm.nodata is None else float(dsm.nodata)
 
-    return horizon_profile(
-        surface,
-        transform,
-        x,
-        y,
-        ground_elevation,
-        nodata=nodata,
-        true_north_bearing=true_north_bearing,
-    )
+        return horizon_profile(
+            surface,
+            transform,
+            x,
+            y,
+            ground_elevation,
+            nodata=nodata,
+            true_north_bearing=true_north_bearing,
+        )
 
 
-def _ground_elevation(dtm_path: Path, lat: float, lon: float) -> float:
-    with rasterio.open(dtm_path) as dtm:
-        x, y, _ = _project(_metric_crs(dtm, dtm_path), lat, lon)
+class _Raster:
+    """An open raster and, once first needed, its transformer from WGS84."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.dataset: DatasetReader = rasterio.open(path)
+        self._to_raster: Transformer | None = None
+
+    def close(self) -> None:
+        self.dataset.close()
+
+    def project(self, lat: float, lon: float) -> tuple[float, float, float]:
+        """Easting and northing of ``(lat, lon)`` in the raster's CRS, and the true-north
+        bearing there, in degrees clockwise from grid north.
+
+        Raises:
+            ValueError: If the raster is not in a projected metric CRS.
+        """
+        if self._to_raster is None:
+            crs = _metric_crs(self.dataset, self.path)
+            self._to_raster = Transformer.from_crs(_WGS84, crs, always_xy=True)
+        x, y = self._to_raster.transform(lon, lat)
+        x_north, y_north = self._to_raster.transform(lon, lat + 1e-4)
+        return float(x), float(y), math.degrees(math.atan2(x_north - x, y_north - y))
+
+    def ground_elevation(self, lat: float, lon: float) -> float:
+        dtm = self.dataset
+        x, y, _ = self.project(lat, lon)
         col, row = ~dtm.transform @ (x, y)
         if not (0 <= col < dtm.width and 0 <= row < dtm.height):
-            raise ValueError(f"terrace ({lat}, {lon}) is outside {dtm_path}")
+            raise ValueError(f"terrace ({lat}, {lon}) is outside {self.path}")
         cell = Window(math.floor(col), math.floor(row), 1, 1)
         value = float(dtm.read(1, window=cell)[0, 0])
         if not math.isfinite(value) or (dtm.nodata is not None and value == dtm.nodata):
-            raise ValueError(f"no terrain data at ({lat}, {lon}) in {dtm_path}")
-    return value
+            raise ValueError(f"no terrain data at ({lat}, {lon}) in {self.path}")
+        return value
 
 
 def _metric_crs(dataset: DatasetReader, path: Path) -> CRS:
@@ -197,17 +273,6 @@ def _metric_crs(dataset: DatasetReader, path: Path) -> CRS:
     if not crs.is_projected or any(axis.unit_name != "metre" for axis in crs.axis_info):
         raise ValueError(f"{path} must be in a projected CRS in metres, got {crs.name}")
     return crs
-
-
-def _project(crs: CRS, lat: float, lon: float) -> tuple[float, float, float]:
-    """Easting and northing of ``(lat, lon)`` in ``crs``, and the true-north bearing there.
-
-    The bearing is the direction of true north, in degrees clockwise from grid north.
-    """
-    transformer = Transformer.from_crs(_WGS84, crs, always_xy=True)
-    x, y = transformer.transform(lon, lat)
-    x_north, y_north = transformer.transform(lon, lat + 1e-4)
-    return float(x), float(y), math.degrees(math.atan2(x_north - x, y_north - y))
 
 
 def _window_around(dataset: DatasetReader, x: float, y: float, radius: float) -> Window | None:

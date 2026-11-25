@@ -209,6 +209,17 @@ def test_position_warnings_flag_points_on_roofs(tmp_path: Path) -> None:
     assert position_warnings([_terrace()], street, dtm) == []
 
 
+def test_position_warnings_check_every_terrace(tmp_path: Path) -> None:
+    dtm = _local_raster(tmp_path / "dtm.tif", 200.0)
+    roof = _local_raster(tmp_path / "roof.tif", 209.0)
+    outside = _terrace("curated:outside").model_copy(update={"terrace": LatLon(lat=38.9, lon=-6.9)})
+    no_terrace = _terrace("osm:node/1").model_copy(update={"terrace": None})
+    terraces = [_terrace("curated:a"), outside, no_terrace, _terrace("curated:b")]
+
+    warnings = position_warnings(terraces, roof, dtm)
+    assert [w.split(" ", 1)[0] for w in warnings] == ["curated:a", "curated:b"]
+
+
 def test_attribution_credits_pnoa_for_curated_and_review_positions(tmp_path: Path) -> None:
     dsm = _raster(tmp_path / "dsm.tif", {"SOURCE": "MDS"})
     dtm = _raster(tmp_path / "dtm.tif", {"SOURCE": "MDT"})
