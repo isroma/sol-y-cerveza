@@ -1,4 +1,6 @@
 /* MapLibre's styles arrive with the lazy map chunk, after index.css. In a
    cascade layer they always yield to the app's own (unlayered) overrides,
-   such as the full-size map container, whatever order they load in. */
+   such as the full-size map container, whatever order they load in.
+   The maplibre-css plugin (maplibreCss.ts) serves this file as that import
+   without the rules of the controls the app doesn't use. */
 @import 'maplibre-gl/dist/maplibre-gl.css' layer(maplibre);

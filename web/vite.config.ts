@@ -1,6 +1,7 @@
 import react from '@vitejs/plugin-react'
 import type { HtmlTagDescriptor, Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { maplibreCss } from './maplibreCss.ts'
 import { reviewServer } from './reviewServer.ts'
 import { serviceWorker } from './serviceWorker.ts'
 import { BASEMAP_STYLE_URL } from './src/config.ts'
@@ -103,6 +104,8 @@ export default defineConfig({
   // serviceWorker: emits dist/sw.js, the offline cache (sw/sw.ts).
   plugins: [
     react(),
+    // Only the MapLibre CSS the map uses (src/map/maplibre.css).
+    maplibreCss(),
     reviewServer(),
     preloadMapChunk(),
     preconnectPricesApi(),
