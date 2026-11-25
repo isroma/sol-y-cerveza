@@ -290,49 +290,67 @@
   font-size: 13px;
 }
 
-.sun-countdown {
+.sun-day {
   margin-top: var(--space-3);
 }
 
-/* Sun spell progress: fills as the sun hours pass. No knob: it isn't a control. */
-.sun-countdown-track {
+/* The day at a glance, 08:00–22:00. Not a control: no knob, just a line at
+   the chosen time. */
+.sun-day-track {
+  position: relative;
+}
+
+/* Full width: its ends line up with the times below and the sun box above. */
+.sun-day-strip {
   position: relative;
   height: 8px;
-  /* Full width: its ends line up with the times below and the sun box above. */
+  overflow: hidden;
   border-radius: 999px;
+}
+
+.sun-day-part {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.sun-day-part.is-sun {
+  background: linear-gradient(to right, #ffc53d, #f59e0b);
+}
+
+.sun-day-part.is-shade {
   background: var(--toggle-off);
 }
 
-.sun-countdown-fill {
+/* The night map's blue (night.css), softened so it reads as night, not shade. */
+.sun-day-part.is-night {
+  background: color-mix(in srgb, #2d3348 35%, var(--bg));
+}
+
+/* The chosen time, in the "Ahora" brown, with a ring that parts it from the
+   strip. */
+.sun-day-now {
   position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 999px;
-  /* Always at least a round cap, so the start of the spell still shows. */
-  min-width: 8px;
-  background: linear-gradient(to right, #ffc53d, #f59e0b);
-  transition: width 0.3s;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  translate: -50% -50%;
+  border-radius: 2px;
+  background: var(--sun-dark);
+  box-shadow: 0 0 0 2px var(--bg);
 }
 
-.sun-countdown-fill.is-low {
-  background: linear-gradient(to right, #f59e0b, #d97706);
-}
-
-.sun-countdown-ticks {
+.sun-day-ticks {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
   margin-top: var(--space-2);
-  /* The times sit 4 px in from the bar's ends (the left "1" of an
-     "1x:xx" already sits 1 px in). */
-  padding: 0 4px 0 3px;
+  /* The times sit 4 px in from the strip's ends. */
+  padding: 0 4px;
   color: var(--muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-
-.sun-countdown-ticks strong {
-  color: var(--ink);
 }
 
 /* The badge has become the card's tab: hide the pin underneath (unless the
