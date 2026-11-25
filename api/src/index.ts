@@ -30,11 +30,13 @@
 import {
   allowedOrigin,
   consensus,
+  DAILY_LIMIT,
   EVENT_RETENTION_HOURS,
   isLocalRequest,
   isTestSecret,
   limitHit,
   madridDate,
+  NETWORK_DAILY_LIMIT,
   parseOwnerPrice,
   parsePriceResolution,
   parseSuggestion,
@@ -42,6 +44,7 @@ import {
   saltUsable,
   TURNSTILE_ACTION,
   turnstilePassed,
+  VENUE_HOURLY_LIMIT,
   voterKeys,
   WINDOW_DAYS,
   withOwnerPrices,
@@ -259,16 +262,52 @@ async function identity(
   }
 }
 
-/** The 429 to send when a voter, network or venue key is over its cap, or null. */
-async function overCap(
+/**
+ * Takes `parts` events (one per suggestion or report) from the voter's,
+ * network's and venue key's allowance, or returns the 429 to send when that
+ * would break a cap. The check and the inserts are one statement, as in
+ * photoAllowance, so parallel requests can't all read the counts before any of
+ * them is logged. It runs after a request is validated and before its writes,
+ * so a refused or invalid request takes nothing.
+ */
+async function takeAllowance(
   env: Env,
   voterHash: string,
   netHash: string,
   venueKey: string,
+  parts: number,
   now: number,
 ): Promise<Response | null> {
   const dayAgo = new Date(now - 86400_000).toISOString()
   const hourAgo = new Date(now - 3600_000).toISOString()
+  const pruneBefore = new Date(
+    now - EVENT_RETENTION_HOURS * 3600_000,
+  ).toISOString()
+  const [taken] = await env.DB.batch([
+    env.DB.prepare(
+      `WITH RECURSIVE part(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM part WHERE n < ?5)
+       INSERT INTO suggestion_events (voter_hash, net_hash, venue_id, at)
+       SELECT ?1, ?2, ?3, ?4 FROM part
+       WHERE (SELECT COUNT(*) FROM suggestion_events WHERE voter_hash = ?1 AND at >= ?6) + ?5 <= ?8
+         AND (SELECT COUNT(*) FROM suggestion_events WHERE net_hash = ?2 AND at >= ?6) + ?5 <= ?9
+         AND (SELECT COUNT(*) FROM suggestion_events WHERE venue_id = ?3 AND at >= ?7) + ?5 <= ?10`,
+    ).bind(
+      voterHash,
+      netHash,
+      venueKey,
+      new Date(now).toISOString(),
+      parts,
+      dayAgo,
+      hourAgo,
+      DAILY_LIMIT,
+      NETWORK_DAILY_LIMIT,
+      VENUE_HOURLY_LIMIT,
+    ),
+    env.DB.prepare('DELETE FROM suggestion_events WHERE at < ?').bind(
+      pruneBefore,
+    ),
+  ])
+  if (taken?.meta.changes) return null
   const counts = await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM suggestion_events WHERE voter_hash = ?1 AND at >= ?4) AS voter,
@@ -277,32 +316,11 @@ async function overCap(
   )
     .bind(voterHash, netHash, venueKey, dayAgo, hourAgo)
     .first<{ voter: number; network: number; venue: number }>()
-  const hit = limitHit(counts ?? { voter: 0, network: 0, venue: 0 })
-  if (!hit) return null
+  const hit =
+    limitHit(counts ?? { voter: 0, network: 0, venue: 0 }, parts) ?? 'voter'
   return json({ error: LIMIT_MESSAGES[hit] }, 429, {
     'Retry-After': hit === 'venue' ? '3600' : '86400',
   })
-}
-
-/** Logs a request against the caps and prunes the log. */
-function logEvent(
-  env: Env,
-  voterHash: string,
-  netHash: string,
-  venueKey: string,
-  now: number,
-) {
-  const pruneBefore = new Date(
-    now - EVENT_RETENTION_HOURS * 3600_000,
-  ).toISOString()
-  return [
-    env.DB.prepare(
-      'INSERT INTO suggestion_events (voter_hash, net_hash, venue_id, at) VALUES (?, ?, ?, ?)',
-    ).bind(voterHash, netHash, venueKey, new Date(now).toISOString()),
-    env.DB.prepare('DELETE FROM suggestion_events WHERE at < ?').bind(
-      pruneBefore,
-    ),
-  ]
 }
 
 /** Stores (or replaces) one voter's price for a venue, item and brand. */
@@ -407,13 +425,10 @@ async function suggest(request: Request, env: Env): Promise<Response> {
   const { voterHash, netHash } = await identity(salt, ip)
   const { venueId } = parsed.value
   const now = Date.now()
-  const capped = await overCap(env, voterHash, netHash, venueId, now)
+  const capped = await takeAllowance(env, voterHash, netHash, venueId, 1, now)
   if (capped) return capped
 
-  await env.DB.batch([
-    suggestionWrite(env, parsed.value, voterHash, netHash, now),
-    ...logEvent(env, voterHash, netHash, venueId, now),
-  ])
+  await suggestionWrite(env, parsed.value, voterHash, netHash, now).run()
   return json({ ok: true }, 201)
 }
 
@@ -444,13 +459,10 @@ async function report(request: Request, env: Env): Promise<Response> {
 
   const { voterHash, netHash } = await identity(salt, ip)
   const now = Date.now()
-  const capped = await overCap(env, voterHash, netHash, venueKey, now)
+  const capped = await takeAllowance(env, voterHash, netHash, venueKey, 1, now)
   if (capped) return capped
 
-  await env.DB.batch([
-    ...reportWrites(env, value, voterHash, netHash, now),
-    ...logEvent(env, voterHash, netHash, venueKey, now),
-  ])
+  await env.DB.batch(reportWrites(env, value, voterHash, netHash, now))
   return json({ ok: true }, 201)
 }
 
@@ -488,18 +500,22 @@ async function change(request: Request, env: Env): Promise<Response> {
 
   const { voterHash, netHash } = await identity(salt, ip)
   const now = Date.now()
-  const capped = await overCap(env, voterHash, netHash, venueId, now)
+  const parts = (price ? 1 : 0) + reports.length
+  const capped = await takeAllowance(
+    env,
+    voterHash,
+    netHash,
+    venueId,
+    parts,
+    now,
+  )
   if (capped) return capped
 
-  const parts = (price ? 1 : 0) + reports.length
   await env.DB.batch([
     ...(price ? [suggestionWrite(env, price, voterHash, netHash, now)] : []),
     ...reports.flatMap((value) =>
       reportWrites(env, value, voterHash, netHash, now),
     ),
-    ...Array.from({ length: parts }, () =>
-      logEvent(env, voterHash, netHash, venueId, now),
-    ).flat(),
   ])
   return json({ ok: true }, 201)
 }

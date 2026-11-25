@@ -489,6 +489,120 @@ describe('POST /v1/changes', () => {
   })
 })
 
+describe('caps under parallel requests', () => {
+  let api: Api
+  beforeAll(async () => {
+    api = await startApi()
+  })
+  afterAll(() => api.dispose())
+
+  const statuses = async (requests: Promise<MfResponse>[]) =>
+    (await Promise.all(requests)).map((r) => r.status).sort()
+  const expected = (passed: number, total: number) => [
+    ...Array<number>(passed).fill(201),
+    ...Array<number>(total - passed).fill(429),
+  ]
+
+  it(`lets one voter's parallel suggestions through only up to ${DAILY_LIMIT}`, async () => {
+    const ip = '94.1.1.1'
+    const sent = DAILY_LIMIT + 10
+    expect(
+      await statuses(
+        VENUES.slice(0, sent).map((venue) =>
+          api.call('/v1/suggestions', { ...suggestion(venue, 150), ip }),
+        ),
+      ),
+    ).toEqual(expected(DAILY_LIMIT, sent))
+    expect(await api.rows('SELECT COUNT(*) AS n FROM suggestions')).toEqual([
+      { n: DAILY_LIMIT },
+    ])
+    expect(
+      await api.rows('SELECT COUNT(*) AS n FROM suggestion_events'),
+    ).toEqual([{ n: DAILY_LIMIT }])
+  })
+
+  it(`lets one voter's parallel reports into the queue only up to ${DAILY_LIMIT}`, async () => {
+    const ip = '94.2.1.1'
+    const sent = DAILY_LIMIT + 5
+    expect(
+      await statuses(
+        VENUES.slice(0, sent).map((venueId) =>
+          api.call('/v1/reports', {
+            ...postJson({ kind: 'closed', venueId, token: 'ok:report' }),
+            ip,
+          }),
+        ),
+      ),
+    ).toEqual(expected(DAILY_LIMIT, sent))
+    expect(await api.rows('SELECT COUNT(*) AS n FROM venue_reports')).toEqual([
+      { n: DAILY_LIMIT },
+    ])
+  })
+
+  it(`lets one venue take only ${VENUE_HOURLY_LIMIT} parallel suggestions`, async () => {
+    const venue = 'osm:node/35'
+    const sent = VENUE_HOURLY_LIMIT + 5
+    expect(
+      await statuses(
+        Array.from({ length: sent }, (_, n) =>
+          api.call('/v1/suggestions', {
+            ...suggestion(venue, 150),
+            ip: netIp(300 + n),
+          }),
+        ),
+      ),
+    ).toEqual(expected(VENUE_HOURLY_LIMIT, sent))
+  })
+
+  it('takes every part of a change from the allowance, or none', async () => {
+    const ip = '94.3.1.1'
+    for (let n = 0; n < DAILY_LIMIT - 2; n++)
+      expect(
+        (
+          await api.call('/v1/suggestions', {
+            ...suggestion(VENUES[n] ?? '', 150),
+            ip,
+          })
+        ).status,
+      ).toBe(201)
+    const change = (body: Record<string, unknown>) =>
+      api.call('/v1/changes', {
+        ...postJson({ venueId: 'osm:node/36', token: 'ok:change', ...body }),
+        ip,
+      })
+    // Three parts would go past the cap: refused, and nothing is logged or stored.
+    const over = await change({
+      price: { item: 'cana', brand: null, cents: 150 },
+      move: { lat: 38.8781, lon: -6.9701 },
+      closed: true,
+    })
+    expect(over.status).toBe(429)
+    expect(over.headers.get('Retry-After')).toBe('86400')
+    expect(
+      await api.rows(
+        'SELECT COUNT(*) AS n FROM suggestion_events WHERE venue_id = ?',
+        'osm:node/36',
+      ),
+    ).toEqual([{ n: 0 }])
+    // Two parts fill it exactly.
+    expect(
+      (
+        await change({
+          price: { item: 'cana', brand: null, cents: 150 },
+          closed: true,
+        })
+      ).status,
+    ).toBe(201)
+    expect(
+      await api.rows(
+        'SELECT COUNT(*) AS n FROM suggestion_events WHERE venue_id = ?',
+        'osm:node/36',
+      ),
+    ).toEqual([{ n: 2 }])
+    expect((await change({ closed: true })).status).toBe(429)
+  })
+})
+
 describe('a rejected price', () => {
   let api: Api
   beforeAll(async () => {
