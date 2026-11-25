@@ -48,12 +48,12 @@ import duckdb
 import httpx
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, load_register, register_id
 from solycerveza.ortho import ORTHO_CACHE, Crop, OrthoFetcher, cached_crop
 from solycerveza.overture import (
     PRIMARY_KINDS,
     cache_path,
-    distance_m,
     name_similarity,
     normalize_name,
     same_venue,

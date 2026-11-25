@@ -40,7 +40,8 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from solycerveza.overture import distance_m, name_similarity
+from solycerveza.geo import distance_m
+from solycerveza.overture import name_similarity
 from solycerveza.prices import Price
 from solycerveza.venues import (
     CACHE_DIR,
