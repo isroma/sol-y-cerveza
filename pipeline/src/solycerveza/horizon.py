@@ -86,23 +86,49 @@ def horizon_profile(
         raise ValueError(f"observer ({x}, {y}) is outside the raster")
 
     east, north, distances = _ray_offsets(transform, true_north_bearing)
-    cols = np.floor(col0 + inverse.a * east + inverse.b * north).astype(np.intp)
-    rows = np.floor(row0 + inverse.d * east + inverse.e * north).astype(np.intp)
+    cols = _cells(col0, inverse.a, east, inverse.b, north)
+    rows = _cells(row0, inverse.d, east, inverse.e, north)
 
     # Rays start inside the raster, which is convex: once a sample is outside, the rest of the
     # ray is too, so masking out-of-raster samples is the same as stopping the ray there.
-    inside = (cols >= 0) & (cols < width) & (rows >= 0) & (rows < height)
-    flat = np.where(inside, rows * width + cols, 0)
-    z = surface.reshape(-1)[flat].astype(np.float64)
+    # As unsigned, a negative index is huge, so one comparison per axis covers both edges.
+    inside = (cols.view(np.uintp) < width) & (rows.view(np.uintp) < height)
+    flat = rows * width
+    flat += cols
+    flat[~inside] = 0
+    z = surface.reshape(-1)[flat].astype(np.float64, copy=False)
     valid = inside & np.isfinite(z) & ((rows != own_row) | (cols != own_col))
     if nodata is not None:
         valid &= z != nodata
 
     # max(tan) per bin gives the max angle, and a floor of 0 clamps the ground dropping away.
-    tangents = np.where(valid, (z - (ground_elevation + EYE_HEIGHT_M)) / distances, 0.0)
+    # In place on `z` (indexing made it a copy), in the order (z - (ground + eye)) / distance.
+    z -= ground_elevation + EYE_HEIGHT_M
+    z /= distances
+    tangents = np.where(valid, z, 0.0)
     best = np.maximum(tangents.max(axis=(1, 2)), 0.0)
     tenths = np.clip(np.rint(np.degrees(np.arctan(best)) * 10), 0, MAX_TENTHS)
     return [int(value) for value in tenths]
+
+
+def _cells(
+    origin: float,
+    along_east: float,
+    east: NDArray[np.floating[Any]],
+    along_north: float,
+    north: NDArray[np.floating[Any]],
+) -> NDArray[np.intp]:
+    """``floor(origin + along_east * east + along_north * north)`` as cell indices.
+
+    Evaluated in that order, in place; a zero coefficient (a north-up raster) adds only ±0,
+    which changes no value, so its term is skipped.
+    """
+    position = east * along_east
+    position += origin
+    if along_north != 0.0:
+        position += along_north * north
+    np.floor(position, out=position)
+    return position.astype(np.intp)
 
 
 def _ray_offsets(

@@ -101,6 +101,15 @@ def test_true_north_bearing_rotates_the_profile() -> None:
     assert_walls_at(profile(with_north_wall(flat()), true_north_bearing=90.0), 270)
 
 
+@pytest.mark.parametrize("clockwise", [90.0, 30.0])
+def test_a_rotated_raster_reads_walls_in_world_directions(clockwise: float) -> None:
+    # Not north-up: the pixel grid itself turned clockwise round the observer, so every term of
+    # the pixel-to-world transform counts and the grid-north wall turns with it.
+    transform = Affine.rotation(-clockwise) @ TRANSFORM
+    result = horizon_profile(with_north_wall(flat()), transform, 0.0, 0.0, GROUND)
+    assert_walls_at(result, clockwise)
+
+
 def test_ground_dropping_away_is_clamped_to_zero() -> None:
     hill = GROUND - 0.2 * np.hypot(XS, YS)
     assert profile(hill) == [0] * BINS
