@@ -152,7 +152,7 @@ describe('venueStatus with an envelope (Sol parcial)', () => {
   const partialAt = (venue: Terrace, track: typeof winter, clock: string) => {
     const minutes = parseClock(clock)
     if (minutes === null) throw new Error(clock)
-    return venueStatus(venueDay(venue, track, { partial: true }), minutes)
+    return venueStatus(venueDay(venue, track), minutes)
   }
   /** First minute from `from` at which the sun is above `tenths`. */
   const firstAbove = (track: typeof winter, tenths: number, from = 0) =>
@@ -162,12 +162,13 @@ describe('venueStatus with an envelope (Sol parcial)', () => {
   const lastAbove = (track: typeof winter, tenths: number) =>
     (track.positions.findLastIndex((p) => p.altitude * 10 > tenths) + 1) * 5
 
-  it('ignores the envelope without the flag', () => {
-    expect(at(mixed, summer, '09:00')).toEqual({
-      ...at(plazaAlta, summer, '09:00'),
-      venue: mixed,
+  it('follows the single horizon without an envelope, or with a malformed one', () => {
+    const broken: Terrace = { ...mixed, horizon_high: 'x' }
+    expect(at(broken, summer, '08:30')).toEqual({
+      ...at(plazaAlta, summer, '08:30'),
+      venue: broken,
     })
-    expect(at(mixed, summer, '09:00').category).toBe('sun')
+    expect(at(mixed, summer, '08:30').category).toBe('partial')
   })
 
   it('is partial while the sun is between the lowest and highest obstacle', () => {
@@ -216,7 +217,7 @@ describe('venueStatus with an envelope (Sol parcial)', () => {
   })
 
   it('takes partial stretches into the sun spells', () => {
-    const { timeline } = venueDay(mixed, summer, { partial: true })
+    const { timeline } = venueDay(mixed, summer)
     expect(timeline).not.toBeNull()
     expect(sunRuns(timeline ?? [])).toEqual([
       [firstAbove(summer, 0), lastAbove(summer, 0)],

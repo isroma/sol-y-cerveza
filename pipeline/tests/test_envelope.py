@@ -1,8 +1,11 @@
 import math
+from collections.abc import Callable
 
 import pytest
 
 from solycerveza.envelope import (
+    FALLBACK_COUNT,
+    FALLBACK_RADII_M,
     MAX_GROUND_HEIGHT_M,
     PACK_ALPHABET,
     Structures,
@@ -11,6 +14,7 @@ from solycerveza.envelope import (
     pack_high,
     pack_low,
     sample_points,
+    terrace_points,
     unpack,
 )
 from solycerveza.leafoff import Outline
@@ -77,3 +81,31 @@ def test_the_pack_alphabet_needs_no_json_escaping() -> None:
     assert len(PACK_ALPHABET) == 91
     assert '"' not in PACK_ALPHABET and "\\" not in PACK_ALPHABET
     assert all(35 <= ord(c) <= 126 for c in PACK_ALPHABET)
+
+
+def _on_ground_beyond(metres: float) -> Callable[[float, float], float]:
+    """Height function: open ground only farther than `metres` from PIN."""
+
+    def height(lat: float, lon: float) -> float:
+        return 0.0 if _metres(PIN, (lat, lon)) > metres else 5.0
+
+    return height
+
+
+def test_terrace_points_keep_the_3_m_circle_when_it_has_ground() -> None:
+    points = terrace_points(*PIN, lambda _a, _b: 0.0, lambda _a, _b: False)
+    assert points == sample_points(*PIN)
+
+
+def test_terrace_points_fall_back_to_wider_circles_under_a_canopy() -> None:
+    points = terrace_points(*PIN, _on_ground_beyond(3.5), lambda _a, _b: False)
+    assert len(points) == 2 * FALLBACK_COUNT
+    assert {round(_metres(PIN, p)) for p in points} == set(FALLBACK_RADII_M)
+
+
+def test_terrace_points_give_up_on_a_single_far_point() -> None:
+    def one_point(lat: float, lon: float) -> float:
+        north_at_5_m = lat > PIN[0] + 4.5 / 111_320
+        return 0.0 if north_at_5_m else 5.0
+
+    assert terrace_points(*PIN, one_point, lambda _a, _b: False) == []

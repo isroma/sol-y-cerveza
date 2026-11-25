@@ -72,7 +72,7 @@ export function unpackEnvelope(low: string, high: string): Envelope | null {
  * The envelope across `venue`'s terrace on `date`, or null when it has none
  * (every point sees the single horizon): inside the leaf-off period the
  * leaf-off one when the data has it, else the full one. Decoded on each
- * call, so call it only when partial sun is on.
+ * call (once per venue per day).
  */
 export function envelopeFor(
   venue: EnvelopeFields,

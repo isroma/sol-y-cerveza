@@ -11,6 +11,11 @@ Points are the pin plus ``SAMPLE_COUNT`` points evenly spaced on a circle of
 ground: the surface model at most ``MAX_GROUND_HEIGHT_M`` above the terrain there (not under a
 canopy, a crown or on a roof), and outside every closed OSM structure outline.
 
+When that leaves no ground point but the pin (a pin and its 3 m circle all under one canopy or
+crown, or inside a building), ``terrace_points`` falls back to wider circles: ``FALLBACK_COUNT``
+points at each of ``FALLBACK_RADII_M``, kept only if at least ``FALLBACK_MIN_POINTS`` are on the
+ground, so a single far point never stands for the whole terrace.
+
 The file stores each envelope as a 360-character string, one character per bin, in whole degrees
 (``pack_low``/``pack_high``): a string parses far faster than 360 numbers, and the app decodes it
 only when it shows partial sun. The low envelope rounds down and the high one up, so rounding only
@@ -28,6 +33,9 @@ from solycerveza.leafoff import Outline
 SAMPLE_RADIUS_M = 3.0
 SAMPLE_COUNT = 8
 MAX_GROUND_HEIGHT_M = 1.0
+FALLBACK_RADII_M = (4.0, 5.0)
+FALLBACK_COUNT = 12
+FALLBACK_MIN_POINTS = 2
 
 # Metres per degree of latitude; good to 0.5 % at Badajoz, which is far below a pin's error.
 _M_PER_DEG_LAT = 111_320.0
@@ -84,6 +92,26 @@ def ground_points(
             continue
         kept.append((lat, lon))
     return kept
+
+
+def terrace_points(
+    lat: float,
+    lon: float,
+    height_for: Callable[[float, float], float | None],
+    inside_structure: Callable[[float, float], bool],
+) -> list[LatLonPair]:
+    """The ground points across a terrace: the pin and its circle, or the wider fallback circles.
+
+    The fallback applies only when the pin and its circle give no ground point but the pin.
+    """
+    points = ground_points(sample_points(lat, lon), height_for, inside_structure)
+    if any(point != (lat, lon) for point in points):
+        return points
+    wider = [(lat, lon)]
+    for radius in FALLBACK_RADII_M:
+        wider += sample_points(lat, lon, radius_m=radius, count=FALLBACK_COUNT)[1:]
+    fallback = ground_points(wider, height_for, inside_structure)
+    return fallback if len(fallback) >= FALLBACK_MIN_POINTS else points
 
 
 def envelope(horizons: Sequence[Sequence[int]]) -> Envelope:

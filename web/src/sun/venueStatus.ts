@@ -52,18 +52,14 @@ export type VenueStatus = {
 }
 
 /**
- * With `partial`, a terrace with an envelope follows the envelope rule and
- * can be `partial`; without it, only the single horizon counts, as before.
+ * A terrace with an envelope follows the envelope rule and can be `partial`;
+ * one without (or with a malformed one) follows its single horizon.
  */
-export function venueDay(
-  venue: Terrace,
-  track: DayTrack,
-  { partial = false }: { partial?: boolean } = {},
-): VenueDay {
+export function venueDay(venue: Terrace, track: DayTrack): VenueDay {
   const horizon = horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
     return { venue, timeline: null }
-  const envelope = partial ? envelopeFor(venue, track.date) : null
+  const envelope = envelopeFor(venue, track.date)
   return {
     venue,
     timeline: track.positions.map((position) =>

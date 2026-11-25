@@ -19,7 +19,6 @@ import { ReportPicker } from './reports/ReportPicker.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { isLeafOff } from './sun/leafOff.ts'
-import { PARTIAL_SUN } from './sun/partialFlag.ts'
 import { compareStatus, venueDay, venueStatus } from './sun/venueStatus.ts'
 import { toMadridLocal } from './time/madrid.ts'
 import { FiltersPanel } from './ui/FiltersPanel.tsx'
@@ -127,9 +126,7 @@ export function App() {
   const days = useMemo(
     () =>
       load.status === 'ready'
-        ? load.file.terraces.map((venue) =>
-            venueDay(venue, track, { partial: PARTIAL_SUN }),
-          )
+        ? load.file.terraces.map((venue) => venueDay(venue, track))
         : [],
     [load, track],
   )
