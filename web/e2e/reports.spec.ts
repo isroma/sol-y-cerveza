@@ -286,3 +286,61 @@ test('Escape cancels the picker, back to the card', async ({
   ).toContainText('Mover en el mapa')
   expect(reports).toEqual([])
 })
+
+test('shows the caña price on its badge once zoomed in', async ({ page }) => {
+  // Visitors agree on a price for Bar Sol Uno: an estimate, so "~".
+  await page.route(/\/v1\/prices/, (route) =>
+    route.fulfill({
+      json: {
+        prices: [
+          {
+            venueId: 'test:0',
+            item: 'cana',
+            brand: null,
+            cents: 150,
+            voters: 5,
+            last: '2026-06-01T10:00:00Z',
+          },
+        ],
+      },
+    }),
+  )
+  await page.goto('./')
+  await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT, {
+    timeout: 15_000,
+  })
+  await page.waitForFunction(() => window.__map !== undefined)
+  const marker = page.locator('.pin-marker[aria-label^="Bar Sol Uno"]')
+  const price = marker.locator('.pin-price')
+  // Zoomed out the badges shrink and show no price (it fades out, so it
+  // stays in the page; .pin--priced is what shows it).
+  await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
+  await page.evaluate(() =>
+    window.__map?.jumpTo({ center: [-6.9698, 38.8826], zoom: 17 }),
+  )
+  await settled(page)
+  await expect(marker.locator('.pin')).toHaveClass(/pin--priced/)
+  await expect(price).toHaveText('~1,50 €')
+  await expect(marker).toHaveAttribute('aria-label', /caña ~1,50 €/)
+  // Opening the card tucks the price into the badge on the card's curve
+  // instead of removing it: a moment after the tap it is part folded.
+  await marker.click()
+  // It stays in the badge and folds on the card's curve (frame-by-frame
+  // timing is too unsteady in a headless browser to sample).
+  const tuck = await price.evaluate((el) => {
+    const style = getComputedStyle(el)
+    return {
+      text: el.textContent,
+      properties: style.transitionProperty,
+      durations: style.transitionDuration,
+    }
+  })
+  expect(tuck.text).toBe('~1,50 €')
+  expect(tuck.properties).toBe('scale, opacity')
+  expect(tuck.durations).toBe('0.36s, 0.2s')
+  await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
+  await expect
+    .poll(() => price.evaluate((el) => getComputedStyle(el).scale))
+    .toBe('0 1')
+  await shot(page, 'badge-price')
+})

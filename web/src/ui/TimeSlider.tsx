@@ -105,9 +105,17 @@ export function TimeSlider({
           </div>
         )}
       </div>
+      {/* Each hour label sits over a small mark on the bar's line, yellow up
+          to the chosen time like the bar's fill. */}
       <div className="time-ticks" aria-hidden="true">
         {TICKS.map((tick) => (
-          <span key={tick}>{formatClock(tick)}</span>
+          <span
+            key={tick}
+            className={tick <= clamped ? 'time-tick is-past' : 'time-tick'}
+            style={at(tick)}
+          >
+            {formatClock(tick)}
+          </span>
         ))}
       </div>
     </section>

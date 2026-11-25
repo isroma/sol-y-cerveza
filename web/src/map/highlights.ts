@@ -15,8 +15,8 @@ export function sunMinutesToday(status: VenueStatus): number {
 
 /**
  * The places that stand out when zoomed out: terraces in sun right now, the
- * sunniest over the day first. Beer price joins the score once real prices
- * exist (#8).
+ * sunniest over the day first. Price stays out of it while few venues have
+ * one (#265); the full-size badges show prices instead (badgePrices.ts).
  */
 export function highlightedIds(
   statuses: readonly VenueStatus[],

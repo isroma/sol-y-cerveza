@@ -24,6 +24,14 @@ import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
 import { createPin, updatePin } from './pins.ts'
+import {
+  canaPrice,
+  pricedBadges,
+  priceScore,
+  sunLeft,
+  type BadgePrice,
+} from './badgePrices.ts'
+import { shownPrices, useCrowdPrices } from '../prices/crowd.ts'
 import { PrismShadowLayer } from './prismShadows.ts'
 import {
   addLidarBuildings,
@@ -114,6 +122,22 @@ export function MapView({
   const depth = nightDepth(sun.altitude)
   const night = depth !== null
   const highlighted = useMemo(() => highlightedIds(statuses), [statuses])
+  // Caña prices for the badges: the card's prices (curated, owner, visitors).
+  const crowd = useCrowdPrices()
+  const canaPrices = useMemo(() => {
+    const result = new Map<string, BadgePrice>()
+    for (const s of statuses) {
+      if (!s.hasTerrace) continue
+      const price = canaPrice(
+        shownPrices(s.venue.id, s.venue.prices ?? [], crowd),
+      )
+      if (price) result.set(s.venue.id, price)
+    }
+    return result
+  }, [statuses, crowd])
+  // Bumped when the map stops moving: which badges show a price depends on
+  // where they are on screen.
+  const [viewTick, setViewTick] = useState(0)
 
   const selectedIdRef = useRef(selectedId)
   const statusesRef = useRef(statuses)
@@ -165,6 +189,7 @@ export function MapView({
           // Follow user gestures live; camera animations pass their own pitch.
           if (event.originalEvent) map.setPitch(pitchForZoom(map.getZoom()))
         })
+        map.on('moveend', () => setViewTick((t) => t + 1))
         map.on('zoomend', () => {
           if (!map) return
           const pitch = pitchForZoom(map.getZoom())
@@ -328,6 +353,29 @@ export function MapView({
     const wanted = new Map(
       statuses.filter((s) => s.hasTerrace).map((s) => [s.venue.id, s]),
     )
+    // Prices only on full-size badges, and in a crowd only on the best value
+    // (most sun still to come per euro); the selected one shows its card.
+    const priced = overview
+      ? new Set<string>()
+      : pricedBadges(
+          [...canaPrices].flatMap(([id, price]) => {
+            const status = wanted.get(id)
+            if (!status || id === selectedId) return []
+            const at = status.venue.terrace ?? status.venue.venue
+            const { x, y } = map.project([at.lon, at.lat])
+            return [
+              {
+                id,
+                x,
+                y,
+                score: priceScore(
+                  sunLeft(status.timeline, minutes),
+                  price.cents,
+                ),
+              },
+            ]
+          }),
+        )
     for (const [id, entry] of pins) {
       if (!wanted.has(id)) {
         entry.marker.remove()
@@ -351,13 +399,20 @@ export function MapView({
         entry = { marker, el }
         pins.set(id, entry)
       }
-      updatePin(entry.el, status, id === selectedId)
+      updatePin(
+        entry.el,
+        status,
+        id === selectedId,
+        canaPrices.get(id) ?? null,
+        priced.has(id),
+      )
       const top = highlighted.has(id)
       entry.el.classList.toggle('pin-marker--top', top)
+      // A badge showing its price sits above its neighbours, so none covers it.
       entry.el.style.zIndex =
         id === selectedId
           ? '4'
-          : top
+          : top || priced.has(id)
             ? '3'
             : status.category === 'sun' ||
                 status.category === 'partial' ||
@@ -365,7 +420,16 @@ export function MapView({
               ? '2'
               : '1'
     }
-  }, [ready, statuses, selectedId, highlighted])
+  }, [
+    ready,
+    statuses,
+    selectedId,
+    highlighted,
+    canaPrices,
+    overview,
+    minutes,
+    viewTick,
+  ])
 
   const selectedStatus = statuses.find((s) => s.venue.id === selectedId) ?? null
 
