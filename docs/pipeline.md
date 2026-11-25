@@ -124,6 +124,8 @@ uv run python -m solycerveza.proposals --vision session --evaluate --baseline .c
 
 For a blind trial, have subagents judge the crops, each given only its share of the task file and told not to read `pipeline/data/` or `terraces.json`.
 
+**Trial result (2026-11-25, #388):** on the 109 venues with a terrace decision, 91 answers were "unsure"; `terrace` reached 67 % precision (8/12) and 15 % recall, `no_terrace` 50 % (3/6) and 5 %, and no confidence threshold gives 90 % precision for either, so neither kind is trusted. The right pins were a median 10 m (p90 48 m) from the owner's, against 9 m (p90 27 m) for the pre-review position. Details in [ADR-0008](adr/0008-machine-venue-proposals.md#consequences).
+
 ## OSM write-back
 
 ```bash
