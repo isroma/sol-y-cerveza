@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { TLSSocket } from 'node:tls'
 import { fileURLToPath } from 'node:url'
 import { loadEnv, type Plugin } from 'vite'
-import { adminRequestRefusal } from './adminGuard.ts'
+import { adminRequestRefusal, latestOnly } from './adminGuard.ts'
 import {
   answerPhoto,
   claudeReader,
@@ -337,6 +337,8 @@ export function reviewServer(): Plugin {
         dsm: env['PROBE_DSM'] ?? '',
         dtm: env['PROBE_DTM'] ?? '',
       }
+      // One probe process at a time: a newer request kills the one before.
+      const probes = latestOnly()
       server.middlewares.use('/__admin/probe', (req, res) => {
         if (req.method !== 'GET')
           return send(res, 405, { error: 'method not allowed' })
@@ -344,13 +346,19 @@ export function reviewServer(): Plugin {
         const query = parseProbeQuery(url.searchParams)
         if (!query.ok) return send(res, 400, { error: query.error })
         // A newer position supersedes this one: the admin aborts the request.
-        const abort = new AbortController()
+        const abort = probes.start()
         res.on('close', () => {
           if (!res.writableFinished) abort.abort()
         })
         void runProbe(query.at, rasters, abort.signal).then(
           ({ status, body }) => {
-            if (!abort.signal.aborted) send(res, status, body)
+            probes.finish(abort)
+            if (res.writableEnded || res.destroyed) return
+            if (abort.signal.aborted)
+              return send(res, 409, {
+                error: 'a newer probe replaced this one',
+              })
+            send(res, status, body)
           },
         )
       })

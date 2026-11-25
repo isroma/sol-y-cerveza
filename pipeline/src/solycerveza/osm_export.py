@@ -29,7 +29,7 @@ from xml.etree import ElementTree
 import httpx
 from pydantic import BaseModel, Field
 
-from solycerveza.overture import distance_m
+from solycerveza.geo import distance_m
 from solycerveza.review import REVIEW_CSV, Review, read_review
 from solycerveza.venues import CACHE_DIR, LatLon, fetch_overpass
 

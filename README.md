@@ -107,7 +107,7 @@ Besides terraces, its **Website prices** button lists the beer prices `python -m
 cd pipeline && uv run python -m solycerveza.price_candidates   # --refresh to download the pages again
 ```
 
-It reads the venues' own websites (never social networks, review sites or delivery apps), honouring robots.txt, and writes the caña and tercio prices it is sure about, with the page and the text they came from, to `pipeline/data/price_candidates.csv`. These are candidates: nothing reaches the app until you accept one, which copies it into `venue_prices.csv`. Menus published as PDF or image files are listed in `pipeline/.cache/menu_leads.csv` to read by hand. See [ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md).
+It reads the venues' own websites (never social networks, review sites, delivery apps or addresses on a private network), honouring robots.txt, and writes the caña and tercio prices it is sure about, with the page and the text they came from, to `pipeline/data/price_candidates.csv`. These are candidates: nothing reaches the app until you accept one, which copies it into `venue_prices.csv`. Menus published as PDF or image files are listed in `pipeline/.cache/menu_leads.csv` to read by hand. See [ADR-0006](docs/adr/0006-price-candidates-from-venue-websites.md).
 
 ### Machine proposals for unreviewed venues
 
