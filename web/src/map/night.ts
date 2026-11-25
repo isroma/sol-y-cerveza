@@ -1,4 +1,5 @@
 import type { LayerSpecification, Map as MapLibreMap } from 'maplibre-gl'
+import { TREES } from './treeCrowns.ts'
 
 type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1]
 type PaintValue = Parameters<MapLibreMap['setPaintProperty']>[2]
@@ -17,6 +18,8 @@ const DUSK = {
   water: '#2E4A72',
   building: '#454B62',
   buildingTop: '#525870',
+  // The tree crowns (?shade=gpu): a dark sage, a step lighter than the parks.
+  tree: '#4B5E50',
   road: '#535A72',
   text: '#D9DEEA',
   halo: '#343A52',
@@ -32,6 +35,7 @@ const NIGHT: Palette = {
   water: '#16263D',
   building: '#222838',
   buildingTop: '#2B3144',
+  tree: '#22302A',
   road: '#2A3043',
   text: '#AAB2C8',
   halo: '#10131D',
@@ -109,7 +113,11 @@ export function nightPaint(
       if (layer.paint && 'fill-pattern' in layer.paint)
         set(id, 'fill-opacity', Math.round((0.35 - 0.23 * depth) * 100) / 100)
     } else if (type === 'fill-extrusion')
-      set(id, 'fill-extrusion-color', NIGHT.buildingTop)
+      set(
+        id,
+        'fill-extrusion-color',
+        id === TREES ? NIGHT.tree : NIGHT.buildingTop,
+      )
     else if (type === 'line')
       set(
         id,
