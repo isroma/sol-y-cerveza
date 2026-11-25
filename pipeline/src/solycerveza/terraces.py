@@ -29,7 +29,6 @@ Run `python -m solycerveza.terraces [--refresh]` to write `pipeline/.cache/terra
 """
 
 import argparse
-import csv
 import json
 import logging
 from collections import Counter
@@ -38,8 +37,9 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from solycerveza.csvfile import read_rows
 from solycerveza.geo import distance_m
 from solycerveza.overture import name_similarity
 from solycerveza.prices import Price
@@ -134,19 +134,13 @@ class Terrace(BaseModel):
 
 def read_curated(path: Path = CURATED_CSV) -> list[CuratedTerrace]:
     """Read and validate the curated terrace list. Empty cells mean "not set"."""
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != CURATED_COLUMNS:
-            raise ValueError(f"{path}: header must be {','.join(CURATED_COLUMNS)}")
-        rows: list[CuratedTerrace] = []
-        for row in reader:
-            if None in row:
-                raise ValueError(f"{path}:{reader.line_num}: more cells than columns")
-            cells = {key: value.strip() or None for key, value in row.items() if value is not None}
-            try:
-                rows.append(CuratedTerrace.model_validate(cells))
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
+    # The file must exist. Cells a short row lacks are left out, so the model's defaults apply.
+    rows = read_rows(
+        path,
+        CURATED_COLUMNS,
+        CuratedTerrace,
+        clean=lambda row: {k: v.strip() or None for k, v in row.items() if v is not None},
+    )
 
     for column, values in (
         ("id", [row.id for row in rows]),

@@ -13,15 +13,15 @@ The build attaches the prices to each venue record. Prices that users suggest li
 suggestions backend instead and reach the app at runtime (see `api/`).
 """
 
-import csv
 import logging
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from solycerveza.csvfile import blank_to_none, read_rows
 from solycerveza.venues import VENUE_ID_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -73,17 +73,7 @@ def read_prices(path: Path = PRICES_CSV) -> list[VenuePrice]:
     """The price rows, or none when the file does not exist yet."""
     if not path.exists():
         return []
-    with path.open(encoding="utf-8", newline="") as file:
-        reader = csv.DictReader(file)
-        if tuple(reader.fieldnames or ()) != COLUMNS:
-            raise ValueError(f"{path}: header must be {','.join(COLUMNS)}")
-        rows: list[VenuePrice] = []
-        for row in reader:
-            cells = {k: (v or "").strip() or None for k, v in row.items()}
-            try:
-                rows.append(VenuePrice.model_validate(cells))
-            except ValidationError as error:
-                raise ValueError(f"{path}:{reader.line_num}: {error}") from error
+    rows = read_rows(path, COLUMNS, VenuePrice, clean=blank_to_none)
     keys = [(r.venue_id, r.item, r.brand) for r in rows]
     duplicates = sorted({f"{k[0]} {k[1]} {k[2] or ''}" for k in keys if keys.count(k) > 1})
     if duplicates:
