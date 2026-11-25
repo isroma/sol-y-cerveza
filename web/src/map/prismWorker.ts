@@ -10,6 +10,8 @@ export type PrismRequest = {
   urls: string[]
   origin: [number, number]
   metresPerUnit: number
+  /** Deciduous crowns cast nothing (ADR-0007). */
+  leafOff: boolean
 }
 
 export type PrismReply = { arrays: PrismArrays } | { error: string }
@@ -26,7 +28,7 @@ self.onmessage = async ({ data }: MessageEvent<PrismRequest>) => {
     await Promise.all(data.urls.map((url) => load(url).catch(() => null)))
   ).filter((collection) => collection !== null)
   try {
-    const arrays = prismArrays(collections, data)
+    const arrays = prismArrays(collections, data, data.leafOff)
     const reply: PrismReply = { arrays }
     self.postMessage(reply, {
       transfer: [

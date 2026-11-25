@@ -10,26 +10,31 @@ const UNIT = 1e5
  * `[base m, top m, polygons]`. A polygon is a list of rings, a ring a flat list
  * of `x, y` steps in UNIT, open (the closing point is implied). Each step is
  * from the previous point; a ring's first point is from the first point of the
- * ring before it, so the numbers stay small.
+ * ring before it, so the numbers stay small. trees.json may add `d`, one flag
+ * per group: 1 for deciduous crowns (bare from 1 Dec to 15 Mar, ADR-0007).
  */
 const ExtrusionsFile = z.object({
   v: z.literal(1),
   g: z.array(
     z.tuple([z.number(), z.number(), z.array(z.array(z.array(z.int())))]),
   ),
+  d: z.optional(z.array(z.int())),
 })
 
-export type ExtrusionProperties = { b: number; h: number }
+/** `d: 1` marks a deciduous crown; absent otherwise. */
+export type ExtrusionProperties = { b: number; h: number; d?: 1 }
 
-/** The file as GeoJSON polygons with their `b` base and `h` top, in metres. */
+/** The file as GeoJSON polygons with their `b` base, `h` top (metres) and `d` flag. */
 export function decodeExtrusions(
   raw: unknown,
 ): FeatureCollection<Polygon, ExtrusionProperties> {
-  const { g } = ExtrusionsFile.parse(raw)
+  const { g, d } = ExtrusionsFile.parse(raw)
   const features: Feature<Polygon, ExtrusionProperties>[] = []
   let firstX = 0
   let firstY = 0
-  for (const [b, h, polygons] of g) {
+  for (const [group, [b, h, polygons]] of g.entries()) {
+    const properties: ExtrusionProperties =
+      d?.[group] === 1 ? { b, h, d: 1 } : { b, h }
     for (const rings of polygons) {
       const coordinates = rings.map((steps) => {
         let x = firstX
@@ -47,7 +52,7 @@ export function decodeExtrusions(
       })
       features.push({
         type: 'Feature',
-        properties: { b, h },
+        properties,
         geometry: { type: 'Polygon', coordinates },
       })
     }

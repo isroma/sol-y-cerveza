@@ -12,6 +12,7 @@ from solycerveza.trees import (
     encode,
     erode,
     opened,
+    seasonal_bands,
 )
 
 # A 2 m grid in UTM 29N, in Badajoz.
@@ -106,3 +107,31 @@ def test_encode_is_deterministic() -> None:
     heights[25:35, 25:35] = 8.0
     bands = band_polygons(heights > 0, heights, GRID)
     assert encode(bands, GRID.crs) == encode(list(reversed(bands)), GRID.crs)
+
+
+def test_lowered_crown_cells_become_their_own_bare_polygons() -> None:
+    heights = np.zeros((40, 40))
+    heights[5:15, 5:25] = 5.0  # a row: plane trees to the west, an orange tree to the east
+    heights[25:35, 25:35] = 5.0  # an orange tree
+    lowered = np.zeros((40, 40), dtype=bool)
+    lowered[5:15, 5:15] = True
+    bands, bare = seasonal_bands(heights > 0, heights, GRID, lowered)
+    by_x = sorted(
+        (round(polygon.centroid.x), flag) for (_, _, polygon), flag in zip(bands, bare, strict=True)
+    )
+    assert by_x == [(676020, True), (676040, False), (676060, False)]
+
+
+def test_encode_lists_each_groups_bare_flag() -> None:
+    heights = np.zeros((40, 40))
+    heights[5:15, 5:15] = 5.0
+    heights[25:35, 25:35] = 5.0
+    bands = band_polygons(heights > 0, heights, GRID)
+    flags = [polygon.centroid.y > 4303960 for _, _, polygon in bands]
+    data = encode(bands, GRID.crs, flags)
+    assert [(base, top, len(polygons)) for base, top, polygons in data["g"]] == [
+        (0.0, 5.0, 1),
+        (0.0, 5.0, 1),
+    ]
+    assert data["d"] == [0, 1]
+    assert "d" not in encode(bands, GRID.crs)

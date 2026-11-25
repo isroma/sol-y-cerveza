@@ -107,10 +107,14 @@ function toPrism(
   }
 }
 
-/** Builds the arrays for every polygon of the extrusion files (extrusionCodec.ts). */
+/**
+ * Builds the arrays for every polygon of the extrusion files (extrusionCodec.ts).
+ * With `leafOff`, deciduous crowns (`d: 1`) cast nothing: they are bare.
+ */
 export function prismArrays(
   collections: readonly FeatureCollection<Polygon, ExtrusionProperties>[],
   frame: PrismFrame,
+  leafOff = false,
 ): PrismArrays {
   const byCell = new Map<string, Prism[]>()
   let edgeCount = 0
@@ -118,6 +122,7 @@ export function prismArrays(
   let capTriangles = 0
   for (const collection of collections) {
     for (const { geometry, properties } of collection.features) {
+      if (leafOff && properties.d === 1) continue
       const prism = toPrism(geometry, properties, frame)
       if (!prism) continue
       const key = `${Math.floor(prism.cy / CELL_M)},${Math.floor(prism.cx / CELL_M)}`
