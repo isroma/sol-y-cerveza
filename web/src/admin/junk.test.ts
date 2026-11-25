@@ -44,6 +44,9 @@ describe('junkSignals', () => {
     expect(signals(venue('overture:3', "Domino's Pizza", east(0)))).toEqual([
       'takeaway',
     ])
+    // Fast food with seating is a venue now (#447).
+    expect(signals(venue('overture:5', 'Kebab Haus', east(0)))).toEqual([])
+    expect(signals(venue('overture:6', "McDonald's", east(0)))).toEqual([])
     expect(
       signals(venue('overture:4', 'London Café Don Benito', east(0))),
     ).toEqual(['other_town'])

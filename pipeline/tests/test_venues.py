@@ -12,6 +12,7 @@ from solycerveza.venues import (
     OverpassError,
     StreetAddress,
     Venue,
+    amenity_kind,
     build_query,
     fetch_overpass,
     load_venues,
@@ -56,9 +57,27 @@ def test_query_asks_for_nodes_and_ways_of_every_kind_with_centres() -> None:
     query = build_query(BBOX)
     assert "node[" in query
     assert "way[" in query
-    assert '"^(bar|pub|cafe|restaurant|biergarten)$"' in query
+    assert '"^(bar|pub|cafe|restaurant|biergarten|fast_food)$"' in query
     assert "(38.84,-7.04,38.92,-6.92)" in query
     assert query.rstrip().endswith("out tags center;")
+
+
+def test_fast_food_is_listed_as_a_restaurant() -> None:
+    assert amenity_kind("fast_food") == "restaurant"
+    assert amenity_kind("bar") == "bar"
+    assert amenity_kind("ice_cream") is None
+    assert amenity_kind(None) is None
+    data = {
+        "elements": [
+            {"type": "node", "id": 1, "lat": 38.88, "lon": -6.97,
+             "tags": {"amenity": "fast_food", "name": "McDonald's"}},
+            {"type": "node", "id": 2, "lat": 38.88, "lon": -6.97,
+             "tags": {"amenity": "ice_cream", "name": "Helados"}},
+            {"type": "node", "id": 3, "lat": 38.88, "lon": -6.97,
+             "tags": {"amenity": "fast_food"}},
+        ]
+    }  # fmt: skip
+    assert [(v.name, v.kind) for v in parse_venues(data)] == [("McDonald's", "restaurant")]
 
 
 def test_parse_normalizes_nodes_and_ways_sorted_by_id() -> None:

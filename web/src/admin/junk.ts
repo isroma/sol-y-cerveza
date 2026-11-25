@@ -11,8 +11,8 @@ import type { Review } from './review.ts'
  * Strong signals (pre-ticked in the list):
  * - `name`: the name says it is something else (a shop, a tobacconist, a
  *   nightclub, a placeholder such as "Eliminar" or "User123").
- * - `takeaway`: fast food or delivery (kebab, pollería, Telepizza…), which
- *   the pipeline leaves out of Overture on purpose (`NOT_VENUES`).
+ * - `takeaway`: takeaway or delivery only (pollería, Telepizza, Domino's).
+ *   Fast food with seating (burgers, kebabs, McDonald's) is listed (#447).
  * - `other_town`: the name places it in another town.
  * - `duplicate`: a venue with the same name within DUPLICATE_M that comes
  *   from another source or is already reviewed.
@@ -54,8 +54,7 @@ export function normalize(name: string): string {
 
 const NOT_A_VENUE =
   /\b(eliminar|user ?\d+|merceria|regalos?|estanco|airsoft|tienda|panificadora|panaderia|pasteleria|confiteria|floristeria|bouquets?|outlet|discoteca|peluqueria|gimnasio|supermercado|gasolinera|farmacia|club taurino)\b/
-const TAKEAWAY =
-  /\b(kebab|doner|polleria|pollos asados|telepizza|domino s|mccafe|burger king|mcdonald s)\b/
+const TAKEAWAY = /\b(polleria|pollos asados|telepizza|domino s)\b/
 // A town inside a venue's own name ("Asador Zafra", "Bar Nuevo Lisboa",
 // "Sevilla") is common; only a nearby town after other words ("London Café
 // Don Benito") counts.
@@ -64,7 +63,7 @@ const TRAILING_TOWN =
 
 export const JUNK_LABELS: Record<JunkSignal, string> = {
   name: 'name says it is not a bar or restaurant',
-  takeaway: 'fast food or delivery',
+  takeaway: 'takeaway or delivery only',
   other_town: 'name places it in another town',
   duplicate: 'same name as a nearby venue from another source',
   duplicate_overture: 'same name as a nearby Overture venue',

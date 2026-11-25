@@ -11,6 +11,7 @@ from solycerveza.overture import (
     NearbyVenues,
     _similar_at_least,
     cache_path,
+    drop_counters,
     fetch_places,
     merge_venues,
     name_similarity,
@@ -44,7 +45,10 @@ def venue(venue_id: str, name: str, lat: float, lon: float) -> Venue:
             ["food_and_drink", "restaurant", "spanish_restaurant"],
             "restaurant",
         ),
-        ("burger_restaurant", ["food_and_drink", "restaurant"], None),
+        ("burger_restaurant", ["food_and_drink", "restaurant"], "restaurant"),
+        ("fast_food_restaurant", None, "restaurant"),
+        ("pizza_delivery", ["food_and_drink", "restaurant"], None),
+        ("food_truck_stand", None, None),
         ("bakery", ["food_and_drink", "bakery"], None),
         ("hotel", ["accommodation"], None),
     ],
@@ -147,6 +151,22 @@ def test_merge_keeps_osm_and_drops_overture_duplicates() -> None:
     assert [v.id for v in merged] == ["osm:node/1", "overture:b"]
 
 
+def test_a_mccafe_by_a_mcdonalds_is_its_counter() -> None:
+    def place(i: str, name: str, lat: float) -> Venue:
+        return Venue(
+            id=i,
+            name=name,
+            kind="restaurant",
+            location=LatLon(lat=lat, lon=-6.98),
+            outdoor_seating=None,
+        )
+
+    host = place("overture:h", "McDonald's", 38.8700)
+    counter = place("overture:c", "McCafé", 38.8703)  # 33 m away
+    alone = place("overture:a", "McCafé", 38.8800)  # 1.1 km away
+    assert drop_counters([host, counter, alone]) == [host, alone]
+
+
 def test_read_places_filters_closed_low_confidence_foursquare_and_non_venues(
     tmp_path: Path,
 ) -> None:
@@ -159,7 +179,7 @@ def test_read_places_filters_closed_low_confidence_foursquare_and_non_venues(
             ('closed', 'Bar Cerrado', -6.97, 38.88, 0.9, 'permanently_closed', 'bar', [], ['meta']),
             ('low', 'Bar Dudoso', -6.97, 38.88, 0.3, 'open', 'bar', [], ['meta']),
             ('fsq', 'Bar Fsq', -6.97, 38.88, 0.9, 'open', 'bar', [], ['meta', 'Foursquare']),
-            ('burger', 'Burger', -6.97, 38.88, 0.9, 'open', 'burger_restaurant', [], ['meta']),
+            ('truck', 'Truck', -6.97, 38.88, 0.9, 'open', 'food_truck_stand', [], ['meta']),
             ('noname', NULL, -6.97, 38.88, 0.9, 'open', 'bar', [], ['meta'])
           ) AS t(id, name, lon, lat, confidence, operating_status, category, hierarchy, datasets)
         ) TO '{path}' (FORMAT parquet)

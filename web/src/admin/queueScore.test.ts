@@ -121,7 +121,9 @@ describe('scoreVenues', () => {
     ])
     const junk = s.get('Telepizza Badajoz')
     expect(junk?.score).toBeLessThan(s.get('Bar Pepe')?.score ?? 0)
-    expect(junk?.reason).toMatch(/^Looks like not a venue: fast food/)
+    expect(junk?.reason).toMatch(
+      /^Looks like not a venue: takeaway or delivery/,
+    )
   })
 })
 

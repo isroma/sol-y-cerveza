@@ -38,7 +38,7 @@ const items = inboxItems({
   ],
   candidates: [],
   junk: [
-    { venue: venue('overture:a', 'Burger Express'), signals: ['takeaway'] },
+    { venue: venue('overture:a', 'Pollería Express'), signals: ['takeaway'] },
     { venue: venue('overture:b', 'Kept Bar'), signals: ['far'] },
   ],
   kept: new Set(['overture:b']),
@@ -63,7 +63,7 @@ describe('the Inbox', () => {
     )
     expect(describeItem(items[2]!, venueOf)).toEqual({
       title: 'overture:a',
-      detail: 'fast food or delivery',
+      detail: 'takeaway or delivery only',
     })
   })
 
