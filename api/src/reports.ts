@@ -25,6 +25,16 @@ export function newVenueKey({ lat, lon }: LatLon): string {
 export const MAX_MOVE_METRES = 500
 /** A terrace sits by its venue: a `pin` at most this far from the published venue position. */
 export const MAX_PIN_METRES = 150
+/**
+ * Removes the voter's pending report of one kind for a venue, before its
+ * replacement goes in (binds: kind, venue id, voter hash; never an `add`).
+ * `kind != 'add'` repeats the condition of the partial unique index
+ * `venue_reports_one_open`, so SQLite can use it: without it the statement
+ * reads every pending report.
+ */
+export const DELETE_OPEN_REPORT = `DELETE FROM venue_reports
+  WHERE status = 'pending' AND kind != 'add'
+    AND kind = ? AND venue_id = ? AND voter_hash = ?`
 export const VENUE_KINDS = [
   'bar',
   'pub',

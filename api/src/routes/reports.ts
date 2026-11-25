@@ -10,6 +10,7 @@ import {
 import { json, jsonBody } from '../http.ts'
 import { distanceMetres, type LatLon } from '../../../web/src/data/geo.ts'
 import {
+  DELETE_OPEN_REPORT,
   maxDistance,
   newVenueKey,
   parseReport,
@@ -56,10 +57,11 @@ export function reportWrites(
     value.kind === 'add'
       ? []
       : [
-          env.DB.prepare(
-            `DELETE FROM venue_reports
-             WHERE status = 'pending' AND kind = ? AND venue_id = ? AND voter_hash = ?`,
-          ).bind(value.kind, venueId, voterHash),
+          env.DB.prepare(DELETE_OPEN_REPORT).bind(
+            value.kind,
+            venueId,
+            voterHash,
+          ),
         ]
   return [
     ...replaced,
