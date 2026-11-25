@@ -9,12 +9,12 @@ import {
 } from '../data/prices.ts'
 import { distanceMetres } from '../data/geo.ts'
 import type { Terrace } from '../data/terraces.ts'
-import { PRICE_RESULT_TEXT, TURNSTILE_SITE_KEY } from '../prices/crowd.ts'
-import { Turnstile } from '../prices/Turnstile.tsx'
+import { TURNSTILE_SITE_KEY } from '../apiClient.ts'
+import { Turnstile } from './Turnstile.tsx'
 import { Toggle } from '../ui/Toggle.tsx'
 import { StartMoveContext } from './picking.ts'
 import type { ChangeDraft } from './draft.ts'
-import { RESULT_TEXT, sendChange } from './reports.ts'
+import { PRICE_RESULT_TEXT, RESULT_TEXT, sendChange } from './reports.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }

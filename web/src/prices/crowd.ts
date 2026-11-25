@@ -2,11 +2,7 @@ import { useSyncExternalStore } from 'react'
 import * as z from 'zod/mini'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
 import type { Price } from '../data/terraces.ts'
-
-/** The suggestions API (api/), or null when this build has none configured. */
-export const PRICES_API: string | null = import.meta.env.VITE_PRICES_API || null
-export const TURNSTILE_SITE_KEY: string | null =
-  import.meta.env.VITE_TURNSTILE_SITE_KEY || null
+import { PRICES_API } from '../apiClient.ts'
 
 const crowdPriceSchema = z.object({
   venueId: z.string(),
@@ -116,18 +112,4 @@ export function shownPrices(
 
 function pick(p: { item: Item; brand: Brand | null; cents: number }) {
   return { item: p.item, brand: p.brand, cents: p.cents }
-}
-
-export type SuggestResult = 'ok' | 'rate-limited' | 'bot' | 'error'
-
-/** True when visitors can suggest prices (the API and bot check are set up). */
-export const CAN_SUGGEST = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
-
-/** What a visitor sees after suggesting a price. */
-export const PRICE_RESULT_TEXT: Record<SuggestResult, string> = {
-  ok: '¡Gracias! Lo mostraremos cuando varias personas coincidan.',
-  'rate-limited':
-    'Hay demasiados precios enviados desde tu conexión o para este bar. Prueba más tarde.',
-  bot: 'No hemos podido verificar que no eres un robot. Inténtalo de nuevo.',
-  error: 'No se ha podido enviar. Inténtalo más tarde.',
 }

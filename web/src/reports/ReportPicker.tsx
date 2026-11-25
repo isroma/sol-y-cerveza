@@ -5,8 +5,8 @@ import {
   insideBadajoz,
   type LatLon,
 } from '../data/geo.ts'
-import { TURNSTILE_SITE_KEY, type SuggestResult } from '../prices/crowd.ts'
-import { Turnstile } from '../prices/Turnstile.tsx'
+import { TURNSTILE_SITE_KEY, type SuggestResult } from '../apiClient.ts'
+import { Turnstile } from './Turnstile.tsx'
 import { KIND_LABELS } from '../ui/categoryStyle.ts'
 import { Toggle } from '../ui/Toggle.tsx'
 import type { Picking } from './picking.ts'

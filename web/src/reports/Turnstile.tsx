@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import './prices.css'
+import './reports.css'
 
 type TurnstileApi = {
   render: (

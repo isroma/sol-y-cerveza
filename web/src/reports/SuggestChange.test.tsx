@@ -6,14 +6,15 @@ import { emptyDraft, type ChangeDraft } from './draft.ts'
 import { StartMoveContext } from './picking.ts'
 import { SuggestChange } from './SuggestChange.tsx'
 
-vi.mock('../prices/crowd.ts', async (original) => ({
-  ...(await original<typeof import('../prices/crowd.ts')>()),
-  PRICES_API: 'https://api.test',
-  TURNSTILE_SITE_KEY: 'site-key',
-}))
+// The API and the bot check as a build with both configured has them.
+vi.mock('../apiClient.ts', async (original) => {
+  vi.stubEnv('VITE_PRICES_API', 'https://api.test')
+  vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key')
+  return original()
+})
 
 // Cloudflare's widget: a token for its action once it is asked to run.
-vi.mock('../prices/Turnstile.tsx', () => ({
+vi.mock('./Turnstile.tsx', () => ({
   Turnstile: ({
     action,
     run,
