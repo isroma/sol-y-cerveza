@@ -1,6 +1,6 @@
 # The admin
 
-A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`, `web/plugins/admin/pricePhotoServer.ts`) is a dev-server plugin only (`apply: 'serve'`).
+A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`) is a dev-server plugin only (`apply: 'serve'`).
 
 What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it.
 
@@ -17,7 +17,6 @@ Keys in `web/.env.local` the admin uses (none is `VITE_`-prefixed except the API
 | ------------------------ | ------------------------------------------------------------------------------------------------- |
 | `VITE_PRICES_API`        | the API (`api/`); with `PRICES_ADMIN_TOKEN`, the Suggestions and Reports queues                   |
 | `PRICES_ADMIN_TOKEN`     | the API's `ADMIN_TOKEN`; the dev server sends it, the browser never sees it                       |
-| `ANTHROPIC_API_KEY`      | "Read prices from a photo" (a Claude API key); unset, you type prices by hand                     |
 | `PROBE_DSM`, `PROBE_DTM` | LiDAR rasters for the sun preview, if not `pipeline/.cache/badajoz_dsm.tif` and `badajoz_dtm.tif` |
 
 Under 900 px wide (a phone) the list sits above the map and scrolls, and the venue panel covers the top of the map.
@@ -38,25 +37,26 @@ Pins placed on it are ordinary review rows (`review` in the record's `sources`).
 
 ## Deciding venues
 
-The filters are **To review**, **Not a venue**, **All** and **Needs a look**. Click a venue to open its panel, then decide with a key:
+The sidebar has the title with **Inbox**, the count with **Publish**, a search box with **+** (add a venue), and the filters **To review**, **Needs a look**, **Not a venue** and **All**. Click a venue to open its panel, then decide with a key:
 
 | Key       | Does                                                                                                           |
 | --------- | -------------------------------------------------------------------------------------------------------------- |
 | **T**     | terrace: click on the map (or drag the pin) where the tables stand                                             |
-| **Enter** | in the Review queue, while placing a terrace: keep the venue position as the terrace                           |
+| **Enter** | in To review, while placing a terrace: keep the venue position as the terrace                                  |
 | **N**     | no terrace                                                                                                     |
 | **X**     | not a venue (closed, or not a bar or restaurant: the build drops it)                                           |
 | **Y**     | _Looks right_: the terrace and its sun are checked and right as they are (`looks_right` in `venue_review.csv`) |
-| **S**     | in the Review queue, skip to the end (**J** skips too, and outside the queue goes to the next venue to review) |
+| **S**     | in To review, skip to the end (**J** skips too, and in the other lists goes to the next venue to review)       |
 | **A**     | accept the venue's machine proposal                                                                            |
 | **I**     | ignore the venue's machine proposal                                                                            |
 | **Esc**   | stop placing a pin, or close the panel                                                                         |
 
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
-- **Review queue** shows the venues without a decision one at a time, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). It moves on after each decision. The list says why each one is where it is. The header shows how far you are, by count and by share of the total value.
-- **Not venues** lists Overture-only venues that are probably not a bar or restaurant (name, fast food, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), to mark in one go. Strong signals start ticked; **Mark N as not a venue** waits 10 s for **Undo** before it saves.
-- **+ Add venue** adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
+- **To review** (with an empty search) is the review queue: the venues without a decision, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
+- **Inbox** holds what came from outside, in tabs: **Reports**, **Suggestions**, **Website prices** and **Not venues** (below). Its count is the pending reports plus the likely non-venues, and it opens on a tab with something waiting.
+- **Not venues** (an Inbox tab) lists Overture-only venues that are probably not a bar or restaurant (name, fast food, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), to mark in one go. Strong signals start ticked; **Mark N as not a venue** waits 10 s for **Undo** before it saves.
+- **+** (next to the search) adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
 
 ## Fixing a terrace
 
@@ -75,13 +75,13 @@ Venues can also be dragged to their real position. Every decision is a row in `p
 The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/data/venue_prices.csv`; the build attaches them to each record as `prices` (integer cents).
 
 - **By hand**: type them in the panel's price fields.
-- **Read prices from a photo**: pre-fills the fields as proposals from a photo of the price board, read by the Claude API from the dev server (`web/plugins/admin/pricePhotoServer.ts`, `ANTHROPIC_API_KEY`). Check each one before saving it.
-- **Website prices** lists the candidates `python -m solycerveza.price_candidates` found on venues' own websites (`pipeline/data/price_candidates.csv`, [ADR-0006](adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page (`web/src/admin/PriceCandidates.tsx`). Check it, then **Accept** (it is saved to `venue_prices.csv` with `seen` = the fetch date, and ships with the next Publish) or **Dismiss** (hidden). Both are recorded in the candidate's `status`.
-- **Suggestions** is the queue of visitor price suggestions the API has not served (fewer than 5 networks agree; [api/README.md](../api/README.md)). **Accept** saves the price to `venue_prices.csv` and resolves it in the API; **Reject** resolves it as rejected, so no vote for that price counts again.
+- **From the phone**: logged in at `/admin` on the site, prices you save show at once from the API (owner prices), without the admin. Reading prices from a photo was removed (2026-11-25).
+- **Website prices** (an Inbox tab) lists the candidates `python -m solycerveza.price_candidates` found on venues' own websites (`pipeline/data/price_candidates.csv`, [ADR-0006](adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page (`web/src/admin/PriceCandidates.tsx`). Check it, then **Accept** (it is saved to `venue_prices.csv` with `seen` = the fetch date, and ships with the next Publish) or **Dismiss** (hidden). Both are recorded in the candidate's `status`.
+- **Suggestions** (an Inbox tab) is the queue of visitor price suggestions the API has not served (fewer than 5 networks agree; [api/README.md](../api/README.md)). **Accept** saves the price to `venue_prices.csv` and resolves it in the API; **Reject** resolves it as rejected, so no vote for that price counts again.
 
 ## Reports
 
-**Reports** lists the visitors' venue reports from the API ([ADR-0009](adr/0009-terrace-reports.md), `web/src/admin/ReportsQueue.tsx`). Reports are never applied automatically. Selecting one shows the venue and, for a move, a terrace pin or a new venue, a dashed pin at the proposed point. **Accept** applies it as a review row (`reportChange` in `web/src/admin/reports.ts`) and only then resolves it in the API; **Reject** only resolves it.
+**Reports** (an Inbox tab) lists the visitors' venue reports from the API ([ADR-0009](adr/0009-terrace-reports.md), `web/src/admin/ReportsQueue.tsx`). Reports are never applied automatically. Selecting one shows the venue and, for a move, a terrace pin or a new venue, a dashed pin at the proposed point. **Accept** applies it as a review row (`reportChange` in `web/src/admin/reports.ts`) and only then resolves it in the API; **Reject** only resolves it.
 
 | Report kind        | Accepting writes                                                                                      |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
@@ -117,16 +117,15 @@ The owner can also record prices at the bar from the public site on a phone ([AD
 
 All under `/__admin/`, served by `web/plugins/admin/reviewServer.ts` in the dev server only. A guard in front of them (`web/plugins/admin/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON. The paths are named once, in `web/src/admin/endpoints.ts`, which the admin page and the dev server both import; `web/plugins/admin/reviewServer.test.ts` checks that the server mounts exactly those.
 
-| Endpoint                    | Methods          | What                                                                                                      |
-| --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `/__admin/review`           | GET, PUT, DELETE | `venue_review.csv`: read, upsert a row, remove one (`?venue_id=`)                                         |
-| `/__admin/prices`           | GET, PUT, DELETE | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                            |
-| `/__admin/prices/photo`     | GET, POST        | whether `ANTHROPIC_API_KEY` is set; read a photo of the price board (`web/plugins/admin/pricePhotoServer.ts`, max 5 MB) |
-| `/__admin/price-candidates` | GET, POST        | `price_candidates.csv` and the menu leads; record an accept or a dismiss                                  |
-| `/__admin/proposals`        | GET, POST        | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                              |
-| `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before          |
-| `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                               |
-| `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                           |
-| `/__admin/publish`          | GET, POST        | Publish status; start a Publish (`409` while one is building)                                             |
+| Endpoint                    | Methods          | What                                                                                             |
+| --------------------------- | ---------------- | ------------------------------------------------------------------------------------------------ |
+| `/__admin/review`           | GET, PUT, DELETE | `venue_review.csv`: read, upsert a row, remove one (`?venue_id=`)                                |
+| `/__admin/prices`           | GET, PUT, DELETE | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                   |
+| `/__admin/price-candidates` | GET, POST        | `price_candidates.csv` and the menu leads; record an accept or a dismiss                         |
+| `/__admin/proposals`        | GET, POST        | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                     |
+| `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before |
+| `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                      |
+| `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                  |
+| `/__admin/publish`          | GET, POST        | Publish status; start a Publish (`409` while one is building)                                    |
 
 The two proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).

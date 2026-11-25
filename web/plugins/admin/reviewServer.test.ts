@@ -47,10 +47,4 @@ describe('reviewServer routes', () => {
     for (const path of Object.values(ADMIN_ENDPOINTS))
       expect(path.startsWith(`${ADMIN_PREFIX}/`)).toBe(true)
   })
-
-  it('mounts the photo endpoint before the prices one, which prefixes it', () => {
-    expect(paths.indexOf(ADMIN_ENDPOINTS.pricePhoto)).toBeLessThan(
-      paths.indexOf(ADMIN_ENDPOINTS.prices),
-    )
-  })
 })

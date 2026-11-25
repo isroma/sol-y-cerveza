@@ -3,6 +3,7 @@ import type { LatLon } from '../data/terraces.ts'
 import { AddVenuePanel, type Adding } from './AddVenuePanel.tsx'
 import { AdminMap } from './AdminMap.tsx'
 import { AdminToolbar } from './AdminToolbar.tsx'
+import { InboxTabs, type InboxTab } from './InboxTabs.tsx'
 import { PriceCandidates } from './PriceCandidates.tsx'
 import { SuggestionsQueue } from './SuggestionsQueue.tsx'
 import { ReportsQueue } from './ReportsQueue.tsx'
@@ -48,9 +49,9 @@ type Filter = 'todo' | 'not_venue' | 'all' | 'look'
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'todo', label: 'To review' },
+  { id: 'look', label: 'Needs a look' },
   { id: 'not_venue', label: 'Not a venue' },
   { id: 'all', label: 'All' },
-  { id: 'look', label: 'Needs a look' },
 ]
 
 function matches(filter: Filter, review: Review | undefined): boolean {
@@ -82,14 +83,12 @@ export function Admin() {
   const [pinning, setPinning] = useState(false)
   // The terrace pin while it is being dragged, for a live sun preview.
   const [dragging, setDragging] = useState<LatLon | null>(null)
-  const [queueOpen, setQueueOpen] = useState(false)
-  const [candidatesOpen, setCandidatesOpen] = useState(false)
-  const [reportsOpen, setReportsOpen] = useState(false)
+  // The Inbox: what came from outside to accept, one tab open at a time.
+  const [inbox, setInbox] = useState<InboxTab | null>(null)
   const [reportCount, setReportCount] = useState<number | null>(null)
   // Where a selected visitor report would put a venue.
   const [proposed, setProposed] = useState<LatLon | null>(null)
   const [publish, setPublish] = useState<PublishStatus>(IDLE)
-  const [junkOpen, setJunkOpen] = useState(false)
   const [dismissing, setDismissing] = useState<{
     ids: string[]
     until: number
@@ -245,20 +244,19 @@ export function Admin() {
   }, [change, hasTerrace])
 
   // Review queue: venues one at a time, best value first (queueScore.ts).
+  // "To review" with no search is the review queue, best value first.
+  const queueMode = filter === 'todo' && query.trim() === ''
   const {
-    queueMode,
-    setQueueMode,
     skipped,
     queue,
     queueItem,
-    progress,
     advance,
     skip,
     decide,
     looksRightAndGo,
-    startQueue,
     nextToReview,
   } = useReviewQueue({
+    queueMode,
     venues,
     reviews,
     scored,
@@ -288,12 +286,6 @@ export function Admin() {
     },
     [save, reviews, queueMode, selectedId, advance],
   )
-
-  const openQueue = () => {
-    if (queueMode) return setQueueMode(false)
-    setAdding(null)
-    startQueue()
-  }
 
   // Batch "not a venue": staged for DISMISS_UNDO_MS, then saved one by one
   // through the usual save path.
@@ -382,7 +374,6 @@ export function Admin() {
   ])
 
   const startAdding = () => {
-    setQueueMode(false)
     select(null)
     setAdding({ name: '', kind: 'bar', at: null })
   }
@@ -411,7 +402,7 @@ export function Admin() {
       change({ kind: 'terrace', at })
       setPinning(false)
       if (queueMode) advance(selectedId)
-    } else if (!queueMode) select(null)
+    } else select(null)
   }
 
   const runPublish = async () => {
@@ -502,22 +493,19 @@ export function Admin() {
       <aside className="admin-side">
         <header className="admin-head">
           <AdminToolbar
-            queueMode={queueMode}
-            onQueue={openQueue}
-            junkOpen={junkOpen}
-            junkCount={junk.length}
-            onJunk={() => setJunkOpen(!junkOpen)}
-            suggestionsOpen={queueOpen}
-            onSuggestions={() => setQueueOpen(!queueOpen)}
-            reportsOpen={reportsOpen}
-            reportCount={reportCount}
-            onReports={() => {
-              setReportsOpen(!reportsOpen)
+            inboxOpen={inbox !== null}
+            inboxCount={(reportCount ?? 0) + junk.length}
+            onInbox={() => {
+              // Opens on the tab with something waiting.
+              setInbox(
+                inbox
+                  ? null
+                  : !reportCount && junk.length > 0
+                    ? 'junk'
+                    : 'reports',
+              )
               setProposed(null)
             }}
-            candidatesOpen={candidatesOpen}
-            onCandidates={() => setCandidatesOpen(!candidatesOpen)}
-            onAdd={startAdding}
             reviewed={reviewed}
             total={venues.length}
             dropped={dropped}
@@ -525,13 +513,6 @@ export function Admin() {
             publish={publish}
             onPublish={() => void runPublish()}
           />
-          {queueOpen && (
-            <SuggestionsQueue
-              nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
-              onSelect={select}
-              onAccept={acceptSuggestion}
-            />
-          )}
           {dismissing?.saving && (
             <div className="admin-dismissing" role="status">
               Saving {dismissing.ids.length} as not a venue…
@@ -556,19 +537,6 @@ export function Admin() {
               </span>
             </div>
           )}
-          {junkOpen && (
-            <BatchDismiss
-              items={junk}
-              onSelect={select}
-              onMark={(ids) =>
-                setDismissing({
-                  ids,
-                  until: Date.now() + DISMISS_UNDO_MS,
-                  saving: false,
-                })
-              }
-            />
-          )}
           {proposalData.errors.length > 0 && (
             <details className="admin-help">
               <summary>
@@ -581,58 +549,84 @@ export function Admin() {
               </ul>
             </details>
           )}
-          {reportsOpen && (
-            <ReportsQueue
-              venueOf={(id) => mapVenues.find((v) => v.id === id)}
-              onSelect={selectReport}
-              onAccept={acceptReport}
-              onCount={setReportCount}
-            />
-          )}
-          {candidatesOpen && (
-            <PriceCandidates
-              nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
-              onSelect={select}
-              onAccept={(price) => savePrice(priceKey(price), price)}
-            />
-          )}
-          {queueMode ? (
-            <div className="admin-progress" aria-live="polite">
-              <p>
-                <strong>
-                  {Math.min(progress.done + 1, progress.total)} of{' '}
-                  {progress.total}
-                </strong>
-                , {progress.percent} % · {progress.value} % of the value
-              </p>
-              <div className="admin-progress-bar">
-                <span style={{ width: `${progress.value}%` }} />
-              </div>
+          {inbox && (
+            <div className="admin-inbox">
+              <InboxTabs
+                tab={inbox}
+                onTab={(tab) => {
+                  setInbox(tab)
+                  setProposed(null)
+                }}
+                counts={{ reports: reportCount, junk: junk.length }}
+              />
+              {inbox === 'reports' && (
+                <ReportsQueue
+                  venueOf={(id) => mapVenues.find((v) => v.id === id)}
+                  onSelect={selectReport}
+                  onAccept={acceptReport}
+                  onCount={setReportCount}
+                />
+              )}
+              {inbox === 'suggestions' && (
+                <SuggestionsQueue
+                  nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
+                  onSelect={select}
+                  onAccept={acceptSuggestion}
+                />
+              )}
+              {inbox === 'prices' && (
+                <PriceCandidates
+                  nameOf={(id) => venues.find((v) => v.id === id)?.name ?? id}
+                  onSelect={select}
+                  onAccept={(price) => savePrice(priceKey(price), price)}
+                />
+              )}
+              {inbox === 'junk' && (
+                <BatchDismiss
+                  items={junk}
+                  onSelect={select}
+                  onMark={(ids) =>
+                    setDismissing({
+                      ids,
+                      until: Date.now() + DISMISS_UNDO_MS,
+                      saving: false,
+                    })
+                  }
+                />
+              )}
             </div>
-          ) : (
+          )}
+          <div className="admin-search">
             <input
               type="search"
               placeholder="Search by name"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-          )}
-          {!queueMode && (
-            <div className="admin-filters" role="tablist">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={filter === f.id}
-                  onClick={() => setFilter(f.id)}
-                >
-                  {f.label}
-                  {f.id === 'look' && ` (${looks.size})`}
-                </button>
-              ))}
-            </div>
-          )}
+            <button
+              type="button"
+              aria-label="Add a venue"
+              title="Add a venue no source lists"
+              onClick={startAdding}
+            >
+              +
+            </button>
+          </div>
+          <div className="admin-filters" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={filter === f.id}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+                {f.id === 'look' && ` (${looks.size})`}
+                {f.id === 'todo' && ` (${queue.length})`}
+              </button>
+            ))}
+          </div>
         </header>
         {queueMode && (
           <ol className="admin-list admin-queue-list">
@@ -701,14 +695,9 @@ export function Admin() {
             onCancel={() => setAdding(null)}
           />
         )}
-        {queueMode && !adding && !selectedVenue && (
+        {queueMode && !adding && !selectedVenue && queue.length === 0 && (
           <section className="admin-panel" aria-label="Review queue">
-            <h2>Review queue</h2>
-            <p className="admin-help">
-              {queue.length === 0
-                ? 'Nothing left to review.'
-                : 'Pick a venue from the list to carry on.'}
-            </p>
+            <h2>Nothing left to review</h2>
           </section>
         )}
         {!adding && selectedVenue && selectedMap && (
@@ -717,7 +706,6 @@ export function Admin() {
             state={selectedMap.state}
             review={review}
             queueMode={queueMode}
-            progress={progress}
             queueReason={queueItem?.reason ?? null}
             proposals={selectedProposals}
             onAcceptProposal={acceptProposal}

@@ -6,7 +6,6 @@ import {
   parseEuros,
   type Brand,
 } from '../data/prices.ts'
-import { PricePhoto } from './PricePhoto.tsx'
 import { priceKey, type VenuePrice } from './pricesCsv.ts'
 
 type Props = {
@@ -155,12 +154,6 @@ export function PricesEditor({
           )}
         </div>
       )}
-      <PricePhoto
-        venueId={venueId}
-        prices={prices}
-        today={today}
-        onSave={onSave}
-      />
     </div>
   )
 }

@@ -51,8 +51,6 @@ function stubServer() {
       if (path === ADMIN_ENDPOINTS.proposals)
         return json({ ...parseProposalsCsv(proposalsCsv), ignored: [] })
       if (path === ADMIN_ENDPOINTS.publish) return json(IDLE)
-      if (path === ADMIN_ENDPOINTS.pricePhoto)
-        return json({ enabled: false, hint: 'no key' })
       return json({ error: 'not configured' }, 503)
     }),
   )
