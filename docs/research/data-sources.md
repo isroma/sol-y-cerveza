@@ -180,7 +180,7 @@ HERE, TomTom, Azure, Apple and Mapbox have no such attribute. Venue websites are
 - **Venue websites:** a working signal ([ADR-0004](../adr/0004-junta-register-and-website-evidence.md)).
   - 141 venues have their own site (not Facebook or Instagram) in OSM or Overture. 88 loaded.
   - **9 say the venue has a terrace** ("nuestra terraza", "our terrace"; a booking form with a "Terraza" option; "suplemento en terraza", a terrace surcharge). 3 more were false positives ("Ciudad Jardín", a link to "Jardin Majorelle", a Seville chain).
-  - 5 were placed on the orthophoto and added as curated rows. 4 were left out: the point fell on a mall or covered structure newer than the 2009 LiDAR, or the terrace's location was unclear.
+  - 5 were placed on the orthophoto and added as curated rows. 4 were left out: the point fell on a mall or covered structure newer than the 2009 LiDAR used at the time (the LiDAR in use is now the 2 m 2nd coverage, flown 2018–19), or the terrace's location was unclear.
 - **Junta register:** 714 city rows, of which 399 geocode to an exact street number. They confirm 143 existing venues and add 101 recent ones (opened 2010 or later).
 - **Wikimedia Commons:** 616 geotagged files in the area, none of them a terrace. Dead end.
 - **KartaView:** the public API didn't answer usefully, and earlier research found almost no coverage. Dead end.

@@ -20,7 +20,7 @@ import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from solycerveza.overture import distance_m
+from solycerveza.geo import distance_m
 from solycerveza.proposals import Proposal, Targets, overture_only
 from solycerveza.review import Review
 from solycerveza.terraces import Terrace

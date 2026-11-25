@@ -1,0 +1,165 @@
+name: Publish review PR
+
+# Second half of the admin's Publish (web/publish.ts; publish-review.yml is the
+# first). It opens the PR for a data/venue-review-* branch and enables
+# auto-merge with PUBLISH_TOKEN, a fine-grained token of the repo owner
+# (Contents and Pull requests: read and write, this repository only), because
+# PRs opened or merged with GITHUB_TOKEN trigger no workflows, so CI and the
+# Pages deploy would never run.
+#
+# GitHub always runs a workflow_run workflow from the default branch's copy, so
+# a pushed branch cannot change this file. It can change publish-review.yml, or
+# add any workflow called "Publish review", so nothing from the triggering run
+# is trusted: only its head branch, head SHA and head repository are read (via
+# env), and everything is checked again here. No code from the pushed branch is
+# checked out or run; its commits are only fetched to list the changed files.
+# The token sits in the `publish` environment, which only main may deploy to.
+on:
+  workflow_run:
+    workflows: ['Publish review']
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: publish-review-pr-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      # open: open the PR and enable auto-merge; disable: turn auto-merge off;
+      # none: nothing to do (branch gone, or a newer push has its own run).
+      action: ${{ steps.verify.outputs.action }}
+    steps:
+      - name: Check the pushed branch against main
+        id: verify
+        env:
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          SERVER: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+          finish() {
+            echo "action=$1" >> "$GITHUB_OUTPUT"
+            exit "${2:-0}"
+          }
+          if [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "::error::The run's head repository is not $REPO."
+            finish none 1
+          fi
+          if ! [[ "$BRANCH" =~ ^data/venue-review-[A-Za-z0-9._-]+$ ]] || [[ "$BRANCH" == *..* ]]; then
+            echo "::error::The run's branch is not a data/venue-review-* branch."
+            finish none 1
+          fi
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The run's head SHA is not a commit SHA."
+            finish none 1
+          fi
+
+          # Objects only, no checkout: nothing from the branch is ever run. The
+          # token goes in through git's environment config, not the command line.
+          git init --quiet repo
+          cd repo
+          git remote add origin "$SERVER/$REPO.git"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.$SERVER/.extraheader"
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          export GIT_CONFIG_VALUE_0
+          if [ -z "$(git ls-remote --heads origin "refs/heads/$BRANCH")" ]; then
+            echo "::notice::The branch is gone (merged or deleted): nothing to do."
+            finish none
+          fi
+          git fetch --quiet --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            "+refs/heads/$BRANCH:refs/remotes/origin/publish"
+          tip=$(git rev-parse refs/remotes/origin/publish)
+          if [ "$tip" != "$SHA" ]; then
+            echo "::notice::The branch has moved on to $tip since this run; the run for that push decides."
+            finish none
+          fi
+
+          # The push check failed (or was cancelled): auto-merge enabled for an
+          # earlier push must not carry this one into main.
+          if [ "$CONCLUSION" != success ]; then
+            echo "::error::Publish review did not succeed for $SHA."
+            finish disable
+          fi
+
+          # PUBLISH_TOKEN auto-merges whatever the branch holds, so it may only
+          # change the files Publish commits (REVIEW, PRICES and DATA in
+          # web/publish.ts). publish-review.yml repeats this list as a fast signal.
+          changed=$(git diff --no-renames --name-only "refs/remotes/origin/main...$SHA")
+          other=''
+          while IFS= read -r file; do
+            case "$file" in
+              '' | pipeline/data/venue_review.csv | pipeline/data/venue_prices.csv | web/public/data/terraces.json) ;;
+              *) other="$other$file"$'\n' ;;
+            esac
+          done <<< "$changed"
+          if [ -n "$other" ]; then
+            echo "::error::The branch changes files Publish never commits, so it is not merged."
+            # Quoted, so no path reads as a workflow command.
+            while IFS= read -r file; do printf 'changed: %q\n' "$file"; done <<< "${other%$'\n'}"
+            finish disable
+          fi
+          if [ -z "$changed" ]; then
+            echo "::notice::The branch changes nothing against main: nothing to do."
+            finish none
+          fi
+          printf 'Changed files:\n%s\n' "$changed"
+          finish open
+
+  publish:
+    needs: verify
+    if: needs.verify.outputs.action == 'open' || needs.verify.outputs.action == 'disable'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Move PUBLISH_TOKEN here as an environment secret and limit the environment's
+    # deployment branches to main (CLAUDE.md, Admin). Until then the repository
+    # secret of the same name is used.
+    environment:
+      name: publish
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Turn auto-merge off
+        if: needs.verify.outputs.action == 'disable'
+        run: |
+          if [ -n "$GH_TOKEN" ]; then
+            pr=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json url -q '.[0].url')
+            if [ -n "$pr" ]; then
+              gh pr merge "$pr" -R "$REPO" --disable-auto || true
+            fi
+          fi
+          echo "::error::The branch failed the publish checks (see the verify job), so it is not merged."
+          exit 1
+      - name: Open the PR and enable auto-merge
+        if: needs.verify.outputs.action == 'open'
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add the PUBLISH_TOKEN secret (see CLAUDE.md, Admin)."
+            exit 1
+          fi
+          pr=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json url -q '.[0].url')
+          if [ -z "$pr" ]; then
+            message=$(gh api "repos/$REPO/commits/$SHA" -q .commit.message)
+            pr=$(gh pr create -R "$REPO" --head "$BRANCH" --base main \
+              --title "$(printf '%s\n' "$message" | head -n 1)" \
+              --body "$(printf '%s\n' "$message" | tail -n +3)")
+          fi
+          # Only the commit checked above: if the branch moved meanwhile, this fails.
+          gh pr merge "$pr" -R "$REPO" --auto --squash --match-head-commit "$SHA"
+          echo "$pr" >> "$GITHUB_STEP_SUMMARY"

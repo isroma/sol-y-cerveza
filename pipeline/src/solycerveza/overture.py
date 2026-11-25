@@ -15,7 +15,6 @@ Run `python -m solycerveza.overture` to download the places for the bbox into `.
 
 import argparse
 import logging
-import math
 import re
 import unicodedata
 from collections.abc import Iterable, Sequence
@@ -24,7 +23,7 @@ from pathlib import Path
 
 import duckdb
 
-from solycerveza.geo import BADAJOZ_BBOX, BoundingBox
+from solycerveza.geo import BADAJOZ_BBOX, BoundingBox, distance_m
 from solycerveza.venues import CACHE_DIR, Kind, LatLon, Venue
 
 logger = logging.getLogger(__name__)
@@ -223,12 +222,6 @@ def name_similarity(a: str, b: str) -> float:
     shorter, longer = sorted((na.replace(" ", ""), nb.replace(" ", "")), key=len)
     contained = 0.9 if len(shorter) >= 5 and shorter in longer else 0.0
     return 100 * max(whole, tokens.ratio(), contained)
-
-
-def distance_m(a: LatLon, b: LatLon) -> float:
-    x = math.radians(b.lon - a.lon) * math.cos(math.radians((a.lat + b.lat) / 2))
-    y = math.radians(b.lat - a.lat)
-    return 6_371_000 * math.hypot(x, y)
 
 
 def same_venue(a: Venue, b: Venue) -> bool:

@@ -8,9 +8,9 @@ import httpx
 import httpx2
 import pytest
 
+from solycerveza.geo import distance_m
 from solycerveza.junta import RegisterRow, register_id
 from solycerveza.ortho import Crop, OrthoFetcher, cached_crop
-from solycerveza.overture import distance_m
 from solycerveza.proposals import (
     AskAll,
     OvertureAttrs,

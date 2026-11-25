@@ -1,7 +1,11 @@
 # ADR-0005: Beer prices from curators and visitors
 
-- Status: Accepted
+- Status: accepted (2026-11-23)
 - Date: 2026-11-23
+- Amended (2026-11-25):
+  - The admin's "Import phone prices" (Owner mode, "Repo copy") is **planned, not built** (#263). The API has `GET /v1/admin/owner-prices`, but nothing in `web/` calls it, so owner prices exist only in D1 for now.
+  - The phone admin (#181) was removed in favour of owner mode on the public site (#199): prices at the bar go through owner mode, locations stay in the desk admin.
+  - The card back sends a price together with a move or closed report in one request ([ADR-0010](0010-one-change-request.md)); `POST /v1/suggestions` stays, but the app no longer calls it.
 - Issue: #8
 
 ## Context
@@ -57,14 +61,14 @@ The owner records prices at the bar from their phone, without the laptop.
 - **Photo:** "Foto de la carta" sends a downscaled photo to `POST /v1/owner/photo`, which reads the prices and the bar's name with the Claude API, using the same prompt and price rules as the admin's photo reader (`web/src/data/photoReading.ts`). The photo isn't stored. At most 50 photos in any 24 hours (`PHOTO_DAILY_LIMIT`, 2026-11-24), so a leaked token can't run up unbounded API spend.
 - **Auto-save:** the app saves clear readings for a clearly matched bar and asks for anything unclear. The bar is matched by the card that's open, or, for a photo from the library, by its GPS location and the name on the menu.
 - **Scope of the token:** `OWNER_TOKEN` can only add or remove prices and read photos (capped); it can't touch the suggestion queue or the repo. A leaked token means bad prices, which the owner can delete, and the token can be replaced with `wrangler secret put`.
-- **Repo copy:** the admin's "Import phone prices" copies owner prices into `venue_prices.csv`, so the repo keeps the full record and Publish ships them as usual.
+- **Repo copy:** the admin's "Import phone prices" copies owner prices into `venue_prices.csv`, so the repo keeps the full record and Publish ships them as usual. (Not built yet: see the amendment at the top.)
 
 ### Venue reports (2026-11-24, #200)
 
 Visitors can also report that a venue is in the wrong place (`move`), no longer exists (`closed`) or is missing (`add`), through `POST /v1/reports` on the same Worker.
 
 - **Never applied automatically.** Unlike prices, a report can't be shown at runtime: a moved or new venue needs the pipeline to compute its terrace horizon from the LiDAR model, and a wrongly closed venue would vanish from the map. So there is no consensus threshold; every report waits in the admin's Reports queue, the owner accepts it into `venue_review.csv`, and it ships with Publish like any review. The queue groups `closed` reports per venue and shows how many networks sent them, as evidence, not as a trigger.
-- **Same guardrails as prices.** Turnstile (action `report`), the same voter and network hashes, and the shared `suggestion_events` caps (an `add` counts against the venue key `new`). One open `move` and one open `closed` per voter and venue; a new one replaces the old one.
+- **Same guardrails as prices.** Turnstile (action `report`), the same voter and network hashes, and the shared `suggestion_events` caps (an `add` counts against the ~1 km cell of its position, `new:<lat>,<lon>` to 2 decimals). One open `move` and one open `closed` per voter and venue; a new one replaces the old one.
 - **Validity:** positions inside the Badajoz box; a `move` at most 500 m from the published position (a correction, not a relocation); `move` and `closed` only for venues in the published data; names for an `add` cleaned and 2 to 60 characters, no links.
 
 ## Consequences

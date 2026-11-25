@@ -1,6 +1,6 @@
 # ADR-0004: Junta register for venues, venue websites as terrace evidence
 
-- Status: accepted
+- Status: accepted (2026-11-24)
 - Date: 2026-11-24
 - Context issues: #45 (Junta register), terrace sourcing (#3)
 

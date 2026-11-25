@@ -110,6 +110,7 @@ def test_collect_reads_prices_from_the_fixture_pages(tmp_path: Path) -> None:
         today=FETCHED,
         cache_dir=tmp_path,
         sleep=lambda _s: None,
+        resolve=lambda _host, _port: ["151.101.1.1"],  # no DNS in tests
     )
     found, answered, leads = collect(
         {"osm:node/1": "https://bar.es/", "osm:node/2": "https://gone.es/"}, fetcher

@@ -2,10 +2,11 @@ name: Publish review
 
 # The admin view's Publish button (web/publish.ts) pushes a data/venue-review-*
 # branch with git only: on the admin's network api.github.com is unreachable.
-# This opens the PR and enables auto-merge. It uses PUBLISH_TOKEN, a
-# fine-grained token of the repo owner (Contents and Pull requests: read and
-# write, this repository only), because PRs opened or merged with GITHUB_TOKEN
-# trigger no workflows, so CI and the Pages deploy would never run.
+# This is the first, unprivileged half: it checks the push and holds no secrets.
+# GitHub runs a push workflow from the pushed commit, so whoever pushes can edit
+# this file; nothing here may be trusted. When it succeeds, publish-review-pr.yml
+# (always run from main's copy) checks the branch again on its own and opens the
+# PR with PUBLISH_TOKEN. publish-review-pr.yml names this workflow by its name.
 on:
   push:
     branches: ['data/venue-review-*']
@@ -18,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  open-pr:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -27,10 +28,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      # PUBLISH_TOKEN auto-merges whatever the branch holds, so the branch may only
-      # change the files Publish commits (REVIEW, PRICES and DATA in web/publish.ts).
+      # A fast signal only: publish-review-pr.yml repeats this check with the same
+      # list (REVIEW, PRICES and DATA in web/publish.ts) before using the token.
       - name: Check the branch only changes the published data
-        id: files
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
@@ -48,35 +48,3 @@ jobs:
             exit 1
           fi
           printf 'Changed files:\n%s\n' "$changed"
-      # A later push that fails the check must not ride on auto-merge enabled earlier.
-      - name: Turn auto-merge off
-        if: failure() && steps.files.outcome == 'failure'
-        env:
-          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
-        run: |
-          pr=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json url -q '.[0].url')
-          if [ -n "$pr" ] && [ -n "$GH_TOKEN" ]; then
-            gh pr merge "$pr" -R "$REPO" --disable-auto || true
-          fi
-      - name: Open the PR and enable auto-merge
-        env:
-          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          BRANCH: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Add the PUBLISH_TOKEN secret (see CLAUDE.md, Admin)."
-            exit 1
-          fi
-          pr=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json url -q '.[0].url')
-          if [ -z "$pr" ]; then
-            message=$(gh api "repos/$REPO/commits/$SHA" -q .commit.message)
-            pr=$(gh pr create -R "$REPO" --head "$BRANCH" --base main \
-              --title "$(printf '%s\n' "$message" | head -n 1)" \
-              --body "$(printf '%s\n' "$message" | tail -n +3)")
-          fi
-          gh pr merge "$pr" -R "$REPO" --auto --squash
-          echo "$pr" >> "$GITHUB_STEP_SUMMARY"

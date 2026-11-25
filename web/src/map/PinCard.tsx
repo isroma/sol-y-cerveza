@@ -56,7 +56,7 @@ function Shoulder({ side }: { side: 'left' | 'right' }) {
 }
 
 /**
- * Shares a link to the venue at the chosen day and time: the system share
+ * Shares a link to the venue at the chosen time today: the system share
  * sheet where there is one, else the link goes to the clipboard. Not on the
  * card for now (issue #233); kept, with its tests, to bring back.
  */
