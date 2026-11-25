@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { VENUE_ID } from '../data/geo.ts'
 
 /**
  * Venue review decisions, stored in `pipeline/data/venue_review.csv` (see
@@ -29,9 +30,6 @@ export type Kind = (typeof KINDS)[number]
 
 /** Venues no source lists, added in the admin view. */
 export const ADDED_PREFIX = 'review:'
-
-const VENUE_ID =
-  /^(osm:(node|way)\/\d+|overture:[0-9A-Za-z-]+|junta:[0-9a-f]{12}|review:[a-z0-9]+(-[a-z0-9]+)*)$/
 
 const latLonSchema = z.object({
   lat: z.number().min(-90).max(90),

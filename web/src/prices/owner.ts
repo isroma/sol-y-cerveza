@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import * as z from 'zod/mini'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
-import type { LatLon } from '../data/terraces.ts'
+import { distanceMetres, type LatLon } from '../data/geo.ts'
 import { PRICES_API } from './crowd.ts'
 
 /**
@@ -198,15 +198,6 @@ export async function readOwnerPhoto(photo: {
 
 // --- Which bar a photo is from ---------------------------------------------
 
-/** Metres between two points (equirectangular: fine at bar distances). */
-export function distanceM(a: LatLon, b: LatLon): number {
-  const k = 111_320
-  const dx =
-    (a.lon - b.lon) * k * Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180)
-  const dy = (a.lat - b.lat) * k
-  return Math.hypot(dx, dy)
-}
-
 const GENERIC = new Set([
   'bar',
   'cafe',
@@ -258,7 +249,7 @@ export function photoDoubt(
   barName: string | null,
 ): string | null {
   if (photoAt) {
-    const d = distanceM(photoAt, venue.at)
+    const d = distanceMetres(photoAt, venue.at)
     if (d > PHOTO_NEAR_M)
       return `La foto se hizo a ${Math.round(d)} m de ${venue.name}.`
   }
@@ -279,7 +270,7 @@ export function pickVenue(
 ): { sure: VenueRef | null; options: VenueRef[] } {
   const near = photoAt
     ? venues
-        .map((v) => ({ v, d: distanceM(photoAt, v.at) }))
+        .map((v) => ({ v, d: distanceMetres(photoAt, v.at) }))
         .filter((x) => x.d <= CANDIDATE_M)
         .sort((a, b) => a.d - b.d)
     : []

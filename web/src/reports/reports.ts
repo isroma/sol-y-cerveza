@@ -1,5 +1,6 @@
 import type { LatLon, Terrace } from '../data/terraces.ts'
 import type { Brand, Item } from '../data/prices.ts'
+import { cleanVenueName } from '../data/geo.ts'
 import {
   PRICES_API,
   TURNSTILE_SITE_KEY,
@@ -14,9 +15,6 @@ import {
 
 /** Shown only when the build has the API and the bot check, like price suggestions. */
 export const CAN_REPORT = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
-
-/** The box the API accepts positions in. */
-const BADAJOZ = { south: 38.84, west: -7.04, north: 38.92, east: -6.92 }
 
 /** The API refuses moves further than this from the published position. */
 export const MAX_MOVE_M = 500
@@ -38,38 +36,10 @@ export type Report =
       token: string
     }
 
-/** As the API cleans it: commas, quotes and line breaks become spaces, whitespace collapsed. */
-export function cleanName(raw: string): string {
-  return raw
-    .replace(/[,"'“”‘’«»\r\n]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 /** 2 to 60 characters after cleaning, and no links. */
 export function validName(raw: string): boolean {
-  const name = cleanName(raw)
+  const name = cleanVenueName(raw)
   return name.length >= 2 && name.length <= 60 && !/http|www/i.test(name)
-}
-
-export function insideBadajoz({ lat, lon }: LatLon): boolean {
-  return (
-    lat >= BADAJOZ.south &&
-    lat <= BADAJOZ.north &&
-    lon >= BADAJOZ.west &&
-    lon <= BADAJOZ.east
-  )
-}
-
-/** Great-circle distance in metres (haversine). */
-export function distanceMetres(a: LatLon, b: LatLon): number {
-  const rad = Math.PI / 180
-  const dLat = (b.lat - a.lat) * rad
-  const dLon = (b.lon - a.lon) * rad
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2
-  return 2 * 6_371_000 * Math.asin(Math.sqrt(h))
 }
 
 const round6 = (value: number) => Math.round(value * 1e6) / 1e6

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { distanceMetres } from '../data/geo.ts'
 import type { Terrace } from '../data/terraces.ts'
 import {
-  distanceM,
   exitOwner,
   pickVenue,
   readOwnerPhoto,
@@ -115,7 +115,10 @@ export function OwnerBar({
             <button key={v.id} type="button" onClick={() => choose(v)}>
               {v.name}
               {choice.from && (
-                <small> {Math.round(distanceM(choice.from, v.at))} m</small>
+                <small>
+                  {' '}
+                  {Math.round(distanceMetres(choice.from, v.at))} m
+                </small>
               )}
             </button>
           ))}

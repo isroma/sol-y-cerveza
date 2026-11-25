@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { insideBadajoz } from '../data/geo.ts'
 import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 /**
@@ -7,13 +8,6 @@ import { ADMIN_ENDPOINTS } from './endpoints.ts'
  * by the dev server at ADMIN_ENDPOINTS.probe. Pure: shared by the admin page and its
  * dev-server endpoint.
  */
-/** Mirrors BADAJOZ_BBOX in pipeline/src/solycerveza/geo.py; the probe refuses anything outside. */
-export const PROBE_BBOX = {
-  south: 38.84,
-  west: -7.04,
-  north: 38.92,
-  east: -6.92,
-} as const
 
 /** Positions are rounded to 5 decimals (about 1 m) for requests and the cache. */
 const DECIMALS = 5
@@ -63,7 +57,8 @@ export function probeUrl(at: Position): string {
 
 /**
  * The position in a probe request's query string, or why it is refused:
- * both must be plain decimal numbers inside PROBE_BBOX.
+ * both must be plain decimal numbers inside BADAJOZ_BBOX (the probe refuses
+ * anything outside).
  */
 export function parseProbeQuery(
   params: URLSearchParams,
@@ -73,13 +68,7 @@ export function parseProbeQuery(
   if (!NUMBER.test(lat) || !NUMBER.test(lon))
     return { ok: false, error: 'lat and lon must be decimal numbers' }
   const at = roundPosition({ lat: Number(lat), lon: Number(lon) })
-  const b = PROBE_BBOX
-  if (
-    at.lat < b.south ||
-    at.lat > b.north ||
-    at.lon < b.west ||
-    at.lon > b.east
-  )
+  if (!insideBadajoz(at))
     return { ok: false, error: 'the position is outside the Badajoz area' }
   return { ok: true, at }
 }
