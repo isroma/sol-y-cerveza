@@ -85,14 +85,20 @@
 
 /* Time */
 
+.time {
+  /* Pulls the time up to sit optically centred between the search bar and
+     the slider (the sidebar's 24 px gap is more than it needs). */
+  margin-top: -8px;
+}
+
 .time-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  justify-content: center;
 }
 
 .time-value {
-  font-size: 24px;
+  font-size: 34px;
+  line-height: 1;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

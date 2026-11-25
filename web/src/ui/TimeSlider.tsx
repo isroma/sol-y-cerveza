@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { STEP_MINUTES } from '../sun/sunState.ts'
 import { formatClock } from '../time/madrid.ts'
-import { ClockIcon, SunriseIcon, SunsetIcon } from './icons.tsx'
+import { SunriseIcon, SunsetIcon } from './icons.tsx'
 
 /** Terrace hours shown on the slider. */
 export const SLIDER_START = 8 * 60
@@ -38,7 +38,6 @@ export function TimeSlider({
   return (
     <section className="time" aria-label="Hora">
       <div className="time-header">
-        <ClockIcon size={24} />
         <output className="time-value" aria-live="polite">
           {formatClock(minutes)}
         </output>
