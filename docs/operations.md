@@ -6,37 +6,37 @@ How the site and the API are deployed and configured, how the offline cache beha
 
 - **Web (GitHub Pages).** CI deploys `main` once `ci-ok` passes on it: the `deploy-pages` job in `.github/workflows/ci.yml` calls `.github/workflows/deploy-pages.yml`, which builds the commit CI tested. Running the **Deploy web to GitHub Pages** workflow by hand (Actions → Run workflow, on `main`) deploys `main` at once, without waiting for CI. Only `main`'s newest commit is deployed: an older run skips, and one Pages deploy runs at a time.
 - **API (Cloudflare Worker + D1).** The `deploy-api` job in `ci.yml` calls `.github/workflows/deploy-api.yml` the same way, once the `DEPLOY_API` variable is set; until then the Worker is deployed by hand. First deploy, updates, migrations and turning on deploys from GitHub: [api/README.md](../api/README.md#deploys-from-github).
-- **Data.** The admin's Publish pushes a `data/venue-review-*` branch; the **Publish review** workflow opens its PR and enables auto-merge ([admin guide](admin.md#publish)). Once merged, the deploy above ships it.
+- **Data.** The admin's Publish pushes a `data/venue-review-*` branch; the **Publish review** and **Publish review PR** workflows check it, open its PR and enable auto-merge ([admin guide](admin.md#publish)). Once merged, the deploy above ships it.
 - **Mobile** is paused: `.github/workflows/mobile.yml` only runs by hand ([mobile](mobile.md)).
 
 ## Variables and secrets
 
 Names only; values live in GitHub, Cloudflare or local files that are never committed.
 
-| Name                                          | Kind                                                  | Used by                                                                 |
-| --------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- |
-| `PRICES_API`                                  | repo variable                                         | the Pages build, as `VITE_PRICES_API`: the API URL; unset, no API calls |
-| `TURNSTILE_SITE_KEY`                          | repo variable                                         | the Pages build, as `VITE_TURNSTILE_SITE_KEY` (public)                  |
-| `SW_KILL_SWITCH`                              | repo variable                                         | the Pages build, as `VITE_SW_KILL_SWITCH`: `1` ships the kill switch    |
-| `DEPLOY_API`                                  | repo variable                                         | `true` turns on the API deploy from CI                                  |
-| `PUBLISH_TOKEN`                               | repo secret                                           | the Publish review workflow: opens the PR and enables auto-merge        |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | secrets of the `cloudflare` environment (`main` only) | `deploy-api.yml`                                                        |
-| `TURNSTILE_SECRET`, `ADMIN_TOKEN`, `IP_SALT`, `OWNER_TOKEN`, `ANTHROPIC_API_KEY` | Worker secrets in Cloudflare (`wrangler secret put`); locally `api/.dev.vars` | the API ([api/README.md](../api/README.md))       |
-| `VITE_PRICES_API`, `VITE_TURNSTILE_SITE_KEY`, `PRICES_ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `PROBE_DSM`, `PROBE_DTM` | `web/.env.local` (from `web/.env.example`) | local dev and the admin ([admin guide](admin.md#starting-it)) |
+| Name                                                                                                              | Kind                                                                                                     | Used by                                                                 |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `PRICES_API`                                                                                                      | repo variable                                                                                            | the Pages build, as `VITE_PRICES_API`: the API URL; unset, no API calls |
+| `TURNSTILE_SITE_KEY`                                                                                              | repo variable                                                                                            | the Pages build, as `VITE_TURNSTILE_SITE_KEY` (public)                  |
+| `SW_KILL_SWITCH`                                                                                                  | repo variable                                                                                            | the Pages build, as `VITE_SW_KILL_SWITCH`: `1` ships the kill switch    |
+| `DEPLOY_API`                                                                                                      | repo variable                                                                                            | `true` turns on the API deploy from CI                                  |
+| `PUBLISH_TOKEN`                                                                                                   | secret of the `publish` environment (`main` only); until it is moved there, the repo secret of that name | `publish-review-pr.yml`: opens the Publish PR and enables auto-merge    |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`                                                                   | secrets of the `cloudflare` environment (`main` only)                                                    | `deploy-api.yml`                                                        |
+| `TURNSTILE_SECRET`, `ADMIN_TOKEN`, `IP_SALT`, `OWNER_TOKEN`, `ANTHROPIC_API_KEY`                                  | Worker secrets in Cloudflare (`wrangler secret put`); locally `api/.dev.vars`                            | the API ([api/README.md](../api/README.md))                             |
+| `VITE_PRICES_API`, `VITE_TURNSTILE_SITE_KEY`, `PRICES_ADMIN_TOKEN`, `ANTHROPIC_API_KEY`, `PROBE_DSM`, `PROBE_DTM` | `web/.env.local` (from `web/.env.example`)                                                               | local dev and the admin ([admin guide](admin.md#starting-it))           |
 
 `PUBLISH_TOKEN` is a fine-grained token of the owner (this repository only; Contents and Pull requests read and write). PRs opened with `GITHUB_TOKEN` trigger no CI or deploy, which is why it exists.
 
 ## Offline and the service worker
 
-The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `serviceWorker` plugin in `web/vite.config.ts`). It is never registered in dev (`npm run dev`, `npm run admin`), in the admin or inside the Capacitor apps (`web/src/registerServiceWorker.ts`).
+Why network-first: [ADR-0011](adr/0011-network-first-service-worker.md). The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `serviceWorker` plugin in `web/vite.config.ts`). It is never registered in dev (`npm run dev`, `npm run admin`), in the admin or inside the Capacitor apps (`web/src/registerServiceWorker.ts`).
 
-| Request                                            | Strategy                                                                                                                                          |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Request                                            | Strategy                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `assets/*-<hash>.*`                                | Precached at install, cache-first. One cache per build (`syc-app-<build>`); the previous build's is kept so pages still open on it keep working. |
 | The page, `data/terraces.json`, icons, other files | Network-first, past the HTTP cache (revalidated), 3 s timeout; the cache only when offline, slow or on a 5xx. A late response still updates it.  |
-| OpenFreeMap style and TileJSON                     | Network-first with the same timeout (they name the tile version to load).                                                                         |
-| OpenFreeMap tiles, glyphs, sprites                 | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                                  |
-| Prices API `GET /v1/prices`                        | Network-first. Writes (`POST /v1/changes`, `POST /v1/reports`, owner mode's `/v1/owner/*`) and everything else are not touched.                   |
+| OpenFreeMap style and TileJSON                     | Network-first with the same timeout (they name the tile version to load).                                                                        |
+| OpenFreeMap tiles, glyphs, sprites                 | Stale-while-revalidate, at most 600 entries and 30 days; CORS responses only, never opaque ones.                                                 |
+| Prices API `GET /v1/prices`                        | Network-first. Writes (`POST /v1/changes`, `POST /v1/reports`, owner mode's `/v1/owner/*`) and everything else are not touched.                  |
 
 **Updates.** A new worker takes over at once (`skipWaiting`, `clients.claim`) but never reloads an open page; its next load is the new version. If a page asks for a map chunk that a deploy removed and no cache has, `LazyMapView` reloads once (guarded by `sessionStorage`, no loops) and then shows "No se pudo cargar el mapa".
 
@@ -46,15 +46,15 @@ The built site registers `sw.js` (source `web/sw/sw.ts`, emitted by the `service
 
 `.github/workflows/ci.yml` runs on every PR and every push to `main`:
 
-| Job        | Runs                                                                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `changes`  | decides which jobs the PR can affect (below)                                                                                                           |
-| `web`      | `npm ci`, `format:check`, `lint`, `test`, `build` in `web/`                                                                                            |
-| `e2e`      | Playwright, three jobs: `phone` (`phone,reports-phone`), `desktop` (`desktop,reports-desktop`) and `offline`, each with `E2E_PROJECTS` set to its projects |
-| `pipeline` | `uv sync --locked`, `ruff format --check`, `ruff check`, `mypy`, `pytest` in `pipeline/`                                                               |
-| `api`      | `npm ci`, `format:check`, `lint`, `typecheck`, `test`, `build:dry`, and every D1 migration applied to a fresh local database                            |
-| `ci-ok`    | the single required check: fails if any job failed or was cancelled, or (outside a PR) was skipped                                                     |
-| `deploy-pages`, `deploy-api` | pushes to `main` only, after `ci-ok`                                                                                                 |
+| Job                          | Runs                                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `changes`                    | decides which jobs the PR can affect (below)                                                                                                               |
+| `web`                        | `npm ci`, `format:check`, `lint`, `test`, `build` in `web/`                                                                                                |
+| `e2e`                        | Playwright, three jobs: `phone` (`phone,reports-phone`), `desktop` (`desktop,reports-desktop`) and `offline`, each with `E2E_PROJECTS` set to its projects |
+| `pipeline`                   | `uv sync --locked`, `ruff format --check`, `ruff check`, `mypy`, `pytest` in `pipeline/`                                                                   |
+| `api`                        | `npm ci`, `format:check`, `lint`, `typecheck`, `test`, `build:dry`, and every D1 migration applied to a fresh local database                               |
+| `ci-ok`                      | the single required check: fails if any job failed or was cancelled, or (outside a PR) was skipped                                                         |
+| `deploy-pages`, `deploy-api` | pushes to `main` only, after `ci-ok`                                                                                                                       |
 
 **Path filter.** On a PR, `.github/scripts/ci-changes.sh` maps the changed paths to the jobs that read them, and the others are skipped (a skipped job counts as passed for `ci-ok`). Changes under `.github/` run everything; `web/ios/**`, `web/android/**`, `docs/`, `README.md`, `CLAUDE.md` and other files outside the code run nothing but `changes` and `ci-ok`. The full mapping is in the script and repeated above the `changes` job. Pushes to `main` run everything.
 

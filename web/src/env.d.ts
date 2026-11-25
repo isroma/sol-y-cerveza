@@ -5,6 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_PRICES_API?: string
   /** Cloudflare Turnstile site key (public). */
   readonly VITE_TURNSTILE_SITE_KEY?: string
-  /** '1' ships the self-removing service worker (README, kill switch). */
+  /** '1' ships the self-removing service worker (docs/operations.md, kill switch). */
   readonly VITE_SW_KILL_SWITCH?: string
 }

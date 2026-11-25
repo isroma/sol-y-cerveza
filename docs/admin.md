@@ -13,12 +13,12 @@ cd web && npm ci && npm run admin    # opens admin.html
 
 Keys in `web/.env.local` the admin uses (none is `VITE_`-prefixed except the API URL, so the secrets never reach the browser):
 
-| Key                       | For                                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `VITE_PRICES_API`         | the API (`api/`); with `PRICES_ADMIN_TOKEN`, the Suggestions and Reports queues                         |
-| `PRICES_ADMIN_TOKEN`      | the API's `ADMIN_TOKEN`; the dev server sends it, the browser never sees it                             |
-| `ANTHROPIC_API_KEY`       | "Read prices from a photo" (a Claude API key); unset, you type prices by hand                           |
-| `PROBE_DSM`, `PROBE_DTM`  | LiDAR rasters for the sun preview, if not `pipeline/.cache/badajoz_dsm.tif` and `badajoz_dtm.tif`       |
+| Key                      | For                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `VITE_PRICES_API`        | the API (`api/`); with `PRICES_ADMIN_TOKEN`, the Suggestions and Reports queues                   |
+| `PRICES_ADMIN_TOKEN`     | the API's `ADMIN_TOKEN`; the dev server sends it, the browser never sees it                       |
+| `ANTHROPIC_API_KEY`      | "Read prices from a photo" (a Claude API key); unset, you type prices by hand                     |
+| `PROBE_DSM`, `PROBE_DTM` | LiDAR rasters for the sun preview, if not `pipeline/.cache/badajoz_dsm.tif` and `badajoz_dtm.tif` |
 
 The sun preview needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza.obstacles`, see the [pipeline guide](pipeline.md#rebuilding-the-data)); everything else works without them, and without them the panel says how to get them.
 
@@ -26,17 +26,17 @@ The sun preview needs the LiDAR rasters in `pipeline/.cache/` (from `solycerveza
 
 The filters are **To review**, **Not a venue**, **All** and **Needs a look**. Click a venue to open its panel, then decide with a key:
 
-| Key       | Does                                                                                                               |
-| --------- | ------------------------------------------------------------------------------------------------------------------ |
-| **T**     | terrace: click on the map (or drag the pin) where the tables stand                                                 |
-| **Enter** | in the Review queue, while placing a terrace: keep the venue position as the terrace                               |
-| **N**     | no terrace                                                                                                         |
-| **X**     | not a venue (closed, or not a bar or restaurant: the build drops it)                                               |
-| **Y**     | *Looks right*: the terrace and its sun are checked and right as they are (`looks_right` in `venue_review.csv`)     |
-| **S**     | in the Review queue, skip to the end (**J** skips too, and outside the queue goes to the next venue to review)     |
-| **A**     | accept the venue's machine proposal                                                                                |
-| **I**     | ignore the venue's machine proposal                                                                                |
-| **Esc**   | stop placing a pin, or close the panel                                                                             |
+| Key       | Does                                                                                                           |
+| --------- | -------------------------------------------------------------------------------------------------------------- |
+| **T**     | terrace: click on the map (or drag the pin) where the tables stand                                             |
+| **Enter** | in the Review queue, while placing a terrace: keep the venue position as the terrace                           |
+| **N**     | no terrace                                                                                                     |
+| **X**     | not a venue (closed, or not a bar or restaurant: the build drops it)                                           |
+| **Y**     | _Looks right_: the terrace and its sun are checked and right as they are (`looks_right` in `venue_review.csv`) |
+| **S**     | in the Review queue, skip to the end (**J** skips too, and outside the queue goes to the next venue to review) |
+| **A**     | accept the venue's machine proposal                                                                            |
+| **I**     | ignore the venue's machine proposal                                                                            |
+| **Esc**   | stop placing a pin, or close the panel                                                                         |
 
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
@@ -53,7 +53,7 @@ Venues can also be dragged to their real position. Every decision is a row in `p
 3. Read it:
    - **No sun** while the tables do get sun: the pin is in the shade of something the tables are not, typically tight against a façade or under a crown. Move it a few metres onto open ground, towards the middle of the tables.
    - **Height above ground** is the surface model minus the terrain under the pin. On the street it reads about 0 m. Above 2 m (the build's warning threshold, `MAX_HEIGHT_ABOVE_GROUND_M`) the pin sits on a roof, an awning or a tree crown, and its horizon is meaningless: move it to the pavement or square below.
-   - **The pin is right and so is the result**, e.g. a narrow street between tall buildings that really gets little or no sun: press **Y** (*Looks right*). It keeps the terrace where it is and takes it off the list for good; moving its pin later puts it back. Note the 2 m LiDAR can't see the floor of very narrow streets, so their sun may read lower than it is.
+   - **The pin is right and so is the result**, e.g. a narrow street between tall buildings that really gets little or no sun: press **Y** (_Looks right_). It keeps the terrace where it is and takes it off the list for good; moving its pin later puts it back. Note the 2 m LiDAR can't see the floor of very narrow streets, so their sun may read lower than it is.
 4. **Publish** when done. The list is computed from the published `terraces.json`, so a fixed terrace leaves it after the next build ("pin moved since the build" until then).
 
 ## Prices
@@ -69,13 +69,13 @@ The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/
 
 **Reports** lists the visitors' venue reports from the API ([ADR-0009](adr/0009-terrace-reports.md), `web/src/admin/ReportsQueue.tsx`). Reports are never applied automatically. Selecting one shows the venue and, for a move, a terrace pin or a new venue, a dashed pin at the proposed point. **Accept** applies it as a review row (`reportChange` in `web/src/admin/reports.ts`) and only then resolves it in the API; **Reject** only resolves it.
 
-| Report kind                  | Accepting writes                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `closed`                     | `not_venue`, or deletes an added `review:` venue                                                       |
-| `move`                       | the venue position, or the terrace position when the venue has a terrace (the app's badge sits there)  |
-| `terrace` yes / no           | `terrace` / `no_terrace`; the queue groups them per venue and answer, with the count                   |
-| `pin`                        | the terrace position                                                                                   |
-| `add`                        | a new `review:` venue                                                                                  |
+| Report kind        | Accepting writes                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `closed`           | `not_venue`, or deletes an added `review:` venue                                                      |
+| `move`             | the venue position, or the terrace position when the venue has a terrace (the app's badge sits there) |
+| `terrace` yes / no | `terrace` / `no_terrace`; the queue groups them per venue and answer, with the count                  |
+| `pin`              | the terrace position                                                                                  |
+| `add`              | a new `review:` venue                                                                                 |
 
 The app sends `move`, `closed` and `add` today; `terrace` and `pin` exist in the API and this queue, but no app UI sends them yet (#210).
 
@@ -89,8 +89,8 @@ Proposals from the optional `pipeline/data/venue_proposals.csv` (written by `pyt
 
 1. It waits for pending saves, then rebuilds the data in a temporary git worktree of `origin/main` (`python -m solycerveza.build`, reusing this checkout's `pipeline/.cache/`).
 2. It commits `pipeline/data/venue_review.csv`, `pipeline/data/venue_prices.csv` and `web/public/data/terraces.json`, nothing else, and pushes a `data/venue-review-*` branch, or adds to the one whose PR is still open.
-3. It uses git only, because the owner's network can't reach api.github.com. The **Publish review** workflow (`.github/workflows/publish-review.yml`) checks that the branch changes only those three files, then opens the PR and enables auto-merge.
-4. That workflow uses the `PUBLISH_TOKEN` secret, a fine-grained token of the owner (this repository only; Contents and Pull requests read and write). It is needed because PRs opened with `GITHUB_TOKEN` trigger no CI or deploy.
+3. It uses git only, because the owner's network can't reach api.github.com. Two workflows take over. **Publish review** (`.github/workflows/publish-review.yml`, on the push, no secrets) checks that the branch changes only those three files. When it succeeds, **Publish review PR** (`.github/workflows/publish-review-pr.yml`, `workflow_run`, so always `main`'s copy) checks the branch again itself, never running its code, and opens the PR and enables auto-merge.
+4. **Publish review PR** uses the `PUBLISH_TOKEN` secret, a fine-grained token of the owner (this repository only; Contents and Pull requests read and write), kept in the `publish` environment, which only `main` may use (until the owner moves it there, the repository secret of the same name is used). The token is needed because PRs opened with `GITHUB_TOKEN` trigger no CI or deploy. Never use `PUBLISH_TOKEN` in a workflow a branch push can run.
 5. The admin follows the branch with git (every 10 s, for up to 30 min) and shows when it merged. CI then deploys the site.
 
 Only one Publish builds at a time.
@@ -103,16 +103,16 @@ The owner can also record prices at the bar from the public site on a phone ([AD
 
 All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON.
 
-| Endpoint                     | Methods              | What                                                                                                       |
-| ---------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `/__admin/review`            | GET, PUT, DELETE     | `venue_review.csv`: read, upsert a row, remove one (`?venue_id=`)                                          |
-| `/__admin/prices`            | GET, PUT, DELETE     | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                             |
-| `/__admin/prices/photo`      | GET, POST            | whether `ANTHROPIC_API_KEY` is set; read a photo of the price board (`web/pricePhotoServer.ts`, max 5 MB)  |
-| `/__admin/price-candidates`  | GET, POST            | `price_candidates.csv` and the menu leads; record an accept or a dismiss                                   |
-| `/__admin/proposals`         | GET, POST            | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                               |
-| `/__admin/probe`             | GET                  | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before           |
-| `/__admin/suggestions`       | GET, POST            | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                                |
-| `/__admin/reports`           | GET, POST            | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                            |
-| `/__admin/publish`           | GET, POST            | Publish status; start a Publish (`409` while one is building)                                              |
+| Endpoint                    | Methods          | What                                                                                                      |
+| --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `/__admin/review`           | GET, PUT, DELETE | `venue_review.csv`: read, upsert a row, remove one (`?venue_id=`)                                         |
+| `/__admin/prices`           | GET, PUT, DELETE | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                            |
+| `/__admin/prices/photo`     | GET, POST        | whether `ANTHROPIC_API_KEY` is set; read a photo of the price board (`web/pricePhotoServer.ts`, max 5 MB) |
+| `/__admin/price-candidates` | GET, POST        | `price_candidates.csv` and the menu leads; record an accept or a dismiss                                  |
+| `/__admin/proposals`        | GET, POST        | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                              |
+| `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before          |
+| `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                               |
+| `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                           |
+| `/__admin/publish`          | GET, POST        | Publish status; start a Publish (`409` while one is building)                                             |
 
 The two proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).

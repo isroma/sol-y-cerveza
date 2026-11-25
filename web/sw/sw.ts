@@ -17,7 +17,7 @@
 //   non-GET (POST /v1/changes and /v1/reports, owner mode's /v1/owner/*),
 //   go straight to the network.
 //
-// README "Offline and the service worker" has the kill switch.
+// docs/operations.md, "Offline and the service worker", has the kill switch.
 
 import type { SwManifest } from './manifest.ts'
 
