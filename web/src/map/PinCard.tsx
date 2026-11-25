@@ -3,12 +3,11 @@ import type { VenueStatus } from '../sun/venueStatus.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
-import { SunCountdown } from './SunCountdown.tsx'
+import { SunDay } from './SunDay.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useCanSend, useOwner } from '../prices/owner.ts'
 import { emptyDraft, useDraft } from '../reports/draft.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
-import { currentSunRun } from '../sun/venueStatus.ts'
 import { shareUrl } from '../urlState.ts'
 import { useMediaQuery } from '../ui/useMediaQuery.ts'
 
@@ -151,8 +150,8 @@ export function PinCard({ status, minutes }: Props) {
       setTurn('in')
     }, FLIP_HALF_MS)
   }
-  const bar =
-    status.timeline !== null && currentSunRun(status.timeline, minutes) !== null
+  // The day strip shows whenever the terrace has a sun timeline.
+  const bar = status.timeline !== null
 
   const suggest = canSend ? (
     <button
@@ -203,7 +202,7 @@ export function PinCard({ status, minutes }: Props) {
                 </div>
               </div>
               {status.timeline && bar && (
-                <SunCountdown
+                <SunDay
                   timeline={status.timeline}
                   minutes={minutes}
                   middle={suggest}

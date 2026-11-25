@@ -65,7 +65,7 @@ describe('sunBox', () => {
 })
 
 describe('PinCard', () => {
-  it('shows the name, the sun left and a countdown of the sun spell', () => {
+  it('shows the name, the sun left and the day strip', () => {
     // Sun from 12:00 to 17:26 (5-minute steps), shade before and after.
     const timeline = Array.from({ length: 288 }, (_, i) =>
       i >= 144 && i * 5 < 17 * 60 + 26 ? ('sun' as const) : ('shade' as const),
@@ -80,9 +80,9 @@ describe('PinCard', () => {
     expect(screen.getByText('Café La Plaza')).toBeInTheDocument()
     expect(screen.getByText('Café · Terraza')).toBeInTheDocument()
     expect(screen.getByText('2 h 58 min de sol')).toBeInTheDocument()
-    expect(screen.getByText('12:00')).toBeInTheDocument()
-    expect(screen.getByText('17:30')).toBeInTheDocument()
-    expect(screen.getByRole('meter')).toHaveAttribute('aria-valuenow', '178')
+    expect(
+      screen.getByRole('img', { name: 'Sol hoy: de 12:00 a 17:30' }),
+    ).toBeInTheDocument()
     expect(screen.queryByText('Posición sin verificar')).toBeNull()
   })
 
@@ -100,11 +100,22 @@ describe('PinCard', () => {
     expect(screen.queryByRole('button', { name: /Compartir/ })).toBeNull()
   })
 
-  it('has no bar without sun', () => {
+  it('has no day strip without a sun timeline', () => {
     const { container } = render(
       <PinCard status={status({})} minutes={at} sunset={18 * 60} />,
     )
-    expect(container.querySelector('.sun-countdown')).toBeNull()
+    expect(container.querySelector('.sun-day')).toBeNull()
+  })
+
+  it('shows the day strip in shade too', () => {
+    const { container } = render(
+      <PinCard
+        status={status({ timeline: Array(288).fill('shade') })}
+        minutes={at}
+        sunset={18 * 60}
+      />,
+    )
+    expect(container.querySelector('.sun-day')).not.toBeNull()
   })
 })
 

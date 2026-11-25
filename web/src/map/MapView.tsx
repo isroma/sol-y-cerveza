@@ -407,10 +407,11 @@ export function MapView({
       )
       const top = highlighted.has(id)
       entry.el.classList.toggle('pin-marker--top', top)
+      // A badge showing its price sits above its neighbours, so none covers it.
       entry.el.style.zIndex =
         id === selectedId
           ? '4'
-          : top
+          : top || priced.has(id)
             ? '3'
             : status.category === 'sun' || status.category === 'soon'
               ? '2'
