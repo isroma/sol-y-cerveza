@@ -36,6 +36,9 @@ type LoadState =
 /** While the report picker is open, tapping badges doesn't open cards. */
 function ignoreSelect() {}
 
+/** How long the time and venue rest before they're written to the URL. */
+const URL_WRITE_DELAY_MS = 400
+
 /** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
 
@@ -87,16 +90,24 @@ export function App() {
   }, [linked])
 
   // Mirror the time and the venue into the URL, so the address is a link to
-  // this view.
+  // this view. Once the slider rests: Safari throws on more than 100
+  // replaceState calls in 10 s, and a throw here would blank the whole app.
   useEffect(() => {
-    const { pathname, search, hash } = window.location
-    const next = writeUrlState(search, { time, venue: selectedId })
-    if (next !== search)
-      window.history.replaceState(
-        window.history.state,
-        '',
-        pathname + next + hash,
-      )
+    const timer = window.setTimeout(() => {
+      const { pathname, search, hash } = window.location
+      const next = writeUrlState(search, { time, venue: selectedId })
+      if (next === search) return
+      try {
+        window.history.replaceState(
+          window.history.state,
+          '',
+          pathname + next + hash,
+        )
+      } catch {
+        // Over the browser's limit: the next change writes it.
+      }
+    }, URL_WRITE_DELAY_MS)
+    return () => window.clearTimeout(timer)
   }, [time, selectedId])
 
   // Keep "now" current: the marker on the bar, the time while it follows the
