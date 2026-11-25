@@ -54,6 +54,8 @@ To check a rebuild:
 
 The map's prototype sun shadows (`?shade=gpu`, `web/src/map/heightShadows.ts`) march from each ground pixel towards the sun through the same DSM and DTM the terrace horizons use, so trees and terrain cast shadows and the map agrees with the list. `python -m solycerveza.heightmap` reprojects both rasters to Web Mercator zoom-15 tiles of 512 px (about 1.9 m a pixel) and writes PNGs to `web/public/data/heights/{x}/{y}.png` (gitignored: rasters are never committed). Each pixel packs the surface elevation in decimetres (R, G) and its height above the terrain in quarter metres (B). The city is 110 tiles, about 14 MB.
 
+The client keeps a 5 × 5-tile window in one texture, allocated once, with each tile in a fixed slot, so panning uploads only the tiles coming into view. It marches into an offscreen buffer at half the CSS resolution (a 36th of the pixels on a DPR-3 phone) and upsamples that with linear filtering. It samples heights bilinearly and fades the edge over the sun's penumbra, so edges are soft rather than 2 m blocks. A march stops once the sun line clears the window's highest surface. The march is redrawn only when the view, the sun or the tiles change. MapLibre drops custom layers when the WebGL context is lost, so the layer re-adds itself when the context is restored.
+
 Rasters stay off `main`: the tiles live on the orphan branch `height-tiles` (`{x}/{y}.png` at its root), and the Pages deploy copies it into the site's `data/heights/` (`.github/workflows/deploy-pages.yml`). The dev server reads them from `web/public/data/heights`. Regenerate only when the DSM or DTM changes, then replace the branch's tiles in one commit:
 
 ```sh
