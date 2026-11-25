@@ -2,7 +2,7 @@
 
 A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`) is a dev-server plugin only (`apply: 'serve'`).
 
-What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it.
+What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it. The one exception is sun reports ([below](#sun-reports)): answering one is saved in the API alone, with nothing to Publish.
 
 ## Starting it
 
@@ -15,7 +15,7 @@ Keys in `web/.env.local` the admin uses (none is `VITE_`-prefixed except the API
 
 | Key                      | For                                                                                               |
 | ------------------------ | ------------------------------------------------------------------------------------------------- |
-| `VITE_PRICES_API`        | the API (`api/`); with `PRICES_ADMIN_TOKEN`, the Suggestions and Reports queues                   |
+| `VITE_PRICES_API`        | the API (`api/`); with `PRICES_ADMIN_TOKEN`, the Suggestions, Reports and Sun queues              |
 | `PRICES_ADMIN_TOKEN`     | the API's `ADMIN_TOKEN`; the dev server sends it, the browser never sees it                       |
 | `PROBE_DSM`, `PROBE_DTM` | LiDAR rasters for the sun preview, if not `pipeline/.cache/badajoz_dsm.tif` and `badajoz_dtm.tif` |
 
@@ -54,7 +54,7 @@ The sidebar has the title with **Publish**, the count, and two tabs: **To review
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
 - **To review** (with an empty search) is the review queue: the venues without a decision, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
-- **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**A**), **Reject** (**R**) and **Skip** (**J**). Each answer moves on to the next Inbox item, not to To review.
+- **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Sun**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**A**), **Reject** (**R**) and **Skip** (**J**). Each answer moves on to the next Inbox item, not to To review.
 - **Not venues** (an Inbox filter) lists Overture-only venues that are probably not a bar or restaurant (name, takeaway or delivery only, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), one at a time: **Not a venue** (**A**) marks it; **Keep it** (**R**) takes it off the Inbox until the admin reloads, and it stays in To review.
 - **+** (next to the search) adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
 
@@ -93,6 +93,24 @@ The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/
 
 The app sends `move`, `closed` and `add` today; `terrace` and `pin` exist in the API and this queue, but no app UI sends them yet (#210).
 
+## Sun reports
+
+**Sun** (an Inbox filter) lists the visitors' reports that the sun is on a terrace where the model says shade (issue #364, [ADR-0012](adr/0012-sun-reports.md)), from the API's `GET /v1/admin/sun`: every pending report, one row per venue and season (leaf-on, or leaf-off from 1 Dec to 15 Mar), whether or not enough people agree yet (`web/src/admin/sunReports.ts`, `SunReportDetails.tsx`). Once 3 networks agree, visitors already see that sun as approximate ("~"); the row says "shown as ~".
+
+Selecting one shows the venue on the map and each sighting: its Madrid date and time, the sun's azimuth and altitude then (computed by the API), and the published model in that direction from `terraces.json`, in the report's season: the obstacle the app compares the sun with (the envelope's low half, or the horizon at the pin, with the pin's value next to it when they differ), and how far below it the sun was. "Model 34.0°, sun 5.4° below it" means the model puts an obstacle where a visitor saw sun.
+
+Neither answer writes to `pipeline/data/`: both go straight to the API (`POST /v1/admin/sun/resolve`), and there is nothing to Publish.
+
+- **Accept** (**A**): the report is confirmed. The app shows sun in that slice of sky (5° either side of each sighting, down to the altitude seen less a 2° margin, that season) without "~".
+- **Reject** (**R**): the reports stop counting, and that slice of sky is blocked for the venue in that season for a year, so new reports there don't count either.
+- **Skip** (**J**): leave it for later.
+
+The routine:
+
+1. Read the sightings against the model. A tree crown or awning the LiDAR saw that is gone, or a thin obstacle the surface model makes too wide: **Accept**.
+2. The model is far above the sun in that direction and the terrace gets little sun all day (it may also be in **Needs a look**): the terrace pin is probably wrong (against a wall, under a crown) rather than one obstacle. **Move the pin** in the panel opens the venue in To review; fix the pin as in [Fixing a terrace](#fixing-a-terrace) and Publish. The new horizon comes with the build; then reject the report, or leave it pending if it still holds.
+3. A report that makes no sense (a narrow street at an altitude its walls can't let through): **Reject**.
+
 ## Machine proposals
 
 Proposals from the optional `pipeline/data/venue_proposals.csv` (written by `python -m solycerveza.proposals`, see the [pipeline guide](pipeline.md#machine-proposals-for-unreviewed-venues) and [ADR-0008](adr/0008-machine-venue-proposals.md); `web/src/admin/proposals.ts`) show in the venue panel with their evidence and confidence, and a dashed pin on the map for a proposed position. **Accept** (**A**) writes the usual review row; **Ignore** (**I**) hides it for good, recording its key in `pipeline/.cache/venue_proposals_ignored.csv`. Trust a kind only above the threshold its trial found.
@@ -126,6 +144,7 @@ All under `/__admin/`, served by `web/plugins/admin/reviewServer.ts` in the dev 
 | `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before |
 | `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                      |
 | `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                  |
+| `/__admin/sun`              | GET, POST        | proxy to the API's `GET /v1/admin/sun` and `POST /v1/admin/sun/resolve`                          |
 | `/__admin/publish`          | GET, POST        | Publish status; start a Publish (`409` while one is building)                                    |
 
-The two proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).
+The three proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).

@@ -630,6 +630,17 @@ export function Admin() {
             position={inbox.shown.indexOf(inbox.open) + 1}
             total={inbox.shown.length}
             venueOf={(id) => mapVenues.find((v) => v.id === id)}
+            terraceOf={(id) => dataVenues.find((v) => v.id === id)}
+            pinMoved={pinMoved}
+            onMovePin={(id) => {
+              // To review, on the venue, outside the queue (so a decision
+              // does not move on); the report stays in the Inbox.
+              setTab('review')
+              inbox.openItem(null)
+              setQuery('')
+              setFilter('all')
+              select(id)
+            }}
             busy={inbox.busy}
             failure={inbox.failure}
             onAnswer={(choice) => {

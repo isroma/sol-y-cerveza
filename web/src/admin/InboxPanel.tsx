@@ -1,8 +1,11 @@
+import type { Terrace } from '../data/terraces.ts'
 import { describeItem, KIND_LABELS, type InboxItem } from './inbox.ts'
 import type { ReportedVenue } from './reports.ts'
+import { SunReportDetails } from './SunReportDetails.tsx'
 
 const ANSWERS: Record<InboxItem['kind'], { yes: string; no: string }> = {
   report: { yes: 'Accept', no: 'Reject' },
+  sun: { yes: 'Accept', no: 'Reject' },
   suggestion: { yes: 'Accept', no: 'Reject' },
   price: { yes: 'Accept', no: 'Dismiss' },
   junk: { yes: 'Not a venue', no: 'Keep it' },
@@ -17,6 +20,9 @@ export function InboxPanel({
   position,
   total,
   venueOf,
+  terraceOf,
+  pinMoved,
+  onMovePin,
   busy,
   failure,
   onAnswer,
@@ -26,6 +32,12 @@ export function InboxPanel({
   position: number
   total: number
   venueOf: (id: string) => ReportedVenue | undefined
+  /** The venue's record in the published terraces.json (for a sun report). */
+  terraceOf: (id: string) => Terrace | undefined
+  /** Whether the venue's terrace pin moved since the build. */
+  pinMoved: (id: string) => boolean
+  /** Opens a venue in To review, to move its pin by hand. */
+  onMovePin: (id: string) => void
   busy: boolean
   failure: string | null
   onAnswer: (choice: 'yes' | 'no' | 'skip') => void
@@ -43,6 +55,16 @@ export function InboxPanel({
       <p className="admin-meta">
         {KIND_LABELS[item.kind]} · {detail}
       </p>
+      {item.kind === 'sun' && (
+        <SunReportDetails
+          report={item.sun}
+          terrace={terraceOf(item.sun.venueId)}
+          pinMoved={pinMoved(item.sun.venueId)}
+          onMovePin={
+            venueOf(item.sun.venueId) ? () => onMovePin(item.sun.venueId) : null
+          }
+        />
+      )}
       {item.kind === 'price' && (
         <>
           <q className="admin-candidate-snippet">{item.candidate.snippet}</q>

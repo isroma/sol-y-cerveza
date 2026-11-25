@@ -16,10 +16,15 @@ import {
   type ReportedVenue,
   type VenueReport,
 } from './reports.ts'
+import {
+  describeSunReport,
+  sunResponseSchema,
+  type SunReport,
+} from './sunReports.ts'
 
 /**
  * The Inbox: everything from outside that waits for a yes or no, as one list.
- * Visitor reports and price suggestions (the API), prices read on venues'
+ * Visitor reports, sun reports and price suggestions (the API), prices read on venues'
  * websites (price_candidates.csv) and likely non-venues (junk.ts). Pure,
  * except the fetchers.
  */
@@ -34,10 +39,11 @@ const suggestionSchema = z.object({
 })
 export type SuggestionGroup = z.infer<typeof suggestionSchema>
 
-export type InboxKind = 'report' | 'suggestion' | 'price' | 'junk'
+export type InboxKind = 'report' | 'sun' | 'suggestion' | 'price' | 'junk'
 
 export type InboxItem = { key: string; kind: InboxKind } & (
   | { kind: 'report'; report: VenueReport }
+  | { kind: 'sun'; sun: SunReport }
   | { kind: 'suggestion'; group: SuggestionGroup }
   | { kind: 'price'; candidate: Candidate }
   | { kind: 'junk'; junk: JunkItem }
@@ -45,6 +51,7 @@ export type InboxItem = { key: string; kind: InboxKind } & (
 
 export const KIND_LABELS: Record<InboxKind, string> = {
   report: 'Report',
+  sun: 'Sun',
   suggestion: 'Price',
   price: 'Website',
   junk: 'Not venue?',
@@ -55,6 +62,8 @@ export function itemVenueId(item: InboxItem): string | null {
   switch (item.kind) {
     case 'report':
       return item.report.kind === 'add' ? null : item.report.venueId
+    case 'sun':
+      return item.sun.venueId
     case 'suggestion':
       return item.group.venue_id
     case 'price':
@@ -99,6 +108,14 @@ export function describeItem(
       ).split(' · ')
       return { title: name, detail: [parts[0], ...parts.slice(2)].join(' · ') }
     }
+    case 'sun':
+      return {
+        title: name,
+        detail: describeSunReport(
+          item.sun,
+          venueOf(item.sun.venueId) !== undefined,
+        ),
+      }
     case 'suggestion':
       return {
         title: name,
@@ -117,9 +134,13 @@ export function describeItem(
   }
 }
 
-/** One list: reports, then suggestions, website prices and likely non-venues. */
+/**
+ * One list: reports, then sun reports, suggestions, website prices and likely
+ * non-venues.
+ */
 export function inboxItems(sources: {
   reports: readonly VenueReport[]
+  sun: readonly SunReport[]
   suggestions: readonly SuggestionGroup[]
   candidates: readonly Candidate[]
   junk: readonly JunkItem[]
@@ -131,6 +152,11 @@ export function inboxItems(sources: {
       kind: 'report',
       key: `report:${report.ids.join(',')}`,
       report,
+    })),
+    ...sources.sun.map((sun): InboxItem => ({
+      kind: 'sun',
+      key: `sun:${sun.ids.join(',')}`,
+      sun,
     })),
     ...sources.suggestions.map((group): InboxItem => ({
       kind: 'suggestion',
@@ -198,6 +224,13 @@ export function fetchSuggestions(): Promise<Fetched<SuggestionGroup[]>> {
   )
 }
 
+export function fetchSun(): Promise<Fetched<SunReport[]>> {
+  return getJson(
+    ADMIN_ENDPOINTS.sun,
+    (body) => sunResponseSchema.parse(body).reports,
+  )
+}
+
 export function fetchCandidates(): Promise<Fetched<CandidatesResponse>> {
   return getJson(ADMIN_ENDPOINTS.priceCandidates, (body) =>
     candidatesResponseSchema.parse(body),
@@ -206,24 +239,28 @@ export function fetchCandidates(): Promise<Fetched<CandidatesResponse>> {
 
 export async function fetchInbox(): Promise<{
   reports: VenueReport[]
+  sun: SunReport[]
   suggestions: SuggestionGroup[]
   candidates: Candidate[]
   leads: Lead[]
   /** Why a source couldn't load, per source. */
   errors: string[]
 }> {
-  const [reports, suggestions, candidates] = await Promise.all([
+  const [reports, sun, suggestions, candidates] = await Promise.all([
     fetchReports(),
+    fetchSun(),
     fetchSuggestions(),
     fetchCandidates(),
   ])
   return {
     reports: reports.reports ?? [],
+    sun: sun.data ?? [],
     suggestions: suggestions.data ?? [],
     candidates: candidates.data?.candidates ?? [],
     leads: candidates.data?.leads ?? [],
     errors: [
       ...(reports.error ? [`Reports: ${reports.error}`] : []),
+      ...(sun.error ? [`Sun reports: ${sun.error}`] : []),
       ...(suggestions.error ? [`Suggestions: ${suggestions.error}`] : []),
       ...(candidates.error ? [`Website prices: ${candidates.error}`] : []),
     ],

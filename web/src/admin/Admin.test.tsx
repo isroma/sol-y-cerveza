@@ -1,11 +1,22 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Admin } from './Admin.tsx'
 import { ADMIN_ENDPOINTS } from './endpoints.ts'
 import { parseProposalsCsv } from './proposals.ts'
 import { IDLE } from './publishStatus.ts'
 import proposalsCsv from './fixtures/venue_proposals.csv?raw'
-import { calleMenacho, plazaAlta, sampleFile } from '../test/fixtures.ts'
+import {
+  calleMenacho,
+  paseoSanFrancisco,
+  plazaAlta,
+  sampleFile,
+} from '../test/fixtures.ts'
 
 // MapLibre needs WebGL, which jsdom does not provide. The mock shows what the
 // map receives so tests can check it.
@@ -173,5 +184,112 @@ describe('Admin', () => {
       calls.find((c) => c.url === ADMIN_ENDPOINTS.prices && c.method === 'PUT')
         ?.body,
     ).toMatchObject({ venueId: plazaAlta.id, item: 'cana', cents: 150 })
+  })
+
+  it('shows a sun report against the model and resolves it in the API only', async () => {
+    const calls = stubServer()
+    const server = globalThis.fetch
+    let reports = [
+      {
+        ids: [4, 9],
+        venueId: paseoSanFrancisco.id,
+        leafOff: true,
+        sightings: [
+          {
+            id: 4,
+            azimuth: 176.3,
+            altitude: 27.1,
+            at: '2026-11-25T12:31:04.000Z',
+          },
+        ],
+        reporters: 3,
+        shown: true,
+        last: '2026-11-25T12:31:04.000Z',
+      },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== ADMIN_ENDPOINTS.sun) return server(input, init)
+        if (init?.method === 'POST') {
+          reports = []
+          return server(input, init).then(() => json({ ok: true }))
+        }
+        return json({ reports })
+      }),
+    )
+    render(<Admin />)
+    await screen.findByRole('button', { name: new RegExp(plazaAlta.name) })
+
+    fireEvent.click(screen.getByRole('tab', { name: /^Inbox/ }))
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: new RegExp(`${paseoSanFrancisco.name}.*leaf-off · 3 people`),
+      }),
+    )
+    expect(screen.getByTestId('map-selected')).toHaveTextContent(
+      paseoSanFrancisco.id,
+    )
+    const row = screen.getByRole('row', { name: /2026-11-25 13:31/ })
+    expect(row).toHaveTextContent('176° / 27.1°')
+    expect(row).toHaveTextContent('31.0°sun 3.9° below it')
+    expect(screen.getByText(/nothing to Publish/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Accept/ }))
+
+    await waitFor(() =>
+      expect(screen.getByText('Nothing waiting here.')).toBeInTheDocument(),
+    )
+    expect(
+      calls.filter((c) => c.method !== 'GET').map((c) => [c.url, c.body]),
+    ).toEqual([[ADMIN_ENDPOINTS.sun, { ids: [4, 9], status: 'accepted' }]])
+  })
+
+  it('opens a sun report’s venue in To review to move its pin', async () => {
+    stubServer()
+    const server = globalThis.fetch
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+        String(input) === ADMIN_ENDPOINTS.sun
+          ? json({
+              reports: [
+                {
+                  ids: [4],
+                  venueId: calleMenacho.id,
+                  leafOff: false,
+                  sightings: [
+                    {
+                      id: 4,
+                      azimuth: 120,
+                      altitude: 30,
+                      at: '2026-11-25T10:00:00.000Z',
+                    },
+                  ],
+                  reporters: 1,
+                  shown: false,
+                  last: '2026-11-25T10:00:00.000Z',
+                },
+              ],
+            })
+          : server(input, init),
+      ),
+    )
+    render(<Admin />)
+    await screen.findByRole('button', { name: new RegExp(plazaAlta.name) })
+    fireEvent.click(screen.getByRole('tab', { name: /^Inbox/ }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /leaf-on · 1 person/ }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move the pin' }))
+
+    const sidebar = screen.getByRole('tablist', { name: 'Sidebar' })
+    expect(
+      within(sidebar).getByRole('tab', { name: /^To review/ }),
+    ).toHaveAttribute('aria-selected', 'true')
+    expect(
+      screen.getByRole('heading', { level: 2, name: calleMenacho.name }),
+    ).toBeInTheDocument()
   })
 })

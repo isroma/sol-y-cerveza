@@ -18,6 +18,8 @@ export const ADMIN_ENDPOINTS = {
   suggestions: '/__admin/suggestions',
   /** Visitor venue reports, proxied to the API (ADR-0009). */
   reports: '/__admin/reports',
+  /** Visitor sun reports, proxied to the API (issue #364). */
+  sun: '/__admin/sun',
   /** Sun preview at a pin: GET ?lat=&lon= (`python -m solycerveza.probe`). */
   probe: '/__admin/probe',
 } as const
