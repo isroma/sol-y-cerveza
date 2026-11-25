@@ -16,7 +16,7 @@ export * from '../data/photoReading.ts'
 /**
  * Reading beer prices from a photo of a bar's price board (admin only).
  * Pure: shared by the admin page (PricePhoto.tsx) and its dev-server endpoint
- * (web/pricePhotoServer.ts), which sends the photo to the Claude API.
+ * (web/plugins/admin/pricePhotoServer.ts), which sends the photo to the Claude API.
  */
 
 // --- Upload (browser -> dev server) -----------------------------------------

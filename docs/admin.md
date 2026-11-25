@@ -1,6 +1,6 @@
 # The admin
 
-A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/reviewServer.ts`, `web/publish.ts`, `web/pricePhotoServer.ts`) is a dev-server plugin only (`apply: 'serve'`).
+A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`, `web/plugins/admin/pricePhotoServer.ts`) is a dev-server plugin only (`apply: 'serve'`).
 
 What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it.
 
@@ -61,7 +61,7 @@ Venues can also be dragged to their real position. Every decision is a row in `p
 The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/data/venue_prices.csv`; the build attaches them to each record as `prices` (integer cents).
 
 - **By hand**: type them in the panel's price fields.
-- **Read prices from a photo**: pre-fills the fields as proposals from a photo of the price board, read by the Claude API from the dev server (`web/pricePhotoServer.ts`, `ANTHROPIC_API_KEY`). Check each one before saving it.
+- **Read prices from a photo**: pre-fills the fields as proposals from a photo of the price board, read by the Claude API from the dev server (`web/plugins/admin/pricePhotoServer.ts`, `ANTHROPIC_API_KEY`). Check each one before saving it.
 - **Website prices** lists the candidates `python -m solycerveza.price_candidates` found on venues' own websites (`pipeline/data/price_candidates.csv`, [ADR-0006](adr/0006-price-candidates-from-venue-websites.md)), each with the text it was read from and a link to the page (`web/src/admin/PriceCandidates.tsx`). Check it, then **Accept** (it is saved to `venue_prices.csv` with `seen` = the fetch date, and ships with the next Publish) or **Dismiss** (hidden). Both are recorded in the candidate's `status`.
 - **Suggestions** is the queue of visitor price suggestions the API has not served (fewer than 5 networks agree; [api/README.md](../api/README.md)). **Accept** saves the price to `venue_prices.csv` and resolves it in the API; **Reject** resolves it as rejected, so no vote for that price counts again.
 
@@ -85,7 +85,7 @@ Proposals from the optional `pipeline/data/venue_proposals.csv` (written by `pyt
 
 ## Publish
 
-**Publish** ships the reviews and prices (`web/publish.ts`):
+**Publish** ships the reviews and prices (`web/plugins/admin/publish.ts`):
 
 1. It waits for pending saves, then rebuilds the data in a temporary git worktree of `origin/main` (`python -m solycerveza.build`, reusing this checkout's `pipeline/.cache/`).
 2. It commits `pipeline/data/venue_review.csv`, `pipeline/data/venue_prices.csv` and `web/public/data/terraces.json`, nothing else, and pushes a `data/venue-review-*` branch, or adds to the one whose PR is still open.
@@ -101,13 +101,13 @@ The owner can also record prices at the bar from the public site on a phone ([AD
 
 ## Dev-server endpoints
 
-All under `/__admin/`, served by `web/reviewServer.ts` in the dev server only. A guard in front of them (`web/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON. The paths are named once, in `web/src/admin/endpoints.ts`, which the admin page and the dev server both import; `web/reviewServer.test.ts` checks that the server mounts exactly those.
+All under `/__admin/`, served by `web/plugins/admin/reviewServer.ts` in the dev server only. A guard in front of them (`web/plugins/admin/adminGuard.ts`) refuses state-changing requests that aren't same-origin JSON. The paths are named once, in `web/src/admin/endpoints.ts`, which the admin page and the dev server both import; `web/plugins/admin/reviewServer.test.ts` checks that the server mounts exactly those.
 
 | Endpoint                    | Methods          | What                                                                                                      |
 | --------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
 | `/__admin/review`           | GET, PUT, DELETE | `venue_review.csv`: read, upsert a row, remove one (`?venue_id=`)                                         |
 | `/__admin/prices`           | GET, PUT, DELETE | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                            |
-| `/__admin/prices/photo`     | GET, POST        | whether `ANTHROPIC_API_KEY` is set; read a photo of the price board (`web/pricePhotoServer.ts`, max 5 MB) |
+| `/__admin/prices/photo`     | GET, POST        | whether `ANTHROPIC_API_KEY` is set; read a photo of the price board (`web/plugins/admin/pricePhotoServer.ts`, max 5 MB) |
 | `/__admin/price-candidates` | GET, POST        | `price_candidates.csv` and the menu leads; record an accept or a dismiss                                  |
 | `/__admin/proposals`        | GET, POST        | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                              |
 | `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before          |

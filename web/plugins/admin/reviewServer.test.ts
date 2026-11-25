@@ -7,7 +7,7 @@ import type {
 } from 'vite'
 import { describe, expect, it } from 'vitest'
 import { reviewServer } from './reviewServer.ts'
-import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from './src/admin/endpoints.ts'
+import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from '../../src/admin/endpoints.ts'
 
 /** The paths the dev-server plugin mounts, in the order it mounts them. */
 function mountedPaths(): string[] {

@@ -2,17 +2,21 @@ import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { IDLE, isBusy, type PublishStatus } from './src/admin/publishStatus.ts'
-import { parseReviewCsv, type Review } from './src/admin/review.ts'
+import {
+  IDLE,
+  isBusy,
+  type PublishStatus,
+} from '../../src/admin/publishStatus.ts'
+import { parseReviewCsv, type Review } from '../../src/admin/review.ts'
+import { REPO_ROOT as ROOT } from '../paths.ts'
 
 const run = promisify(execFile)
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const REVIEW = 'pipeline/data/venue_review.csv'
-const PRICES = 'pipeline/data/venue_prices.csv'
-const DATA = 'web/public/data/terraces.json'
+/** The files a Publish commits, relative to the repository root. */
+export const REVIEW = 'pipeline/data/venue_review.csv'
+export const PRICES = 'pipeline/data/venue_prices.csv'
+export const DATA = 'web/public/data/terraces.json'
 const BRANCH_PREFIX = 'data/venue-review-'
 
 /** Polling GitHub (git only) for the PR and its merge: every 10 s, for up to 30 min. */

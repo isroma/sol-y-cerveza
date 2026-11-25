@@ -1,16 +1,16 @@
 /**
  * The dev server's admin endpoints, named once for the admin page and for
- * web/reviewServer.ts, which serves them. Dev only: never part of the built
+ * web/plugins/admin/reviewServer.ts, which serves them. Dev only: never part of the built
  * site.
  */
 export const ADMIN_ENDPOINTS = {
   /** venue_review.csv: GET, PUT a row, DELETE ?venue_id= */
   review: '/__admin/review',
-  /** Publish (web/publish.ts): GET the status, POST to start one. */
+  /** Publish (web/plugins/admin/publish.ts): GET the status, POST to start one. */
   publish: '/__admin/publish',
   /** venue_prices.csv: GET, PUT a row, DELETE ?key= */
   prices: '/__admin/prices',
-  /** Prices from a photo of the price board (web/pricePhotoServer.ts). */
+  /** Prices from a photo of the price board (web/plugins/admin/pricePhotoServer.ts). */
   pricePhoto: '/__admin/prices/photo',
   /** Website price candidates: GET, POST a decision (ADR-0006). */
   priceCandidates: '/__admin/price-candidates',

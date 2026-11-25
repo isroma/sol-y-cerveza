@@ -8,7 +8,7 @@ import {
   PHOTO_USER_PROMPT,
   type PhotoResult,
   type PhotoUpload,
-} from './src/admin/pricePhoto.ts'
+} from '../../src/admin/pricePhoto.ts'
 
 /**
  * Dev-server only: reads beer prices from a photo of a price board with the
