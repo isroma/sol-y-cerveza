@@ -5,6 +5,7 @@ import { AdminMap } from './AdminMap.tsx'
 import { AdminToolbar } from './AdminToolbar.tsx'
 import { InboxFilters, InboxList } from './InboxList.tsx'
 import { InboxPanel } from './InboxPanel.tsx'
+import { QueueList } from './QueueList.tsx'
 import { useInbox } from './useInbox.ts'
 import { useOwnerChanges } from './useOwnerChanges.ts'
 import { priceKey } from './pricesCsv.ts'
@@ -202,11 +203,14 @@ export function Admin() {
   const preview = dragging ?? terrace
 
   // Moving the pin changes the terrace; the dataset horizon no longer applies.
-  const pinMoved = (id: string): boolean => {
-    const pinned = reviews.get(id)?.terrace
-    const data = venues.find((v) => v.id === id)?.terrace
-    return !!pinned && (pinned.lat !== data?.lat || pinned.lon !== data.lon)
-  }
+  const pinMoved = useCallback(
+    (id: string): boolean => {
+      const pinned = reviews.get(id)?.terrace
+      const data = venues.find((v) => v.id === id)?.terrace
+      return !!pinned && (pinned.lat !== data?.lat || pinned.lon !== data.lon)
+    },
+    [reviews, venues],
+  )
 
   const startPinning = useCallback(() => {
     if (!selectedId) return
@@ -557,27 +561,12 @@ export function Admin() {
           )}
         </header>
         {tab === 'review' && queueMode && (
-          <ol className="admin-list admin-queue-list">
-            {queue.map((s, index) => (
-              <li key={s.venue.id}>
-                <button
-                  type="button"
-                  aria-current={s.venue.id === selectedId ? 'true' : undefined}
-                  onClick={() => select(s.venue.id)}
-                >
-                  <span className="admin-rank">{index + 1}</span>
-                  <span className="admin-name">
-                    {s.venue.name}
-                    <span className="admin-reason">
-                      {skipped.includes(s.venue.id) ? 'Skipped · ' : ''}
-                      {s.reason}
-                    </span>
-                  </span>
-                  <span className="admin-kind">{s.venue.kind}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
+          <QueueList
+            queue={queue}
+            skipped={skipped}
+            selectedId={selectedId}
+            onSelect={select}
+          />
         )}
         {tab === 'review' && !queueMode && (
           <VenueListPanel
