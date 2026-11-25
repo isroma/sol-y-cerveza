@@ -29,5 +29,8 @@
     "typescript": "~7.0.2",
     "vitest": "^5.1.1",
     "wrangler": "4.166.0"
+  },
+  "engines": {
+    "node": ">=26"
   }
 }
