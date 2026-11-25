@@ -270,16 +270,32 @@ def build(
 
     # The rasters stay open for every terrace: each takes a horizon and a height per sample point.
     with ExitStack() as stack:
-        summer = stack.enter_context(HorizonModel(dsm_path, dtm_path=dtm_path))
-        winter_for: HorizonFn | None = None
-        if leafoff is not None:
-            winter_for = stack.enter_context(HorizonModel(leafoff, dtm_path=dtm_path)).horizon
+        model = stack.enter_context(HorizonModel(dsm_path, dtm_path=dtm_path, leafoff_path=leafoff))
         heights = stack.enter_context(_HeightSampler(dsm_path, dtm_path))
+        # `add_horizons` asks for a point's leaf-off profile after its summer one; both come
+        # from one ray trace (`HorizonModel.horizons`), the leaf-off one kept until asked for.
+        pending: dict[LatLonPair, list[int]] = {}
+
+        def summer_for(lat: float, lon: float) -> list[int]:
+            summer, winter = model.horizons(lat, lon)
+            if winter is not None:
+                pending[(lat, lon)] = winter
+            return summer
+
+        def winter_for(lat: float, lon: float) -> list[int]:
+            winter = pending.pop((lat, lon), None)
+            if winter is None:
+                winter = model.horizons(lat, lon)[1]
+            if winter is None:
+                raise ValueError("no leaf-off surface model")
+            return winter
 
         def points_for(lat: float, lon: float) -> list[LatLonPair]:
             return terrace_points(lat, lon, heights.height, structures.contains)
 
-        terraces = add_horizons(terraces, summer.horizon, winter_for, points_for)
+        terraces = add_horizons(
+            terraces, summer_for, None if leafoff is None else winter_for, points_for
+        )
     logger.info(
         "%d terraces get a sun envelope, %d a leaf-off one",
         sum(t.horizon_low is not None for t in terraces),

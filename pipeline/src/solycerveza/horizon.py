@@ -24,6 +24,7 @@ Sampling choices:
 """
 
 import math
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Self
 
@@ -74,11 +75,43 @@ def horizon_profile(
         ValueError: If ``surface`` is not 2-D, the observer is outside it, or the ground
             elevation is not finite.
     """
-    if surface.ndim != 2:
-        raise ValueError(f"surface must be 2-D, got {surface.ndim} dimensions")
+    (profile,) = horizon_profiles(
+        [(surface, nodata)],
+        transform,
+        x,
+        y,
+        ground_elevation,
+        true_north_bearing=true_north_bearing,
+    )
+    return profile
+
+
+def horizon_profiles(
+    surfaces: Sequence[tuple[NDArray[np.floating[Any]], float | None]],
+    transform: Affine,
+    x: float,
+    y: float,
+    ground_elevation: float,
+    *,
+    true_north_bearing: float = 0.0,
+) -> list[list[int]]:
+    """``horizon_profile`` of one observer on several surface models of the same grid.
+
+    Each surface comes with its own nodata value. The rays are traced once for all of them, so
+    the leaf-off profile at a point costs a fraction of the summer one (``HorizonModel``). Each
+    profile is exactly what ``horizon_profile`` returns for that surface alone.
+    """
+    if not surfaces:
+        return []
+    shape = surfaces[0][0].shape
+    for surface, _ in surfaces:
+        if surface.ndim != 2:
+            raise ValueError(f"surface must be 2-D, got {surface.ndim} dimensions")
+        if surface.shape != shape:
+            raise ValueError(f"surfaces must share one shape, got {surface.shape} and {shape}")
     if not math.isfinite(ground_elevation):
         raise ValueError(f"ground elevation must be finite, got {ground_elevation}")
-    height, width = surface.shape
+    height, width = shape
     inverse = ~transform
     col0, row0 = inverse @ (x, y)
     own_col, own_row = math.floor(col0), math.floor(row0)
@@ -86,23 +119,54 @@ def horizon_profile(
         raise ValueError(f"observer ({x}, {y}) is outside the raster")
 
     east, north, distances = _ray_offsets(transform, true_north_bearing)
-    cols = np.floor(col0 + inverse.a * east + inverse.b * north).astype(np.intp)
-    rows = np.floor(row0 + inverse.d * east + inverse.e * north).astype(np.intp)
+    cols = _cells(col0, inverse.a, east, inverse.b, north)
+    rows = _cells(row0, inverse.d, east, inverse.e, north)
 
     # Rays start inside the raster, which is convex: once a sample is outside, the rest of the
     # ray is too, so masking out-of-raster samples is the same as stopping the ray there.
-    inside = (cols >= 0) & (cols < width) & (rows >= 0) & (rows < height)
-    flat = np.where(inside, rows * width + cols, 0)
-    z = surface.reshape(-1)[flat].astype(np.float64)
-    valid = inside & np.isfinite(z) & ((rows != own_row) | (cols != own_col))
-    if nodata is not None:
-        valid &= z != nodata
+    # As unsigned, a negative index is huge, so one comparison per axis covers both edges.
+    inside = (cols.view(np.uintp) < width) & (rows.view(np.uintp) < height)
+    flat = rows * width
+    flat += cols
+    flat[~inside] = 0
+    sampled = inside & ((rows != own_row) | (cols != own_col))
+    eye = ground_elevation + EYE_HEIGHT_M
 
-    # max(tan) per bin gives the max angle, and a floor of 0 clamps the ground dropping away.
-    tangents = np.where(valid, (z - (ground_elevation + EYE_HEIGHT_M)) / distances, 0.0)
-    best = np.maximum(tangents.max(axis=(1, 2)), 0.0)
-    tenths = np.clip(np.rint(np.degrees(np.arctan(best)) * 10), 0, MAX_TENTHS)
-    return [int(value) for value in tenths]
+    profiles: list[list[int]] = []
+    for surface, nodata in surfaces:
+        z = surface.reshape(-1)[flat].astype(np.float64, copy=False)
+        valid = sampled & np.isfinite(z)
+        if nodata is not None:
+            valid &= z != nodata
+        # max(tan) per bin gives the max angle, and a floor of 0 clamps the ground dropping away.
+        # In place on `z` (indexing made it a copy), in the order (z - (ground + eye)) / distance.
+        z -= eye
+        z /= distances
+        tangents = np.where(valid, z, 0.0)
+        best = np.maximum(tangents.max(axis=(1, 2)), 0.0)
+        tenths = np.clip(np.rint(np.degrees(np.arctan(best)) * 10), 0, MAX_TENTHS)
+        profiles.append([int(value) for value in tenths])
+    return profiles
+
+
+def _cells(
+    origin: float,
+    along_east: float,
+    east: NDArray[np.floating[Any]],
+    along_north: float,
+    north: NDArray[np.floating[Any]],
+) -> NDArray[np.intp]:
+    """``floor(origin + along_east * east + along_north * north)`` as cell indices.
+
+    Evaluated in that order, in place; a zero coefficient (a north-up raster) adds only ±0,
+    which changes no value, so its term is skipped.
+    """
+    position = east * along_east
+    position += origin
+    if along_north != 0.0:
+        position += along_north * north
+    np.floor(position, out=position)
+    return position.astype(np.intp)
 
 
 def _ray_offsets(
@@ -170,16 +234,30 @@ class HorizonModel:
         dtm_path: Terrain model GeoTIFF (band 1, metres) in a projected metric CRS, for the
             ground elevation under each terrace. Without it, ``horizon`` needs
             ``ground_elevation``.
+        leafoff_path: Leaf-off surface model GeoTIFF (ADR-0007), for ``horizons``. On the
+            surface model's grid (as ``solycerveza.leafoff`` writes it), both profiles of a
+            point share one ray trace.
     """
 
-    def __init__(self, dsm_path: Path, *, dtm_path: Path | None = None) -> None:
-        self._dtm = None if dtm_path is None else _Raster(dtm_path)
+    def __init__(
+        self, dsm_path: Path, *, dtm_path: Path | None = None, leafoff_path: Path | None = None
+    ) -> None:
+        self._rasters: list[_Raster] = []
         try:
-            self._dsm = _Raster(dsm_path)
+            self._dtm = None if dtm_path is None else self._open(dtm_path)
+            self._dsm = self._open(dsm_path)
+            self._leafoff = None if leafoff_path is None else self._open(leafoff_path)
         except BaseException:
-            if self._dtm is not None:
-                self._dtm.close()
+            self.close()
             raise
+        self._same_grid = self._leafoff is not None and _same_grid(
+            self._dsm.dataset, self._leafoff.dataset
+        )
+
+    def _open(self, path: Path) -> _Raster:
+        raster = _Raster(path)
+        self._rasters.append(raster)
+        return raster
 
     def __enter__(self) -> Self:
         return self
@@ -188,9 +266,8 @@ class HorizonModel:
         self.close()
 
     def close(self) -> None:
-        self._dsm.close()
-        if self._dtm is not None:
-            self._dtm.close()
+        for raster in self._rasters:
+            raster.close()
 
     def horizon(
         self, lat: float, lon: float, *, ground_elevation: float | None = None
@@ -204,27 +281,53 @@ class HorizonModel:
                 CRS, the terrace is outside a raster, or the terrain model has no data under it.
         """
         if ground_elevation is None:
-            if self._dtm is None:
-                raise ValueError("give exactly one of dtm_path and ground_elevation")
-            ground_elevation = self._dtm.ground_elevation(lat, lon)
+            ground_elevation = self._ground(lat, lon)
+        (profile,) = self._profiles([self._dsm], lat, lon, ground_elevation)
+        return profile
 
-        dsm = self._dsm.dataset
-        x, y, true_north_bearing = self._dsm.project(lat, lon)
-        window = _window_around(dsm, x, y, MAX_DISTANCE_M)
+    def horizons(self, lat: float, lon: float) -> tuple[list[int], list[int] | None]:
+        """The summer profile at ``(lat, lon)`` and, with a leaf-off model, the leaf-off one.
+
+        Each is exactly what a ``HorizonModel`` of that surface model alone would return; the
+        ground elevation comes from the terrain model.
+
+        Raises:
+            ValueError: As ``horizon``.
+        """
+        ground_elevation = self._ground(lat, lon)
+        if self._leafoff is None:
+            return self._profiles([self._dsm], lat, lon, ground_elevation)[0], None
+        if self._same_grid:
+            summer, winter = self._profiles([self._dsm, self._leafoff], lat, lon, ground_elevation)
+            return summer, winter
+        (summer,) = self._profiles([self._dsm], lat, lon, ground_elevation)
+        (winter,) = self._profiles([self._leafoff], lat, lon, ground_elevation)
+        return summer, winter
+
+    def _ground(self, lat: float, lon: float) -> float:
+        if self._dtm is None:
+            raise ValueError("give exactly one of dtm_path and ground_elevation")
+        return self._dtm.ground_elevation(lat, lon)
+
+    def _profiles(
+        self, rasters: Sequence[_Raster], lat: float, lon: float, ground_elevation: float
+    ) -> list[list[int]]:
+        """Profiles on ``rasters``, which share the first one's grid, in their order."""
+        first = rasters[0]
+        x, y, true_north_bearing = first.project(lat, lon)
+        window = _window_around(first.dataset, x, y, MAX_DISTANCE_M)
         if window is None:
-            raise ValueError(f"terrace ({lat}, {lon}) is outside {self._dsm.path}")
-        surface = np.asarray(dsm.read(1, window=window), dtype=np.float64)
-        transform: Affine = dsm.window_transform(window)
-        nodata = None if dsm.nodata is None else float(dsm.nodata)
-
-        return horizon_profile(
-            surface,
-            transform,
-            x,
-            y,
-            ground_elevation,
-            nodata=nodata,
-            true_north_bearing=true_north_bearing,
+            raise ValueError(f"terrace ({lat}, {lon}) is outside {first.path}")
+        transform: Affine = first.dataset.window_transform(window)
+        surfaces = [
+            (
+                np.asarray(raster.dataset.read(1, window=window), dtype=np.float64),
+                None if raster.dataset.nodata is None else float(raster.dataset.nodata),
+            )
+            for raster in rasters
+        ]
+        return horizon_profiles(
+            surfaces, transform, x, y, ground_elevation, true_north_bearing=true_north_bearing
         )
 
 
@@ -273,6 +376,17 @@ def _metric_crs(dataset: DatasetReader, path: Path) -> CRS:
     if not crs.is_projected or any(axis.unit_name != "metre" for axis in crs.axis_info):
         raise ValueError(f"{path} must be in a projected CRS in metres, got {crs.name}")
     return crs
+
+
+def _same_grid(a: DatasetReader, b: DatasetReader) -> bool:
+    """Whether two rasters share CRS, transform and size, so one window means the same cells."""
+    return (
+        a.crs is not None
+        and b.crs is not None
+        and a.crs.to_wkt() == b.crs.to_wkt()
+        and a.transform == b.transform
+        and (a.width, a.height) == (b.width, b.height)
+    )
 
 
 def _window_around(dataset: DatasetReader, x: float, y: float, radius: float) -> Window | None:

@@ -101,6 +101,15 @@ def test_true_north_bearing_rotates_the_profile() -> None:
     assert_walls_at(profile(with_north_wall(flat()), true_north_bearing=90.0), 270)
 
 
+@pytest.mark.parametrize("clockwise", [90.0, 30.0])
+def test_a_rotated_raster_reads_walls_in_world_directions(clockwise: float) -> None:
+    # Not north-up: the pixel grid itself turned clockwise round the observer, so every term of
+    # the pixel-to-world transform counts and the grid-north wall turns with it.
+    transform = Affine.rotation(-clockwise) @ TRANSFORM
+    result = horizon_profile(with_north_wall(flat()), transform, 0.0, 0.0, GROUND)
+    assert_walls_at(result, clockwise)
+
+
 def test_ground_dropping_away_is_clamped_to_zero() -> None:
     hill = GROUND - 0.2 * np.hypot(XS, YS)
     assert profile(hill) == [0] * BINS
@@ -265,6 +274,36 @@ def test_an_open_model_gives_the_same_profiles_as_terrace_horizon(
         terrace_horizon(lat, lon, dsm_path, dtm_path=dtm_path) for lat, lon in points
     ]
     assert len({tuple(p) for p in profiles}) > 1
+
+
+@pytest.mark.parametrize("shifted", [False, True])
+def test_a_model_with_a_leafoff_surface_gives_both_profiles_as_two_models_would(
+    tmp_path: Path, utm_dsm: tuple[Path, NDArray[np.float64], Affine], shifted: bool
+) -> None:
+    dsm_path, surface, transform = utm_dsm
+    dtm_path = write_geotiff(tmp_path / "dtm.tif", np.full_like(surface, GROUND), transform)
+    # Leaf-off: the wall lowered in part, and a crown (now bare) east of the plaza lowered too.
+    bare = surface.copy()
+    bare[:, : SIZE // 2] = np.minimum(bare[:, : SIZE // 2], GROUND + 20)
+    surface[190:200, 230:240] = GROUND + 15
+    write_geotiff(dsm_path, surface, transform)
+    # Shifted by half a cell, it is on another grid: each profile is traced on its own then.
+    leafoff_transform = Affine.translation(PIXEL / 2, 0) @ transform if shifted else transform
+    leafoff_path = write_geotiff(tmp_path / "leafoff.tif", bare, leafoff_transform)
+    points = [(LAT + dlat, LON + dlon) for dlat in (-5e-4, 0, 4e-4) for dlon in (-6e-4, 0, 3e-4)]
+    with (
+        HorizonModel(dsm_path, dtm_path=dtm_path, leafoff_path=leafoff_path) as model,
+        HorizonModel(dsm_path, dtm_path=dtm_path) as summer,
+        HorizonModel(leafoff_path, dtm_path=dtm_path) as winter,
+    ):
+        pairs = [model.horizons(lat, lon) for lat, lon in points]
+        assert pairs == [
+            (summer.horizon(lat, lon), winter.horizon(lat, lon)) for lat, lon in points
+        ]
+        assert model.horizon(LAT, LON) == summer.horizon(LAT, LON)
+    assert any(s != w for s, w in pairs)
+    with HorizonModel(dsm_path, dtm_path=dtm_path) as model:
+        assert model.horizons(LAT, LON) == (model.horizon(LAT, LON), None)
 
 
 def test_an_open_model_without_terrain_needs_a_ground_elevation(

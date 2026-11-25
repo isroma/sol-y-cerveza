@@ -138,6 +138,24 @@ def test_tall_parts_skip_flat_buildings_and_others_than_lidar() -> None:
     assert tall_parts([flat, levels], heights, GRID) == []
 
 
+def test_tall_parts_ignore_a_taller_neighbour_in_the_footprints_bounding_box() -> None:
+    # An L-shaped building, 40 x 40 m with its north-east 20 x 20 m cut out, and a 30 m block
+    # standing in that notch: inside the L's bounding box, outside the L.
+    x0, y0 = 676004.0, 4303996.0
+    corners = [(0, 0), (20, 0), (20, -20), (40, -20), (40, -40), (0, -40)]
+    l_shape = Polygon([(x0 + dx, y0 + dy) for dx, dy in corners])
+    heights = np.zeros((40, 40))
+    heights[2:22, 2:22] = 10.0
+    heights[2:12, 12:22] = 30.0
+    building = Measured(Building("way/1", l_shape, None), 10.0, "lidar")
+    assert tall_parts([building], heights, GRID) == []
+    # The same block inside the L is one of its parts.
+    heights[2:12, 12:22] = 10.0
+    heights[12:22, 2:12] = 30.0
+    (tower,) = tall_parts([building], heights, GRID)
+    assert tower.height == 30.0
+
+
 def test_dissolve_merges_touching_buildings_of_similar_height_only() -> None:
     def measured(x: float, height: float) -> Measured:
         return Measured(Building("way/x", box(x, 0, x + 10, 10), None), height, "lidar")

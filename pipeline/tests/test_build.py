@@ -6,12 +6,15 @@ import numpy as np
 import pytest
 import rasterio
 from pydantic import ValidationError
+from pyproj import Transformer
 from rasterio.transform import from_origin
 
+import solycerveza.build as build_module
 from solycerveza.build import (
     OUTPUT,
     PNOA_ATTRIBUTION,
     TerracesFile,
+    _HeightSampler,
     add_horizons,
     attribution_lines,
     height_above_ground,
@@ -19,7 +22,8 @@ from solycerveza.build import (
     raster_attribution,
     render,
 )
-from solycerveza.envelope import pack_low, unpack
+from solycerveza.envelope import Structures, pack_low, terrace_points, unpack
+from solycerveza.horizon import HorizonModel
 from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
@@ -334,3 +338,72 @@ def test_render_leaves_out_null_envelopes() -> None:
     assert list(data["terraces"][1])[7:10] == ["horizon", "horizon_winter", "horizon_low"]
     assert f'      "horizon_low": "{pack_low([50] * 360)}",' in text.splitlines()
     assert render(TerracesFile.model_validate_json(text)) == text
+
+
+def _city_raster(path: Path, data: np.ndarray, x: float, y: float) -> Path:
+    """An 800 m x 800 m, 2 m raster in EPSG:25829 centred on ``(x, y)``."""
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=data.shape[1],
+        height=data.shape[0],
+        count=1,
+        dtype="float32",
+        crs="EPSG:25829",
+        transform=from_origin(x - 400, y + 400, 2, 2),
+        nodata=-9999.0,
+    ) as dst:
+        dst.write(data.astype(np.float32), 1)
+        dst.update_tags(SOURCE=path.stem)
+    return path
+
+
+def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The build traces a point's summer and leaf-off profiles together: they must be exactly
+    # those of one model per raster, envelopes included.
+    lat, lon = 38.88256, -6.96976
+    x, y = Transformer.from_crs("EPSG:4326", "EPSG:25829", always_xy=True).transform(lon, lat)
+    rng = np.random.default_rng(0)
+    terrain = np.full((400, 400), 200.0)
+    surface = terrain + (rng.random(terrain.shape) < 0.05) * rng.uniform(3, 20, terrain.shape)
+    surface[190:210, 190:210] = 200.0  # open ground round the pin
+    bare = np.where(rng.random(terrain.shape) < 0.5, terrain, surface)
+    dsm = _city_raster(tmp_path / "dsm.tif", surface, x, y)
+    dtm = _city_raster(tmp_path / "dtm.tif", terrain, x, y)
+    leafoff = _city_raster(tmp_path / "leafoff.tif", bare, x, y)
+    stubs: dict[str, object] = {
+        "read_review": lambda: [],
+        "dropped_ids": lambda _reviews: set(),
+        "load_all_venues": lambda refresh=False: [],
+        "review_venues": lambda venues, _reviews: venues,
+        "read_curated": lambda: [],
+        "load_seating": lambda refresh=False: None,
+        "build_terraces": lambda _venues, _curated, _seating: [_terrace()],
+        "review_terraces": lambda terraces, _reviews: terraces,
+        "read_prices": lambda: [],
+        "load_structures": lambda: [],
+    }
+    for name, stub in stubs.items():
+        monkeypatch.setattr(build_module, name, stub)
+
+    built = build_module.build(dsm_path=dsm, dtm_path=dtm, leafoff_path=leafoff)
+
+    structures = Structures([])
+    with (
+        HorizonModel(dsm, dtm_path=dtm) as summer,
+        HorizonModel(leafoff, dtm_path=dtm) as winter,
+        _HeightSampler(dsm, dtm) as heights,
+    ):
+        expected = add_horizons(
+            [_terrace()],
+            summer.horizon,
+            winter.horizon,
+            lambda a, b: terrace_points(a, b, heights.height, structures.contains),
+        )
+    assert built.terraces == expected
+    (terrace,) = expected
+    assert terrace.horizon_winter is not None
+    assert terrace.horizon_low is not None
