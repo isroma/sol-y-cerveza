@@ -18,9 +18,9 @@ export const BASEMAP_BUILDINGS = ['building-3d', 'building-roof'] as const
 const BUILDINGS_ZOOM = 14
 
 /**
- * OSM buildings at their LiDAR heights (each feature's `h`, in metres), with
- * the basemap's look: walls and a lighter roof cap. Real heights, as the
- * shadows (prismShadows.ts) and the list use.
+ * OSM buildings at their LiDAR heights (each feature's `b` base and `h` top, in
+ * metres), with the basemap's look: walls and a lighter roof cap. Real heights,
+ * as the shadows (prismShadows.ts) and the list use.
  */
 export const LIDAR_BUILDING_LAYERS: readonly FillExtrusionLayerSpecification[] =
   [
@@ -32,6 +32,8 @@ export const LIDAR_BUILDING_LAYERS: readonly FillExtrusionLayerSpecification[] =
       paint: {
         'fill-extrusion-color': WALL_COLOR,
         'fill-extrusion-opacity': EXTRUSION_OPACITY,
+        // 0 for buildings; the cathedral tower's battlements stand on its walls.
+        'fill-extrusion-base': ['get', 'b'],
         'fill-extrusion-height': ['get', 'h'],
         'fill-extrusion-vertical-gradient': true,
       },

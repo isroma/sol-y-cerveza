@@ -44,6 +44,7 @@ describe('hideBasemapBuildings', () => {
   it('uses the real heights, with a roof cap on top', () => {
     const [walls, roofs] = LIDAR_BUILDING_LAYERS
     expect(walls?.paint?.['fill-extrusion-height']).toEqual(['get', 'h'])
+    expect(walls?.paint?.['fill-extrusion-base']).toEqual(['get', 'b'])
     expect(roofs?.paint?.['fill-extrusion-base']).toEqual(['get', 'h'])
     expect(roofs?.paint?.['fill-extrusion-height']).toEqual([
       '+',
