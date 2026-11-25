@@ -31,9 +31,7 @@ function blankImage({ width, height }: { width: number; height: number }) {
 
 /** Full-size badges (some sun now, or soon); the rest are drawn at 78 %. */
 const isSunny = (status: VenueStatus) =>
-  status.category === 'sun' ||
-  status.category === 'partial' ||
-  status.category === 'soon'
+  status.category === 'sun' || status.category === 'soon'
 
 export function addTerraceNameLayers(
   map: MapLibreMap,
