@@ -9,8 +9,10 @@ import {
   type Suggestion,
 } from '../logic.ts'
 import { parseReport } from '../reports.ts'
+import { sighting } from '../sun.ts'
 import { purgePrices } from './prices.ts'
 import { reportRefused, reportWrites } from './reports.ts'
+import { purgeSun, sunWrites } from './sun.ts'
 
 /** Stands in for the voter and network hashes on the owner's reports. */
 const OWNER_HASH = 'owner'
@@ -62,7 +64,8 @@ function ownerPriceWrites(
 /**
  * The card back in owner mode: what a visitor would suggest, as the owner's
  * change. A price is saved as confirmed and shows at once; a move or closed is
- * stored as the owner's report, which the admin applies at its next Publish.
+ * stored as the owner's report, which the admin applies at its next Publish;
+ * sun now is stored accepted and served at once as confirmed.
  * No bot check and no caps, stored together or not at all.
  */
 export async function ownerChange(
@@ -82,13 +85,21 @@ export async function ownerChange(
     if (refused) return refused
   }
   const now = Date.now()
+  const sun = parsed.value.sun
+    ? sighting(published.get(venueId), new Date(now))
+    : null
+  if (sun && !sun.ok) return json({ error: sun.error }, 400)
   await env.DB.batch([
     ...(price ? ownerPriceWrites(env, price, madridDate(new Date(now))) : []),
     ...reports.flatMap((value) =>
       reportWrites(env, value, OWNER_HASH, OWNER_HASH, now, true),
     ),
+    ...(sun
+      ? sunWrites(env, venueId, sun.value, OWNER_HASH, OWNER_HASH, now, true)
+      : []),
   ])
   if (price) await purgePrices(request)
+  if (sun) await purgeSun(request)
   return json({ ok: true }, 201)
 }
 

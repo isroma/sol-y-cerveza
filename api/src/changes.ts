@@ -1,10 +1,12 @@
 /**
  * POST /v1/changes: everything a visitor suggests for one venue from the
  * card's back, behind one Turnstile check. Each part is checked by the same
- * rules as its own endpoint (parseSuggestion, parseReport).
+ * rules as its own endpoint (parseSuggestion, parseReport); `sun: true` is a
+ * sun report (sun.ts), checked against the sun's position by the route.
  */
 import { parseSuggestion, type Suggestion } from './logic.ts'
 import { parseReport, type Report } from './reports.ts'
+import { VENUE_ID } from '../../web/src/data/geo.ts'
 
 /** The Turnstile action the card back's widget declares. */
 export const CHANGE_TURNSTILE_ACTION = 'change'
@@ -14,6 +16,8 @@ export type Change = {
   price: Suggestion | null
   /** A move and/or closed, as venue reports. */
   reports: Report[]
+  /** "The sun is on this terrace now" (ADR-0012). */
+  sun: boolean
 }
 
 /**
@@ -26,7 +30,7 @@ export function parseChange(
 ): { ok: true; value: Change; token: string } | { ok: false; error: string } {
   if (typeof body !== 'object' || body === null)
     return { ok: false, error: 'body' }
-  const { venueId, token, price, move, closed } = body as Record<
+  const { venueId, token, price, move, closed, sun } = body as Record<
     string,
     unknown
   >
@@ -41,6 +45,7 @@ export function parseChange(
     return { ok: false, error: 'token' }
   if (closed !== undefined && closed !== true)
     return { ok: false, error: 'closed' }
+  if (sun !== undefined && sun !== true) return { ok: false, error: 'sun' }
 
   let suggestion: Suggestion | null = null
   if (price !== undefined) {
@@ -70,11 +75,13 @@ export function parseChange(
     reports.push(parsed.value)
   }
 
-  if (!suggestion && reports.length === 0) return { ok: false, error: 'empty' }
+  if (!suggestion && reports.length === 0 && sun !== true)
+    return { ok: false, error: 'empty' }
   // parseSuggestion and parseReport have checked venueId when either ran.
+  if (!VENUE_ID.test(venueId)) return { ok: false, error: 'venueId' }
   return {
     ok: true,
-    value: { venueId, price: suggestion, reports },
+    value: { venueId, price: suggestion, reports, sun: sun === true },
     token: checked,
   }
 }
