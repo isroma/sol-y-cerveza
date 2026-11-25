@@ -70,6 +70,27 @@
   border-radius: 0 999px 999px 0;
   background: #fff;
   box-shadow: var(--pin-shadow);
+  /* Hidden, it is tucked into the badge: folded from the right back to the
+     badge's centre on the card's opening curve (card.css, pin-card-open), so
+     the badge takes its price in as it grows into the card. The fade waits
+     until the tab is mostly behind the badge. */
+  opacity: 0;
+  transform-origin: left center;
+  scale: 0 1;
+  pointer-events: none;
+  transition:
+    scale 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease 0.12s;
+}
+
+/* Shown: it slides back out of the badge, solid at once. */
+.pin--priced .pin-price {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+  transition:
+    scale 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.12s ease;
 }
 
 .pin--sun,

@@ -403,7 +403,8 @@ export function MapView({
         entry.el,
         status,
         id === selectedId,
-        priced.has(id) ? (canaPrices.get(id) ?? null) : null,
+        canaPrices.get(id) ?? null,
+        priced.has(id),
       )
       const top = highlighted.has(id)
       entry.el.classList.toggle('pin-marker--top', top)
