@@ -36,70 +36,40 @@ afterEach(() => {
 })
 
 describe('Turnstile', () => {
-  it('shows the spinner until the check passes', async () => {
+  it('hands over the token when the check passes, and folds the box away', async () => {
     const onToken = vi.fn()
-    render(<Turnstile siteKey="key" action="change" onToken={onToken} />)
-    expect(
-      screen.getByRole('status', { name: 'Verificando' }),
-    ).toBeInTheDocument()
+    const { container } = render(
+      <Turnstile siteKey="key" action="change" onToken={onToken} />,
+    )
     const check = await rendered()
     act(() => check.callback('token'))
-    expect(screen.queryByRole('status')).toBeNull()
     expect(onToken).toHaveBeenCalledWith('token')
+    expect(container.querySelector('.price-turnstile.is-passed')).not.toBeNull()
   })
 
-  it('leaves the spinner to the caller when told about the check', async () => {
-    const onChecking = vi.fn()
-    render(
-      <Turnstile
-        siteKey="key"
-        action="change"
-        onToken={vi.fn()}
-        onChecking={onChecking}
-      />,
-    )
-    expect(screen.queryByRole('status')).toBeNull()
-    expect(onChecking).toHaveBeenLastCalledWith(true)
-    const check = await rendered()
-    act(() => check['before-interactive-callback']())
-    expect(onChecking).toHaveBeenLastCalledWith(false)
-  })
-
-  it('hides it when Cloudflare shows its own box', async () => {
+  it('shows nothing of its own while the check runs', async () => {
     render(<Turnstile siteKey="key" action="change" onToken={vi.fn()} />)
-    const check = await rendered()
-    act(() => check['before-interactive-callback']())
+    await rendered()
     expect(screen.queryByRole('status')).toBeNull()
   })
 
-  it('hides it when the check fails', async () => {
+  it('reports a failed check as no token', async () => {
     const onToken = vi.fn()
     render(<Turnstile siteKey="key" action="change" onToken={onToken} />)
     const check = await rendered()
     act(() => check['error-callback']())
-    expect(screen.queryByRole('status')).toBeNull()
     expect(onToken).toHaveBeenCalledWith(null)
   })
 
-  it('waits for `run` to show it: a deferred check has not started', async () => {
+  it('runs a deferred check once `run` turns true', async () => {
+    const execute = vi.mocked(window.turnstile?.execute)
+    execute?.mockClear()
     const { rerender } = render(
       <Turnstile siteKey="key" action="change" onToken={vi.fn()} run={false} />,
     )
     await rendered()
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(execute).not.toHaveBeenCalled()
     rerender(<Turnstile siteKey="key" action="change" onToken={vi.fn()} run />)
-    expect(
-      screen.getByRole('status', { name: 'Verificando' }),
-    ).toBeInTheDocument()
-  })
-
-  it('shows it again while an expired token is renewed', async () => {
-    render(<Turnstile siteKey="key" action="change" onToken={vi.fn()} />)
-    const check = await rendered()
-    act(() => check.callback('token'))
-    act(() => check['expired-callback']())
-    expect(
-      screen.getByRole('status', { name: 'Verificando' }),
-    ).toBeInTheDocument()
+    expect(execute).toHaveBeenCalledWith('widget')
   })
 })
