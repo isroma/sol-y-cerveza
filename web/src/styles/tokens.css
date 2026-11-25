@@ -1,0 +1,47 @@
+:root {
+  --ink: #1f2328;
+  --muted: #6b7280;
+  --line: #ece7df;
+  --field: #f3f2ef;
+  --sun: #f59e0b;
+  --sun-soft: #ffc53d;
+  --sun-dark: #b45309;
+  --chip: #ffc83d;
+  /* Layout scale (docs/design/README.md §5): 4-point grid, 44px controls. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 24px;
+  --control: 44px;
+  --map-inset: 16px;
+  /* Surfaces and secondary text: day values here, night values on .app.is-night. */
+  --bg: #fff;
+  --surface-hover: #faf8f4;
+  --highlight: #fff6e0;
+  --text-soft: #4b5563;
+  --placeholder: #8a8f98;
+  --toggle-off: #e5e7eb;
+  --legend-bg: rgba(255, 255, 255, 0.96);
+  --shadow: 0 4px 16px rgba(31, 35, 40, 0.1), 0 1px 3px rgba(31, 35, 40, 0.08);
+  --font:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, 'Segoe UI', Roboto,
+    system-ui, sans-serif;
+  font: 16px/1.4 var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  color-scheme: light;
+}
+
+/* Cascade order: the resets in base.css, then MapLibre's styles
+   (src/map/maplibre.css, loaded with the lazy map), then every unlayered rule
+   in src/styles/. So MapLibre keeps beating the resets, and our overrides beat
+   MapLibre, whichever stylesheet loads first. Declared here, after :root: at
+   the top of a partial the import step would hoist it above :root. */
+@layer base, maplibre;

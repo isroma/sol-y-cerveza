@@ -1,0 +1,104 @@
+/* Sunrise, sunset and "now" marks sit on the time bar itself. */
+.time-track {
+  /* The gap above the slider's track; the marks below sit at the same height. */
+  --slider-top: var(--space-4);
+  position: relative;
+}
+
+.time-markers {
+  position: absolute;
+  /* Lined up with the 8px track inside the slider. */
+  top: var(--slider-top);
+  right: 0;
+  left: 0;
+  height: 8px;
+  /* Same inset as the thumb travel, so marks line up with the slider values. */
+  margin: 0 12px;
+  pointer-events: none;
+}
+
+.time-marker {
+  position: absolute;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+}
+
+.time-marker--sunrise,
+.time-marker--sunset {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid;
+  border-radius: 50%;
+}
+
+/* Gold dawn, terracotta dusk. */
+.time-marker--sunrise {
+  border-color: #eab308;
+  background: #fff8db;
+  color: #a16207;
+}
+
+.time-marker--sunset {
+  border-color: #d9734e;
+  background: #fbeae2;
+  color: #9a3b1c;
+}
+
+/* "Now": a deep amber "Ahora" bubble over a dot on the bar; tap it to come back. */
+.time-now-layer {
+  position: absolute;
+  top: var(--slider-top);
+  right: 0;
+  left: 0;
+  height: 8px;
+  margin: 0 12px;
+  pointer-events: none;
+}
+
+.time-now {
+  position: absolute;
+  bottom: -10px;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px 10px;
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.time-now-bubble {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sun-dark);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  transition: scale 0.15s;
+}
+
+.time-now-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sun-dark);
+}
+
+.time-now:hover .time-now-bubble,
+.time-now:focus-visible .time-now-bubble {
+  scale: 1.08;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
