@@ -24,12 +24,19 @@ describe('shownPrices', () => {
       ],
     )
     expect(shown).toEqual([
-      { item: 'cana', brand: null, cents: 160, approximate: false },
+      {
+        item: 'cana',
+        brand: null,
+        cents: 160,
+        approximate: false,
+        updated: '2026-11-23',
+      },
       {
         item: 'tercio',
         brand: 'mahou-5-estrellas',
         cents: 220,
         approximate: true,
+        updated: '2026-11-23T10:00:00Z',
       },
     ])
   })
@@ -53,7 +60,13 @@ describe('shownPrices', () => {
       [visitor({ cents: 170, confirmed: true, voters: 0 })],
     )
     expect(shown).toEqual([
-      { item: 'cana', brand: null, cents: 170, approximate: false },
+      {
+        item: 'cana',
+        brand: null,
+        cents: 170,
+        approximate: false,
+        updated: '2026-11-23T10:00:00Z',
+      },
     ])
   })
 })

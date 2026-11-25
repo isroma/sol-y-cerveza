@@ -1,38 +1,132 @@
-/* Beer prices on the venue card: same language as the sun box above it. */
+/* Beer prices on the venue card: a caña and a tercio pill, their details
+   folding open under them. */
 .price-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   margin-top: var(--space-3);
-  font-size: 14px;
+  font-size: 13px;
 }
 
-/* One quiet line: mug, then "Caña 1,50 €" (more items wrap). */
-.price-inline {
+.price-pills {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   justify-content: center;
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: 0;
-  color: var(--muted);
-  font-size: 14px;
-  list-style: none;
+  gap: 6px;
 }
 
-.price-inline strong {
+.price-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--highlight);
   color: var(--ink);
-  font-size: 15px;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.price-pill svg {
+  flex: none;
+  color: var(--sun-dark);
+}
+
+.price-pill strong {
   font-variant-numeric: tabular-nums;
 }
 
-.price-badge {
+.price-pill[aria-expanded='true'] {
+  border-color: var(--sun-dark);
+}
+
+/* Folds open and shut by its height (0fr -> 1fr), fading as it goes: opens
+   like the card does, shuts a little faster. */
+.price-fold {
   display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  /* A plain icon, like the sun in the box above. */
-  color: var(--sun);
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.15s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.15s;
+}
+
+.price-fold.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s;
+}
+
+.price-fold > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.price-hint {
+  /* Margins, not padding: inside the fold they vanish when it shuts. */
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.price-more-body {
+  margin-top: var(--space-2);
+  padding: 10px 12px;
+  border-radius: var(--radius-m);
+  background: var(--field);
+  text-align: left;
+  animation: price-more-in 0.15s;
+}
+
+@keyframes price-more-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.price-more-row,
+.price-brands li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-more-title {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.price-brands {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-brands li {
+  padding: 3px 0;
+}
+
+.price-updated {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .price-pill,
+  .price-fold,
+  .price-fold.is-open {
+    transition: none;
+  }
+
+  .price-more-body {
+    animation: none;
+  }
 }
 
 /* Caña / Tercio as a segmented control. */
