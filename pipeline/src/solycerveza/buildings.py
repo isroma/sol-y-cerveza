@@ -22,11 +22,13 @@ a 15 m block. So inside each LiDAR-measured footprint, connected areas of at lea
 own blocks at their own height (``tall_parts``). A part traced from the 2 m grid has
 stair-stepped edges, so one that fills at least ``STRAIGHTEN_FILL`` of its minimum rotated
 rectangle becomes that rectangle (``straighten``), except the round domes in ``KEEP_SHAPE``.
-The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``).
+The cathedral's tower (``CRENELLATED``) gets battlements on top (``crenellate``), and the old
+town's landmarks are modelled by hand (``landmarks.py``).
 
 Touching buildings whose heights are within ``DISSOLVE_M`` of each other are merged, and the
 outlines are simplified by ``SIMPLIFY_M``, to keep the file small. Output: the compact format of
-``trees.encode`` (base 0, except the battlements), decoded by ``web/src/map/extrusionCodec.ts``.
+``trees.encode`` (base 0, except battlements and landmarks), decoded by
+``web/src/map/extrusionCodec.ts``.
 """
 
 import argparse
@@ -360,7 +362,12 @@ def build(dsm_path: Path, dtm_path: Path, cache_dir: Path) -> tuple[dict[str, An
     measured = measure(footprints(raw, to_grid), heights, grid)
     parts, merlons = crenellate(straighten(tall_parts(measured, heights, grid)))
     measured = [*measured, *parts]
-    return encode([*dissolve(measured), *merlons], grid.crs), measured
+    # landmarks.py builds on this module's types, so it is imported here, not at the top.
+    from solycerveza import landmarks
+
+    shapes = landmarks.load_outlines(cache_dir, to_grid)
+    drawn, landmark_bands = landmarks.apply(measured, shapes, heights, grid)
+    return encode([*dissolve(drawn), *merlons, *landmark_bands], grid.crs), measured
 
 
 def write_sources(measured: Sequence[Measured], path: Path) -> None:
