@@ -35,3 +35,4 @@ pipeline/.cache/
 
 # Agent worktrees
 .claude/worktrees/
+web/public/data/heights/
