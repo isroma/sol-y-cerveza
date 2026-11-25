@@ -146,6 +146,7 @@ describe('distanceMetres', () => {
 
 const row = (fields: Partial<ReportRow>): ReportRow => ({
   id: 1,
+  by_owner: 0,
   kind: 'closed',
   venue_id: 'osm:node/1',
   name: '',
@@ -190,6 +191,7 @@ describe('reportQueue', () => {
         kind: 'closed',
         venueId: 'osm:node/1',
         reporters: 2,
+        owner: false,
         last: '2026-11-24T10:00:00.000Z',
       },
       {
@@ -201,6 +203,7 @@ describe('reportQueue', () => {
         lat: 38.878,
         lon: -6.97,
         reporters: 1,
+        owner: false,
         last: '2026-11-24T11:00:00.000Z',
       },
       {
@@ -210,8 +213,27 @@ describe('reportQueue', () => {
         lat: 38.878,
         lon: -6.97,
         reporters: 1,
+        owner: false,
         last: '2026-11-24T08:00:00.000Z',
       },
+    ])
+  })
+
+  it('marks a group with an owner row as the owner’s and puts it first', () => {
+    const queue = reportQueue([
+      row({ id: 1, kind: 'closed', venue_id: 'osm:node/1', net_hash: 'a' }),
+      row({ id: 2, kind: 'closed', venue_id: 'osm:node/1', net_hash: 'b' }),
+      row({
+        id: 3,
+        kind: 'closed',
+        venue_id: 'osm:node/2',
+        net_hash: 'owner',
+        by_owner: 1,
+      }),
+    ])
+    expect(queue.map((e) => [e.ids, e.owner])).toEqual([
+      [[3], true],
+      [[1, 2], false],
     ])
   })
 

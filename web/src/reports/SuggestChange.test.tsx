@@ -5,6 +5,7 @@ import type { Terrace } from '../data/terraces.ts'
 import { emptyDraft, type ChangeDraft } from './draft.ts'
 import { StartMoveContext } from './picking.ts'
 import { SuggestChange } from './SuggestChange.tsx'
+import { exitOwner, unlockFromLocation } from '../prices/owner.ts'
 
 // The API and the bot check as a build with both configured has them.
 vi.mock('../apiClient.ts', async (original) => {
@@ -238,6 +239,48 @@ describe('SuggestChange', () => {
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Hay demasiados avisos enviados desde tu conexión. Prueba más tarde.',
+    )
+  })
+})
+
+describe('SuggestChange in owner mode', () => {
+  const ownerOn = async () => {
+    window.location.hash = '#owner=0123456789abcdef0123'
+    vi.stubGlobal('fetch', async () => new Response(null, { status: 200 }))
+    await unlockFromLocation()
+  }
+  afterEach(() => exitOwner())
+
+  it('saves a price as a change, with no bot check', async () => {
+    await ownerOn()
+    const sent = stubFetch()
+    render(<Back />)
+    expect(screen.getByText('Editar')).toBeInTheDocument()
+    expect(screen.queryByTestId('turnstile')).toBeNull()
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Precio de la caña en euros' }),
+      { target: { value: '1,80' } },
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'El precio ya se ve',
+    )
+    expect(sent[0]).toEqual({
+      url: 'https://api.test/v1/owner/changes',
+      body: {
+        venueId: venue.id,
+        price: { item: 'cana', brand: null, cents: 180 },
+      },
+    })
+  })
+
+  it('says a closure waits for the next Publish', async () => {
+    await ownerOn()
+    stubFetch()
+    render(<Back start={{ closed: true }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'próxima publicación',
     )
   })
 })

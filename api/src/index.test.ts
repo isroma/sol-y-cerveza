@@ -16,7 +16,6 @@ import {
 } from 'miniflare'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { DAILY_LIMIT, THRESHOLD, VENUE_HOURLY_LIMIT } from './logic.ts'
-import { PHOTO_DAILY_LIMIT } from './photo.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const TEST_SECRET = '1x0000000000000000000000000000000AA'
@@ -30,7 +29,6 @@ const ORIGINS = 'https://isroma.github.io,http://localhost:5173'
 const TERRACES_URL = 'https://data.test/terraces.json'
 /** Venues osm:node/1 … osm:node/40, all at one spot in Badajoz. */
 const VENUES = Array.from({ length: 40 }, (_, i) => `osm:node/${i + 1}`)
-const JPEG = btoa(String.fromCharCode(0xff, 0xd8, 0xff, 0xe0, 0, 0x10))
 
 let bundle = ''
 let compatibilityDate = ''
@@ -64,7 +62,7 @@ beforeAll(async () => {
   bundle = result.outputFiles[0]?.text ?? ''
 })
 
-type Calls = { siteverify: number; ai: number }
+type Calls = { siteverify: number }
 
 type Api = {
   /** Sends a request to the Worker; `path` is joined to `base`. */
@@ -86,7 +84,7 @@ async function startApi(
   /** Rows to insert just before the migration whose file name starts with `before`. */
   seed?: { before: string; sql: string[] },
 ): Promise<Api> {
-  const calls: Calls = { siteverify: 0, ai: 0 }
+  const calls: Calls = { siteverify: 0 }
   const secrets: Record<string, string> = {}
   const all = {
     TURNSTILE_SECRET: TEST_SECRET,
@@ -119,33 +117,6 @@ async function startApi(
         action,
       })
     }
-    if (url.hostname === 'ai.test') {
-      calls.ai++
-      return MfResponse.json({
-        choices: [
-          {
-            index: 0,
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: JSON.stringify({
-                prices: [
-                  {
-                    item: 'cana',
-                    brand: null,
-                    cents: 150,
-                    label: 'Caña 1,50',
-                    confidence: 'high',
-                  },
-                ],
-                notes: [],
-                bar_name: 'Bar de Prueba',
-              }),
-            },
-          },
-        ],
-      })
-    }
     return new MfResponse(`unexpected fetch ${request.url}`, {
       status: 599,
     })
@@ -161,30 +132,6 @@ async function startApi(
           compatibilityDate,
           d1Databases: { DB: 'test-db' },
           bindings: { ALLOWED_ORIGINS: ORIGINS, TERRACES_URL, ...secrets },
-          outboundService: outbound,
-          // Workers AI, faked over RPC: run() posts to ai.test, answered by `outbound`.
-          serviceBindings: { AI: { name: 'fake-ai', entrypoint: 'FakeAi' } },
-        },
-        {
-          name: 'fake-ai',
-          modules: [
-            {
-              type: 'ESModule',
-              path: 'fake-ai.js',
-              contents: [
-                "import { WorkerEntrypoint } from 'cloudflare:workers'",
-                'export class FakeAi extends WorkerEntrypoint {',
-                '  async run(model, inputs) {',
-                '    const body = JSON.stringify({ model, inputs })',
-                "    const response = await fetch('https://ai.test/run', { method: 'POST', body })",
-                '    return response.json()',
-                '  }',
-                '}',
-                'export default { fetch: () => new Response(null, { status: 404 }) }',
-              ].join('\n'),
-            },
-          ],
-          compatibilityDate,
           outboundService: outbound,
         },
       ],
@@ -842,92 +789,96 @@ describe('GET /v1/prices', () => {
   })
 })
 
-describe('owner photos', () => {
+describe('owner changes', () => {
   let api: Api
   beforeAll(async () => {
     api = await startApi()
   })
   afterAll(() => api.dispose())
 
-  const photo = () =>
-    api.call(
-      '/v1/owner/photo',
-      postJson(
-        { image: JPEG, mediaType: 'image/jpeg' },
-        { Authorization: OWNER },
-      ),
-    )
-
-  it(`are read by Workers AI, at most ${PHOTO_DAILY_LIMIT} a day`, async () => {
-    const first = await photo()
-    expect(first.status).toBe(200)
-    const body = await readJson<{ barName: string }>(first)
-    expect(body.barName).toBe('Bar de Prueba')
-    expect(api.calls.ai).toBe(1)
-
-    // Readings older than a day don't count; the rest of today's fill the cap.
-    const now = Date.now()
-    await api.sql(
-      'INSERT INTO owner_photo_events (at) VALUES (?)',
-      new Date(now - 25 * 3600_000).toISOString(),
-    )
-    for (let i = 1; i < PHOTO_DAILY_LIMIT; i++)
-      await api.sql(
-        'INSERT INTO owner_photo_events (at) VALUES (?)',
-        new Date(now - i * 1000).toISOString(),
+  type Queued = { kind: string; owner: boolean; ids: number[] }
+  const queue = async () =>
+    (
+      await readJson<{ reports: Queued[] }>(
+        await api.call('/v1/admin/reports', {
+          headers: { Authorization: ADMIN },
+        }),
       )
+    ).reports
 
-    const capped = await photo()
-    expect(capped.status).toBe(429)
-    expect(Number(capped.headers.get('Retry-After'))).toBeGreaterThan(0)
-    expect(api.calls.ai).toBe(1)
-  })
-
-  it("don't use up the cap with an invalid photo", async () => {
-    await api.sql('DELETE FROM owner_photo_events')
+  it('save a price at once and queue a move and closed as the owner’s, with no bot check', async () => {
+    const before = api.calls.siteverify
     const response = await api.call(
-      '/v1/owner/photo',
+      '/v1/owner/changes',
       postJson(
-        { image: JPEG, mediaType: 'image/png' },
+        {
+          venueId: 'osm:node/7',
+          price: { item: 'cana', brand: null, cents: 180 },
+          move: { lat: 38.8781, lon: -6.9701 },
+          closed: true,
+        },
         { Authorization: OWNER },
       ),
     )
-    expect(response.status).toBe(415)
-    expect(await api.rows('SELECT * FROM owner_photo_events')).toEqual([])
-  })
-
-  it('take a body over the 8 KB limit of the other routes', async () => {
-    const image = `${JPEG.slice(0, 8)}${'A'.repeat(64 * 1024)}`
-    const response = await api.call(
-      '/v1/owner/photo',
-      postJson({ image, mediaType: 'image/png' }, { Authorization: OWNER }),
+    expect(response.status).toBe(201)
+    expect(api.calls.siteverify).toBe(before)
+    expect(
+      (await servedPrices(api))
+        .filter((p) => p.venueId === 'osm:node/7')
+        .map((p) => [p.cents, p.confirmed]),
+    ).toEqual([[180, true]])
+    const reports = await queue()
+    expect(reports.map((r) => [r.kind, r.owner])).toEqual(
+      expect.arrayContaining([
+        ['move', true],
+        ['closed', true],
+      ]),
     )
-    expect(response.status).toBe(415)
+    // The owner's come first, for the admin to apply.
+    expect(reports[0]?.owner).toBe(true)
   })
 
-  it('refuse a body over the photo limit', async () => {
-    // Streamed, with the byte that crosses the limit sent last: a refusal before the
-    // whole body is sent would race the upload (EPIPE) and make the test flaky.
-    const limit = 7 * 1024 * 1024
-    const parts = [
-      new Uint8Array(limit).fill(0x41),
-      new Uint8Array(1).fill(0x41),
-    ]
-    const body = new ReadableStream<Uint8Array>({
-      pull(controller) {
-        const next = parts.shift()
-        if (next) controller.enqueue(next)
-        else controller.close()
-      },
+  it('add a missing venue as the owner’s', async () => {
+    const response = await api.call(
+      '/v1/owner/reports',
+      postJson(
+        {
+          kind: 'add',
+          name: 'Bar Nuevo',
+          venueKind: 'bar',
+          terrace: true,
+          lat: 38.879,
+          lon: -6.971,
+        },
+        { Authorization: OWNER },
+      ),
+    )
+    expect(response.status).toBe(201)
+    expect((await queue()).some((r) => r.kind === 'add' && r.owner)).toBe(true)
+  })
+
+  it('refuse an unknown venue or a move too far away', async () => {
+    const send = (body: Record<string, unknown>) =>
+      api.call('/v1/owner/changes', postJson(body, { Authorization: OWNER }))
+    expect((await send({ venueId: 'osm:node/999', closed: true })).status).toBe(
+      400,
+    )
+    expect(
+      (await send({ venueId: 'osm:node/7', move: { lat: 38.9, lon: -6.9 } }))
+        .status,
+    ).toBe(400)
+    expect((await send({ venueId: 'osm:node/7' })).status).toBe(400)
+  })
+
+  it('leave visitor reports for review', async () => {
+    const visitor = await api.call('/v1/changes', {
+      ...postJson({ venueId: 'osm:node/8', closed: true, token: 'ok:change' }),
+      ip: '92.9.9.9',
     })
-    const response = await api.call('/v1/owner/photo', {
-      method: 'POST',
-      headers: { Authorization: OWNER },
-      body,
-      duplex: 'half',
-    })
-    expect(response.status).toBe(413)
-    expect(await response.json()).toEqual({ error: 'the photo is too large' })
+    expect(visitor.status).toBe(201)
+    expect(
+      (await queue()).find((r) => r.kind === 'closed' && !r.owner),
+    ).toBeDefined()
   })
 })
 
@@ -942,7 +893,8 @@ describe('tokens', () => {
     ['GET', '/v1/owner/check'],
     ['PUT', '/v1/owner/prices'],
     ['DELETE', '/v1/owner/prices'],
-    ['POST', '/v1/owner/photo'],
+    ['POST', '/v1/owner/changes'],
+    ['POST', '/v1/owner/reports'],
     ['GET', '/v1/admin/suggestions'],
     ['POST', '/v1/admin/resolve'],
     ['GET', '/v1/admin/owner-prices'],

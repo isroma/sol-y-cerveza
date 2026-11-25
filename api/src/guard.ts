@@ -120,8 +120,7 @@ export async function identity(
 /**
  * Takes `parts` events (one per suggestion or report) from the voter's,
  * network's and venue key's allowance, or returns the 429 to send when that
- * would break a cap. The check and the inserts are one statement, as in
- * photoAllowance, so parallel requests can't all read the counts before any of
+ * would break a cap. The check and the inserts are one statement, so parallel requests can't all read the counts before any of
  * them is logged. It runs after a request is validated and before its writes,
  * so a refused or invalid request takes nothing.
  */

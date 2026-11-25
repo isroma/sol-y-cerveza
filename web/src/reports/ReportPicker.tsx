@@ -5,7 +5,8 @@ import {
   insideBadajoz,
   type LatLon,
 } from '../data/geo.ts'
-import { TURNSTILE_SITE_KEY, type SuggestResult } from '../apiClient.ts'
+import { TURNSTILE_SITE_KEY } from '../apiClient.ts'
+import { useOwner } from '../prices/owner.ts'
 import { Turnstile } from './Turnstile.tsx'
 import { KIND_LABELS } from '../ui/categoryStyle.ts'
 import { Toggle } from '../ui/Toggle.tsx'
@@ -13,6 +14,8 @@ import type { Picking } from './picking.ts'
 import {
   MAX_MOVE_M,
   MIN_MOVE_M,
+  ownerAddVenue,
+  OWNER_RESULT_TEXT,
   reportVenue,
   RESULT_TEXT,
   validName,
@@ -42,7 +45,9 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const [terrace, setTerrace] = useState(true)
   const [token, setToken] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<SuggestResult | null>(null)
+  // What the visitor or owner sees once it is sent.
+  const [result, setResult] = useState<string | null>(null)
+  const owner = useOwner().token !== null
   const barRef = useRef<HTMLElement>(null)
 
   // Focus moves into the bar, and back where it was when the picker closes,
@@ -84,7 +89,7 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const outside = center !== null && !insideBadajoz(center)
   const ready =
     center !== null &&
-    (venue !== null || token !== null) &&
+    (venue !== null || owner || token !== null) &&
     moved &&
     !tooFar &&
     !outside &&
@@ -96,20 +101,27 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
       onPlace(center)
       return
     }
-    if (token === null) return
-    setSending(true)
-    const sent = reportVenue({
-      kind: 'add',
+    const added = {
+      kind: 'add' as const,
       name: cleanVenueName(name),
       venueKind: kind,
       terrace,
       lat: center.lat,
       lon: center.lon,
-      token,
-    })
-    void sent.then((answer) => {
+    }
+    // The owner's new venue is added at the admin's next Publish.
+    const sent = owner
+      ? ownerAddVenue(added).then((answer) =>
+          answer === 'ok' ? OWNER_RESULT_TEXT.later : OWNER_RESULT_TEXT.error,
+        )
+      : token === null
+        ? null
+        : reportVenue({ ...added, token }).then((answer) => RESULT_TEXT[answer])
+    if (!sent) return
+    setSending(true)
+    void sent.then((text) => {
       setSending(false)
-      setResult(answer)
+      setResult(text)
     })
   }
 
@@ -139,7 +151,7 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
         {result ? (
           <div className="picker-form">
             <p className="picker-text" role="status">
-              {RESULT_TEXT[result]}
+              {result}
             </p>
             <div className="picker-actions">
               <button type="button" className="picker-send" onClick={onClose}>
@@ -201,7 +213,7 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
                 </div>
               </>
             )}
-            {TURNSTILE_SITE_KEY && !venue && (
+            {TURNSTILE_SITE_KEY && !venue && !owner && (
               <Turnstile
                 siteKey={TURNSTILE_SITE_KEY}
                 action="report"
@@ -217,7 +229,15 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
                 className="picker-send"
                 disabled={!ready || sending}
               >
-                {venue ? 'Listo' : sending ? 'Enviando…' : 'Enviar'}
+                {venue
+                  ? 'Listo'
+                  : sending
+                    ? owner
+                      ? 'Guardando…'
+                      : 'Enviando…'
+                    : owner
+                      ? 'Guardar'
+                      : 'Enviar'}
               </button>
             </div>
           </form>

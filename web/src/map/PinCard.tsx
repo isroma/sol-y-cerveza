@@ -4,9 +4,8 @@ import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { BeerIcon, ShareIcon } from '../ui/icons.tsx'
 import { KIND_LABELS, sunBox } from '../ui/categoryStyle.ts'
 import { SunCountdown } from './SunCountdown.tsx'
-import { CAN_SEND } from '../apiClient.ts'
 import { PriceSection } from '../prices/PriceSection.tsx'
-import { useOwner } from '../prices/owner.ts'
+import { useCanSend, useOwner } from '../prices/owner.ts'
 import { emptyDraft, useDraft } from '../reports/draft.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
 import { currentSunRun } from '../sun/venueStatus.ts'
@@ -128,6 +127,7 @@ export function PinCard({ status, minutes }: Props) {
   const { venue } = status
   const box = sunBox(status, minutes)
   const { token } = useOwner()
+  const canSend = useCanSend()
   // The open back's draft, kept by App across the map picker: the card shows
   // its back while the draft is this venue's. Switching venues turns it round.
   const { draft, setDraft } = useDraft()
@@ -154,16 +154,15 @@ export function PinCard({ status, minutes }: Props) {
   const bar =
     status.timeline !== null && currentSunRun(status.timeline, minutes) !== null
 
-  const suggest =
-    CAN_SEND && !token ? (
-      <button
-        type="button"
-        className={bar ? 'card-suggest' : 'card-suggest card-suggest--alone'}
-        onClick={() => flipTo(venue.id)}
-      >
-        Sugerir un cambio
-      </button>
-    ) : null
+  const suggest = canSend ? (
+    <button
+      type="button"
+      className={bar ? 'card-suggest' : 'card-suggest card-suggest--alone'}
+      onClick={() => flipTo(venue.id)}
+    >
+      {token ? 'Editar' : 'Sugerir un cambio'}
+    </button>
+  ) : null
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>

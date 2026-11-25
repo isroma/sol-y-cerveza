@@ -1,18 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   madridDate,
   parseOwnerPrice,
   withOwnerPrices,
   type CrowdPrice,
 } from './logic.ts'
-import {
-  parsePhoto,
-  parseReading,
-  PhotoError,
-  PHOTO_MODEL,
-  readPhoto,
-  type PhotoAi,
-} from './photo.ts'
 
 describe('owner prices', () => {
   it('validates like a suggestion, without a Turnstile token', () => {
@@ -88,116 +80,5 @@ describe('owner prices', () => {
 
   it('dates prices in Spanish time', () => {
     expect(madridDate(new Date('2026-11-23T23:30:00Z'))).toBe('2026-11-24')
-  })
-})
-
-describe('owner photos', () => {
-  const jpeg = btoa(String.fromCharCode(0xff, 0xd8, 0xff, 0xe0, 0, 0x10)) // a JPEG header
-
-  it('accepts a real image and rejects the rest', () => {
-    expect(parsePhoto({ image: jpeg, mediaType: 'image/jpeg' }).mediaType).toBe(
-      'image/jpeg',
-    )
-    expect(() => parsePhoto({ image: jpeg, mediaType: 'image/png' })).toThrow(
-      PhotoError,
-    )
-    expect(() =>
-      parsePhoto({ image: 'not base64!', mediaType: 'image/jpeg' }),
-    ).toThrow(PhotoError)
-    expect(() => parsePhoto('nope')).toThrow(PhotoError)
-  })
-
-  it('reads prices with the admin rules, plus the bar name', () => {
-    const reading = parseReading(
-      JSON.stringify({
-        prices: [
-          {
-            item: 'cana',
-            brand: null,
-            cents: 150,
-            label: 'Caña 1,50',
-            confidence: 'high',
-          },
-          {
-            item: 'tercio',
-            brand: null,
-            cents: 200,
-            label: 'Tercio 2,00',
-            confidence: 'high',
-          },
-        ],
-        notes: [],
-        bar_name: ' Bar Los Pozos ',
-      }),
-    )
-    expect(reading?.barName).toBe('Bar Los Pozos')
-    expect(reading?.proposals).toEqual([
-      {
-        item: 'cana',
-        brand: null,
-        cents: 150,
-        label: 'Caña 1,50',
-        confidence: 'high',
-      },
-    ])
-    expect(reading?.notes.some((n) => n.includes('Tercio 2,00'))).toBe(true)
-    expect(parseReading('{"prices": "nope"}')).toBeNull()
-  })
-})
-
-describe('readPhoto', () => {
-  const photo = { image: 'AAAA', mediaType: 'image/jpeg' as const }
-  const answer = (content: string | null, finish_reason = 'stop') => ({
-    choices: [{ finish_reason, message: { content } }],
-  })
-  const fakeAi = (output: ReturnType<typeof answer>) => {
-    const run = vi.fn(async () => output)
-    const ai: PhotoAi = { run }
-    return { ai, run }
-  }
-
-  it('sends the photo as a data URL and reads the JSON answer', async () => {
-    const reading = { prices: [], notes: [], bar_name: 'Bar Ejemplo' }
-    const { ai, run } = fakeAi(answer(JSON.stringify(reading)))
-    expect(await readPhoto(ai, photo)).toEqual({
-      proposals: [],
-      notes: [],
-      barName: 'Bar Ejemplo',
-    })
-    expect(run).toHaveBeenCalledWith(
-      PHOTO_MODEL,
-      expect.objectContaining({
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-            content: expect.arrayContaining([
-              {
-                type: 'image_url',
-                image_url: { url: 'data:image/jpeg;base64,AAAA' },
-              },
-            ]),
-          }),
-        ]),
-      }),
-    )
-  })
-
-  it('turns a cut-off, odd or failed answer into a PhotoError', async () => {
-    await expect(
-      readPhoto(fakeAi(answer('{', 'length')).ai, photo),
-    ).rejects.toThrow('cut off')
-    await expect(
-      readPhoto(fakeAi(answer('not json')).ai, photo),
-    ).rejects.toThrow(PhotoError)
-    await expect(readPhoto(fakeAi(answer(null)).ai, photo)).rejects.toThrow(
-      PhotoError,
-    )
-    const failing: PhotoAi = {
-      run: async () => {
-        throw new Error('4006: daily limit')
-      },
-    }
-    await expect(readPhoto(failing, photo)).rejects.toThrow(
-      'Workers AI error: 4006',
-    )
   })
 })

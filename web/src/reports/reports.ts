@@ -2,6 +2,7 @@ import type { LatLon, Terrace } from '../data/terraces.ts'
 import type { Brand, Item } from '../data/prices.ts'
 import { cleanVenueName } from '../data/geo.ts'
 import { postJson, type SuggestResult } from '../apiClient.ts'
+import { ownerPost } from '../prices/owner.ts'
 
 /**
  * Visitors' reports of a moved, closed or missing venue (issue #201). They go
@@ -45,6 +46,24 @@ export function reportVenue(report: Report): Promise<SuggestResult> {
   return postJson('/v1/reports', body)
 }
 
+/** A new venue from the owner: no bot check, added at the admin's next Publish. */
+export function ownerAddVenue(
+  report: Omit<Extract<Report, { kind: 'add' }>, 'token'>,
+): Promise<SuggestResult> {
+  return ownerPost('/v1/owner/reports', {
+    ...report,
+    lat: round6(report.lat),
+    lon: round6(report.lon),
+  })
+}
+
+/** What the owner sees after saving a change or adding a venue. */
+export const OWNER_RESULT_TEXT = {
+  price: 'Guardado. El precio ya se ve en el mapa.',
+  later: 'Guardado. Se aplicará en la próxima publicación.',
+  error: 'No se ha podido guardar. Inténtalo de nuevo.',
+}
+
 export const RESULT_TEXT: Record<SuggestResult, string> = {
   ok: '¡Gracias! Lo revisaremos antes de publicarlo.',
   'rate-limited':
@@ -71,12 +90,22 @@ export type Change = {
   closed?: true
 }
 
-export function sendChange(change: Change): Promise<SuggestResult> {
-  const body = change.move
+function rounded<T extends { move?: LatLon }>(change: T): T {
+  return change.move
     ? {
         ...change,
         move: { lat: round6(change.move.lat), lon: round6(change.move.lon) },
       }
     : change
-  return postJson('/v1/changes', body)
+}
+
+export function sendChange(change: Change): Promise<SuggestResult> {
+  return postJson('/v1/changes', rounded(change))
+}
+
+/** The card back in owner mode: a change, not a suggestion, with no bot check. */
+export function sendOwnerChange(
+  change: Omit<Change, 'token'>,
+): Promise<SuggestResult> {
+  return ownerPost('/v1/owner/changes', rounded(change))
 }

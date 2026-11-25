@@ -14,6 +14,8 @@ const common = {
   ids: z.array(z.number().int()).min(1),
   reporters: z.number().int(),
   last: z.string(),
+  /** The owner's own change from owner mode: applied without review. */
+  owner: z.boolean().default(false),
 }
 
 export const reportSchema = z.discriminatedUnion('kind', [
@@ -157,5 +159,22 @@ export async function fetchReports(): Promise<{
     return { reports: byReporters(parsed.reports), error: null }
   } catch (e) {
     return { reports: null, error: String(e) }
+  }
+}
+
+/** Marks reports accepted or rejected in the API; null, or why it failed. */
+export async function resolveReports(
+  ids: readonly number[],
+  status: 'accepted' | 'rejected',
+): Promise<string | null> {
+  try {
+    const response = await fetch(ADMIN_ENDPOINTS.reports, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status }),
+    })
+    return response.ok ? null : `HTTP ${response.status}`
+  } catch (e) {
+    return String(e)
   }
 }

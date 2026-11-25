@@ -149,6 +149,8 @@ export type ReportRow = {
   terrace: number | null
   net_hash: string
   created_at: string
+  /** 1 for the owner's own change, which the admin applies without review. */
+  by_owner: number
 }
 
 export type QueueEntry =
@@ -158,6 +160,8 @@ export type QueueEntry =
       venueId: string
       reporters: number
       last: string
+      /** Includes the owner's own change: the admin applies it without review. */
+      owner: boolean
     }
   | {
       ids: number[]
@@ -167,6 +171,8 @@ export type QueueEntry =
       lon: number
       reporters: number
       last: string
+      /** Includes the owner's own change: the admin applies it without review. */
+      owner: boolean
     }
   | {
       ids: number[]
@@ -178,6 +184,8 @@ export type QueueEntry =
       lon: number
       reporters: number
       last: string
+      /** Includes the owner's own change: the admin applies it without review. */
+      owner: boolean
     }
   | {
       ids: number[]
@@ -186,16 +194,24 @@ export type QueueEntry =
       terrace: boolean
       reporters: number
       last: string
+      /** Includes the owner's own change: the admin applies it without review. */
+      owner: boolean
     }
 
-type Group = { ids: number[]; nets: Set<string>; last: string }
+type Group = {
+  ids: number[]
+  nets: Set<string>
+  last: string
+  owner: boolean
+}
 
 /**
  * The admin's review queue from pending rows: `closed` grouped per venue and
  * `terrace` per venue and answer (reporters = distinct networks, so the yes and
  * no counts both show), `move`, `pin` and `add` one entry per row; most
  * reporters first, then newest. Agreement only sorts the queue: nothing applies
- * by itself (ADR-0009).
+ * by itself (ADR-0009), except that the admin applies the owner's changes, which
+ * come first.
  */
 export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
   const closed = new Map<string, Group>()
@@ -208,6 +224,7 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
     group.ids.push(row.id)
     group.nets.add(row.net_hash)
     if (row.created_at > group.last) group.last = row.created_at
+    if (row.by_owner === 1) group.owner = true
   }
   for (const row of rows) {
     if (row.kind === 'closed') {
@@ -215,6 +232,7 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
         ids: [],
         nets: new Set(),
         last: '',
+        owner: false,
       }
       join(group, row)
       closed.set(row.venue_id, group)
@@ -227,6 +245,7 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
         ids: [],
         nets: new Set(),
         last: '',
+        owner: false,
         venueId: row.venue_id,
         terrace,
       }
@@ -240,6 +259,7 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
       lon: row.lon ?? 0,
       reporters: 1,
       last: row.created_at,
+      owner: row.by_owner === 1,
     }
     if (row.kind === 'move' || row.kind === 'pin')
       entries.push({ ...base, kind: row.kind, venueId: row.venue_id })
@@ -259,6 +279,7 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
       venueId,
       reporters: group.nets.size,
       last: group.last,
+      owner: group.owner,
     })
   for (const group of answers.values())
     entries.push({
@@ -268,15 +289,19 @@ export function reportQueue(rows: readonly ReportRow[]): QueueEntry[] {
       terrace: group.terrace,
       reporters: group.nets.size,
       last: group.last,
+      owner: group.owner,
     })
+  // The owner's changes first: the admin applies them as it loads.
   return entries.sort((a, b) =>
-    b.reporters !== a.reporters
-      ? b.reporters - a.reporters
-      : a.last < b.last
-        ? 1
-        : a.last > b.last
-          ? -1
-          : 0,
+    a.owner !== b.owner
+      ? Number(b.owner) - Number(a.owner)
+      : b.reporters !== a.reporters
+        ? b.reporters - a.reporters
+        : a.last < b.last
+          ? 1
+          : a.last > b.last
+            ? -1
+            : 0,
   )
 }
 

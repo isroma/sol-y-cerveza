@@ -16,9 +16,13 @@ export type Change = {
   reports: Report[]
 }
 
-/** The change and Turnstile token in a request body, or why it is invalid. */
+/**
+ * The change and Turnstile token in a request body, or why it is invalid.
+ * The owner's changes (`owner`) carry no token.
+ */
 export function parseChange(
   body: unknown,
+  owner = false,
 ): { ok: true; value: Change; token: string } | { ok: false; error: string } {
   if (typeof body !== 'object' || body === null)
     return { ok: false, error: 'body' }
@@ -27,7 +31,13 @@ export function parseChange(
     unknown
   >
   if (typeof venueId !== 'string') return { ok: false, error: 'venueId' }
-  if (typeof token !== 'string' || token.length === 0 || token.length > 4096)
+  // The owner's changes need no bot check; the parts are parsed as a visitor's.
+  const checked = owner ? 'owner' : token
+  if (
+    typeof checked !== 'string' ||
+    checked.length === 0 ||
+    checked.length > 4096
+  )
     return { ok: false, error: 'token' }
   if (closed !== undefined && closed !== true)
     return { ok: false, error: 'closed' }
@@ -36,7 +46,7 @@ export function parseChange(
   if (price !== undefined) {
     if (typeof price !== 'object' || price === null)
       return { ok: false, error: 'price' }
-    const parsed = parseSuggestion({ ...price, venueId, token })
+    const parsed = parseSuggestion({ ...price, venueId, token: checked })
     if (!parsed.ok) return { ok: false, error: `price ${parsed.error}` }
     suggestion = parsed.value
   }
@@ -45,17 +55,26 @@ export function parseChange(
   if (move !== undefined) {
     if (typeof move !== 'object' || move === null)
       return { ok: false, error: 'move' }
-    const parsed = parseReport({ ...move, kind: 'move', venueId, token })
+    const parsed = parseReport({
+      ...move,
+      kind: 'move',
+      venueId,
+      token: checked,
+    })
     if (!parsed.ok) return { ok: false, error: `move ${parsed.error}` }
     reports.push(parsed.value)
   }
   if (closed === true) {
-    const parsed = parseReport({ kind: 'closed', venueId, token })
+    const parsed = parseReport({ kind: 'closed', venueId, token: checked })
     if (!parsed.ok) return { ok: false, error: parsed.error }
     reports.push(parsed.value)
   }
 
   if (!suggestion && reports.length === 0) return { ok: false, error: 'empty' }
   // parseSuggestion and parseReport have checked venueId when either ran.
-  return { ok: true, value: { venueId, price: suggestion, reports }, token }
+  return {
+    ok: true,
+    value: { venueId, price: suggestion, reports },
+    token: checked,
+  }
 }

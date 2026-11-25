@@ -1,9 +1,7 @@
 import { safeEqual } from './logic.ts'
 
-/** The largest JSON body, in bytes, of every endpoint but the photo one. */
+/** The largest JSON body, in bytes. */
 export const MAX_BODY = 8 * 1024
-/** A downscaled photo (about 0.5 MB) as base64, with room to spare, in bytes. */
-export const MAX_PHOTO_BODY = 7 * 1024 * 1024
 
 export function json(
   body: unknown,
