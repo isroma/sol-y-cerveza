@@ -377,9 +377,9 @@ export function MapView({
       return
     }
     const position = cardStatus.venue.terrace ?? cardStatus.venue.venue
-    // The tab's badge centre is 41 px below the card's top; a terrace badge
+    // The tab's badge centre is 37 px below the card's top; a terrace badge
     // centre is 27 px above its point, a dot is centred on it.
-    const offset: [number, number] = [0, cardStatus.hasTerrace ? -68 : -41]
+    const offset: [number, number] = [0, cardStatus.hasTerrace ? -64 : -37]
     if (!cardMarkerRef.current) {
       cardMarkerRef.current = new Marker({
         element: cardEl,
