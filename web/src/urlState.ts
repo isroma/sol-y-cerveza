@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import { formatClock, parseClock } from './time/madrid.ts'
 
 /**
@@ -10,7 +10,7 @@ export type ViewState = {
   venue: string | null
 }
 
-const venueId = z.string().regex(/^[\w:./-]{1,200}$/)
+const venueId = z.string().check(z.regex(/^[\w:./-]{1,200}$/))
 
 /** A query string that keeps ":" and "/" readable (both are legal there). */
 function toSearch(params: URLSearchParams): string {

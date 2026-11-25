@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import { BRANDS, ITEMS, type Brand, type Item } from '../data/prices.ts'
 import type { Price } from '../data/terraces.ts'
 
@@ -11,12 +11,12 @@ export const TURNSTILE_SITE_KEY: string | null =
 const crowdPriceSchema = z.object({
   venueId: z.string(),
   item: z.enum(ITEMS),
-  brand: z.enum(BRANDS).nullable(),
-  cents: z.number().int(),
-  voters: z.number().int(),
+  brand: z.nullable(z.enum(BRANDS)),
+  cents: z.int(),
+  voters: z.int(),
   last: z.string(),
   // Saved by the owner (owner mode): shown as confirmed, no "~".
-  confirmed: z.boolean().default(false),
+  confirmed: z._default(z.boolean(), false),
 })
 
 /** The answer's shape is checked strictly, each price on its own. */
