@@ -3,7 +3,7 @@ name: Deploy web to GitHub Pages
 # CI (ci.yml, job deploy-pages) calls this once ci-ok has passed on a push to
 # main, so it builds the commit that push brought and CI tested: github.sha, the
 # default checkout. No ref comes from another workflow's event. Manual runs
-# deploy main as it is now, at once (the README's service-worker kill switch).
+# deploy main as it is now, at once (the service-worker kill switch in docs/operations.md).
 on:
   workflow_call:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
           # Price suggestions (api/). Unset, the app shows curated prices only.
           VITE_PRICES_API: ${{ vars.PRICES_API }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
-          # Offline cache kill switch: "1" ships a self-removing service worker (README).
+          # Offline cache kill switch: "1" ships a self-removing service worker (docs/operations.md).
           VITE_SW_KILL_SWITCH: ${{ vars.SW_KILL_SWITCH }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
