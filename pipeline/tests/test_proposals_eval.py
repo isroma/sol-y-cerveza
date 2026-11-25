@@ -152,3 +152,13 @@ def test_evaluate_marks_proposers_that_did_not_run(missing: str) -> None:
         name: [] for name in ("vision", "position", "overture") if name != missing
     }
     assert "Not run." in evaluate([], ran, BASELINE, REVIEWS)
+
+
+def test_evaluate_scores_only_the_chosen_vision_source() -> None:
+    api = proposal("osm:node/1", "terrace", 0.9, north(13))
+    session = api.model_copy(update={"source": "pnoa-ortho+claude-session", "confidence": 0.5})
+    ran = {"vision": ["osm:node/1"]}
+    report = evaluate([api, session], ran, BASELINE, REVIEWS, vision_source=session.source)
+    assert "## Terrace from the orthophoto (pnoa-ortho+claude-session)" in report
+    assert "At confidence >= 0.50: precision 100% (1/1)" in report
+    assert "At confidence >= 0.90" not in report
