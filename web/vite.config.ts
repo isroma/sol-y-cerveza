@@ -30,6 +30,17 @@ function preloadMapChunk(): Plugin {
         )
         if (chunk?.type !== 'chunk') return []
         const css = [...(chunk.viteMetadata?.importedCss ?? [])]
+        // The map chunk and the chunks it imports (MapLibre's), except those
+        // the entry already loads.
+        const entry = Object.values(bundle ?? {}).find(
+          (file) => file.type === 'chunk' && file.isEntry,
+        )
+        const loaded = new Set(
+          entry?.type === 'chunk' ? [entry.fileName, ...entry.imports] : [],
+        )
+        const scripts = [chunk.fileName, ...chunk.imports].filter(
+          (file) => !loaded.has(file),
+        )
         return [
           {
             tag: 'link',
@@ -41,15 +52,15 @@ function preloadMapChunk(): Plugin {
             },
             injectTo: 'head',
           },
-          {
+          ...scripts.map((file) => ({
             tag: 'link',
             attrs: {
               rel: 'modulepreload',
               crossorigin: true,
-              href: `./${chunk.fileName}`,
+              href: `./${file}`,
             },
-            injectTo: 'head',
-          },
+            injectTo: 'head' as const,
+          })),
           ...css.map((file) => ({
             tag: 'link',
             attrs: {
@@ -62,6 +73,38 @@ function preloadMapChunk(): Plugin {
           })),
         ]
       },
+    },
+  }
+}
+
+/**
+ * MapLibre belongs in the lazy map chunk only. A single value import of it
+ * from code the entry chunk reaches (even through a constant) pulls all of it
+ * into the entry, which then holds back first paint: fail the build instead.
+ */
+function keepMaplibreOutOfEntry(): Plugin {
+  return {
+    name: 'keep-maplibre-out-of-entry',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      // The entry and every chunk it imports statically (loaded with it).
+      const eager = Object.values(bundle).filter(
+        (file) => file.type === 'chunk' && file.isEntry,
+      )
+      for (const file of eager) {
+        if (file.type !== 'chunk') continue
+        const maplibre = file.moduleIds.find((id) =>
+          id.includes('/node_modules/maplibre-gl/'),
+        )
+        if (maplibre)
+          this.error(
+            `${file.fileName} loads with the entry but bundles ${maplibre}: import MapLibre only from the map chunk (src/map/MapView.tsx and what it imports)`,
+          )
+        for (const name of file.imports) {
+          const imported = bundle[name]
+          if (imported && !eager.includes(imported)) eager.push(imported)
+        }
+      }
     },
   }
 }
@@ -108,9 +151,30 @@ export default defineConfig({
     maplibreCss(),
     reviewServer(),
     preloadMapChunk(),
+    keepMaplibreOutOfEntry(),
     preconnectPricesApi(),
     serviceWorker(),
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Libraries in chunks of their own, apart from the app code that
+        // changes with almost every deploy: a returning visitor (and the
+        // service worker's precache) then downloads only what changed.
+        // MapLibre stays on the lazy map path; `vendor` holds the libraries
+        // the entry needs anyway.
+        codeSplitting: {
+          groups: [
+            { name: 'maplibre', test: /node_modules[\\/]maplibre-gl[\\/]/ },
+            {
+              name: 'vendor',
+              test: /node_modules[\\/](react|react-dom|scheduler|zod|suncalc)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   // MapLibre's worker is an ES module.
   worker: { format: 'es' },
   test: {

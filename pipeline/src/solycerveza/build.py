@@ -16,10 +16,10 @@ import json
 import logging
 import re
 from collections.abc import Callable, Sequence
+from contextlib import ExitStack
 from datetime import UTC, datetime
-from functools import partial
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
 import rasterio
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -32,7 +32,7 @@ from solycerveza.envelope import (
     pack_low,
     terrace_points,
 )
-from solycerveza.horizon import terrace_horizon
+from solycerveza.horizon import HorizonModel
 from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
@@ -142,10 +142,35 @@ def raster_attribution(path: Path) -> str:
 
 def height_above_ground(lat: float, lon: float, dsm_path: Path, dtm_path: Path) -> float | None:
     """Surface minus terrain at a WGS84 point, or None where either raster has no data."""
-    values: list[float] = []
-    for path in (dsm_path, dtm_path):
-        with rasterio.open(path) as dataset:
-            to_raster = Transformer.from_crs("EPSG:4326", dataset.crs, always_xy=True)
+    with _HeightSampler(dsm_path, dtm_path) as sampler:
+        return sampler.height(lat, lon)
+
+
+class _HeightSampler:
+    """The surface and terrain models, open once to sample many points."""
+
+    def __init__(self, dsm_path: Path, dtm_path: Path) -> None:
+        self._stack = ExitStack()
+        try:
+            self._rasters = [
+                (dataset, Transformer.from_crs("EPSG:4326", dataset.crs, always_xy=True))
+                for dataset in (
+                    self._stack.enter_context(rasterio.open(path)) for path in (dsm_path, dtm_path)
+                )
+            ]
+        except BaseException:
+            self._stack.close()
+            raise
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stack.close()
+
+    def height(self, lat: float, lon: float) -> float | None:
+        values: list[float] = []
+        for dataset, to_raster in self._rasters:
             x, y = to_raster.transform(lon, lat)
             left, bottom, right, top = dataset.bounds
             if not (left <= x < right and bottom < y <= top):
@@ -154,21 +179,22 @@ def height_above_ground(lat: float, lon: float, dsm_path: Path, dtm_path: Path) 
             if dataset.nodata is not None and value == float(dataset.nodata):
                 return None
             values.append(value)
-    return values[0] - values[1]
+        return values[0] - values[1]
 
 
 def position_warnings(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Path) -> list[str]:
     """One message per terrace whose point sits on a roof or under a canopy."""
     warnings: list[str] = []
-    for t in terraces:
-        if t.terrace is None:
-            continue
-        height = height_above_ground(t.terrace.lat, t.terrace.lon, dsm_path, dtm_path)
-        if height is not None and height > MAX_HEIGHT_ABOVE_GROUND_M:
-            warnings.append(
-                f"{t.id} ({t.name}): terrace point is {height:.1f} m above the ground "
-                "(roof or canopy?); check its position"
-            )
+    with _HeightSampler(dsm_path, dtm_path) as sampler:
+        for t in terraces:
+            if t.terrace is None:
+                continue
+            height = sampler.height(t.terrace.lat, t.terrace.lon)
+            if height is not None and height > MAX_HEIGHT_ABOVE_GROUND_M:
+                warnings.append(
+                    f"{t.id} ({t.name}): terrace point is {height:.1f} m above the ground "
+                    "(roof or canopy?); check its position"
+                )
     return warnings
 
 
@@ -236,27 +262,24 @@ def build(
     for warning in position_warnings(terraces, dsm_path, dtm_path):
         logger.warning(warning)
 
-    def horizon_for(lat: float, lon: float) -> list[int]:
-        return terrace_horizon(lat, lon, dsm_path, dtm_path=dtm_path)
-
     leafoff = leafoff_path if leafoff_path is not None and leafoff_path.exists() else None
-    winter_for: HorizonFn | None = None
-    if leafoff is not None:
-        winter_for = partial(terrace_horizon, dsm_path=leafoff, dtm_path=dtm_path)
-    else:
+    if leafoff is None:
         logger.info("no leaf-off surface model: horizon_winter stays null (ADR-0007)")
 
     structures = Structures(load_structures())
 
-    def points_for(lat: float, lon: float) -> list[LatLonPair]:
-        return terrace_points(
-            lat,
-            lon,
-            partial(height_above_ground, dsm_path=dsm_path, dtm_path=dtm_path),
-            structures.contains,
-        )
+    # The rasters stay open for every terrace: each takes a horizon and a height per sample point.
+    with ExitStack() as stack:
+        summer = stack.enter_context(HorizonModel(dsm_path, dtm_path=dtm_path))
+        winter_for: HorizonFn | None = None
+        if leafoff is not None:
+            winter_for = stack.enter_context(HorizonModel(leafoff, dtm_path=dtm_path)).horizon
+        heights = stack.enter_context(_HeightSampler(dsm_path, dtm_path))
 
-    terraces = add_horizons(terraces, horizon_for, winter_for, points_for)
+        def points_for(lat: float, lon: float) -> list[LatLonPair]:
+            return terrace_points(lat, lon, heights.height, structures.contains)
+
+        terraces = add_horizons(terraces, summer.horizon, winter_for, points_for)
     logger.info(
         "%d terraces get a sun envelope, %d a leaf-off one",
         sum(t.horizon_low is not None for t in terraces),

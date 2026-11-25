@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { addExtrusionSource } from './extrusionSource.ts'
+import { TREES } from './layerIds.ts'
 import {
   addTreeCrowns,
   BARE_TREE_COLOR,
@@ -7,7 +8,6 @@ import {
   setLeafOff,
   TREE_COLOR,
   TREE_LAYER,
-  TREES,
   TREES_URL,
 } from './treeCrowns.ts'
 

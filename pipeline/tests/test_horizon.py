@@ -9,7 +9,13 @@ from affine import Affine
 from numpy.typing import NDArray
 from pyproj import Proj, Transformer
 
-from solycerveza.horizon import BINS, EYE_HEIGHT_M, horizon_profile, terrace_horizon
+from solycerveza.horizon import (
+    BINS,
+    EYE_HEIGHT_M,
+    HorizonModel,
+    horizon_profile,
+    terrace_horizon,
+)
 
 GROUND = 180.0
 PIXEL = 2.0
@@ -238,6 +244,34 @@ def test_terrace_horizon_rejects_a_geographic_crs(tmp_path: Path) -> None:
     path = write_geotiff(tmp_path / "dsm.tif", np.full((20, 20), GROUND), transform, "EPSG:4326")
     with pytest.raises(ValueError, match="projected CRS in metres"):
         terrace_horizon(LAT, LON, path, ground_elevation=GROUND)
+
+
+def test_an_open_model_gives_the_same_profiles_as_terrace_horizon(
+    tmp_path: Path, utm_dsm: tuple[Path, NDArray[np.float64], Affine]
+) -> None:
+    dsm_path, surface, transform = utm_dsm
+    ground = GROUND + np.arange(surface.size, dtype=np.float64).reshape(surface.shape) % 7
+    dtm_path = write_geotiff(tmp_path / "dtm.tif", ground, transform)
+    # Points around the plaza, some near the wall, so the profiles differ.
+    points = [(LAT + dlat, LON + dlon) for dlat in (-5e-4, 0, 4e-4) for dlon in (-6e-4, 0, 3e-4)]
+    with HorizonModel(dsm_path, dtm_path=dtm_path) as model:
+        profiles = [model.horizon(lat, lon) for lat, lon in points]
+        with pytest.raises(ValueError, match="outside"):
+            model.horizon(LAT + 0.01, LON)
+        assert model.horizon(LAT, LON, ground_elevation=GROUND) == terrace_horizon(
+            LAT, LON, dsm_path, ground_elevation=GROUND
+        )
+    assert profiles == [
+        terrace_horizon(lat, lon, dsm_path, dtm_path=dtm_path) for lat, lon in points
+    ]
+    assert len({tuple(p) for p in profiles}) > 1
+
+
+def test_an_open_model_without_terrain_needs_a_ground_elevation(
+    utm_dsm: tuple[Path, NDArray[np.float64], Affine],
+) -> None:
+    with HorizonModel(utm_dsm[0]) as model, pytest.raises(ValueError, match="exactly one"):
+        model.horizon(LAT, LON)
 
 
 def test_a_profile_on_a_2m_raster_takes_milliseconds() -> None:

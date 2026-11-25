@@ -1,10 +1,15 @@
+import itertools
+import random
 from pathlib import Path
 
 import duckdb
 import pytest
 
-from solycerveza.geo import BADAJOZ_BBOX
+from solycerveza.geo import BADAJOZ_BBOX, distance_m
 from solycerveza.overture import (
+    MATCH_RADIUS_M,
+    NearbyVenues,
+    _similar_at_least,
     cache_path,
     fetch_places,
     merge_venues,
@@ -63,6 +68,72 @@ def test_same_venue_needs_closeness_and_a_similar_name() -> None:
     assert same_venue(a, near_same)
     assert not same_venue(a, near_other)
     assert not same_venue(a, far_same)
+
+
+NAMES = [
+    "La Marina",
+    "Bar La Marina",
+    "Cervecería La Marina",
+    "El Pilar",
+    "Café Bar El Velador",
+    "EL VELADOR",
+    "Chat Noir",
+    "Café Concierto Chatnoir",
+    "Bar",
+    "Pub",
+    "Toro",
+    "Mesón El Toro",
+    "Marina 2",
+    "La Mar",
+]
+
+
+@pytest.mark.parametrize("threshold", [0.0, 59.9, 60.0, 80.0, 90.0, 95.0, 100.0])
+def test_similar_at_least_agrees_with_name_similarity(threshold: float) -> None:
+    for a, b in itertools.product(NAMES, repeat=2):
+        assert _similar_at_least(a, b, threshold) == (name_similarity(a, b) >= threshold), (a, b)
+    # At the exact similarity, the bound must not round a pair out.
+    for a, b in itertools.product(NAMES, repeat=2):
+        assert _similar_at_least(a, b, name_similarity(a, b)), (a, b)
+
+
+def _reference_same_venue(a: Venue, b: Venue) -> bool:
+    """`same_venue` as first written, computing the similarity in full."""
+    if a.name is None or b.name is None:
+        return False
+    d = distance_m(a.location, b.location)
+    if d > 250:
+        return False
+    s = name_similarity(a.name, b.name)
+    return (d <= 25 and s >= 60) or (d <= 100 and s >= 80) or (s >= 95 and len(a.name) >= 5)
+
+
+def test_same_venue_matches_its_definition_at_every_distance_band() -> None:
+    # About 0, 20, 30, 90, 110, 240 and 260 m north of the first venue.
+    offsets = [0.0, 0.00018, 0.00027, 0.00081, 0.00099, 0.00216, 0.00234]
+    for (a, b), dlat in itertools.product(itertools.product(NAMES, repeat=2), offsets):
+        first = venue("osm:node/1", a, 38.88, -6.97)
+        second = venue("overture:a", b, 38.88 + dlat, -6.97)
+        assert same_venue(first, second) == _reference_same_venue(first, second), (a, b, dlat)
+
+
+@pytest.mark.parametrize("lat", [38.88, -45.0, 0.0, 75.0, 89.5])
+def test_nearby_venues_finds_every_venue_within_the_match_radius(lat: float) -> None:
+    rng = random.Random(lat)
+    index = NearbyVenues(
+        venue(f"osm:node/{i}", "x", lat + rng.uniform(-0.01, 0.01), rng.uniform(-0.02, 0.02))
+        for i in range(600)
+    )
+    order = {v.id: i for i, v in enumerate(index.venues)}
+    for query in index.venues[:60]:
+        near = [order[v.id] for v in index.near(query.location)]
+        assert near == sorted(near)  # insertion order
+        within = {
+            order[v.id]
+            for v in index.venues
+            if distance_m(query.location, v.location) <= MATCH_RADIUS_M
+        }
+        assert within <= set(near)
 
 
 def test_merge_keeps_osm_and_drops_overture_duplicates() -> None:

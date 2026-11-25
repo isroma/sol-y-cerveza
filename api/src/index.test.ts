@@ -22,6 +22,7 @@ import {
   THRESHOLD,
   VENUE_HOURLY_LIMIT,
 } from './logic.ts'
+import { DELETE_OPEN_REPORT } from './reports.ts'
 
 const ROOT = join(import.meta.dirname, '..')
 const TEST_SECRET = '1x0000000000000000000000000000000AA'
@@ -329,6 +330,35 @@ describe('the Worker on a migrated D1', () => {
     })
     const body = await readJson<{ reports: unknown[] }>(queue)
     expect(body.reports).toHaveLength(2)
+  })
+
+  it("replaces a voter's open report of the same kind, through the unique index", async () => {
+    const answer = (terrace: boolean) =>
+      api.call('/v1/reports', {
+        ...postJson({
+          kind: 'terrace',
+          venueId: 'osm:node/4',
+          terrace,
+          token: 'ok:report',
+        }),
+        ip: '92.2.2.2',
+      })
+    expect((await answer(true)).status).toBe(201)
+    expect((await answer(false)).status).toBe(201)
+    const open = await api.rows<{ terrace: number }>(
+      `SELECT terrace FROM venue_reports
+       WHERE status = 'pending' AND kind = 'terrace' AND venue_id = 'osm:node/4'`,
+    )
+    expect(open).toEqual([{ terrace: 0 }])
+    const plan = await api.rows<{ detail: string }>(
+      `EXPLAIN QUERY PLAN ${DELETE_OPEN_REPORT}`,
+      'terrace',
+      'osm:node/4',
+      'x',
+    )
+    expect(plan.map((row) => row.detail).join('\n')).toContain(
+      'USING INDEX venue_reports_one_open',
+    )
   })
 })
 

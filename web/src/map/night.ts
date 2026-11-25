@@ -1,5 +1,5 @@
 import type { LayerSpecification, Map as MapLibreMap } from 'maplibre-gl'
-import { TREES } from './treeCrowns.ts'
+import { TREES } from './layerIds.ts'
 
 type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1]
 type PaintValue = Parameters<MapLibreMap['setPaintProperty']>[2]

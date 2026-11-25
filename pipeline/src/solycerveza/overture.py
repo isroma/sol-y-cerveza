@@ -15,10 +15,12 @@ Run `python -m solycerveza.overture` to download the places for the bbox into `.
 
 import argparse
 import logging
+import math
 import re
 import unicodedata
 from collections.abc import Iterable, Sequence
 from difflib import SequenceMatcher
+from functools import cache
 from pathlib import Path
 
 import duckdb
@@ -231,6 +233,7 @@ GENERIC = frozenset(
 )
 
 
+@cache
 def normalize_name(name: str) -> str:
     text = unicodedata.normalize("NFKD", name.lower())
     text = "".join(c for c in text if not unicodedata.combining(c))
@@ -240,38 +243,120 @@ def normalize_name(name: str) -> str:
 
 def name_similarity(a: str, b: str) -> float:
     """0 to 100: how alike two venue names are, ignoring accents, case and generic words."""
+    whole, tokens, contained = _name_matchers(a, b)
+    return 100 * max(whole.ratio(), tokens.ratio(), contained)
+
+
+def _name_matchers(a: str, b: str) -> tuple[SequenceMatcher[str], SequenceMatcher[str], float]:
+    """The parts of `name_similarity`: whole names, sorted words, and containment (0 or 0.9)."""
     na, nb = normalize_name(a), normalize_name(b)
     if not na or not nb:
         na, nb = a.lower(), b.lower()
-    whole = SequenceMatcher(None, na, nb).ratio()
+    whole = SequenceMatcher(None, na, nb)
     tokens = SequenceMatcher(None, " ".join(sorted(na.split())), " ".join(sorted(nb.split())))
     shorter, longer = sorted((na.replace(" ", ""), nb.replace(" ", "")), key=len)
     contained = 0.9 if len(shorter) >= 5 and shorter in longer else 0.0
-    return 100 * max(whole, tokens.ratio(), contained)
+    return whole, tokens, contained
+
+
+def _similar_at_least(a: str, b: str, threshold: float) -> bool:
+    """`name_similarity(a, b) >= threshold`, exactly, but cheaper.
+
+    `quick_ratio` and `real_quick_ratio` are upper bounds of `ratio` (both count at least as
+    many matches over the same length), so a pair whose bound falls short skips `ratio`.
+    """
+    whole, tokens, contained = _name_matchers(a, b)
+    if 100 * contained >= threshold:
+        return True
+    return any(
+        100 * m.real_quick_ratio() >= threshold
+        and 100 * m.quick_ratio() >= threshold
+        and 100 * m.ratio() >= threshold
+        for m in (whole, tokens)
+    )
+
+
+#: `same_venue` never matches venues farther apart than this.
+MATCH_RADIUS_M = 250.0
 
 
 def same_venue(a: Venue, b: Venue) -> bool:
-    """Close and alike enough to be one venue (thresholds from the research notes)."""
+    """Close and alike enough to be one venue (thresholds from the research notes).
+
+    That is `(d <= 25 and s >= 60) or (d <= 100 and s >= 80) or (s >= 95 and len(a.name) >= 5)`
+    for distance `d` and `name_similarity` `s`, testing only the lowest threshold that applies.
+    """
     if a.name is None or b.name is None:
         return False
     d = distance_m(a.location, b.location)
-    if d > 250:
+    if d > MATCH_RADIUS_M:
         return False
-    s = name_similarity(a.name, b.name)
-    return (d <= 25 and s >= 60) or (d <= 100 and s >= 80) or (s >= 95 and len(a.name) >= 5)
+    if d <= 25:
+        threshold = 60.0
+    elif d <= 100:
+        threshold = 80.0
+    elif len(a.name) >= 5:
+        threshold = 95.0
+    else:
+        return False
+    return _similar_at_least(a.name, b.name, threshold)
+
+
+# Latitude span of MATCH_RADIUS_M, with a margin for rounding: venues farther apart in latitude
+# are farther apart than MATCH_RADIUS_M (`geo.distance_m` is at least the north-south part).
+_NEAR_LAT_DEG = math.degrees(MATCH_RADIUS_M / 6_371_000) * 1.01
+
+
+class NearbyVenues:
+    """A growing list of venues, bucketed by position to find those `same_venue` could match.
+
+    `near` returns a superset of the venues within `MATCH_RADIUS_M`, in the order they were
+    added, so testing `same_venue` on them alone gives the same first match as testing every
+    venue in order.
+    """
+
+    def __init__(self, venues: Iterable[Venue] = ()) -> None:
+        self.venues: list[Venue] = []
+        self._cells: dict[tuple[int, int], list[int]] = {}
+        for venue in venues:
+            self.add(venue)
+
+    def add(self, venue: Venue) -> None:
+        key = (_cell(venue.location.lat), _cell(venue.location.lon))
+        self._cells.setdefault(key, []).append(len(self.venues))
+        self.venues.append(venue)
+
+    def near(self, location: LatLon) -> list[Venue]:
+        """Every venue that may lie within `MATCH_RADIUS_M` of `location`, in insertion order."""
+        reach = abs(location.lat) + _NEAR_LAT_DEG
+        if reach >= 89.0:  # near a pole a degree of longitude is too short to bound
+            return list(self.venues)
+        # Within MATCH_RADIUS_M, the east-west part bounds the longitude gap at the mean
+        # latitude, which is at most `reach` from the equator.
+        lon_deg = _NEAR_LAT_DEG / math.cos(math.radians(reach))
+        indexes: list[int] = []
+        for row in range(
+            _cell(location.lat - _NEAR_LAT_DEG), _cell(location.lat + _NEAR_LAT_DEG) + 1
+        ):
+            for col in range(_cell(location.lon - lon_deg), _cell(location.lon + lon_deg) + 1):
+                indexes += self._cells.get((row, col), ())
+        return [self.venues[i] for i in sorted(indexes)]
+
+
+def _cell(degrees: float) -> int:
+    return math.floor(degrees / _NEAR_LAT_DEG)
 
 
 def merge_venues(osm: Iterable[Venue], overture: Iterable[Venue]) -> list[Venue]:
     """OSM venues plus the Overture venues that duplicate neither OSM nor each other."""
-    kept = list(osm)
-    added = 0
+    kept = NearbyVenues(osm)
+    osm_count = len(kept.venues)
     for venue in overture:
-        if any(same_venue(venue, other) for other in kept):
+        if any(same_venue(venue, other) for other in kept.near(venue.location)):
             continue
-        kept.append(venue)
-        added += 1
-    logger.info("Overture adds %d venues to %d from OSM", added, len(kept) - added)
-    return sorted(kept, key=lambda venue: venue.id)
+        kept.add(venue)
+    logger.info("Overture adds %d venues to %d from OSM", len(kept.venues) - osm_count, osm_count)
+    return sorted(kept.venues, key=lambda venue: venue.id)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
