@@ -221,23 +221,15 @@ test('the compass turns the map back to north', async ({ page }) => {
   await expect(needle).toHaveAttribute('style', /rotate: 0deg/)
 })
 
-test('the attribution starts closed and opens', async ({ page }) => {
+test('the basemap credits sit in the legend info panel', async ({ page }) => {
   await openApp(page)
-  const attrib = page.locator('.map-attrib .maplibregl-ctrl-attrib')
-  await expect(attrib).toHaveCount(1)
-  // The basemap credits have arrived, yet only the "i" shows.
-  await expect(attrib).toContainText('OpenStreetMap')
-  await expect(attrib).toHaveClass(/maplibregl-compact/)
-  await expect(attrib).not.toHaveClass(/maplibregl-compact-show/)
-  await expect(
-    page.locator('.map-attrib .maplibregl-ctrl-attrib-inner'),
-  ).toBeHidden()
-
-  await attrib.getByTitle('Mostrar u ocultar la atribución').click()
-  await expect(attrib).toHaveClass(/maplibregl-compact-show/)
-  await expect(
-    page.locator('.map-attrib .maplibregl-ctrl-attrib-inner'),
-  ).toBeVisible()
+  await expect(page.locator('.maplibregl-ctrl-attrib')).toHaveCount(0)
+  await page
+    .getByRole('button', { name: 'Información sobre los datos' })
+    .click()
+  const info = page.getByRole('dialog', { name: 'Sobre los datos' })
+  await expect(info.getByRole('link', { name: 'OpenFreeMap' })).toBeVisible()
+  await expect(info.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible()
 })
 
 test('"Con sol ahora" keeps only the sunny terraces', async ({ page }) => {

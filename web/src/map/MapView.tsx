@@ -1,5 +1,4 @@
 import {
-  AttributionControl,
   Map as MapLibreMap,
   Marker,
   prewarm,
@@ -101,7 +100,6 @@ export function MapView({
   }, [])
   const cardMarkerRef = useRef<Marker | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const attributionSlotRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const pinsRef = useRef(new Map<string, PinEntry>())
   /** What the dots source holds now (see dotsUpdate). */
@@ -134,7 +132,6 @@ export function MapView({
     const container = containerRef.current
     if (!container) return
     let map: MapLibreMap | null = null
-    let attributionControl: AttributionControl | null = null
     let cancelled = false
     const pins = pinsRef.current
 
@@ -150,36 +147,10 @@ export function MapView({
           container,
           style: sunlitStyle(base),
           ...MAP_OPTIONS,
+          // The basemap credits live in the legend's info panel (MapControls).
           attributionControl: false,
         })
         sizeCard(cardEl, map.getZoom())
-        // The attribution sits in our own layout, next to the legend
-        // (MapControls), rather than in a corner of the map.
-        const slot = attributionSlotRef.current
-        if (slot) {
-          attributionControl = new AttributionControl({ compact: true })
-          slot.replaceChildren(attributionControl.onAdd(map))
-          // MapLibre opens the compact attribution when its text first
-          // arrives and only closes it on a drag: start with just the "i".
-          const collapse = () =>
-            slot
-              .querySelector('.maplibregl-ctrl-attrib')
-              ?.classList.remove('maplibregl-compact-show')
-          map.once('load', collapse)
-          map.once('idle', collapse)
-          // Once the visitor opens or closes it themselves, leave it be: the
-          // first idle can come after a quick tap and would close it again.
-          slot
-            .querySelector('.maplibregl-ctrl-attrib-button')
-            ?.addEventListener(
-              'click',
-              () => {
-                map?.off('load', collapse)
-                map?.off('idle', collapse)
-              },
-              { once: true },
-            )
-        }
         map.touchPitch.disable()
         map.on('move', () => {
           if (!map) return
@@ -271,7 +242,6 @@ export function MapView({
       for (const { marker } of pins.values()) marker.remove()
       pins.clear()
       mapRef.current = null
-      attributionControl?.onRemove()
       map?.remove()
     }
   }, [cardEl])
@@ -470,7 +440,6 @@ export function MapView({
         ready={ready}
         attribution={attribution}
         leafOffTrees={leafOffTrees}
-        attributionSlot={attributionSlotRef}
       />
       {cardStatus &&
         createPortal(
