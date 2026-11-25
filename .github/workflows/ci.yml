@@ -254,15 +254,30 @@ jobs:
   # Deploys main once CI has passed on it. They run in this push-triggered
   # workflow, so they build github.sha, the commit just tested, and no ref comes
   # from another event. Skipped on PRs; ci-ok does not depend on them.
+  #
+  # The Pages artifact is built while the tests run (building needs no test
+  # result, and has no secrets or write access); only the deploy waits for
+  # ci-ok, and it is skipped if the build was (main moved on) or failed.
+  pages-build:
+    name: pages-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-pages.yml
+
   deploy-pages:
     name: deploy-pages
-    needs: ci-ok
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [ci-ok, pages-build]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.pages-build.outputs.deploy == 'true'
     permissions:
       contents: read
       pages: write
       id-token: write
     uses: ./.github/workflows/deploy-pages.yml
+    with:
+      built: true
 
   deploy-api:
     name: deploy-api
