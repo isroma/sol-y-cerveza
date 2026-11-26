@@ -197,7 +197,8 @@
    badge grows to full size above its neighbours, and its tab shows the name.
    A price rolls up out of the tab as the name rolls in; a badge without one
    slides its tab out with the name. The map's own label for that badge hides
-   meanwhile (hideTerraceName). Only zoomed in (names-on-hover, from zoom 16),
+   meanwhile (hideTerraceName). Only zoomed in (names-on-hover: out of the overview,
+   from zoom 15, like the prices),
    never while a card is open or the map is moving (MapView sets the classes
    on the map's container), and after a moment's rest, so sweeping across the
    map doesn't open every badge on the way. Phones have no hover: a tap opens
