@@ -16,7 +16,7 @@ import type { LatLon } from '../data/terraces.ts'
 import type { SunPosition } from '../sun/sunState.ts'
 import type { VenueStatus } from '../sun/venueStatus.ts'
 import { cardFolded, pitchForZoom } from './camera.ts'
-import { fitCard, focusVenue, sizeCard } from './cardFit.ts'
+import { fitCard, focusVenue, pendingFolds, sizeCard } from './cardFit.ts'
 import { addDotLayers, DOTS_SOURCE } from './dotLayers.ts'
 import { dotsUpdate } from './dots.ts'
 import {
@@ -533,16 +533,22 @@ export function MapView({
     if (!ready || !map || !wrap || !selectedId) return
     let frame = 0
     let waiting = false
+    // While a row of the card's back folds, the pan started with it already
+    // fits the card for where it is going: no refits until it ends.
+    let foldEnd = 0
+    let foldTimer = 0
+    const anchor = () => cardMarkerRef.current?.getLngLat()
     const fit = () => {
       waiting = false
-      fitCard(map, cardEl, wrap)
+      const at = anchor()
+      fitCard(map, cardEl, wrap, at ? { anchor: at } : {})
     }
     const refit = () => {
+      if (performance.now() < foldEnd) return
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         if (!map.isMoving()) fit()
-        // A card that grows over several frames (the back's rows folding
-        // open) starts a pan on the first: fit again once it ends.
+        // Moving (a pan, or the visitor): fit again once it ends.
         else if (!waiting) {
           waiting = true
           map.once('moveend', fit)
@@ -553,16 +559,46 @@ export function MapView({
     // A capped card keeps its size when its content changes (turning to the
     // back): refit then too, so it gets the room the new content needs.
     const content = new MutationObserver(refit)
+    // A row of the card's back starts folding open or shut: fit at once for
+    // the height it is going to, panning with the fold's own duration and
+    // curve, so the card's edge never runs past the free space while it
+    // grows. Only class changes of the folds themselves do anything here.
+    const folds = new MutationObserver((records) => {
+      const changed = records.some(
+        (record) =>
+          record.target instanceof HTMLElement &&
+          record.target.dataset['fold'] !== undefined,
+      )
+      if (!changed) return
+      const { delta, motion } = pendingFolds(cardEl)
+      if (!motion) return
+      const at = anchor()
+      fitCard(map, cardEl, wrap, {
+        grow: delta,
+        motion,
+        ...(at ? { anchor: at } : {}),
+      })
+      foldEnd = performance.now() + motion.duration
+      clearTimeout(foldTimer)
+      foldTimer = window.setTimeout(refit, motion.duration + 20)
+    })
     const card = cardEl.querySelector('.pin-card')
     if (card) {
       observer.observe(card)
       content.observe(card, { childList: true, subtree: true })
+      folds.observe(card, {
+        attributes: true,
+        attributeFilter: ['class'],
+        subtree: true,
+      })
     }
     return () => {
       cancelAnimationFrame(frame)
+      clearTimeout(foldTimer)
       map.off('moveend', fit)
       observer.disconnect()
       content.disconnect()
+      folds.disconnect()
     }
   }, [ready, selectedId, cardEl])
 

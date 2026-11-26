@@ -204,7 +204,7 @@ test('moves a venue and sends it with a price, behind one check', async ({
   await page
     .getByRole('textbox', { name: 'Precio de la caña en euros' })
     .fill('1,80')
-  await page.getByRole('button', { name: 'El bar' }).click()
+  await page.getByRole('button', { name: 'Mover el bar' }).click()
   const bar = page.getByRole('region', { name: 'Mover Bar Sol Uno' })
   await expect(bar).toBeFocused()
   await expect(page.locator('.pin-card')).toHaveCount(0)
@@ -240,6 +240,37 @@ test('moves a venue and sends it with a price, behind one check', async ({
     card.getByRole('textbox', { name: 'Precio de la caña en euros' }),
   ).toHaveValue('1,80')
   await shot(page, '4-card-back-moved')
+
+  // The tables too: both buttons placed stay on one line, side by side.
+  await card.getByRole('button', { name: 'Mover mesas' }).click()
+  const tables = page.getByRole('region', { name: 'Mesas de Bar Sol Uno' })
+  await settled(page)
+  await page.mouse.move(box.x + 60, box.y + 120)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 40, box.y + 150, { steps: 8 })
+  await page.mouse.up()
+  await tables.getByRole('button', { name: 'Listo' }).click()
+  await expect(tables).toHaveCount(0)
+  const move = card.getByRole('group', { name: 'Mover' })
+  const [placedBar, placedTables] = await move.getByRole('button').all()
+  if (!placedBar || !placedTables) throw new Error('no Mover buttons')
+  await expect(placedBar).toHaveText(/^Bar · \d+ m$/)
+  await expect(placedTables).toHaveText(/^Mesas · \d+ m$/)
+  // Measured in one frame: the card may still be settling on the map.
+  const layout = await move.evaluate((row) => {
+    const [a, b] = [...row.querySelectorAll('button')].map((button) =>
+      button.getBoundingClientRect(),
+    )
+    return {
+      sameLine: a !== undefined && b !== undefined && a.top === b.top,
+      widthGap: a && b ? Math.abs(a.width - b.width) : Infinity,
+      height: row.getBoundingClientRect().height,
+    }
+  })
+  expect(layout.sameLine).toBe(true)
+  expect(layout.widthGap).toBeLessThan(1)
+  expect(layout.height).toBeLessThanOrEqual(53)
+  await shot(page, '4b-card-back-both-moved')
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -252,8 +283,37 @@ test('moves a venue and sends it with a price, behind one check', async ({
       venueId: 'test:0',
       price: { item: 'cana', brand: null, cents: 180 },
       move: {},
+      pin: {},
     },
   })
+})
+
+test('keeps the card clear of the time bar as its rows open', async ({
+  page,
+}) => {
+  test.skip(!isPhone(page), 'the time bar is the footer on phones only')
+  await openCard(page, 'Café Sombra Dos')
+  const card = page.locator('.pin-card')
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  const footer = page.locator('.time-footer')
+  const clear = async () => {
+    const cardBox = await card.boundingBox()
+    const footerBox = await footer.boundingBox()
+    if (!cardBox || !footerBox) return false
+    return cardBox.y + cardBox.height <= footerBox.y
+  }
+  await expect.poll(clear).toBe(true)
+  // Tercio opens Marca: the card grows, and the map makes room for it.
+  await card.getByRole('radio', { name: 'Tercio' }).click()
+  await expect(card.getByRole('combobox')).toBeVisible()
+  await settled(page)
+  await expect.poll(clear).toBe(true)
+  // The form folding into the closure's line and back.
+  await card.getByRole('button', { name: 'Ya no existe' }).click()
+  await card.getByRole('button', { name: 'Ya no existe' }).click()
+  await expect(card.getByRole('combobox')).toBeVisible()
+  await settled(page)
+  await expect.poll(clear).toBe(true)
 })
 
 test('says the sun is here now, where the app says shade', async ({
@@ -376,7 +436,7 @@ test('answers Sí on the front: two taps send the terrace', async ({
   await expect(
     card.getByRole('switch', { name: 'Tiene terraza' }),
   ).toBeChecked()
-  await expect(card.getByRole('button', { name: 'Las mesas' })).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Mover mesas' })).toBeVisible()
   await shot(page, '7-card-back-terrace-yes')
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
@@ -397,7 +457,7 @@ test('marks where the tables are and sends them with Sí', async ({
     .getByRole('group', { name: '¿Tiene terraza?' })
     .getByRole('button', { name: 'Sí' })
     .click()
-  await page.getByRole('button', { name: 'Las mesas' }).click()
+  await page.getByRole('button', { name: 'Mover mesas' }).click()
   const bar = page.getByRole('region', { name: 'Mesas de Bar Sin Terraza' })
   await expect(bar).toBeFocused()
   await expect(bar).toContainText('¿Dónde están las mesas?')
@@ -439,10 +499,10 @@ test('says a known terrace is not there', async ({ page, reports }) => {
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
   const terrace = card.getByRole('switch', { name: 'Tiene terraza' })
   await expect(terrace).toBeChecked()
-  await expect(card.getByRole('button', { name: 'Las mesas' })).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Mover mesas' })).toBeVisible()
   await terrace.uncheck()
-  await expect(card.getByRole('button', { name: 'Las mesas' })).toHaveCount(0)
-  await expect(card.getByRole('button', { name: 'El bar' })).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Mover mesas' })).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'Mover el bar' })).toBeVisible()
   await shot(page, '2e-card-back-no-terrace')
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
@@ -500,12 +560,12 @@ test('Escape cancels the picker, back to the card', async ({
 }) => {
   await openCard(page, 'Bar Sol Uno')
   await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await page.getByRole('button', { name: 'El bar' }).click()
+  await page.getByRole('button', { name: 'Mover el bar' }).click()
   await expect(page.getByRole('region', { name: /^Mover/ })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: /^Mover/ })).toHaveCount(0)
   await expect(
-    page.locator('.pin-card').getByRole('button', { name: 'El bar' }),
+    page.locator('.pin-card').getByRole('button', { name: 'Mover el bar' }),
   ).toBeVisible()
   expect(reports).toEqual([])
 })

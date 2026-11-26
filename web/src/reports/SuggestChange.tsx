@@ -43,7 +43,9 @@ const TOKEN_TTL_MS = 240_000
 
 /**
  * Rows that fold open and shut. Shut, they are out of the tab order and
- * hidden from assistive tech (`inert`), not just zero high.
+ * hidden from assistive tech (`inert`), not just zero high. `data-fold`
+ * tells the map (pendingFolds in cardFit.ts) which ones change the card's
+ * height, so it can fit the card to where it is going.
  */
 function Fold({
   open,
@@ -51,13 +53,14 @@ function Fold({
   children,
 }: {
   open: boolean
-  /** Folds by its width (a pill in a row) instead of its height. */
+  /** Folds by its width (the tables' button), not the card's height. */
   sideways?: boolean
   children: ReactNode
 }) {
   return (
     <div
-      className={`change-fold${sideways ? ' change-fold--x' : ''}${open ? ' is-open' : ''}`}
+      className={open ? 'change-fold is-open' : 'change-fold'}
+      data-fold={sideways ? 'x' : 'y'}
       inert={!open}
       aria-hidden={!open}
     >
@@ -72,8 +75,8 @@ function Fold({
  * the app says shade, moving the bar or its tables, "Ya no existe"), sent as
  * one request behind one bot check. The check runs as soon as the back
  * opens (the owner's call), so its token is usually ready by the first edit.
- * "El bar" and "Las mesas" hand over to the map picker, which brings the
- * spot back here. "Ya no existe" folds the form away and goes alone; the
+ * "Mover el bar" and "Mover mesas" hand over to the map picker, which
+ * brings the spot back here. "Ya no existe" folds the form away and goes alone; the
  * terrace switched off folds away the sun and the tables. What is folded
  * stays in the draft and is left out when sending (`sentParts`), so undoing
  * brings it back. In owner mode the same form saves a change instead, with
@@ -256,8 +259,9 @@ export function SuggestChange({
             void send()
           }}
         >
-          {/* The form, or in its place the closure's one line. */}
-          <div>
+          {/* The form, or in its place the closure's one line: one fold
+              shuts as the other opens, on the same curve. */}
+          <div className="change-swap">
             <Fold open={!closed}>
               <div className="change-group">
                 <div className="change-row change-row--price">
@@ -335,38 +339,33 @@ export function SuggestChange({
                   <div
                     className="change-row change-row--move"
                     role="group"
-                    aria-labelledby={`change-move-${venue.id}`}
+                    aria-label="Mover"
                   >
-                    <span id={`change-move-${venue.id}`}>Mover</span>
-                    <div className="change-pills">
+                    <button
+                      type="button"
+                      className={
+                        moved === null ? 'change-pill' : 'change-pill is-set'
+                      }
+                      onClick={() => startMove(venue)}
+                    >
+                      {moved === null ? 'Mover el bar' : `Bar · ${moved} m`}
+                    </button>
+                    <Fold open={terrace} sideways>
                       <button
                         type="button"
                         className={
-                          moved === null ? 'change-pill' : 'change-pill is-set'
+                          pinned === null ? 'change-pill' : 'change-pill is-set'
                         }
-                        onClick={() => startMove(venue)}
+                        onClick={() => startMove(venue, 'pin')}
                       >
-                        {moved === null ? 'El bar' : `Bar · ${moved} m`}
+                        {pinned === null
+                          ? 'Mover mesas'
+                          : !known && pinned <= MIN_MOVE_M
+                            ? // Where the picker said "justo aquí".
+                              'Mesas · aquí'
+                            : `Mesas · ${pinned} m`}
                       </button>
-                      <Fold open={terrace} sideways>
-                        <button
-                          type="button"
-                          className={
-                            pinned === null
-                              ? 'change-pill'
-                              : 'change-pill is-set'
-                          }
-                          onClick={() => startMove(venue, 'pin')}
-                        >
-                          {pinned === null
-                            ? 'Las mesas'
-                            : !known && pinned <= MIN_MOVE_M
-                              ? // Where the picker said "justo aquí".
-                                'Mesas · aquí'
-                              : `Mesas · ${pinned} m`}
-                        </button>
-                      </Fold>
-                    </div>
+                    </Fold>
                   </div>
                 )}
               </div>
