@@ -78,7 +78,7 @@ describe('nightPaint: grey dots', () => {
       'case',
       ['get', 'selected'],
       '#FFFFFF',
-      '#9C8670',
+      '#7A6A5B',
     ])
   })
 

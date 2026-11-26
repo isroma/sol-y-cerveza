@@ -126,7 +126,7 @@ The whole app goes dark while the sun is down, graded by how deep the night is: 
 
 Sun colours don't change at night; they glow on the dark map. Pins and slider knobs stay white.
 
-The tan dots for venues without a terrace empty into a hollow tan ring (`#9C8670`) as the night deepens, so they stay findable without glowing; by day, and at sunset, they keep their tan fill and white ring. A selected dot stays filled.
+The tan dots for venues without a terrace empty into a hollow dark tan ring (`#7A6A5B`) as the night deepens, so they stay findable without glowing; by day, and at sunset, they keep their tan fill and white ring. A selected dot stays filled.
 
 ### Map (day)
 
