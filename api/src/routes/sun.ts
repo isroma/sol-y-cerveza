@@ -4,6 +4,7 @@ import { parseResolution } from '../reports.ts'
 import {
   SUN_SPREAD_DEGREES,
   SUN_WINDOW_DAYS,
+  acceptedSun,
   sunCorrections,
   sunQueue,
   type RejectionRow,
@@ -128,6 +129,22 @@ export async function sun(
 export async function purgeSun(request: Request): Promise<void> {
   sunMemo = null
   await caches.default.delete(sunCacheKey(request))
+}
+
+/**
+ * GET /v1/admin/sun/accepted: the accepted reports in the window, which the
+ * admin copies into pipeline/data/sun_corrections.csv for Publish.
+ */
+export async function acceptedSunReports(env: Env): Promise<Response> {
+  const now = Date.now()
+  const since = new Date(now - SUN_WINDOW_DAYS * 86400_000).toISOString()
+  const { results } = await env.DB.prepare(
+    `SELECT id, venue_id, azimuth, altitude, leaf_off, net_hash, created_at, status
+     FROM sun_reports WHERE status = 'accepted' AND created_at >= ? ORDER BY id`,
+  )
+    .bind(since)
+    .all<SunRow>()
+  return json({ reports: acceptedSun(results, now) }, 200)
 }
 
 /** GET /v1/admin/sun: the pending reports, per venue and season. */

@@ -2,7 +2,7 @@
 
 A dev-only page for the owner to curate the data: mark each venue as terrace / no terrace / not a venue, drag venues to their real position, pin terraces, add venues no source lists, enter beer prices, and work through the visitor and machine queues. It is a flat map served by the Vite dev server. It is never part of the built site: its server code (`web/plugins/admin/reviewServer.ts`, `web/plugins/admin/publish.ts`) is a dev-server plugin only (`apply: 'serve'`).
 
-What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it. The one exception is sun reports ([below](#sun-reports)): answering one is saved in the API alone, with nothing to Publish.
+What it writes lands in `pipeline/data/` ([pipeline guide](pipeline.md#files-in-pipelinedata)); the next build applies it on top of everything else, and **Publish** ships it. Sun reports ([below](#sun-reports)) are answered in the API at once; the accepted ones are then also recorded in `pipeline/data/sun_corrections.csv`, which Publish ships.
 
 ## Starting it
 
@@ -99,9 +99,11 @@ The app sends `move`, `closed` and `add` today; `terrace` and `pin` exist in the
 
 Selecting one shows the venue on the map and each sighting: its Madrid date and time, the sun's azimuth and altitude then (computed by the API), and the published model in that direction from `terraces.json`, in the report's season: the obstacle the app compares the sun with (the envelope's low half, or the horizon at the pin, with the pin's value next to it when they differ), and how far below it the sun was. "Model 34.0°, sun 5.4° below it" means the model puts an obstacle where a visitor saw sun.
 
-Neither answer writes to `pipeline/data/`: both go straight to the API (`POST /v1/admin/sun/resolve`), and there is nothing to Publish.
+Both answers go straight to the API (`POST /v1/admin/sun/resolve`) and count at once. Accepted reports are also recorded in `pipeline/data/sun_corrections.csv` (issue #463; `web/src/admin/useSunCorrections.ts`, `sunCorrectionsCsv.ts`): as the admin opens (once the Inbox has loaded), and again after each **Accept**, it reads the API's `GET /v1/admin/sun/accepted` and adds a row for every accepted report the file lacks, by id. That includes the owner's own reports from the phone, which the API stores accepted. The file ships with the next **Publish**, and the build turns it into the terraces' `sun_corrections`. A failed copy shows as a "Sun corrections" line at the top of the Inbox and blocks nothing else; it is retried on the next open or accept.
 
-- **Accept** (**A**): the report is confirmed. The app shows sun in that slice of sky (5° either side of each sighting, down to the altitude seen less a 2° margin, that season) without "~".
+The copy only adds rows: a row already in the file is never rewritten or removed. Undoing an accept means deleting its row from the CSV by hand, but the next copy puts it back while the report is still accepted in the API (for a year), so undoing one is not supported from the admin yet.
+
+- **Accept** (**A**): the report is confirmed. The app shows sun in that slice of sky (5° either side of each sighting, down to the altitude seen less a 2° margin, that season) without "~", and the report is recorded in `sun_corrections.csv` for Publish.
 - **Reject** (**R**): the reports stop counting, and that slice of sky is blocked for the venue in that season for a year, so new reports there don't count either.
 - **Skip** (**J**): leave it for later.
 
@@ -117,11 +119,11 @@ Proposals from the optional `pipeline/data/venue_proposals.csv` (written by `pyt
 
 ## Publish
 
-**Publish** ships the reviews and prices (`web/plugins/admin/publish.ts`):
+**Publish** ships the reviews, prices and accepted sun reports (`web/plugins/admin/publish.ts`):
 
-1. It waits for pending saves, then rebuilds the data in a temporary git worktree of `origin/main` (`python -m solycerveza.build`, reusing this checkout's `pipeline/.cache/`). When `venue_review.csv` and `venue_prices.csv` already match `origin/main` (or the open publish branch), it skips the build and says there is nothing new to publish.
-2. It commits `pipeline/data/venue_review.csv`, `pipeline/data/venue_prices.csv` and `web/public/data/terraces.json`, nothing else, and pushes a `data/venue-review-*` branch, or adds to the one whose PR is still open.
-3. It uses git only, because the owner's network can't reach api.github.com. Two workflows take over. **Publish review** (`.github/workflows/publish-review.yml`, on the push, no secrets) checks that the branch changes only those three files. When it succeeds, **Publish review PR** (`.github/workflows/publish-review-pr.yml`, `workflow_run`, so always `main`'s copy) checks the branch again itself, never running its code, and opens the PR and enables auto-merge.
+1. It waits for pending saves, then rebuilds the data in a temporary git worktree of `origin/main` (`python -m solycerveza.build`, reusing this checkout's `pipeline/.cache/`). When `venue_review.csv`, `venue_prices.csv` and `sun_corrections.csv` already match `origin/main` (or the open publish branch), it skips the build and says there is nothing new to publish.
+2. It commits `pipeline/data/venue_review.csv`, `pipeline/data/venue_prices.csv`, `pipeline/data/sun_corrections.csv` and `web/public/data/terraces.json` (`PUBLISHED` in `publish.ts`), nothing else, and pushes a `data/venue-review-*` branch, or adds to the one whose PR is still open.
+3. It uses git only, because the owner's network can't reach api.github.com. Two workflows take over. **Publish review** (`.github/workflows/publish-review.yml`, on the push, no secrets) checks that the branch changes only those four files (`publish.test.ts` checks both workflows list exactly `PUBLISHED`). When it succeeds, **Publish review PR** (`.github/workflows/publish-review-pr.yml`, `workflow_run`, so always `main`'s copy) checks the branch again itself, never running its code, and opens the PR and enables auto-merge.
 4. **Publish review PR** uses the `PUBLISH_TOKEN` secret, a fine-grained token of the owner (this repository only; Contents and Pull requests read and write), kept in the `publish` environment, which only `main` may use (until the owner moves it there, the repository secret of the same name is used). The token is needed because PRs opened with `GITHUB_TOKEN` trigger no CI or deploy. Never use `PUBLISH_TOKEN` in a workflow a branch push can run.
 5. The admin follows the branch with git (every 10 s, for up to 30 min) and shows when it merged. CI then deploys the site.
 
@@ -145,6 +147,8 @@ All under `/__admin/`, served by `web/plugins/admin/reviewServer.ts` in the dev 
 | `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                      |
 | `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                  |
 | `/__admin/sun`              | GET, POST        | proxy to the API's `GET /v1/admin/sun` and `POST /v1/admin/sun/resolve`                          |
+| `/__admin/sun-accepted`     | GET              | proxy to the API's `GET /v1/admin/sun/accepted`                                                  |
+| `/__admin/sun-corrections`  | GET, POST        | `sun_corrections.csv`: read, add the posted rows whose id it lacks (created with its header)     |
 | `/__admin/publish`          | GET, POST        | Publish status; start a Publish (`409` while one is building)                                    |
 
-The three proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).
+The four proxies need `VITE_PRICES_API` and `PRICES_ADMIN_TOKEN` in `web/.env.local` (`503` otherwise).

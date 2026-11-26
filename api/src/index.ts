@@ -34,6 +34,8 @@
  *   SUN_THRESHOLD networks agree on (approximate) or the owner accepted
  *   (confirmed), cached like /v1/prices; GET /v1/admin/sun and POST
  *   /v1/admin/sun/resolve are their queue. The owner's own is stored accepted.
+ *   GET /v1/admin/sun/accepted lists the accepted ones, which the admin
+ *   copies into pipeline/data/sun_corrections.csv for Publish.
  *
  * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
  * that hash addresses, and a Turnstile test secret only passes on localhost.
@@ -55,7 +57,12 @@ import {
   report,
   resolveReports,
 } from './routes/reports.ts'
-import { pendingSun, resolveSun, sun } from './routes/sun.ts'
+import {
+  acceptedSunReports,
+  pendingSun,
+  resolveSun,
+  sun,
+} from './routes/sun.ts'
 
 async function route(
   request: Request,
@@ -105,6 +112,8 @@ async function route(
       return resolveReports(request, env)
     if (pathname === '/v1/admin/sun' && request.method === 'GET')
       return pendingSun(env)
+    if (pathname === '/v1/admin/sun/accepted' && request.method === 'GET')
+      return acceptedSunReports(env)
     if (pathname === '/v1/admin/sun/resolve' && request.method === 'POST')
       return resolveSun(request, env)
   }

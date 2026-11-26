@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { madridDate } from './logic.ts'
 import {
+  acceptedSun,
   binDistance,
   capTenths,
   horizonBin,
@@ -383,5 +384,36 @@ describe('sunQueue', () => {
         NOW,
       ).map((e) => [e.ids.length, e.shown]),
     ).toEqual([[3, false]])
+  })
+})
+
+describe('acceptedSun', () => {
+  it('lists the accepted reports in the window by id, degrees to 1 decimal', () => {
+    const old = new Date(NOW - (SUN_WINDOW_DAYS + 1) * 86400_000).toISOString()
+    const rows = [
+      row({ id: 9, status: 'accepted', azimuth: 176.34, altitude: 27.06 }),
+      row({ id: 3, status: 'accepted', leaf_off: 1, venue_id: 'osm:way/2' }),
+      row({ id: 4, status: 'pending' }),
+      row({ id: 5, status: 'rejected' }),
+      row({ id: 6, status: 'accepted', created_at: old }),
+    ]
+    expect(acceptedSun(rows, NOW)).toEqual([
+      {
+        id: 3,
+        venueId: 'osm:way/2',
+        leafOff: true,
+        azimuth: 180,
+        altitude: 30,
+        at: TODAY,
+      },
+      {
+        id: 9,
+        venueId: 'osm:node/1',
+        leafOff: false,
+        azimuth: 176.3,
+        altitude: 27.1,
+        at: TODAY,
+      },
+    ])
   })
 })

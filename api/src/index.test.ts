@@ -1428,10 +1428,52 @@ describe('sun reports', () => {
     expect(await queue()).toEqual([])
   })
 
+  it('lists the accepted reports in the window for the admin’s CSV', async () => {
+    // An accepted report from before the window is left out.
+    await api.sql(
+      `INSERT INTO sun_reports
+         (venue_id, azimuth, altitude, bin, leaf_off, voter_hash, net_hash, created_at, status)
+       VALUES (?, 180, 30, 180, 0, 'v', 'n', '2020-01-01T00:00:00.000Z', 'accepted')`,
+      SUNNY,
+    )
+    const response = await api.call('/v1/admin/sun/accepted', {
+      headers: { Authorization: ADMIN },
+    })
+    expect(response.status).toBe(200)
+    const { reports } = await readJson<{
+      reports: {
+        id: number
+        venueId: string
+        leafOff: boolean
+        azimuth: number
+        altitude: number
+        at: string
+      }[]
+    }>(response)
+    const accepted = (await stored(SUNNY)).filter(
+      (r) => r.status === 'accepted',
+    )
+    expect(accepted).toHaveLength(5)
+    expect(reports.map((r) => r.id)).toEqual(
+      accepted.slice(0, 4).map((r) => r.id),
+    )
+    const [first] = reports
+    expect(first?.venueId).toBe(SUNNY)
+    expect(first?.leafOff).toBe(isLeafOff(madridDate(new Date())))
+    expect(first?.azimuth).toBe(
+      Math.round((accepted[0]?.azimuth ?? 0) * 10) / 10,
+    )
+    expect(first?.altitude).toBe(
+      Math.round((accepted[0]?.altitude ?? 0) * 10) / 10,
+    )
+    expect(first?.at).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/)
+  })
+
   it('caches GET /v1/sun like prices and keeps the admin routes behind the token', async () => {
     const response = await api.call('/v1/sun?nocache=1')
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=300')
     expect((await api.call('/v1/admin/sun')).status).toBe(401)
+    expect((await api.call('/v1/admin/sun/accepted')).status).toBe(401)
     expect(
       (
         await api.call(

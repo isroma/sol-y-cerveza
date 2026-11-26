@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       # A fast signal only: publish-review-pr.yml repeats this check with the same
-      # list (REVIEW, PRICES and DATA in web/plugins/admin/publish.ts) before using the token.
+      # list (PUBLISHED in web/plugins/admin/publish.ts) before using the token.
       - name: Check the branch only changes the published data
         env:
           BRANCH: ${{ github.ref_name }}
@@ -38,7 +38,7 @@ jobs:
           other=''
           while IFS= read -r file; do
             case "$file" in
-              '' | pipeline/data/venue_review.csv | pipeline/data/venue_prices.csv | web/public/data/terraces.json) ;;
+              '' | pipeline/data/venue_review.csv | pipeline/data/venue_prices.csv | pipeline/data/sun_corrections.csv | web/public/data/terraces.json) ;;
               *) other="$other$file"$'\n' ;;
             esac
           done <<< "$changed"

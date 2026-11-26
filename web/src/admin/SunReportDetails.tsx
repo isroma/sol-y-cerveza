@@ -95,8 +95,9 @@ export function SunReportDetails({
         <strong>Accept</strong> confirms it: the app shows sun there without
         &ldquo;~&rdquo;. <strong>Reject</strong>: these stop counting, and the
         sky within {SUN_SPREAD_DEGREES}° of each sighting is blocked for this
-        venue, {season}, for a year. Either is saved in the API at once and
-        writes nothing to pipeline/data/: there is nothing to Publish.
+        venue, {season}, for a year. Either is saved in the API at once. An
+        accepted one is also recorded in pipeline/data/sun_corrections.csv,
+        which ships with the next Publish.
       </p>
       <p className="admin-help">
         If the pin is wrong rather than the model (against a wall, under a
