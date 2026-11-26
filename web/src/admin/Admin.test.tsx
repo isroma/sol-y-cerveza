@@ -46,7 +46,7 @@ type Call = { url: string; method: string; body: unknown }
 const SUN_VENUE = 'osm:node/4242'
 
 /** The dev server's answers, from fixtures; every request is recorded. */
-function stubServer() {
+function stubServer(trust: unknown = { venues: [], missing: false }) {
   const calls: Call[] = []
   vi.stubGlobal(
     'fetch',
@@ -64,6 +64,7 @@ function stubServer() {
       if (path === ADMIN_ENDPOINTS.proposals)
         return json({ ...parseProposalsCsv(proposalsCsv), ignored: [] })
       if (path === ADMIN_ENDPOINTS.publish) return json(IDLE)
+      if (path === ADMIN_ENDPOINTS.trust) return json(trust)
       return json({ error: 'not configured' }, 503)
     }),
   )
@@ -119,6 +120,40 @@ describe('Admin', () => {
       looksRight: false,
     })
     expect(screen.getByText(/1 of 4 reviewed/)).toBeInTheDocument()
+  })
+
+  it('shows weak-source venues first in the queue, with the hint', async () => {
+    stubServer({
+      venues: [
+        {
+          venueId: calleMenacho.id,
+          tier: 'weak',
+          positionDoubtful: true,
+          confidence: 0.72,
+          datasets: ['BrightQuery'],
+          junta: false,
+        },
+      ],
+      missing: false,
+    })
+    const { container } = render(<Admin />)
+    await waitFor(() =>
+      expect(
+        container.querySelector('.admin-queue-list li')?.textContent,
+      ).toContain('Weak source, position doubtful'),
+    )
+    const first = container.querySelector('.admin-queue-list li button')
+    expect(first?.textContent).toContain(calleMenacho.name)
+    fireEvent.click(first ?? container)
+    expect(
+      screen.getByText(/Weak source · Overture confidence 0\.72/),
+    ).toBeInTheDocument()
+  })
+
+  it('says how to write the trust tiers when the file is missing', async () => {
+    stubServer({ venues: [], missing: true })
+    render(<Admin />)
+    expect(await screen.findByText(/No trust tiers yet/)).toBeInTheDocument()
   })
 
   it('takes the decision keys on the selected venue', async () => {
