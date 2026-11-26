@@ -44,6 +44,17 @@ const priceSchema = z
     }),
   )
 
+/**
+ * An accepted sun report's cap (docs/data-contract.md, issue #463): inclusive
+ * bins, `from > to` across north, `altitude` in tenths of a degree.
+ */
+const sunCorrectionSchema = z.object({
+  leaf_off: z.boolean(),
+  from: z.int().check(z.minimum(0), z.maximum(359)),
+  to: z.int().check(z.minimum(0), z.maximum(359)),
+  altitude: z.int().check(z.minimum(0), z.maximum(900)),
+})
+
 const terraceSchema = z.object({
   id: z.string().check(z.minLength(1)),
   name: z.string().check(z.minLength(1)),
@@ -65,6 +76,12 @@ const terraceSchema = z.object({
   horizon_low: z.optional(z.nullable(z.string())),
   // The same in the leaf-off period. Null or absent: same as `horizon_low`.
   horizon_low_winter: z.optional(z.nullable(z.string())),
+  // The horizon caps of the owner's accepted sun reports, applied like the
+  // API's confirmed ones (src/sun/corrections.ts). Absent: none. A malformed
+  // list counts as absent, like a malformed envelope, so the record stays.
+  sun_corrections: z.optional(
+    z.catch(z.optional(z.array(sunCorrectionSchema)), undefined),
+  ),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.optional(z.array(priceSchema)),
 })
@@ -92,6 +109,7 @@ const terracesEnvelopeSchema = z.extend(terracesFileSchema, {
 
 export type LatLon = z.infer<typeof latLonSchema>
 export type Price = z.infer<typeof priceSchema>
+export type DatasetSunCorrection = z.infer<typeof sunCorrectionSchema>
 export type Terrace = z.infer<typeof terraceSchema>
 export type TerracesFile = z.infer<typeof terracesFileSchema>
 

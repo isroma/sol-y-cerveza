@@ -1,7 +1,12 @@
 import type { Terrace } from '../data/terraces.ts'
 import { MINUTES_PER_DAY } from '../time/madrid.ts'
 import { stepIndex, type DayTrack } from './dayTrack.ts'
-import { correctHorizon, type SunCorrection } from './corrections.ts'
+import {
+  correctHorizon,
+  datasetCaps,
+  type HorizonCap,
+  type SunCorrection,
+} from './corrections.ts'
 import { anySunHorizon, horizonFor, isLeafOff } from './leafOff.ts'
 import {
   fillShortShade,
@@ -19,7 +24,8 @@ export const SOON_MINUTES = 60
  * A venue's sun/shade state per step of the day, or null without a horizon.
  * In the leaf-off period it follows the leaf-off horizon (ADR-0007). Short
  * shade between two sunny stretches counts as sun (`fillShortShade`).
- * Visitors' corrections (`corrections.ts`) add sun; `approximate` marks the
+ * Visitors' corrections (`corrections.ts`: the API's and the record's own
+ * `sun_corrections`) add sun; `approximate` marks the
  * steps that are sun only because of unconfirmed ones (null: none are).
  */
 export type VenueDay = {
@@ -58,22 +64,27 @@ function dayStates(horizon: readonly number[], track: DayTrack): SunState[] {
 }
 
 /**
- * `corrections` are the venue's own (any season); the cap applies to
+ * `corrections` are the venue's own from the API (any season), applied on
+ * top of the record's own `sun_corrections` (confirmed); the cap applies to
  * whichever horizon answers that day (envelope, leaf-off or full).
  */
 export function venueDay(
   venue: Terrace,
   track: DayTrack,
-  corrections: readonly SunCorrection[] = [],
+  corrections: readonly HorizonCap[] = [],
 ): VenueDay {
   // Sun when any part of the terrace has it (its envelope), else at the pin.
   const horizon =
     anySunHorizon(venue, track.date) ?? horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
     return { venue, timeline: null, approximate: null }
+  const caps =
+    venue.sun_corrections && venue.sun_corrections.length > 0
+      ? [...datasetCaps(venue), ...corrections]
+      : corrections
   const corrected =
-    corrections.length > 0
-      ? correctHorizon(horizon, corrections, isLeafOff(track.date))
+    caps.length > 0
+      ? correctHorizon(horizon, caps, isLeafOff(track.date))
       : null
   if (corrected === null)
     return { venue, timeline: dayStates(horizon, track), approximate: null }

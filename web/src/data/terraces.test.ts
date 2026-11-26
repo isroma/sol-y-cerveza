@@ -126,6 +126,40 @@ describe('parseTerracesFile', () => {
     expect(file.attribution).toEqual(sampleFile.attribution)
   })
 
+  it('keeps accepted sun corrections, and records without any', () => {
+    const sun_corrections = [
+      { leaf_off: false, from: 171, to: 181, altitude: 251 },
+      { leaf_off: true, from: 355, to: 3, altitude: 0 },
+    ]
+    const { file, dropped } = parseTerracesFile(
+      withTerrace({ sun_corrections }),
+    )
+    expect(dropped).toBe(0)
+    expect(file.terraces[0]?.sun_corrections).toEqual(sun_corrections)
+    expect(
+      parseTerracesFile(sampleFile).file.terraces[0]?.sun_corrections,
+    ).toBe(undefined)
+  })
+
+  it.each([
+    ['not a list', { leaf_off: false, from: 1, to: 2, altitude: 3 }],
+    [
+      'a bin out of range',
+      [{ leaf_off: false, from: 360, to: 2, altitude: 3 }],
+    ],
+    ['a cap above 900', [{ leaf_off: false, from: 1, to: 2, altitude: 901 }]],
+    ['a fractional cap', [{ leaf_off: false, from: 1, to: 2, altitude: 2.5 }]],
+    ['no season', [{ from: 1, to: 2, altitude: 3 }]],
+    ['null', null],
+  ])('treats sun corrections with %s as absent', (_label, sun_corrections) => {
+    const { file, dropped } = parseTerracesFile(
+      withTerrace({ sun_corrections }),
+    )
+    expect(dropped).toBe(0)
+    expect(file.terraces).toHaveLength(1)
+    expect(file.terraces[0]?.sun_corrections).toBeUndefined()
+  })
+
   it('drops records that are not objects', () => {
     const { file, dropped } = parseTerracesFile({
       ...sampleFile,

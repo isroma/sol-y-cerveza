@@ -6,6 +6,7 @@
    (`horizon_winter`, ADR-0007) when `python -m solycerveza.leafoff` has written its surface model.
 4. A horizon envelope across each terrace (`horizon_low` and its leaf-off twin,
    `solycerveza.envelope`): the lowest obstacle over ground points round the pin.
+5. Accepted sun reports as horizon caps (`sun_corrections`, `solycerveza.sun_corrections`).
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
 venues from Overpass instead of using the cache.
@@ -37,6 +38,7 @@ from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.sources import load_all_venues
+from solycerveza.sun_corrections import read_sun_reports, sun_corrections_by_venue
 from solycerveza.terraces import Terrace, build_terraces, read_curated
 from solycerveza.venues import CACHE_DIR, load_seating
 
@@ -244,8 +246,11 @@ def build(
     """Run every stage and return the file contents.
 
     `horizon_winter` is computed only if `leafoff_path` exists (ADR-0007); otherwise it is null
-    everywhere and the app uses `horizon` all year.
+    everywhere and the app uses `horizon` all year. `sun_corrections` count reports up to 365
+    days before `generated` (default: now).
     """
+    # Whole seconds, as the file writes it, so the window can be checked against the file.
+    generated = (generated or datetime.now(UTC)).replace(microsecond=0)
     reviews = read_review()
     dropped = dropped_ids(reviews)
     terraces = build_terraces(
@@ -306,8 +311,15 @@ def build(
             "%d terraces get a winter horizon (bare deciduous trees)",
             sum(t.horizon_winter is not None for t in terraces),
         )
+    sun = sun_corrections_by_venue(
+        read_sun_reports(), {t.id: t.horizon is not None for t in terraces}, generated
+    )
+    terraces = [
+        t.model_copy(update={"sun_corrections": sun[t.id]}) if t.id in sun else t for t in terraces
+    ]
+    logger.info("%d terraces get sun corrections from accepted reports", len(sun))
     return TerracesFile(
-        generated=generated or datetime.now(UTC),
+        generated=generated,
         sample=False,
         attribution=attribution_lines(terraces, dsm_path, dtm_path, leafoff),
         terraces=terraces,

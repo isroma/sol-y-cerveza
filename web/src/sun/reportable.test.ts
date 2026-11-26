@@ -34,6 +34,14 @@ describe('canReportSun', () => {
     expect(canReportSun(paseoSanFrancisco, corrections, NOON)).toBe(false)
   })
 
+  it('not where an accepted correction in the data already gives sun', () => {
+    const accepted = {
+      ...paseoSanFrancisco,
+      sun_corrections: [{ leaf_off: true, from: 160, to: 200, altitude: 200 }],
+    }
+    expect(canReportSun(accepted, [], NOON)).toBe(false)
+  })
+
   it('not with the sun under 2°, nor without a horizon or a terrace', () => {
     expect(canReportSun(paseoSanFrancisco, [], DAWN)).toBe(false)
     expect(canReportSun(withoutHorizon, [], NOON)).toBe(false)
