@@ -286,3 +286,11 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/deploy-api.yml
+    # The cloudflare environment's secrets (declared by deploy-api.yml's deploy
+    # job) came through empty without this. inherit makes every repository and
+    # organisation secret, PUBLISH_TOKEN too while it is still a repository
+    # secret, available to deploy-api.yml. That is acceptable only because this
+    # job runs for pushes to main alone (the if above; a branch push can't
+    # reach it) and deploy-api.yml reads no secret but CLOUDFLARE_API_TOKEN,
+    # CLOUDFLARE_ACCOUNT_ID and github.token. Keep both true.
+    secrets: inherit
