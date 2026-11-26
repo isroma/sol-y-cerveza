@@ -44,6 +44,7 @@ from solycerveza.envelope import PACKED_PATTERN
 from solycerveza.geo import distance_m
 from solycerveza.overture import name_similarity
 from solycerveza.prices import Price
+from solycerveza.sun_corrections import SunCorrection
 from solycerveza.venues import (
     CACHE_DIR,
     VENUE_ID_ALTERNATIVES,
@@ -114,6 +115,10 @@ def _is_none(value: object) -> bool:
     return value is None
 
 
+def _is_empty(value: object) -> bool:
+    return value == []
+
+
 class Terrace(BaseModel):
     """A terrace record, mirroring `Terrace` in docs/data-contract.md (field order included)."""
 
@@ -135,6 +140,9 @@ class Terrace(BaseModel):
     horizon_low: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
     # The same on the leaf-off model; None when it equals the summer one.
     horizon_low_winter: PackedEnvelope | None = Field(default=None, exclude_if=_is_none)
+    # Accepted sun reports as horizon caps (solycerveza.sun_corrections, issue #463). Left out
+    # of the file when empty, like the envelope.
+    sun_corrections: list[SunCorrection] = Field(default_factory=list, exclude_if=_is_empty)
     prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -147,6 +155,8 @@ class Terrace(BaseModel):
             self.horizon_low is not None or self.horizon_low_winter is not None
         ):
             raise ValueError("an envelope needs a horizon")
+        if self.horizon is None and self.sun_corrections:
+            raise ValueError("sun_corrections need a horizon")
         return self
 
 
