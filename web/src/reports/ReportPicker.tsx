@@ -13,6 +13,7 @@ import { Toggle } from '../ui/Toggle.tsx'
 import type { Picking } from './picking.ts'
 import {
   MAX_MOVE_M,
+  MAX_PIN_M,
   MIN_MOVE_M,
   ownerAddVenue,
   OWNER_RESULT_TEXT,
@@ -29,15 +30,16 @@ type Props = {
   picking: Picking
   /** The map's centre, under the fixed pin; null until the map reports it. */
   center: LatLon | null
-  /** A move's spot, handed back to the card's back, which sends it. */
+  /** A move's or the tables' spot, handed back to the card's back, which sends it. */
   onPlace: (spot: LatLon) => void
   onClose: () => void
 }
 
 /**
- * Places a venue on the map: a fixed pin at the centre of the map, which the
- * visitor pans and zooms under it, and a bottom bar. A new venue is sent from
- * here; a move goes back to its card's back with Listo, sent with the rest.
+ * Places a venue, or a terrace's tables, on the map: a fixed pin at the
+ * centre of the map, which the visitor pans and zooms under it, and a bottom
+ * bar. A new venue is sent from here; a move or the tables go back to the
+ * card's back with Listo, sent with the rest.
  */
 export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const [name, setName] = useState(
@@ -78,8 +80,11 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Move: from where its badge is; the API measures from the venue's position.
-  const venue = picking.kind === 'move' ? picking.venue : null
+  // A move or the tables: from where the badge is; the API measures both
+  // from the venue's position, the tables within a shorter reach.
+  const venue = picking.kind === 'add' ? null : picking.venue
+  const tables = picking.kind === 'pin'
+  const limit = tables ? MAX_PIN_M : MAX_MOVE_M
   const start = venue ? (venue.terrace ?? venue.venue) : null
   const moved =
     start === null ||
@@ -87,7 +92,7 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const tooFar =
     venue !== null &&
     center !== null &&
-    distanceMetres(venue.venue, center) > MAX_MOVE_M
+    distanceMetres(venue.venue, center) > limit
   const outside = center !== null && !insideBadajoz(center)
   const ready =
     center !== null &&
@@ -127,7 +132,11 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
     })
   }
 
-  const label = venue ? `Mover ${venue.name}` : 'Añadir un bar'
+  const label = !venue
+    ? 'Añadir un bar'
+    : tables
+      ? `Mesas de ${venue.name}`
+      : `Mover ${venue.name}`
 
   return (
     <>
@@ -169,13 +178,28 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
               send()
             }}
           >
-            <p className="picker-text" role="status">
-              {outside
-                ? 'Ese sitio está fuera de Badajoz.'
-                : tooFar
-                  ? 'Está a más de 500 m. Solo podemos corregir posiciones cercanas.'
-                  : 'Mueve el mapa hasta el sitio correcto'}
-            </p>
+            {tables ? (
+              // What is being placed stays in view; the line under it says
+              // why Listo is off, if it is.
+              <div className="picker-text">
+                <p className="picker-title">¿Dónde están las mesas?</p>
+                <p className="picker-caption" role="status">
+                  {outside
+                    ? 'Ese sitio está fuera de Badajoz.'
+                    : tooFar
+                      ? `Está a más de ${MAX_PIN_M} m del bar. Las mesas tienen que estar cerca.`
+                      : 'Mueve el mapa hasta ponerlas bajo el pin'}
+                </p>
+              </div>
+            ) : (
+              <p className="picker-text" role="status">
+                {outside
+                  ? 'Ese sitio está fuera de Badajoz.'
+                  : tooFar
+                    ? `Está a más de ${MAX_MOVE_M} m. Solo podemos corregir posiciones cercanas.`
+                    : 'Mueve el mapa hasta el sitio correcto'}
+              </p>
+            )}
             {picking.kind === 'add' && (
               <>
                 <input

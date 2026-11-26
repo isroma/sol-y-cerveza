@@ -146,6 +146,40 @@ describe('PinCard', () => {
     expect(await screen.findByText('Café · Terraza')).toBeInTheDocument()
   })
 
+  it('asks whether a venue the data does not know has a terrace', async () => {
+    const unknown = status({
+      hasTerrace: false,
+      category: 'unknown',
+      venue: { ...status({}).venue, terrace: null },
+    })
+    render(<PinCard status={unknown} minutes={at} sunset={18 * 60} />)
+    const ask = screen.getByRole('group', { name: '¿Tiene terraza?' })
+    expect(ask).toBeInTheDocument()
+    // "Sugerir un cambio" stays as it is.
+    expect(
+      screen.getByRole('button', { name: 'Sugerir un cambio' }),
+    ).toBeInTheDocument()
+    // An answer turns the card with it already chosen.
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }))
+    expect(await screen.findByRole('radio', { name: 'Sí' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'No' })).not.toBeChecked()
+  })
+
+  it('turns round with No chosen', async () => {
+    const unknown = status({
+      hasTerrace: false,
+      venue: { ...status({}).venue, terrace: null },
+    })
+    render(<PinCard status={unknown} minutes={at} sunset={18 * 60} />)
+    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+    expect(await screen.findByRole('radio', { name: 'No' })).toBeChecked()
+  })
+
+  it('does not ask where the venue has a terrace', () => {
+    render(<PinCard status={status({})} minutes={at} sunset={18 * 60} />)
+    expect(screen.queryByRole('group', { name: '¿Tiene terraza?' })).toBeNull()
+  })
+
   it('has no share button', () => {
     render(<PinCard status={status({})} minutes={at} sunset={18 * 60} />)
     expect(screen.queryByRole('button', { name: /Compartir/ })).toBeNull()

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Terrace } from '../data/terraces.ts'
 import { emptyDraft, type ChangeDraft } from './draft.ts'
@@ -352,6 +352,129 @@ describe('SuggestChange: the sun right now', () => {
   })
 })
 
+describe('SuggestChange: the terrace', () => {
+  const yes = () => screen.getByRole('radio', { name: 'Sí' })
+  const no = () => screen.getByRole('radio', { name: 'No' })
+  const tables = () => screen.queryByRole('button', { name: /Mesas/ })
+  const withPicker = (startMove = vi.fn()) => ({
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <StartMoveContext value={startMove}>{children}</StartMoveContext>
+    ),
+  })
+  /** A venue whose terrace the data has, 22 m south of the tables below. */
+  const terraced: Terrace = { ...venue, terrace: venue.venue }
+  const spot = { lat: 38.8782, lon: -6.97 }
+
+  it('asks where the data does not know, with nothing chosen', () => {
+    render(<Back />, withPicker())
+    expect(yes()).not.toBeChecked()
+    expect(no()).not.toBeChecked()
+    expect(tables()).toBeNull()
+    expect(send()).toBeDisabled()
+    // Sí offers the tables; tapping it again takes the answer back.
+    fireEvent.click(yes())
+    expect(yes()).toBeChecked()
+    expect(tables()).toHaveTextContent('Marcar en el mapa')
+    expect(send()).toBeEnabled()
+    fireEvent.click(yes())
+    expect(yes()).not.toBeChecked()
+    expect(tables()).toBeNull()
+    expect(send()).toBeDisabled()
+  })
+
+  it('sends Sí alone, to be reviewed', async () => {
+    const sent = stubFetch()
+    render(<Back start={{ terrace: true }} />)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Lo revisaremos antes de publicarlo.',
+    )
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: true,
+    })
+  })
+
+  it('hands the tables to the picker and sends them with Sí', async () => {
+    const startMove = vi.fn()
+    const sent = stubFetch()
+    render(<Back start={{ terrace: true, pin: spot }} />, withPicker(startMove))
+    const row = tables()
+    expect(row).toHaveTextContent('Marcadas a 22 m')
+    fireEvent.click(row ?? document.body)
+    expect(startMove).toHaveBeenCalledWith(venue, 'pin')
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: true,
+      pin: spot,
+    })
+  })
+
+  it('drops the tables on No, and never sends them with it', async () => {
+    const sent = stubFetch()
+    render(<Back start={{ terrace: true, pin: spot }} />, withPicker())
+    fireEvent.click(no())
+    expect(no()).toBeChecked()
+    expect(tables()).toBeNull()
+    fireEvent.click(yes())
+    // The tables marked before No are gone.
+    expect(tables()).toHaveTextContent('Marcar en el mapa')
+    fireEvent.click(no())
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: false,
+    })
+  })
+
+  it('moves the tables of a known terrace, without asking', async () => {
+    const startMove = vi.fn()
+    const sent = stubFetch()
+    render(<Back of={terraced} start={{ pin: spot }} />, withPicker(startMove))
+    expect(screen.queryByRole('radio', { name: 'Sí' })).toBeNull()
+    const row = tables()
+    expect(row).toHaveTextContent('Movidas 22 m')
+    fireEvent.click(row ?? document.body)
+    expect(startMove).toHaveBeenCalledWith(terraced, 'pin')
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Lo revisaremos',
+    )
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      pin: spot,
+    })
+  })
+
+  it('says a known terrace is not there, dropping its tables', async () => {
+    const sent = stubFetch()
+    render(<Back of={terraced} start={{ pin: spot }} />, withPicker())
+    expect(tables()).toHaveTextContent('Movidas')
+    fireEvent.click(screen.getByRole('switch', { name: 'No tiene terraza' }))
+    expect(tables()).toBeNull()
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: false,
+    })
+  })
+
+  it('starts the tables of a known terrace at "Mover en el mapa"', () => {
+    render(<Back of={terraced} />, withPicker())
+    expect(tables()).toHaveTextContent('Mover en el mapa')
+    expect(send()).toBeDisabled()
+  })
+})
+
 describe('SuggestChange in owner mode', () => {
   const ownerOn = async () => {
     vi.stubGlobal('fetch', async () => Response.json({ token: 'owner' }))
@@ -390,6 +513,21 @@ describe('SuggestChange in owner mode', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'próxima publicación',
     )
+  })
+
+  it('says the terrace and its tables wait for the next Publish', async () => {
+    await ownerOn()
+    const sent = stubFetch()
+    const pin = { lat: 38.8782, lon: -6.97 }
+    render(<Back start={{ terrace: true, pin }} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Guardado. Se aplicará en la próxima publicación.',
+    )
+    expect(sent[0]).toEqual({
+      url: 'https://api.test/v1/owner/changes',
+      body: { venueId: venue.id, terrace: true, pin },
+    })
   })
 
   it('saves the sun at once, and fetches the corrections again', async () => {

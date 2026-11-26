@@ -332,6 +332,113 @@ test("shows the data's accepted sun as plain sun", async ({ page }) => {
   ).toHaveCount(0)
 })
 
+/** Opens a venue's card from a shared link (works for venues with no terrace). */
+async function openShared(page: Page, id: string, name: string) {
+  await page.goto(`./?v=${encodeURIComponent(id)}`)
+  await page.waitForFunction(() => window.__map !== undefined)
+  await expect(page.locator('.pin-card')).toContainText(name, {
+    timeout: 15_000,
+  })
+  await settled(page)
+}
+
+test('answers Sí on the front: two taps send the terrace', async ({
+  page,
+  reports,
+}) => {
+  await openShared(page, 'test:8', 'Bar Sin Terraza')
+  const card = page.locator('.pin-card')
+  const ask = card.getByRole('group', { name: '¿Tiene terraza?' })
+  await expect(ask).toBeVisible()
+  await shot(page, '6-card-front-ask')
+  await ask.getByRole('button', { name: 'Sí' }).click()
+  // The back opens with Sí chosen and the tables on offer.
+  await expect(card.getByRole('radio', { name: 'Sí' })).toBeChecked()
+  await expect(card.getByRole('radio', { name: 'No' })).not.toBeChecked()
+  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
+    'Marcar en el mapa',
+  )
+  await shot(page, '7-card-back-terrace-yes')
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
+    '¡Gracias! Lo revisaremos antes de publicarlo.',
+  )
+  expect(reports).toEqual([
+    { change: { venueId: 'test:8', token: 'test-token', terrace: true } },
+  ])
+})
+
+test('marks where the tables are and sends them with Sí', async ({
+  page,
+  reports,
+}) => {
+  await openShared(page, 'test:8', 'Bar Sin Terraza')
+  await page
+    .locator('.pin-card')
+    .getByRole('group', { name: '¿Tiene terraza?' })
+    .getByRole('button', { name: 'Sí' })
+    .click()
+  await page.getByRole('button', { name: /Mesas/ }).click()
+  const bar = page.getByRole('region', { name: 'Mesas de Bar Sin Terraza' })
+  await expect(bar).toBeFocused()
+  await expect(bar).toContainText('¿Dónde están las mesas?')
+  await settled(page)
+  const done = bar.getByRole('button', { name: 'Listo' })
+  await expect(done).toBeDisabled()
+  await shot(page, '8-tables-picker')
+
+  const map = page.getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
+  const box = await map.boundingBox()
+  if (!box) throw new Error('no map')
+  await page.mouse.move(box.x + 60, box.y + 120)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 80, box.y + 160, { steps: 8 })
+  await page.mouse.up()
+  await expect(done).toBeEnabled()
+  await done.click()
+  await expect(bar).toHaveCount(0)
+  const card = page.locator('.pin-card')
+  await expect(card.getByRole('radio', { name: 'Sí' })).toBeChecked()
+  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
+    /Marcadas a \d+ m/,
+  )
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
+    '¡Gracias! Lo revisaremos antes de publicarlo.',
+  )
+  expect(await checks(page)).toBe(1)
+  expect(reports).toHaveLength(1)
+  expect(reports[0]).toMatchObject({
+    change: {
+      venueId: 'test:8',
+      token: 'test-token',
+      terrace: true,
+      pin: { lat: expect.any(Number), lon: expect.any(Number) },
+    },
+  })
+})
+
+test('says a known terrace is not there', async ({ page, reports }) => {
+  await openCard(page, 'Bar Sol Uno')
+  const card = page.locator('.pin-card')
+  await expect(
+    card.getByRole('group', { name: '¿Tiene terraza?' }),
+  ).toHaveCount(0)
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
+    'Mover en el mapa',
+  )
+  await card.getByRole('switch', { name: 'No tiene terraza' }).check()
+  await expect(card.getByRole('button', { name: /Mesas/ })).toHaveCount(0)
+  await card.getByRole('button', { name: 'Enviar' }).click()
+  await expect(card.getByRole('status')).toHaveText(
+    '¡Gracias! Lo revisaremos antes de publicarlo.',
+  )
+  expect(reports).toEqual([
+    { change: { venueId: 'test:0', token: 'test-token', terrace: false } },
+  ])
+})
+
 test('adds a missing venue from the menu', async ({ page, reports }) => {
   await page.goto('./')
   await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT, {

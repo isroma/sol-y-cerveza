@@ -30,11 +30,11 @@ The sun/shade answer is only as good as the terrace pin: a pin a few metres off 
 - **Machine venue proposals:** proposers and trial (#214), admin review queue with proposals (#216; [ADR-0008](adr/0008-machine-venue-proposals.md)).
 - **Card back for suggesting a change,** sending everything in one request behind one bot check (#234, #237, #240, API #243, web #245, #246, #250; [ADR-0010](adr/0010-one-change-request.md)).
 - **Map shadows:** still drawn from basemap building heights (×1.4), not LiDAR, accepted for now; their rendering was reworked for speed (#244, #251, #252).
+- **Visitor terrace reports in the app:** "¿Tiene terraza?" on the card and marking the tables, sent with the card back's one request (#210; [ADR-0009](adr/0009-terrace-reports.md)).
 - **OSM write-back file** for JOSM (#141) and the **probe CLI** behind the sun preview (#162).
 
 ## Open
 
-- **Visitor terrace reports in the app:** "¿Tiene terraza?" and placing the tables from the card (#210, open PR #219). The API and admin side are built.
 - **Proposals trial:** `python -m solycerveza.proposals --evaluate` has not been run; it needs the owner's machine (caches, network, API key). No proposer kind has a measured threshold yet ([ADR-0008](adr/0008-machine-venue-proposals.md)).
 - **Seasonal trees, data:** the owner runs `solycerveza.leafoff` and publishes a rebuilt `terraces.json` ([pipeline guide, "Seasonal trees"](pipeline.md#seasonal-trees) has the checks).
 - **Owner-price import into `venue_prices.csv`:** described in ADR-0005, never built (#263).

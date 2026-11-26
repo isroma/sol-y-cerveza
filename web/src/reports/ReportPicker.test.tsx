@@ -74,6 +74,42 @@ describe('ReportPicker', () => {
     expect(onPlace).toHaveBeenCalledWith({ lat: 38.8782, lon: -6.97 })
   })
 
+  it('marks the tables, says what it places and stays within 150 m', () => {
+    const onPlace = vi.fn()
+    const picking: Picking = { kind: 'pin', venue, from: venue.venue }
+    const picker = (center: { lat: number; lon: number }) => (
+      <ReportPicker
+        picking={picking}
+        center={center}
+        onPlace={onPlace}
+        onClose={vi.fn()}
+      />
+    )
+    const { rerender } = render(picker(venue.venue))
+    const done = () => screen.getByRole('button', { name: 'Listo' })
+    expect(
+      screen.getByRole('region', { name: 'Mesas de Bar Uno' }),
+    ).toHaveFocus()
+    expect(screen.getByText('¿Dónde están las mesas?')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mueve el mapa hasta ponerlas bajo el pin',
+    )
+    expect(done()).toBeDisabled()
+
+    // About 222 m north: fine for a move, too far for the tables.
+    rerender(picker({ lat: 38.88, lon: -6.97 }))
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Está a más de 150 m del bar.',
+    )
+    expect(screen.getByText('¿Dónde están las mesas?')).toBeInTheDocument()
+    expect(done()).toBeDisabled()
+
+    // About 22 m north: back to the card's back.
+    rerender(picker({ lat: 38.8782, lon: -6.97 }))
+    fireEvent.click(done())
+    expect(onPlace).toHaveBeenCalledWith({ lat: 38.8782, lon: -6.97 })
+  })
+
   it('adds a venue with a name, a kind and its terrace', async () => {
     const fetchMock = vi.fn(async () =>
       Response.json({ ok: true }, { status: 201 }),

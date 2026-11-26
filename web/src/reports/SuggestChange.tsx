@@ -29,14 +29,19 @@ import { canReportSun } from '../sun/reportable.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
+const ANSWERS = [
+  [true, 'Sí'],
+  [false, 'No'],
+] as const
 
 /** Turnstile tokens last 300 s; one older than this is dropped for a new check. */
 const TOKEN_TTL_MS = 240_000
 
 /**
  * The back of the venue card: every change a visitor can suggest on one
- * card (sun right now where the app says shade, a beer price, a new
- * location, "Ya no existe"), sent as one request
+ * card (sun right now where the app says shade, whether it has a terrace and
+ * where its tables are, a beer price, a new location, "Ya no existe"), sent
+ * as one request
  * behind one bot check. The check runs as soon as the back opens (the
  * owner's call), so its token is usually ready by the first edit.
  * "Ubicación" hands over to the map picker, which brings the spot back here.
@@ -57,6 +62,14 @@ export function SuggestChange({
   const startMove = useContext(StartMoveContext)
   const owner = useOwner().token !== null
   const { item, brand, text, closed, move } = draft
+  // The terrace: asked where the data doesn't know (Sí / No); where it has
+  // one, the visitor can move its tables or say there is none.
+  const known = venue.terrace !== null
+  const said = known ? (draft.terrace === false ? false : null) : draft.terrace
+  // Tables only for a terrace that is there (the API refuses them with "no").
+  const pin = (known ? said !== false : said === true) ? draft.pin : null
+  const setAnswer = (value: boolean | null) =>
+    onChange(value === true ? { terrace: true } : { terrace: value, pin: null })
   // "Ahora mismo da el sol" is about the real present, so it shows only
   // while the app says shade here now with the sun up (checked as the back
   // opens; the corrections can still change while it is open).
@@ -114,11 +127,16 @@ export function SuggestChange({
   // The range the API accepts for this item.
   const [minCents, maxCents] = SUGGEST_RANGE[item]
   const priceOk = cents !== null && cents >= minCents && cents <= maxCents
-  const edited = hasPrice || closed || move !== null || sun
+  const edited =
+    hasPrice || closed || move !== null || sun || said !== null || pin !== null
   const ready = edited && (!hasPrice || priceOk) && (owner || token !== null)
   // How far from its badge the visitor placed it.
   const moved = move
     ? Math.round(distanceMetres(venue.terrace ?? venue.venue, move))
+    : null
+  // How far the tables are from the terrace's badge, or from the venue.
+  const pinned = pin
+    ? Math.round(distanceMetres(venue.terrace ?? venue.venue, pin))
     : null
 
   const send = async () => {
@@ -137,10 +155,12 @@ export function SuggestChange({
       ...(move ? { move } : {}),
       ...(closed ? { closed: true as const } : {}),
       ...(sun ? { sun: true as const } : {}),
+      ...(said !== null ? { terrace: said } : {}),
+      ...(pin ? { pin } : {}),
     }
     // Shown without review: a price and sun (on agreement, or at once for
-    // the owner). A move or a closure waits for review or Publish.
-    const reviewed = closed || move !== null
+    // the owner). A move, a closure or the terrace waits for review or Publish.
+    const reviewed = closed || move !== null || said !== null || pin !== null
     const priceOnly = hasPrice && !reviewed && !sun
     const sunOnly = sun && !reviewed && !hasPrice
     if (owner) {
@@ -149,7 +169,8 @@ export function SuggestChange({
       setSending(false)
       if (answer === 'ok' && hasPrice) void refreshCrowdPrices()
       if (answer === 'ok' && sun) void refreshSunCorrections()
-      // A price or sun shows at once; a move or closure at the next Publish.
+      // A price or sun shows at once; a move, closure or terrace at the next
+      // Publish.
       setResult(
         answer !== 'ok'
           ? OWNER_RESULT_TEXT.error
@@ -167,7 +188,7 @@ export function SuggestChange({
     setSending(true)
     const answer = await sendChange({ ...parts, token })
     setSending(false)
-    // A price or sun waits for agreement; a move or closure for review.
+    // A price or sun waits for agreement; a move, closure or terrace for review.
     setResult(
       (reviewed ? RESULT_TEXT : sunOnly ? SUN_RESULT_TEXT : PRICE_RESULT_TEXT)[
         answer
@@ -229,6 +250,59 @@ export function SuggestChange({
               </label>
             </div>
           )}
+          <div className="change-group">
+            {!known && (
+              <div className="change-row change-row--answer">
+                <span aria-hidden="true">¿Tiene terraza?</span>
+                <div
+                  className="price-segmented change-answer"
+                  role="radiogroup"
+                  aria-label="¿Tiene terraza?"
+                >
+                  {ANSWERS.map(([value, label]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={said === value}
+                      // Tapping the chosen answer again takes it back.
+                      onClick={() => setAnswer(said === value ? null : value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {startMove && (known ? said !== false : said === true) && (
+              <button
+                type="button"
+                className="change-row change-link"
+                onClick={() => startMove(venue, 'pin')}
+              >
+                <span>Mesas</span>
+                <span className="change-hint">
+                  {pinned === null
+                    ? known
+                      ? 'Mover en el mapa ›'
+                      : 'Marcar en el mapa ›'
+                    : known
+                      ? `Movidas ${pinned} m ›`
+                      : `Marcadas a ${pinned} m ›`}
+                </span>
+              </button>
+            )}
+            {known && (
+              <label className="change-row">
+                <span aria-hidden="true">No tiene terraza</span>
+                <Toggle
+                  checked={said === false}
+                  onChange={(on) => setAnswer(on ? false : null)}
+                  label="No tiene terraza"
+                />
+              </label>
+            )}
+          </div>
           <div className="change-group">
             <div className="change-row change-row--segmented">
               <div

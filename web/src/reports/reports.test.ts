@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { reportVenue, validName, type Report } from './reports.ts'
+import { reportVenue, sendChange, validName, type Report } from './reports.ts'
 
 // The API and the bot check as a build with both configured has them.
 vi.mock('../apiClient.ts', async (original) => {
@@ -49,6 +49,30 @@ describe('reportVenue', () => {
       lat: 38.878123,
       lon: -6.970123,
       token: 't',
+    })
+  })
+
+  it('sends the terrace answer and the tables, rounded, in one change', async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json({ ok: true }, { status: 201 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    expect(
+      await sendChange({
+        venueId: 'osm:node/1',
+        token: 't',
+        terrace: true,
+        pin: { lat: 38.87812345678, lon: -6.97012345678 },
+      }),
+    ).toBe('ok')
+    const init: unknown = fetchMock.mock.calls[0]?.at(1)
+    const body =
+      init && typeof init === 'object' && 'body' in init ? init.body : null
+    expect(JSON.parse(String(body))).toEqual({
+      venueId: 'osm:node/1',
+      token: 't',
+      terrace: true,
+      pin: { lat: 38.878123, lon: -6.970123 },
     })
   })
 

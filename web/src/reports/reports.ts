@@ -12,6 +12,11 @@ import { ownerPost } from '../prices/owner.ts'
 
 /** The API refuses moves further than this from the published position. */
 export const MAX_MOVE_M = 500
+/**
+ * The API refuses a terrace's tables marked further than this from the
+ * published venue position (MAX_PIN_METRES in api/src/reports.ts).
+ */
+export const MAX_PIN_M = 150
 /** Below this, the pin hasn't really moved. */
 export const MIN_MOVE_M = 5
 
@@ -101,15 +106,23 @@ export type Change = {
   closed?: true
   /** The sun is on the terrace now; the API stamps the time and the sun's place. */
   sun?: true
+  /** Whether the venue has a terrace (ADR-0009); reviewed like a move. */
+  terrace?: boolean
+  /** Where its tables are; never with `terrace: false` (the API refuses it). */
+  pin?: LatLon
 }
 
-function rounded<T extends { move?: LatLon }>(change: T): T {
-  return change.move
-    ? {
-        ...change,
-        move: { lat: round6(change.move.lat), lon: round6(change.move.lon) },
-      }
-    : change
+const roundSpot = (spot: LatLon): LatLon => ({
+  lat: round6(spot.lat),
+  lon: round6(spot.lon),
+})
+
+function rounded<T extends { move?: LatLon; pin?: LatLon }>(change: T): T {
+  return {
+    ...change,
+    ...(change.move ? { move: roundSpot(change.move) } : {}),
+    ...(change.pin ? { pin: roundSpot(change.pin) } : {}),
+  }
 }
 
 export function sendChange(change: Change): Promise<SuggestResult> {
