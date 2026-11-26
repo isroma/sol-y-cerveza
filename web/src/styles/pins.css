@@ -164,6 +164,8 @@
 
 .pin-swap > * {
   grid-area: 1 / 1;
+  /* As wide as its own text, so the price can be measured (priceTabReach). */
+  justify-self: start;
   transition:
     translate 0.32s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.2s ease;
