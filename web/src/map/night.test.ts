@@ -62,6 +62,38 @@ describe('nightPaint', () => {
   })
 })
 
+describe('nightPaint: grey dots', () => {
+  const dots = [
+    { id: 'venues-unconfirmed', type: 'circle', source: 's' },
+  ] as LayerSpecification[]
+  const paint = (depth: number) =>
+    Object.fromEntries(
+      nightPaint(dots, depth).map((patch) => [patch.property, patch.value]),
+    )
+
+  it('empties the dots into a tan ring by night, the selected one stays filled', () => {
+    const night = paint(1)
+    expect(night['circle-opacity']).toEqual(['case', ['get', 'selected'], 1, 0])
+    expect(night['circle-stroke-color']).toEqual([
+      'case',
+      ['get', 'selected'],
+      '#FFFFFF',
+      '#9C8670',
+    ])
+  })
+
+  it('looks like the day at sunset', () => {
+    const dusk = paint(0)
+    expect(dusk['circle-opacity']).toEqual(['case', ['get', 'selected'], 1, 1])
+    expect(dusk['circle-stroke-color']).toEqual([
+      'case',
+      ['get', 'selected'],
+      '#FFFFFF',
+      '#FFFFFF',
+    ])
+  })
+})
+
 describe('nightDepth', () => {
   it('is null by day and 0 right at sunset', () => {
     expect(nightDepth(12)).toBeNull()
