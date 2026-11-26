@@ -3,6 +3,7 @@
 - Status: accepted (2026-11-26)
 - Date: 2026-11-26
 - Issue: #485
+- Amended (2026-11-26, #495): the Worker no longer keeps per-request invocation logs (`[observability.logs] invocation_logs = false` in `api/wrangler.toml`). Workers Logs still hold entries for errors (`console.error`, uncaught exceptions), which may carry Cloudflare's own request metadata; we have not inspected what that metadata includes. Cloudflare's and GitHub Pages' own infrastructure logs are unchanged and outside our control. "What we control, and what we don't" below describes the state before this change. The app's privacy notice (`web/src/ui/PrivacyNotice.tsx`) and README.md's Privacy section describe what is stored now.
 
 ## Context
 

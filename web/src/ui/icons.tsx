@@ -176,6 +176,12 @@ export const ChevronDownIcon = (p: IconProps) => (
   </Icon>
 )
 
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m15 6-6 6 6 6" />
+  </Icon>
+)
+
 export const PinIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 21s-6.5-5.4-6.5-11a6.5 6.5 0 0 1 13 0c0 5.6-6.5 11-6.5 11z" />
