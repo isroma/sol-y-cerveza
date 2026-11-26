@@ -253,6 +253,17 @@
     translate: 0 -110%;
     transition-delay: 0.15s;
   }
+
+  /* A badge whose price isn't shown (crowded out by a better-value
+     neighbour) still keeps it in the tab, so it can fade: here the tab
+     holds the name alone. */
+  .map-wrap:not(.has-card)
+    .names-on-hover:not(.is-moving)
+    .pin-marker:hover
+    .pin:not(.pin--priced, .pin--selected)
+    .pin-price-text {
+    display: none;
+  }
 }
 
 /* Zoomed out: only the best places keep a full pin (see highlights.ts). */
