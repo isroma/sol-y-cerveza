@@ -270,6 +270,25 @@ test('the compass turns the map back to north', async ({ page }) => {
   await expect(needle).toHaveAttribute('style', /rotate: 0deg/)
 })
 
+test('the location dot follows you once located', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation'])
+  await context.setGeolocation({ latitude: 38.8806, longitude: -6.9706 })
+  await openApp(page)
+  await page.getByRole('button', { name: 'Mi ubicación' }).click()
+  const dot = page.locator('.user-dot')
+  await expect(dot).toHaveCount(1)
+  expect(await settledZoom(page)).toBeCloseTo(17, 1)
+  const before = await dot.boundingBox()
+
+  // About 100 m north: the dot moves up, the camera stays put.
+  await context.setGeolocation({ latitude: 38.8815, longitude: -6.9706 })
+  await expect
+    .poll(async () => (await dot.boundingBox())?.y ?? 0)
+    .toBeLessThan((before?.y ?? 0) - 20)
+  await expect(dot).toHaveCount(1)
+  expect(await page.locator('.map-toast').count()).toBe(0)
+})
+
 test('the basemap credits sit in the legend info panel', async ({ page }) => {
   await openApp(page)
   await expect(page.locator('.maplibregl-ctrl-attrib')).toHaveCount(0)

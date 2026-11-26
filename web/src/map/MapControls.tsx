@@ -59,42 +59,76 @@ export function MapControls({
     m.easeTo({ zoom, pitch: pitchForZoom(zoom), duration: 400 })
   }
 
+  // The last fix, and the browser watch that keeps the dot following you.
+  const lastFix = useRef<[number, number] | null>(null)
+  const watchId = useRef<number | null>(null)
+
+  const stopWatching = () => {
+    if (watchId.current !== null)
+      navigator.geolocation.clearWatch(watchId.current)
+    watchId.current = null
+  }
+
+  useEffect(() => stopWatching, [])
+
+  const flyToUser = ([lon, lat]: [number, number]) => {
+    const m = map()
+    if (!m) return
+    const inside =
+      lat > BADAJOZ_BBOX.south &&
+      lat < BADAJOZ_BBOX.north &&
+      lon > BADAJOZ_BBOX.west &&
+      lon < BADAJOZ_BBOX.east
+    if (inside)
+      m.flyTo({
+        center: [lon, lat],
+        zoom: 17,
+        pitch: pitchForZoom(17),
+        duration: 1200,
+      })
+    else
+      setLocateError(
+        'Estás fuera de Badajoz: de momento solo cubrimos Badajoz.',
+      )
+  }
+
+  // The first tap starts following you; later taps centre the map on the dot.
   const locate = () => {
     setLocateError(null)
     if (!('geolocation' in navigator)) {
       setLocateError('Tu navegador no permite localizarte.')
       return
     }
-    navigator.geolocation.getCurrentPosition(
+    if (watchId.current !== null) {
+      if (lastFix.current) flyToUser(lastFix.current)
+      return
+    }
+    watchId.current = navigator.geolocation.watchPosition(
       ({ coords }) => {
         const m = map()
         if (!m) return
-        const { latitude: lat, longitude: lon } = coords
-        const el = document.createElement('div')
-        el.className = 'user-dot'
-        userMarker.current?.remove()
-        userMarker.current = new Marker({ element: el })
-          .setLngLat([lon, lat])
-          .addTo(m)
-        const inside =
-          lat > BADAJOZ_BBOX.south &&
-          lat < BADAJOZ_BBOX.north &&
-          lon > BADAJOZ_BBOX.west &&
-          lon < BADAJOZ_BBOX.east
-        if (inside)
-          m.flyTo({
-            center: [lon, lat],
-            zoom: 17,
-            pitch: pitchForZoom(17),
-            duration: 1200,
-          })
-        else
-          setLocateError(
-            'Estás fuera de Badajoz: de momento solo cubrimos Badajoz.',
-          )
+        const fix: [number, number] = [coords.longitude, coords.latitude]
+        const first = lastFix.current === null
+        lastFix.current = fix
+        if (!userMarker.current) {
+          const el = document.createElement('div')
+          el.className = 'user-dot'
+          userMarker.current = new Marker({ element: el })
+        }
+        userMarker.current.setLngLat(fix).addTo(m)
+        if (first) flyToUser(fix)
       },
-      () => setLocateError('No hemos podido obtener tu ubicación.'),
-      { enableHighAccuracy: true, timeout: 10000 },
+      (error) => {
+        // A lost signal while following keeps the last dot; anything else
+        // stops, so the next tap asks again.
+        if (lastFix.current && error.code !== error.PERMISSION_DENIED) return
+        stopWatching()
+        lastFix.current = null
+        userMarker.current?.remove()
+        userMarker.current = null
+        setLocateError('No hemos podido obtener tu ubicación.')
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
     )
   }
 
