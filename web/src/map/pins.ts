@@ -29,11 +29,58 @@ export function badgeScale(status: VenueStatus): number {
   return status.category === 'nosun' || status.category === 'unknown' ? 0.78 : 1
 }
 
+/** How close two badges' centres must be, in badge widths, to count as one cluster. */
+const CLUSTER = 0.75
+
+/**
+ * The badge a mouse over `el` opens: `el` itself, unless a badge drawn in
+ * front of it (higher z-index, or later on the page at the same z-index)
+ * overlaps it, as in a cluster: then the frontmost of those. So pointing at a
+ * badge peeking out from behind opens the one in front, the one the map
+ * already put first.
+ */
+export function frontPin(el: HTMLElement): HTMLElement {
+  const parent = el.parentElement
+  const pinOf = (m: Element) => m.querySelector('.pin')?.getBoundingClientRect()
+  const own = pinOf(el)
+  if (!parent || !own) return el
+  const centre = (r: DOMRect) => ({
+    x: r.left + r.width / 2,
+    y: r.top + r.height / 2,
+  })
+  const at = centre(own)
+  const markers = [
+    ...parent.querySelectorAll<HTMLElement>(':scope > .pin-marker'),
+  ]
+  const rank = (m: HTMLElement) => ({
+    z: Number(m.style.zIndex) || 0,
+    order: markers.indexOf(m),
+  })
+  let front = el
+  for (const m of markers) {
+    if (m === el) continue
+    const r = pinOf(m)
+    if (!r) continue
+    const c = centre(r)
+    const reach = CLUSTER * Math.max(own.width, r.width)
+    if (Math.hypot(c.x - at.x, c.y - at.y) >= reach) continue
+    const mine = rank(m)
+    const best = rank(front)
+    if (mine.z > best.z || (mine.z === best.z && mine.order > best.order))
+      front = m
+  }
+  return front
+}
+
 /** A terrace pin like the design: a sun-coloured beer badge, with the caña price when it is shown (badgePrices.ts). */
 export function createPin(
   onClick: () => void,
-  /** A mouse pointer comes onto the badge (true) or leaves it (false). */
-  onHover?: (hovered: boolean) => void,
+  /**
+   * A mouse pointer comes onto the badge (true) or leaves it (false), with
+   * the badge that opens for it (frontPin), which carries
+   * `pin-marker--hovered` meanwhile (pins.css).
+   */
+  onHover?: (target: HTMLElement, hovered: boolean) => void,
 ): HTMLButtonElement {
   const el = document.createElement('button')
   el.type = 'button'
@@ -47,14 +94,19 @@ export function createPin(
     event.stopPropagation()
     onClick()
   })
-  if (onHover) {
-    el.addEventListener('pointerenter', (event) => {
-      if (event.pointerType === 'mouse') onHover(true)
-    })
-    el.addEventListener('pointerleave', (event) => {
-      if (event.pointerType === 'mouse') onHover(false)
-    })
-  }
+  let target: HTMLElement | null = null
+  el.addEventListener('pointerenter', (event) => {
+    if (event.pointerType !== 'mouse') return
+    target = frontPin(el)
+    target.classList.add('pin-marker--hovered')
+    onHover?.(target, true)
+  })
+  el.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse' || !target) return
+    target.classList.remove('pin-marker--hovered')
+    onHover?.(target, false)
+    target = null
+  })
   return el
 }
 

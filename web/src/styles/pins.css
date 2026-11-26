@@ -203,19 +203,20 @@
    from zoom 15, like the prices),
    never while a card is open or the map is moving (MapView sets the classes
    on the map's container), and after a moment's rest, so sweeping across the
-   map doesn't open every badge on the way. Phones have no hover: a tap opens
-   the card. */
+   map doesn't open every badge on the way. In a cluster, the badge in front
+   opens, even when the mouse is on one peeking out behind it (frontPin sets
+   pin-marker--hovered). Phones have no hover: a tap opens the card. */
 @media (hover: hover) {
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover:not([aria-pressed='true']) {
+    .pin-marker--hovered:not([aria-pressed='true']) {
     /* Above the inline z-index MapView sets on every badge. */
     z-index: 5 !important;
   }
 
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover
+    .pin-marker--hovered
     .pin:not(.pin--selected) {
     /* Over the smaller grey size, so the name stays readable. */
     scale: 1.08 !important;
@@ -223,7 +224,7 @@
 
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover
+    .pin-marker--hovered
     .pin:not(.pin--selected)
     .pin-price {
     opacity: 1;
@@ -237,7 +238,7 @@
 
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover
+    .pin-marker--hovered
     .pin:not(.pin--selected)
     .pin-name {
     grid-template-columns: 1fr;
@@ -248,7 +249,7 @@
 
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover
+    .pin-marker--hovered
     .pin--priced:not(.pin--selected)
     .pin-price-text {
     opacity: 0;
@@ -261,7 +262,7 @@
      holds the name alone. */
   .map-wrap:not(.has-card)
     .names-on-hover:not(.is-moving)
-    .pin-marker:hover
+    .pin-marker--hovered
     .pin:not(.pin--priced, .pin--selected)
     .pin-price-text {
     display: none;
