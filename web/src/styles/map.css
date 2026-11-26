@@ -218,13 +218,16 @@
   right: 0;
   bottom: calc(100% + var(--space-3));
   width: min(340px, calc(100vw - 2 * var(--map-inset)));
-  max-height: 60dvh;
+  /* Sized to fit whole, with no scrolling: one paragraph and the credits as
+     one run of small print. The cap only guards very short screens. */
+  max-height: 80dvh;
   overflow-y: auto;
   padding: var(--space-4);
   border-radius: var(--radius-l);
   background: var(--bg);
   box-shadow: var(--shadow);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .map-info h3 {
@@ -236,17 +239,23 @@
   margin: 0 0 var(--space-2);
 }
 
+/* The credits run on as one block, "·" between them. */
 .map-info-sources {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
   /* Licence lines carry long unbroken names and URLs. */
   overflow-wrap: anywhere;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+}
+
+.map-info-sources li {
+  display: inline;
+}
+
+.map-info-sources li + li::before {
+  content: ' · ';
 }
 
 .map-info-sources a {

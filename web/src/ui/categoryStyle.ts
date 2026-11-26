@@ -18,7 +18,7 @@ export const CATEGORY_LABELS: Record<SunCategory, string> = {
 
 /** "Sobre los datos" on the winter rule (ADR-0007). */
 export const LEAF_OFF_INFO =
-  'Del 1 de diciembre al 15 de marzo damos por hecho que los árboles que pierden la hoja no dan sombra; los de hoja perenne, sí. Los distinguimos con imágenes del satélite Sentinel-2, así que puede haber algún fallo.'
+  'Del 1 de diciembre al 15 de marzo, los árboles de hoja caduca (según Sentinel-2) no dan sombra.'
 
 /** Badge text for a venue's category. */
 export function categoryLabel(status: VenueStatus): string {

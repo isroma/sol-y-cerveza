@@ -50,7 +50,9 @@ LiDAR alone can't tell. Options:
 3. **The leaf-off period runs from 1 December to 15 March, by Madrid date.** In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
 4. **What the app says.** Nothing new on the venue card: the owner wants the UI as simple as possible, so the leaf-off horizon just changes the answer (badge, list, filters, card, sun bar). The "Sobre los datos" panel explains the rule, but only when the file has leaf-off horizons:
 
-   > Del 1 de diciembre al 15 de marzo damos por hecho que los árboles que pierden la hoja no dan sombra; los de hoja perenne, sí. Los distinguimos con imágenes del satélite Sentinel-2, así que puede haber algún fallo.
+   > Del 1 de diciembre al 15 de marzo, los árboles de hoja caduca (según Sentinel-2) no dan sombra.
+
+   It sits inside the panel's one paragraph, before "Puede haber errores", so the panel fits without scrolling (#484).
 
    The attribution gains `Contiene datos modificados de Copernicus Sentinel (<year>)` (Copernicus' required wording, in Spanish like the other lines).
 5. **Failure mode: when in doubt, shade.** Every uncertain case keeps today's behaviour:
