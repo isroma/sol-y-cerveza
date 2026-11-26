@@ -218,8 +218,10 @@
   right: 0;
   bottom: calc(100% + var(--space-3));
   width: min(340px, calc(100vw - 2 * var(--map-inset)));
-  /* Sized to fit whole, with no scrolling: one paragraph and the credits as
-     one run of small print. The cap only guards very short screens. */
+  /* "Sobre los datos" is sized to fit whole, with no scrolling: one paragraph
+     and the credits as one run of small print. The privacy notice is longer
+     and scrolls: MapControls caps the height at the room above the legend
+     (inline style); this cap is the fallback until it is measured. */
   max-height: 80dvh;
   overflow-y: auto;
   padding: var(--space-4);
@@ -260,6 +262,50 @@
 
 .map-info-sources a {
   color: inherit;
+}
+
+/* "Privacidad" under the credits: a link in their small print, on its own line. */
+.map-info-link {
+  display: block;
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.map-info-link:hover {
+  color: var(--ink);
+}
+
+/* The privacy notice in the same panel: back to "Sobre los datos", then the title. */
+.map-info-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: calc(-1 * var(--space-1)) 0 var(--space-2) calc(-1 * var(--space-2));
+}
+
+.map-info-head h3 {
+  margin: 0;
+}
+
+.map-info-back {
+  width: 32px;
+  height: 32px;
+  color: var(--text-soft);
+}
+
+.privacy-notice a {
+  color: inherit;
+}
+
+.privacy-notice p:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 899px) {
