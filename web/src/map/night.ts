@@ -1,4 +1,8 @@
-import type { LayerSpecification, Map as MapLibreMap } from 'maplibre-gl'
+import type {
+  ExpressionSpecification,
+  LayerSpecification,
+  Map as MapLibreMap,
+} from 'maplibre-gl'
 import { DOTS_LAYER } from './dotLayers.ts'
 import { TREES } from './layerIds.ts'
 
@@ -134,16 +138,21 @@ export function nightPaint(
       // Venues without a terrace: by night the dot empties into a tan ring,
       // so it stays findable without glowing on the dark map. The selected
       // one stays filled.
-      const selected = ['get', 'selected']
+      const selected: ExpressionSpecification = ['get', 'selected']
       const round = (n: number) => Math.round(n * 100) / 100
-      set(id, 'circle-opacity', ['case', selected, 1, round(1 - depth)])
-      set(id, 'circle-stroke-color', [
+      const opacity: ExpressionSpecification = [
+        'case',
+        selected,
+        1,
+        round(1 - depth),
+      ]
+      const ring: ExpressionSpecification = [
         'case',
         selected,
         '#FFFFFF',
         mixHex('#FFFFFF', DOT_RING_NIGHT, depth),
-      ])
-      set(id, 'circle-stroke-width', [
+      ]
+      const width: ExpressionSpecification = [
         'interpolate',
         ['linear'],
         ['zoom'],
@@ -151,7 +160,10 @@ export function nightPaint(
         ['case', selected, 3, round(0.8 + 0.6 * depth)],
         17,
         ['case', selected, 3, round(1.5 + 0.4 * depth)],
-      ])
+      ]
+      set(id, 'circle-opacity', opacity)
+      set(id, 'circle-stroke-color', ring)
+      set(id, 'circle-stroke-width', width)
     } else if (type === 'symbol') {
       set(id, 'text-color', NIGHT.text)
       set(id, 'text-halo-color', NIGHT.halo)
