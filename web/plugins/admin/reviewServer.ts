@@ -52,6 +52,7 @@ import {
   sunCorrectionsPostSchema,
   type SunCorrectionRow,
 } from '../../src/admin/sunCorrectionsCsv.ts'
+import { trustResponse } from '../../src/admin/trust.ts'
 import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from '../../src/admin/endpoints.ts'
 
 const CSV = repoPath('pipeline/data/venue_review.csv')
@@ -174,6 +175,9 @@ async function ignoreProposal(key: string): Promise<void> {
   await writeFile(partial, formatIgnored([...keys, key]), 'utf-8')
   await rename(partial, IGNORED_CSV)
 }
+
+// Trust tiers, written by `python -m solycerveza.trust` (may not exist).
+const TRUST_JSON = repoPath('pipeline/.cache/venue_trust.json')
 
 const PIPELINE = repoPath('pipeline/')
 const PROBE_TIMEOUT_MS = 60_000
@@ -472,6 +476,17 @@ export function reviewServer(): Plugin {
         queue = run.catch((error: unknown) => {
           send(res, 400, { error: String(error) })
         })
+      })
+      // Trust tiers of Overture venues (venue_trust.json): read only.
+      server.middlewares.use(ADMIN_ENDPOINTS.trust, (req, res) => {
+        if (req.method !== 'GET')
+          return send(res, 405, { error: 'method not allowed' })
+        readOptional(TRUST_JSON)
+          .then(trustResponse)
+          .then(
+            (payload) => send(res, 200, payload),
+            (error: unknown) => send(res, 500, { error: String(error) }),
+          )
       })
       server.middlewares.use(ADMIN_ENDPOINTS.review, (req, res) => {
         const run = queue.then(() => handle(req, res))

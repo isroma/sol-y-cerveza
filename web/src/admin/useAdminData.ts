@@ -16,6 +16,12 @@ import {
   type Status,
 } from './review.ts'
 import { today } from './today.ts'
+import {
+  trustById,
+  trustResponseSchema,
+  type Trust,
+  type TrustResponse,
+} from './trust.ts'
 
 export const NO_PROPOSALS: ProposalsResponse = {
   proposals: [],
@@ -62,6 +68,13 @@ async function fetchProposals(): Promise<ProposalsResponse> {
   return proposalsResponseSchema.parse(await response.json())
 }
 
+async function fetchTrust(): Promise<TrustResponse> {
+  const response = await fetch(ADMIN_ENDPOINTS.trust)
+  if (!response.ok)
+    throw new Error(`GET ${ADMIN_ENDPOINTS.trust}: HTTP ${response.status}`)
+  return trustResponseSchema.parse(await response.json())
+}
+
 async function fetchReviews(): Promise<Map<string, Review>> {
   const response = await fetch(ADMIN_ENDPOINTS.review)
   if (!response.ok)
@@ -85,6 +98,9 @@ export function useAdminData(selectedId: string | null) {
   const [message, setMessage] = useState('Loading…')
   const [proposalData, setProposalData] =
     useState<ProposalsResponse>(NO_PROPOSALS)
+  // Trust tiers of Overture venues (trust.ts); none until the file exists.
+  const [trust, setTrust] = useState<ReadonlyMap<string, Trust>>(new Map())
+  const [trustMissing, setTrustMissing] = useState(false)
 
   useEffect(() => {
     Promise.all([loadTerraces(), fetchReviews(), fetchPrices()])
@@ -100,6 +116,14 @@ export function useAdminData(selectedId: string | null) {
       .then(setProposalData)
       .catch((error: unknown) =>
         setMessage(`Machine proposals unavailable: ${String(error)}`),
+      )
+    fetchTrust()
+      .then(({ venues, missing }) => {
+        setTrust(trustById(venues))
+        setTrustMissing(missing)
+      })
+      .catch((error: unknown) =>
+        setMessage(`Trust tiers unavailable: ${String(error)}`),
       )
   }, [])
 
@@ -236,6 +260,8 @@ export function useAdminData(selectedId: string | null) {
     message,
     setMessage,
     proposalData,
+    trust,
+    trustMissing,
     saveAll,
     save,
     savePrice,

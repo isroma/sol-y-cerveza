@@ -176,20 +176,27 @@ export function scoreVenues(
 }
 
 /**
- * The review queue: venues without a decision, best score first (ties by
- * name), with skipped ones after the rest in the order they were skipped.
+ * The review queue: venues without a decision, those from a weak source
+ * (`weak`, trust.ts) first, then best score first (ties by name), with
+ * skipped ones after the rest in the order they were skipped.
  */
 export function queueOrder(
   scored: readonly Scored[],
   reviews: ReadonlyMap<string, Review>,
   skipped: readonly string[],
+  weak: ReadonlySet<string> = new Set(),
 ): Scored[] {
   const open = scored.filter((s) => !reviews.get(s.venue.id)?.status)
   const later = new Map(skipped.map((id, i) => [id, i]))
+  const rank = (s: Scored) => (weak.has(s.venue.id) ? 0 : 1)
   return open.sort((a, b) => {
     const la = later.get(a.venue.id)
     const lb = later.get(b.venue.id)
     if (la !== undefined || lb !== undefined) return (la ?? -1) - (lb ?? -1)
-    return b.score - a.score || a.venue.name.localeCompare(b.venue.name, 'es')
+    return (
+      rank(a) - rank(b) ||
+      b.score - a.score ||
+      a.venue.name.localeCompare(b.venue.name, 'es')
+    )
   })
 }

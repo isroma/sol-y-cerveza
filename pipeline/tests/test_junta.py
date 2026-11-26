@@ -148,7 +148,7 @@ def test_register_rows_confirm_matches_and_add_only_recent_unmatched_venues() ->
             (row("Viejo Bar", 1995), far),
         ],
     )
-    assert confirmed == 1
+    assert confirmed == {"osm:node/1"}
     assert sorted(v.name or "" for v in venues) == ["La Marina", "Nuevo Bar"]
     added = next(v for v in venues if v.name == "Nuevo Bar")
     assert added.id == register_id(row("Nuevo Bar", 2021))
@@ -171,7 +171,7 @@ def test_register_rows_match_venues_in_any_order_and_any_part_of_the_city() -> N
         venues, confirmed = add_register_venues(
             order, [(row("La Marina", 2020), LatLon(lat=38.8801, lon=-6.97))]
         )
-        assert confirmed == 1
+        assert len(confirmed) == 1
         assert [v.id for v in venues] == sorted(v.id for v in existing)
     # A second row matching only the venue the first row did not confirm.
     venues, confirmed = add_register_venues(
@@ -181,7 +181,7 @@ def test_register_rows_match_venues_in_any_order_and_any_part_of_the_city() -> N
             (row("La Marina", 2020), LatLon(lat=38.9501, lon=-6.97)),
         ],
     )
-    assert confirmed == 2
+    assert confirmed == {"overture:b", "osm:node/2"}
 
 
 def test_geocoder_retries_server_errors_and_does_not_cache_failures(tmp_path: Path) -> None:

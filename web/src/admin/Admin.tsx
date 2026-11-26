@@ -67,6 +67,8 @@ export function Admin() {
     message,
     setMessage,
     proposalData,
+    trust,
+    trustMissing,
     save,
     savePrice,
     change,
@@ -159,6 +161,16 @@ export function Admin() {
     () => junkSignalsAll(venues, reviews, CENTRE),
     [venues, reviews],
   )
+  // Overture venues from a weak source: the queue shows them first (trust.ts).
+  const weak = useMemo(
+    () =>
+      new Set(
+        [...trust.values()]
+          .filter((t) => t.tier === 'weak')
+          .map((t) => t.venueId),
+      ),
+    [trust],
+  )
   const scored = useMemo(
     () => scoreVenues(venues, reviews, proposals, CENTRE, junkSignals),
     [venues, reviews, proposals, junkSignals],
@@ -250,6 +262,7 @@ export function Admin() {
     venues,
     reviews,
     scored,
+    weak,
     selectedId,
     select,
     change,
@@ -567,6 +580,8 @@ export function Admin() {
         {tab === 'review' && queueMode && (
           <QueueList
             queue={queue}
+            trust={trust}
+            trustMissing={trustMissing}
             skipped={skipped}
             selectedId={selectedId}
             onSelect={select}
@@ -668,6 +683,7 @@ export function Admin() {
             review={review}
             queueMode={queueMode}
             queueReason={queueItem?.reason ?? null}
+            trust={trust.get(selectedVenue.id)}
             proposals={selectedProposals}
             onAcceptProposal={acceptProposal}
             onIgnoreProposal={(p) => void ignoreProposal(p)}

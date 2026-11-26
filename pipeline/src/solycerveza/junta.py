@@ -257,8 +257,9 @@ def add_register_venues(
     venues: Sequence[Venue],
     rows: Iterable[tuple[RegisterRow, LatLon]],
     min_opened_year: int = MIN_OPENED_YEAR,
-) -> tuple[list[Venue], int]:
-    """Venues plus unmatched recent register rows, and how many existing venues were confirmed."""
+) -> tuple[list[Venue], frozenset[str]]:
+    """Venues plus unmatched recent register rows, and the ids of the existing venues a row
+    confirmed (a row confirms the first venue `same_venue` matches, in `venues` order)."""
     kept = NearbyVenues(venues)
     confirmed: set[str] = set()
     for row, location in rows:
@@ -275,7 +276,7 @@ def add_register_venues(
             continue
         if row.opened is not None and row.opened.year >= min_opened_year:
             kept.add(candidate)
-    return sorted(kept.venues, key=lambda venue: venue.id), len(confirmed)
+    return sorted(kept.venues, key=lambda venue: venue.id), frozenset(confirmed)
 
 
 def load_register(

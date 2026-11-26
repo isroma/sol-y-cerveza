@@ -24,6 +24,8 @@ export const ADMIN_ENDPOINTS = {
   sunAccepted: '/__admin/sun-accepted',
   /** sun_corrections.csv: GET, POST rows to add the ones it lacks (issue #463). */
   sunCorrections: '/__admin/sun-corrections',
+  /** Trust tiers of Overture venues: GET (`python -m solycerveza.trust`, issue #493). */
+  trust: '/__admin/trust',
   /** Sun preview at a pin: GET ?lat=&lon= (`python -m solycerveza.probe`). */
   probe: '/__admin/probe',
 } as const

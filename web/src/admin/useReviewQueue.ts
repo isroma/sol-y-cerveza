@@ -11,6 +11,8 @@ type Options = {
   reviews: ReadonlyMap<string, Review>
   /** Every venue with its queue score (scoreVenues). */
   scored: readonly Scored[]
+  /** Venues from a weak source (trust.ts), which the queue shows first. */
+  weak: ReadonlySet<string>
   selectedId: string | null
   select: (id: string | null) => void
   change: (change: ReviewChange) => void
@@ -28,6 +30,7 @@ export function useReviewQueue({
   venues,
   reviews,
   scored,
+  weak,
   selectedId,
   select,
   change,
@@ -37,8 +40,8 @@ export function useReviewQueue({
   const [skipped, setSkipped] = useState<string[]>([])
 
   const queue = useMemo(
-    () => queueOrder(scored, reviews, skipped),
-    [scored, reviews, skipped],
+    () => queueOrder(scored, reviews, skipped, weak),
+    [scored, reviews, skipped, weak],
   )
 
   // The queue's next venue after `fromId` is decided or skipped: the best
