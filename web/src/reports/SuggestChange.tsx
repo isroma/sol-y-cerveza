@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import {
   BRAND_NAMES,
   BRANDS,
@@ -13,7 +20,7 @@ import { TURNSTILE_SITE_KEY } from '../apiClient.ts'
 import { Turnstile } from './Turnstile.tsx'
 import { Toggle } from '../ui/Toggle.tsx'
 import { StartMoveContext } from './picking.ts'
-import type { ChangeDraft } from './draft.ts'
+import { sentParts, terraceOn, type ChangeDraft } from './draft.ts'
 import {
   MIN_MOVE_M,
   OWNER_RESULT_TEXT,
@@ -30,23 +37,47 @@ import { canReportSun } from '../sun/reportable.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
-const ANSWERS = [
-  [true, 'Sí'],
-  [false, 'No'],
-] as const
 
 /** Turnstile tokens last 300 s; one older than this is dropped for a new check. */
 const TOKEN_TTL_MS = 240_000
 
 /**
+ * Rows that fold open and shut. Shut, they are out of the tab order and
+ * hidden from assistive tech (`inert`), not just zero high.
+ */
+function Fold({
+  open,
+  sideways = false,
+  children,
+}: {
+  open: boolean
+  /** Folds by its width (a pill in a row) instead of its height. */
+  sideways?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={`change-fold${sideways ? ' change-fold--x' : ''}${open ? ' is-open' : ''}`}
+      inert={!open}
+      aria-hidden={!open}
+    >
+      <div>{children}</div>
+    </div>
+  )
+}
+
+/**
  * The back of the venue card: every change a visitor can suggest on one
- * card (sun right now where the app says shade, whether it has a terrace and
- * where its tables are, a beer price, a new location, "Ya no existe"), sent
- * as one request
- * behind one bot check. The check runs as soon as the back opens (the
- * owner's call), so its token is usually ready by the first edit.
- * "Ubicación" hands over to the map picker, which brings the spot back here.
- * In owner mode the same form saves a change instead, with no bot check.
+ * compact form (a beer price, whether it has a terrace, sun right now where
+ * the app says shade, moving the bar or its tables, "Ya no existe"), sent as
+ * one request behind one bot check. The check runs as soon as the back
+ * opens (the owner's call), so its token is usually ready by the first edit.
+ * "El bar" and "Las mesas" hand over to the map picker, which brings the
+ * spot back here. "Ya no existe" folds the form away and goes alone; the
+ * terrace switched off folds away the sun and the tables. What is folded
+ * stays in the draft and is left out when sending (`sentParts`), so undoing
+ * brings it back. In owner mode the same form saves a change instead, with
+ * no bot check.
  */
 export function SuggestChange({
   venue,
@@ -63,14 +94,10 @@ export function SuggestChange({
   const startMove = useContext(StartMoveContext)
   const owner = useOwner().token !== null
   const { item, brand, text, closed, move } = draft
-  // The terrace: asked where the data doesn't know (Sí / No); where it has
-  // one, the visitor can move its tables or say there is none.
+  // "Tiene terraza" starts where the data is (on where it has a terrace):
+  // moving it is the suggestion, moving it back takes it back.
   const known = venue.terrace !== null
-  const said = known ? (draft.terrace === false ? false : null) : draft.terrace
-  // Tables only for a terrace that is there (the API refuses them with "no").
-  const pin = (known ? said !== false : said === true) ? draft.pin : null
-  const setAnswer = (value: boolean | null) =>
-    onChange(value === true ? { terrace: true } : { terrace: value, pin: null })
+  const terrace = terraceOn(venue, draft)
   // "Ahora mismo da el sol" is about the real present, so it shows only
   // while the app says shade here now with the sun up (checked as the back
   // opens; the corrections can still change while it is open).
@@ -80,7 +107,6 @@ export function SuggestChange({
     () => canReportSun(venue, corrections, openedAt),
     [venue, corrections, openedAt],
   )
-  const sun = sunRow && draft.sun
   // A token from before the trip to the map is used if still fresh.
   const [token, setToken] = useState(() =>
     draft.token !== null && Date.now() - draft.tokenAt < TOKEN_TTL_MS
@@ -123,53 +149,44 @@ export function SuggestChange({
       ?.focus({ preventScroll: true })
   }, [result])
 
+  // What would go now: "Ya no existe" alone, nothing folded away.
+  const parts = sentParts(venue, draft, sunRow)
+  // A price typed (and not folded away), checked against the range the API
+  // accepts for this item.
+  const hasPrice = !closed && text.trim() !== ''
   const cents = parseEuros(text)
-  const hasPrice = text.trim() !== ''
-  // The range the API accepts for this item.
   const [minCents, maxCents] = SUGGEST_RANGE[item]
   const priceOk = cents !== null && cents >= minCents && cents <= maxCents
-  const edited =
-    hasPrice || closed || move !== null || sun || said !== null || pin !== null
+  const edited = hasPrice || Object.keys(parts).length > 0
   const ready = edited && (!hasPrice || priceOk) && (owner || token !== null)
   // How far from its badge the visitor placed it.
   const moved = move
     ? Math.round(distanceMetres(venue.terrace ?? venue.venue, move))
     : null
   // How far the tables are from the terrace's badge, or from the venue.
-  const pinned = pin
-    ? Math.round(distanceMetres(venue.terrace ?? venue.venue, pin))
+  const pinned = draft.pin
+    ? Math.round(distanceMetres(venue.terrace ?? venue.venue, draft.pin))
     : null
 
   const send = async () => {
     if (!ready) return
-    const parts = {
-      venueId: venue.id,
-      ...(hasPrice && cents !== null
-        ? {
-            price: {
-              item,
-              brand: item === 'tercio' ? brand : null,
-              cents,
-            },
-          }
-        : {}),
-      ...(move ? { move } : {}),
-      ...(closed ? { closed: true as const } : {}),
-      ...(sun ? { sun: true as const } : {}),
-      ...(said !== null ? { terrace: said } : {}),
-      ...(pin ? { pin } : {}),
-    }
     // Shown without review: a price and sun (on agreement, or at once for
     // the owner). A move, a closure or the terrace waits for review or Publish.
-    const reviewed = closed || move !== null || said !== null || pin !== null
-    const priceOnly = hasPrice && !reviewed && !sun
-    const sunOnly = sun && !reviewed && !hasPrice
+    const reviewed =
+      parts.closed !== undefined ||
+      parts.move !== undefined ||
+      parts.terrace !== undefined ||
+      parts.pin !== undefined
+    const withPrice = parts.price !== undefined
+    const withSun = parts.sun !== undefined
+    const priceOnly = withPrice && !reviewed && !withSun
+    const sunOnly = withSun && !reviewed && !withPrice
     if (owner) {
       setSending(true)
-      const answer = await sendOwnerChange(parts)
+      const answer = await sendOwnerChange({ venueId: venue.id, ...parts })
       setSending(false)
-      if (answer === 'ok' && hasPrice) void refreshCrowdPrices()
-      if (answer === 'ok' && sun) void refreshSunCorrections()
+      if (answer === 'ok' && withPrice) void refreshCrowdPrices()
+      if (answer === 'ok' && withSun) void refreshSunCorrections()
       // A price or sun shows at once; a move, closure or terrace at the next
       // Publish.
       setResult(
@@ -187,7 +204,7 @@ export function SuggestChange({
     }
     if (token === null) return
     setSending(true)
-    const answer = await sendChange({ ...parts, token })
+    const answer = await sendChange({ venueId: venue.id, ...parts, token })
     setSending(false)
     // A price or sun waits for agreement; a move, closure or terrace for review.
     setResult(
@@ -239,155 +256,140 @@ export function SuggestChange({
             void send()
           }}
         >
-          {sunRow && (
-            <div className="change-group">
-              <label className="change-row">
-                <span aria-hidden="true">Ahora mismo da el sol</span>
-                <Toggle
-                  checked={draft.sun}
-                  onChange={(on) => onChange({ sun: on })}
-                  label="Ahora mismo da el sol"
-                />
-              </label>
-            </div>
-          )}
-          <div className="change-group">
-            {!known && (
-              <div className="change-row change-row--answer">
-                <span aria-hidden="true">¿Tiene terraza?</span>
-                <div
-                  className="price-segmented change-answer"
-                  role="radiogroup"
-                  aria-label="¿Tiene terraza?"
-                >
-                  {ANSWERS.map(([value, label]) => (
-                    <button
-                      key={label}
-                      type="button"
-                      role="radio"
-                      aria-checked={said === value}
-                      // Tapping the chosen answer again takes it back.
-                      onClick={() => setAnswer(said === value ? null : value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {startMove && (known ? said !== false : said === true) && (
-              <button
-                type="button"
-                className="change-row change-link"
-                onClick={() => startMove(venue, 'pin')}
-              >
-                <span>Mesas</span>
-                <span className="change-hint">
-                  {pinned === null
-                    ? known
-                      ? 'Mover en el mapa ›'
-                      : 'Marcar en el mapa ›'
-                    : known
-                      ? `Movidas ${pinned} m ›`
-                      : pinned <= MIN_MOVE_M
-                        ? 'Marcadas junto al bar ›'
-                        : `Marcadas a ${pinned} m ›`}
-                </span>
-              </button>
-            )}
-            {known && (
-              <label className="change-row">
-                <span aria-hidden="true">No tiene terraza</span>
-                <Toggle
-                  checked={said === false}
-                  onChange={(on) => setAnswer(on ? false : null)}
-                  label="No tiene terraza"
-                />
-              </label>
-            )}
-          </div>
-          <div className="change-group">
-            <div className="change-row change-row--segmented">
-              <div
-                className="price-segmented"
-                role="radiogroup"
-                aria-label="Bebida"
-              >
-                {(['cana', 'tercio'] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={item === value}
-                    onClick={() => onChange({ item: value })}
+          {/* The form, or in its place the closure's one line. */}
+          <div>
+            <Fold open={!closed}>
+              <div className="change-group">
+                <div className="change-row change-row--price">
+                  <div
+                    className="price-segmented change-item"
+                    role="radiogroup"
+                    aria-label="Bebida"
                   >
-                    {ITEMS[value]}
-                  </button>
-                ))}
+                    {(['cana', 'tercio'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={item === value}
+                        onClick={() => onChange({ item: value })}
+                      >
+                        {ITEMS[value]}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="change-amount">
+                    <input
+                      aria-label={`Precio ${item === 'cana' ? 'de la caña' : 'del tercio'} en euros`}
+                      inputMode="decimal"
+                      placeholder="—"
+                      value={text}
+                      onChange={(e) => onChange({ text: e.target.value })}
+                    />
+                    <span aria-hidden="true">€</span>
+                  </span>
+                </div>
+                <Fold open={item === 'tercio'}>
+                  <label className="change-brand">
+                    <span>Marca</span>
+                    <select
+                      className="change-select"
+                      value={brand}
+                      onChange={(e) => {
+                        const picked = BRANDS.find((b) => b === e.target.value)
+                        if (picked) onChange({ brand: picked })
+                      }}
+                    >
+                      {BRANDS.map((b) => (
+                        <option key={b} value={b}>
+                          {BRAND_NAMES[b]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </Fold>
+                <label className="change-row">
+                  <span aria-hidden="true">Tiene terraza</span>
+                  <Toggle
+                    checked={terrace}
+                    // Back where the data is: nothing to say.
+                    onChange={(on) =>
+                      onChange({ terrace: on === known ? null : on })
+                    }
+                    label="Tiene terraza"
+                  />
+                </label>
+                {sunRow && (
+                  <Fold open={terrace}>
+                    <label className="change-row">
+                      <span aria-hidden="true">Ahora mismo da el sol</span>
+                      <Toggle
+                        checked={draft.sun}
+                        onChange={(on) => onChange({ sun: on })}
+                        label="Ahora mismo da el sol"
+                      />
+                    </label>
+                  </Fold>
+                )}
+                {startMove && (
+                  <div
+                    className="change-row change-row--move"
+                    role="group"
+                    aria-labelledby={`change-move-${venue.id}`}
+                  >
+                    <span id={`change-move-${venue.id}`}>Mover</span>
+                    <div className="change-pills">
+                      <button
+                        type="button"
+                        className={
+                          moved === null ? 'change-pill' : 'change-pill is-set'
+                        }
+                        onClick={() => startMove(venue)}
+                      >
+                        {moved === null ? 'El bar' : `Bar · ${moved} m`}
+                      </button>
+                      <Fold open={terrace} sideways>
+                        <button
+                          type="button"
+                          className={
+                            pinned === null
+                              ? 'change-pill'
+                              : 'change-pill is-set'
+                          }
+                          onClick={() => startMove(venue, 'pin')}
+                        >
+                          {pinned === null
+                            ? 'Las mesas'
+                            : !known && pinned <= MIN_MOVE_M
+                              ? // Where the picker said "justo aquí".
+                                'Mesas · aquí'
+                              : `Mesas · ${pinned} m`}
+                        </button>
+                      </Fold>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-            {item === 'tercio' && (
-              <label className="change-row">
-                <span>Marca</span>
-                <select
-                  className="change-select"
-                  value={brand}
-                  onChange={(e) => {
-                    const picked = BRANDS.find((b) => b === e.target.value)
-                    if (picked) onChange({ brand: picked })
-                  }}
-                >
-                  {BRANDS.map((b) => (
-                    <option key={b} value={b}>
-                      {BRAND_NAMES[b]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="change-row">
-              <span>Precio</span>
-              <span className="change-amount">
-                <input
-                  aria-label={`Precio ${item === 'cana' ? 'de la caña' : 'del tercio'} en euros`}
-                  inputMode="decimal"
-                  placeholder="—"
-                  value={text}
-                  onChange={(e) => onChange({ text: e.target.value })}
-                />
-                <span aria-hidden="true">€</span>
-              </span>
-            </label>
+              {hasPrice && !priceOk && (
+                <p className="change-note">
+                  {`Escribe un precio entre ${formatCents(minCents)} y ${formatCents(maxCents)}.`}
+                </p>
+              )}
+            </Fold>
+            <Fold open={closed}>
+              <p className="change-closed">
+                Avisaremos de que este bar ha cerrado. No hace falta nada más.
+              </p>
+            </Fold>
           </div>
-          <div className="change-group">
-            {startMove && (
-              <button
-                type="button"
-                className="change-row change-link"
-                onClick={() => startMove(venue)}
-              >
-                <span>Ubicación</span>
-                <span className="change-hint">
-                  {moved === null
-                    ? 'Mover en el mapa ›'
-                    : `Movida ${moved} m ›`}
-                </span>
-              </button>
-            )}
-            <label className="change-row">
-              <span aria-hidden="true">Ya no existe</span>
-              <Toggle
-                checked={closed}
-                onChange={(on) => onChange({ closed: on })}
-                label="Ya no existe"
-              />
-            </label>
-          </div>
-          {hasPrice && !priceOk && (
-            <p className="change-note">
-              {`Escribe un precio entre ${formatCents(minCents)} y ${formatCents(maxCents)}.`}
-            </p>
-          )}
+          <button
+            type="button"
+            className="change-flag"
+            aria-pressed={closed}
+            onClick={() => onChange({ closed: !closed })}
+          >
+            Ya no existe
+          </button>
           {TURNSTILE_SITE_KEY && !owner && (
             <Turnstile
               siteKey={TURNSTILE_SITE_KEY}

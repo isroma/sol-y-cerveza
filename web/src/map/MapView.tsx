@@ -532,10 +532,21 @@ export function MapView({
     const wrap = containerRef.current?.parentElement
     if (!ready || !map || !wrap || !selectedId) return
     let frame = 0
+    let waiting = false
+    const fit = () => {
+      waiting = false
+      fitCard(map, cardEl, wrap)
+    }
     const refit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        if (!map.isMoving()) fitCard(map, cardEl, wrap)
+        if (!map.isMoving()) fit()
+        // A card that grows over several frames (the back's rows folding
+        // open) starts a pan on the first: fit again once it ends.
+        else if (!waiting) {
+          waiting = true
+          map.once('moveend', fit)
+        }
       })
     }
     const observer = new ResizeObserver(refit)
@@ -549,6 +560,7 @@ export function MapView({
     }
     return () => {
       cancelAnimationFrame(frame)
+      map.off('moveend', fit)
       observer.disconnect()
       content.disconnect()
     }

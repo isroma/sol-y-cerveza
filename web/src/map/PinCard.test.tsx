@@ -159,20 +159,24 @@ describe('PinCard', () => {
     expect(
       screen.getByRole('button', { name: 'Sugerir un cambio' }),
     ).toBeInTheDocument()
-    // An answer turns the card with it already chosen.
+    // An answer turns the card with it already chosen: Sí turns the back's
+    // "Tiene terraza" on.
     fireEvent.click(screen.getByRole('button', { name: 'Sí' }))
-    expect(await screen.findByRole('radio', { name: 'Sí' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'No' })).not.toBeChecked()
+    expect(
+      await screen.findByRole('switch', { name: 'Tiene terraza' }),
+    ).toBeChecked()
   })
 
-  it('turns round with No chosen', async () => {
+  it('turns round with No chosen (the switch off, where it starts)', async () => {
     const unknown = status({
       hasTerrace: false,
       venue: { ...status({}).venue, terrace: null },
     })
     render(<PinCard status={unknown} minutes={at} sunset={18 * 60} />)
     fireEvent.click(screen.getByRole('button', { name: 'No' }))
-    expect(await screen.findByRole('radio', { name: 'No' })).toBeChecked()
+    expect(
+      await screen.findByRole('switch', { name: 'Tiene terraza' }),
+    ).not.toBeChecked()
   })
 
   it('does not ask where the venue has a terrace', () => {
