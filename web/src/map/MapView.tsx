@@ -32,7 +32,7 @@ import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
-import { createPin, updatePin } from './pins.ts'
+import { createPin, NAMES_ON_HOVER_ZOOM, updatePin } from './pins.ts'
 import {
   canaPrice,
   pricedBadges,
@@ -190,8 +190,21 @@ export function MapView({
           const { lat, lng } = map.getCenter()
           onCenterChangeRef.current?.({ lat, lon: lng })
         })
+        // Hovering a badge shows its name only zoomed in and while the map
+        // rests (pins.css); set on the container, not through React, so a
+        // pan doesn't re-render.
+        const mapEl = map.getContainer()
+        const namesOnHover = () =>
+          mapEl.classList.toggle(
+            'names-on-hover',
+            (map?.getZoom() ?? 0) >= NAMES_ON_HOVER_ZOOM,
+          )
+        namesOnHover()
+        map.on('movestart', () => mapEl.classList.add('is-moving'))
+        map.on('moveend', () => mapEl.classList.remove('is-moving'))
         map.on('zoom', (event) => {
           if (!map) return
+          namesOnHover()
           setOverview(map.getZoom() < OVERVIEW_ZOOM)
           const zoom = map.getZoom()
           setFolded(cardFolded(zoom))
@@ -419,7 +432,15 @@ export function MapView({
               focusVenue(map, current)
             else onSelectRef.current(id)
           },
-          (hovered) => hideTerraceName(map, id, hovered),
+          // The label hides only when the tab shows the name (pins.css).
+          (hovered) =>
+            hideTerraceName(
+              map,
+              id,
+              hovered &&
+                map.getContainer().matches('.names-on-hover:not(.is-moving)') &&
+                !map.getContainer().closest('.map-wrap.has-card'),
+            ),
         )
         const position = status.venue.terrace ?? status.venue.venue
         const marker = new Marker({ element: el, anchor: 'bottom' })
