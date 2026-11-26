@@ -73,7 +73,8 @@ def test_read_sun_reports_without_a_file_is_empty(tmp_path: Path) -> None:
         ("1,nowhere,0,176.3,27.1,2026-11-25T12:31:04.000Z", "venue_id"),
         ("1,osm:node/1,2,176.3,27.1,2026-11-25T12:31:04.000Z", "leaf_off"),
         ("1,osm:node/1,true,176.3,27.1,2026-11-25T12:31:04.000Z", "leaf_off"),
-        ("1,osm:node/1,0,360,27.1,2026-11-25T12:31:04.000Z", "azimuth"),
+        ("1,osm:node/1,0,360.1,27.1,2026-11-25T12:31:04.000Z", "azimuth"),
+        ("1,osm:node/1,0,-0.1,27.1,2026-11-25T12:31:04.000Z", "azimuth"),
         ("1,osm:node/1,0,nan,27.1,2026-11-25T12:31:04.000Z", "azimuth"),
         ("1,osm:node/1,0,176.3,91,2026-11-25T12:31:04.000Z", "altitude"),
         ("1,osm:node/1,0,176.3,,2026-11-25T12:31:04.000Z", "altitude"),
@@ -111,6 +112,18 @@ def test_horizon_bin_rounds_halves_up_and_wraps() -> None:
     assert horizon_bin(176.3) == 176
     assert horizon_bin(176.5) == 177
     assert horizon_bin(359.6) == 0
+    assert horizon_bin(360.0) == 0
+
+
+def test_an_azimuth_of_360_reads_and_caps_round_north(tmp_path: Path) -> None:
+    # The API rounds 359.95 and above to 360.0; the admin writes it as served.
+    path = tmp_path / "sun.csv"
+    path.write_text(
+        HEADER + "1,osm:node/123,0,360.0,30,2026-11-25T12:31:04.000Z\n", encoding="utf-8"
+    )
+    (report,) = read_sun_reports(path)
+    assert report.azimuth == 360.0
+    assert _runs([report]) == [(False, 355, 5, 280)]
 
 
 def test_a_report_caps_the_bins_within_the_spread() -> None:

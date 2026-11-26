@@ -9,7 +9,8 @@ accepted report:
 - `id`: the API's report id, a positive integer, unique in the file.
 - `venue_id`: the venue, as in `terraces.json`.
 - `leaf_off`: `0` or `1`, the season the report was made in.
-- `azimuth`, `altitude`: the sun's position in degrees, to 1 decimal.
+- `azimuth`, `altitude`: the sun's position in degrees, to 1 decimal; azimuth 0 to 360 (360.0,
+  from rounding, is north like 0), altitude 0 to 90.
 - `seen`: the report's instant, ISO 8601 UTC (`2026-11-25T12:31:04.000Z`).
 
 The build turns them into each terrace's `sun_corrections` with the API's rules, so the app
@@ -76,7 +77,8 @@ class SunReport(BaseModel):
     id: Annotated[int, Field(gt=0)]
     venue_id: Annotated[str, Field(pattern=VENUE_ID_PATTERN)]
     leaf_off: bool
-    azimuth: Annotated[float, Field(ge=0, lt=360)]
+    # 360.0 is allowed: the API rounds to 1 decimal, so 359.95 and above arrive as 360.0 (bin 0).
+    azimuth: Annotated[float, Field(ge=0, le=360)]
     altitude: Annotated[float, Field(ge=0, le=90)]
     seen: AwareDatetime
 
