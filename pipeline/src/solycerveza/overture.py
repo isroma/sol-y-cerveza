@@ -18,7 +18,7 @@ import logging
 import math
 import re
 import unicodedata
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from difflib import SequenceMatcher
 from functools import cache
 from pathlib import Path
@@ -73,6 +73,10 @@ NOT_VENUES = frozenset({"food_truck_stand", "pizza_delivery"})
 COUNTER_NAME = "mccafe"
 COUNTER_HOST = "mcdonalds"
 COUNTER_M = 50.0
+# A BrightQuery-only record (company filings) with a Meta twin of the same name is that venue at
+# a worse position: measured on 2026-11-18.0, a median 296 m from OSM against Meta's 14 m.
+BRIGHTQUERY = "BrightQuery"
+META = "meta"
 
 
 def cache_path(cache_dir: Path = CACHE_DIR) -> Path:
@@ -128,14 +132,18 @@ def overture_kind(category: str | None, hierarchy: Sequence[str] | None) -> Kind
     return None
 
 
-def read_places(path: Path) -> list[Venue]:
-    """Venues from a parquet written by `fetch_places`, filtered as described above."""
+def read_places(path: Path, reviewed: Collection[str] = frozenset()) -> list[Venue]:
+    """Venues from a parquet written by `fetch_places`, filtered as described above.
+
+    `reviewed` holds the venue ids with a row in `venue_review.csv`: `drop_brightquery_twins`
+    leaves those, and their twins, alone.
+    """
     rows = duckdb.connect().execute(
         "SELECT id, name, lon, lat, confidence, operating_status, category, hierarchy, datasets "
         "FROM read_parquet(?) ORDER BY id",
         [str(path)],
     )
-    venues: list[Venue] = []
+    places: list[tuple[Venue, frozenset[str]]] = []
     for (
         place_id,
         name,
@@ -152,16 +160,51 @@ def read_places(path: Path) -> list[Venue]:
             continue
         if (confidence or 0) < MIN_CONFIDENCE or EXCLUDED_DATASETS & set(datasets or []):
             continue
-        venues.append(
-            Venue(
-                id=f"overture:{place_id}",
-                name=str(name).strip(),
-                kind=kind,
-                location=LatLon(lat=lat, lon=lon),
-                outdoor_seating=None,
-            )
+        venue = Venue(
+            id=f"overture:{place_id}",
+            name=str(name).strip(),
+            kind=kind,
+            location=LatLon(lat=lat, lon=lon),
+            outdoor_seating=None,
         )
-    return drop_counters(venues)
+        places.append((venue, frozenset(datasets or [])))
+    return drop_counters(drop_brightquery_twins(places, reviewed))
+
+
+def same_name(name: str) -> str:
+    """`name` without case, accents or repeated whitespace. Generic words stay: dropping them
+    would make unrelated venues ("Bar Sol", "Restaurante Sol") the same name."""
+    text = unicodedata.normalize("NFKD", name.casefold())
+    return " ".join("".join(c for c in text if not unicodedata.combining(c)).split())
+
+
+def drop_brightquery_twins(
+    places: Sequence[tuple[Venue, Collection[str]]], reviewed: Collection[str]
+) -> list[Venue]:
+    """The venues of `places` (venue, datasets) without each BrightQuery-only one that has a
+    same-name twin from Meta: it is that venue at a worse position.
+
+    Nothing is dropped when the BrightQuery record or any of its Meta twins is in `reviewed`:
+    the owner has already decided on it.
+    """
+    meta: dict[str, list[Venue]] = {}
+    for venue, datasets in places:
+        if META in datasets and venue.name:
+            meta.setdefault(same_name(venue.name), []).append(venue)
+    kept: list[Venue] = []
+    for venue, datasets in places:
+        twins = meta.get(same_name(venue.name), []) if venue.name else []
+        if (
+            BRIGHTQUERY in datasets
+            and META not in datasets
+            and twins
+            and venue.id not in reviewed
+            and not any(t.id in reviewed for t in twins)
+        ):
+            logger.info("Overture %s duplicates %s (Meta): dropped", venue.id, twins[0].id)
+            continue
+        kept.append(venue)
+    return kept
 
 
 def drop_counters(venues: list[Venue]) -> list[Venue]:

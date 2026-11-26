@@ -3,6 +3,7 @@
 - Status: accepted (2026-11-24)
 - Date: 2026-11-24
 - Supersedes: decision 3 of [ADR-0002](0002-terrace-data-sources.md) ("Overture is a to-do list only", option A)
+- Amended (2026-11-26, #487): a BrightQuery-only Overture record (`datasets` without `meta`) is dropped when a Meta-sourced record has the same name after case, accent and whitespace folding, unless either has a row in `venue_review.csv`. Measured on 2026-11-18.0, Meta points sit a median 14 m from OSM's position for the same venue and BrightQuery-only points a median 296 m, so these twins escaped the distance+name dedupe and showed one venue twice.
 
 ## Context
 
