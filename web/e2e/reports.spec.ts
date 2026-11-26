@@ -122,7 +122,7 @@ test('reports a closed venue from the back of its card', async ({
   await openCard(page, 'Bar Sol Uno')
   const card = page.locator('.pin-card')
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(card.getByRole('group', { name: 'Mover' })).toBeVisible()
   await expect(card.locator('.change-title')).toBeFocused()
   // In sun now: nothing to say about the sun.
   await expect(
@@ -131,7 +131,27 @@ test('reports a closed venue from the back of its card', async ({
   // The check runs as soon as the back opens.
   await expect.poll(() => checks(page)).toBe(1)
   await shot(page, '2-card-back')
-  await card.getByRole('switch', { name: 'Ya no existe' }).check()
+  // A price typed first: "Ya no existe" folds it away and goes alone.
+  const price = card.getByRole('textbox', {
+    name: 'Precio de la caña en euros',
+  })
+  await price.fill('1,50')
+  const closed = card.getByRole('button', { name: 'Ya no existe' })
+  await expect(closed).toHaveAttribute('aria-pressed', 'false')
+  await closed.click()
+  await expect(closed).toHaveAttribute('aria-pressed', 'true')
+  await expect(price).toBeHidden()
+  await expect(card.getByRole('switch', { name: 'Tiene terraza' })).toBeHidden()
+  await expect(
+    card.getByText(
+      'Avisaremos de que este bar ha cerrado. No hace falta nada más.',
+    ),
+  ).toBeVisible()
+  await shot(page, '2d-card-back-closed')
+  // Off again brings the form back with the price; on again for sending.
+  await closed.click()
+  await expect(price).toHaveValue('1,50')
+  await closed.click()
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -184,7 +204,7 @@ test('moves a venue and sends it with a price, behind one check', async ({
   await page
     .getByRole('textbox', { name: 'Precio de la caña en euros' })
     .fill('1,80')
-  await page.getByRole('button', { name: /Ubicación/ }).click()
+  await page.getByRole('button', { name: 'El bar' }).click()
   const bar = page.getByRole('region', { name: 'Mover Bar Sol Uno' })
   await expect(bar).toBeFocused()
   await expect(page.locator('.pin-card')).toHaveCount(0)
@@ -212,9 +232,9 @@ test('moves a venue and sends it with a price, behind one check', async ({
   await done.click()
   await expect(bar).toHaveCount(0)
   const card = page.locator('.pin-card')
-  await expect(card.getByRole('button', { name: /Ubicación/ })).toContainText(
-    /Movida \d+ m/,
-  )
+  await expect(
+    card.getByRole('group', { name: 'Mover' }).getByRole('button').first(),
+  ).toHaveText(/^Bar · \d+ m$/)
   // The price typed before the trip to the map is still there.
   await expect(
     card.getByRole('textbox', { name: 'Precio de la caña en euros' }),
@@ -295,7 +315,7 @@ test("shows visitors' sun with a ~ on the card and the day strip", async ({
   await shot(page, '1b-card-front-visitors-sun')
   // In sun now, so the back doesn't offer the sun row.
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(card.getByRole('group', { name: 'Mover' })).toBeVisible()
   await expect(
     card.getByRole('switch', { name: 'Ahora mismo da el sol' }),
   ).toHaveCount(0)
@@ -326,7 +346,7 @@ test("shows the data's accepted sun as plain sun", async ({ page }) => {
   )
   await expect(card.locator('.sun-day-part.is-visitors')).toHaveCount(0)
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(card.getByRole('group', { name: 'Mover' })).toBeVisible()
   await expect(
     card.getByRole('switch', { name: 'Ahora mismo da el sol' }),
   ).toHaveCount(0)
@@ -352,12 +372,11 @@ test('answers Sí on the front: two taps send the terrace', async ({
   await expect(ask).toBeVisible()
   await shot(page, '6-card-front-ask')
   await ask.getByRole('button', { name: 'Sí' }).click()
-  // The back opens with Sí chosen and the tables on offer.
-  await expect(card.getByRole('radio', { name: 'Sí' })).toBeChecked()
-  await expect(card.getByRole('radio', { name: 'No' })).not.toBeChecked()
-  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
-    'Marcar en el mapa',
-  )
+  // The back opens with "Tiene terraza" on and the tables on offer.
+  await expect(
+    card.getByRole('switch', { name: 'Tiene terraza' }),
+  ).toBeChecked()
+  await expect(card.getByRole('button', { name: 'Las mesas' })).toBeVisible()
   await shot(page, '7-card-back-terrace-yes')
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
@@ -378,7 +397,7 @@ test('marks where the tables are and sends them with Sí', async ({
     .getByRole('group', { name: '¿Tiene terraza?' })
     .getByRole('button', { name: 'Sí' })
     .click()
-  await page.getByRole('button', { name: /Mesas/ }).click()
+  await page.getByRole('button', { name: 'Las mesas' }).click()
   const bar = page.getByRole('region', { name: 'Mesas de Bar Sin Terraza' })
   await expect(bar).toBeFocused()
   await expect(bar).toContainText('¿Dónde están las mesas?')
@@ -391,10 +410,10 @@ test('marks where the tables are and sends them with Sí', async ({
   await done.click()
   await expect(bar).toHaveCount(0)
   const card = page.locator('.pin-card')
-  await expect(card.getByRole('radio', { name: 'Sí' })).toBeChecked()
-  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
-    'Marcadas junto al bar',
-  )
+  await expect(
+    card.getByRole('switch', { name: 'Tiene terraza' }),
+  ).toBeChecked()
+  await expect(card.getByRole('button', { name: 'Mesas · aquí' })).toBeVisible()
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -418,11 +437,13 @@ test('says a known terrace is not there', async ({ page, reports }) => {
     card.getByRole('group', { name: '¿Tiene terraza?' }),
   ).toHaveCount(0)
   await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
-    'Mover en el mapa',
-  )
-  await card.getByRole('switch', { name: 'No tiene terraza' }).check()
-  await expect(card.getByRole('button', { name: /Mesas/ })).toHaveCount(0)
+  const terrace = card.getByRole('switch', { name: 'Tiene terraza' })
+  await expect(terrace).toBeChecked()
+  await expect(card.getByRole('button', { name: 'Las mesas' })).toBeVisible()
+  await terrace.uncheck()
+  await expect(card.getByRole('button', { name: 'Las mesas' })).toHaveCount(0)
+  await expect(card.getByRole('button', { name: 'El bar' })).toBeVisible()
+  await shot(page, '2e-card-back-no-terrace')
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(
     '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -479,13 +500,13 @@ test('Escape cancels the picker, back to the card', async ({
 }) => {
   await openCard(page, 'Bar Sol Uno')
   await page.getByRole('button', { name: 'Sugerir un cambio' }).click()
-  await page.getByRole('button', { name: /Ubicación/ }).click()
+  await page.getByRole('button', { name: 'El bar' }).click()
   await expect(page.getByRole('region', { name: /^Mover/ })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: /^Mover/ })).toHaveCount(0)
   await expect(
-    page.locator('.pin-card').getByRole('button', { name: /Ubicación/ }),
-  ).toContainText('Mover en el mapa')
+    page.locator('.pin-card').getByRole('button', { name: 'El bar' }),
+  ).toBeVisible()
   expect(reports).toEqual([])
 })
 

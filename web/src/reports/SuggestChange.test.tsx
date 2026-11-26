@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Terrace } from '../data/terraces.ts'
@@ -108,6 +108,11 @@ function middayInWinter() {
 }
 
 const send = () => screen.getByRole('button', { name: 'Enviar' })
+const closedButton = () => screen.getByRole('button', { name: 'Ya no existe' })
+const terraceSwitch = () =>
+  screen.getByRole('switch', { name: 'Tiene terraza' })
+const priceBox = () =>
+  screen.queryByRole('textbox', { name: 'Precio de la caña en euros' })
 const check = () => screen.getByTestId('turnstile')
 
 describe('SuggestChange', () => {
@@ -159,15 +164,15 @@ describe('SuggestChange', () => {
         <Back start={{ move: { lat: 38.8782, lon: -6.97 } }} />
       </StartMoveContext>,
     )
-    const row = screen.getByRole('button', { name: /Ubicación/ })
-    expect(row).toHaveTextContent('Movida 22 m')
-    fireEvent.click(row)
+    const row = screen.getByRole('group', { name: 'Mover' })
+    const bar = within(row).getByRole('button', { name: 'Bar · 22 m' })
+    fireEvent.click(bar)
     expect(startMove).toHaveBeenCalledWith(venue)
   })
 
-  it('has no location row without the picker', () => {
+  it('has no Mover row without the picker', () => {
     render(<Back />)
-    expect(screen.queryByRole('button', { name: /Ubicación/ })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Mover' })).toBeNull()
   })
 
   it('sends a tercio price with its brand', async () => {
@@ -197,14 +202,13 @@ describe('SuggestChange', () => {
     ])
   })
 
-  it('sends a price, a move and closed in one request', async () => {
+  it('sends a price and a move in one request', async () => {
     const sent = stubFetch()
     render(<Back start={{ move: { lat: 38.8782, lon: -6.97 } }} />)
     fireEvent.change(
       screen.getByRole('textbox', { name: 'Precio de la caña en euros' }),
       { target: { value: '1,5' } },
     )
-    fireEvent.click(screen.getByRole('switch', { name: 'Ya no existe' }))
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
       '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -217,7 +221,6 @@ describe('SuggestChange', () => {
           token: 'token-change',
           price: { item: 'cana', brand: null, cents: 150 },
           move: { lat: 38.8782, lon: -6.97 },
-          closed: true,
         },
       },
     ])
@@ -261,7 +264,7 @@ describe('SuggestChange', () => {
   it('says when there are too many reports', async () => {
     stubFetch(429)
     render(<Back />)
-    fireEvent.click(screen.getByRole('switch', { name: 'Ya no existe' }))
+    fireEvent.click(closedButton())
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Hay demasiados avisos enviados desde tu conexión. Prueba más tarde.',
@@ -323,14 +326,35 @@ describe('SuggestChange: the sun right now', () => {
     })
   })
 
-  it('waits for review when sent with a closure', async () => {
+  it('is not sent with a closure, which goes alone', async () => {
     middayInWinter()
-    stubFetch()
+    const sent = stubFetch()
     render(<Back of={shady} start={{ sun: true, closed: true }} />)
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
       '¡Gracias! Lo revisaremos antes de publicarlo.',
     )
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      closed: true,
+    })
+  })
+
+  it('folds away with the terrace switched off, and is not sent', async () => {
+    middayInWinter()
+    const sent = stubFetch()
+    render(<Back of={shady} start={{ sun: true }} />)
+    expect(sunRow()).toBeChecked()
+    fireEvent.click(terraceSwitch())
+    expect(sunRow()).toBeNull()
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: false,
+    })
   })
 
   it('never sends it while the row is hidden', async () => {
@@ -353,9 +377,7 @@ describe('SuggestChange: the sun right now', () => {
 })
 
 describe('SuggestChange: the terrace', () => {
-  const yes = () => screen.getByRole('radio', { name: 'Sí' })
-  const no = () => screen.getByRole('radio', { name: 'No' })
-  const tables = () => screen.queryByRole('button', { name: /Mesas/ })
+  const tables = () => screen.queryByRole('button', { name: /mesas/i })
   const withPicker = (startMove = vi.fn()) => ({
     wrapper: ({ children }: { children: ReactNode }) => (
       <StartMoveContext value={startMove}>{children}</StartMoveContext>
@@ -365,26 +387,38 @@ describe('SuggestChange: the terrace', () => {
   const terraced: Terrace = { ...venue, terrace: venue.venue }
   const spot = { lat: 38.8782, lon: -6.97 }
 
-  it('asks where the data does not know, with nothing chosen', () => {
+  it('starts off where the data has no terrace, with no tables', () => {
     render(<Back />, withPicker())
-    expect(yes()).not.toBeChecked()
-    expect(no()).not.toBeChecked()
+    expect(terraceSwitch()).not.toBeChecked()
     expect(tables()).toBeNull()
     expect(send()).toBeDisabled()
-    // Sí offers the tables; tapping it again takes the answer back.
-    fireEvent.click(yes())
-    expect(yes()).toBeChecked()
-    expect(tables()).toHaveTextContent('Marcar en el mapa')
+    // On offers the tables; off again is back where it started.
+    fireEvent.click(terraceSwitch())
+    expect(terraceSwitch()).toBeChecked()
+    expect(tables()).toHaveTextContent('Las mesas')
     expect(send()).toBeEnabled()
-    fireEvent.click(yes())
-    expect(yes()).not.toBeChecked()
+    fireEvent.click(terraceSwitch())
     expect(tables()).toBeNull()
     expect(send()).toBeDisabled()
   })
 
-  it('sends Sí alone, to be reviewed', async () => {
+  it('starts on where the data has a terrace, with its tables', () => {
+    render(<Back of={terraced} />, withPicker())
+    expect(terraceSwitch()).toBeChecked()
+    expect(tables()).toHaveTextContent('Las mesas')
+    expect(send()).toBeDisabled()
+  })
+
+  it('is the same switch on every venue, with no "No tiene terraza"', () => {
+    render(<Back of={terraced} />, withPicker())
+    expect(screen.queryByText('No tiene terraza')).toBeNull()
+    expect(screen.queryByRole('radio', { name: 'Sí' })).toBeNull()
+  })
+
+  it('sends "tiene terraza" alone, to be reviewed', async () => {
     const sent = stubFetch()
-    render(<Back start={{ terrace: true }} />)
+    render(<Back />)
+    fireEvent.click(terraceSwitch())
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
       '¡Gracias! Lo revisaremos antes de publicarlo.',
@@ -396,13 +430,26 @@ describe('SuggestChange: the terrace', () => {
     })
   })
 
-  it('hands the tables to the picker and sends them with Sí', async () => {
+  it("sends the front's No on a venue the data doesn't know", async () => {
+    const sent = stubFetch()
+    render(<Back start={{ terrace: false }} />)
+    expect(terraceSwitch()).not.toBeChecked()
+    fireEvent.click(send())
+    await screen.findByRole('status')
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      terrace: false,
+    })
+  })
+
+  it('hands the tables to the picker and sends them with the terrace', async () => {
     const startMove = vi.fn()
     const sent = stubFetch()
     render(<Back start={{ terrace: true, pin: spot }} />, withPicker(startMove))
-    const row = tables()
-    expect(row).toHaveTextContent('Marcadas a 22 m')
-    fireEvent.click(row ?? document.body)
+    const pill = tables()
+    expect(pill).toHaveTextContent('Mesas · 22 m')
+    fireEvent.click(pill ?? document.body)
     expect(startMove).toHaveBeenCalledWith(venue, 'pin')
     fireEvent.click(send())
     await screen.findByRole('status')
@@ -414,38 +461,18 @@ describe('SuggestChange: the terrace', () => {
     })
   })
 
-  it('says tables marked in place are by the bar', () => {
+  it('says tables marked in place are where the picker said', () => {
     render(<Back start={{ terrace: true, pin: venue.venue }} />, withPicker())
-    expect(tables()).toHaveTextContent('Marcadas junto al bar')
+    expect(tables()).toHaveTextContent('Mesas · aquí')
   })
 
-  it('drops the tables on No, and never sends them with it', async () => {
-    const sent = stubFetch()
-    render(<Back start={{ terrace: true, pin: spot }} />, withPicker())
-    fireEvent.click(no())
-    expect(no()).toBeChecked()
-    expect(tables()).toBeNull()
-    fireEvent.click(yes())
-    // The tables marked before No are gone.
-    expect(tables()).toHaveTextContent('Marcar en el mapa')
-    fireEvent.click(no())
-    fireEvent.click(send())
-    await screen.findByRole('status')
-    expect(sent[0]?.body).toEqual({
-      venueId: venue.id,
-      token: 'token-change',
-      terrace: false,
-    })
-  })
-
-  it('moves the tables of a known terrace, without asking', async () => {
+  it('moves the tables of a known terrace', async () => {
     const startMove = vi.fn()
     const sent = stubFetch()
     render(<Back of={terraced} start={{ pin: spot }} />, withPicker(startMove))
-    expect(screen.queryByRole('radio', { name: 'Sí' })).toBeNull()
-    const row = tables()
-    expect(row).toHaveTextContent('Movidas 22 m')
-    fireEvent.click(row ?? document.body)
+    const pill = tables()
+    expect(pill).toHaveTextContent('Mesas · 22 m')
+    fireEvent.click(pill ?? document.body)
     expect(startMove).toHaveBeenCalledWith(terraced, 'pin')
     fireEvent.click(send())
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -458,25 +485,111 @@ describe('SuggestChange: the terrace', () => {
     })
   })
 
-  it('says a known terrace is not there, dropping its tables', async () => {
+  it('switched off, folds the tables away; a price and a move still go', async () => {
     const sent = stubFetch()
-    render(<Back of={terraced} start={{ pin: spot }} />, withPicker())
-    expect(tables()).toHaveTextContent('Movidas')
-    fireEvent.click(screen.getByRole('switch', { name: 'No tiene terraza' }))
+    const move = { lat: 38.8779, lon: -6.97 }
+    render(
+      <Back of={terraced} start={{ pin: spot, move, text: '1,50' }} />,
+      withPicker(),
+    )
+    fireEvent.click(terraceSwitch())
     expect(tables()).toBeNull()
+    // The bar can still move.
+    expect(screen.getByRole('button', { name: /^Bar · / })).toBeVisible()
     fireEvent.click(send())
     await screen.findByRole('status')
     expect(sent[0]?.body).toEqual({
       venueId: venue.id,
       token: 'token-change',
+      price: { item: 'cana', brand: null, cents: 150 },
+      move,
       terrace: false,
     })
   })
 
-  it('starts the tables of a known terrace at "Mover en el mapa"', () => {
+  it('brings the tables back when switched on again', () => {
+    render(<Back of={terraced} start={{ pin: spot }} />, withPicker())
+    fireEvent.click(terraceSwitch())
+    fireEvent.click(terraceSwitch())
+    expect(terraceSwitch()).toBeChecked()
+    expect(tables()).toHaveTextContent('Mesas · 22 m')
+  })
+
+  it('keeps folded rows out of the tab order', () => {
     render(<Back of={terraced} />, withPicker())
-    expect(tables()).toHaveTextContent('Mover en el mapa')
+    const pill = screen.getByRole('button', { name: 'Las mesas' })
+    expect(pill.closest('[inert]')).toBeNull()
+    fireEvent.click(terraceSwitch())
+    const folded = pill.closest('.change-fold')
+    expect(folded).toHaveAttribute('inert')
+    expect(folded).toHaveAttribute('aria-hidden', 'true')
+  })
+})
+
+describe('SuggestChange: Ya no existe', () => {
+  const line = 'Avisaremos de que este bar ha cerrado. No hace falta nada más.'
+
+  it('is a toggle button, off at first, its line folded', () => {
+    render(<Back />)
+    expect(closedButton()).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText(line).closest('.change-fold')).toHaveAttribute(
+      'inert',
+    )
+    fireEvent.click(closedButton())
+    expect(closedButton()).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(line).closest('.change-fold')).not.toHaveAttribute(
+      'inert',
+    )
+  })
+
+  it('folds the form away, out of the tab order', () => {
+    render(<Back />)
+    const group = document.querySelector('.change-group')
+    expect(group?.closest('[inert]')).toBeNull()
+    fireEvent.click(closedButton())
+    expect(priceBox()).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Tiene terraza' })).toBeNull()
+    expect(group?.closest('[inert]')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('goes alone, whatever else was filled in', async () => {
+    const sent = stubFetch()
+    render(
+      <Back
+        start={{
+          text: '1,50',
+          move: { lat: 38.8782, lon: -6.97 },
+          terrace: true,
+          pin: { lat: 38.8782, lon: -6.97 },
+        }}
+      />,
+    )
+    fireEvent.click(closedButton())
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Lo revisaremos antes de publicarlo.',
+    )
+    expect(sent).toEqual([
+      {
+        url: 'https://api.test/v1/changes',
+        body: { venueId: venue.id, token: 'token-change', closed: true },
+      },
+    ])
+  })
+
+  it('goes even with a price out of range typed before', () => {
+    render(<Back start={{ text: '12' }} />)
     expect(send()).toBeDisabled()
+    fireEvent.click(closedButton())
+    expect(send()).toBeEnabled()
+  })
+
+  it('brings back what was typed when turned off', () => {
+    render(<Back start={{ text: '1,50', terrace: true }} />)
+    fireEvent.click(closedButton())
+    fireEvent.click(closedButton())
+    expect(priceBox()).toHaveValue('1,50')
+    expect(terraceSwitch()).toBeChecked()
   })
 })
 
@@ -510,14 +623,15 @@ describe('SuggestChange in owner mode', () => {
     })
   })
 
-  it('says a closure waits for the next Publish', async () => {
+  it('says a closure waits for the next Publish, and saves it alone', async () => {
     await ownerOn()
-    stubFetch()
-    render(<Back start={{ closed: true }} />)
+    const sent = stubFetch()
+    render(<Back start={{ closed: true, text: '1,80' }} />)
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect(await screen.findByRole('status')).toHaveTextContent(
       'próxima publicación',
     )
+    expect(sent[0]?.body).toEqual({ venueId: venue.id, closed: true })
   })
 
   it('says the terrace and its tables wait for the next Publish', async () => {

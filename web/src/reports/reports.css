@@ -199,6 +199,47 @@
   gap: var(--space-3);
 }
 
+/* Rows that fold open and shut by their height (0fr -> 1fr), fading as they
+   go, like the card's price details: open in 0.2 s on the card's curve,
+   shut a little faster. Shut, they are inert (Fold in SuggestChange). */
+.change-fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.15s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.15s;
+}
+
+.change-fold.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s;
+}
+
+.change-fold > * {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* A pill in a row folds by its width instead. */
+.change-fold--x,
+.change-fold--x.is-open {
+  grid-template-rows: auto;
+  transition-property: grid-template-columns, opacity;
+}
+
+.change-fold--x {
+  grid-template-columns: 0fr;
+}
+
+.change-fold--x.is-open {
+  grid-template-columns: 1fr;
+}
+
 .change-group {
   overflow: hidden;
   border-radius: 14px;
@@ -211,71 +252,136 @@
   justify-content: space-between;
   gap: var(--space-2);
   width: 100%;
-  min-height: var(--control);
-  padding: 0 var(--space-3);
-  border: 0;
+  min-height: 46px;
+  padding: 0 var(--space-2) 0 var(--space-3);
   border-top: 1px solid var(--line);
-  background: transparent;
   color: var(--ink);
-  font: inherit;
   font-size: 15px;
-  text-align: left;
   cursor: pointer;
 }
 
-.change-row:first-child {
+/* The price: Caña / Tercio on the left, the € field on the right. */
+.change-row--price {
+  min-height: 52px;
+  padding-left: 6px;
   border-top: 0;
-}
-
-.change-row--segmented {
-  padding: 6px;
   cursor: default;
 }
 
-.change-row--segmented .price-segmented {
-  flex: 1;
-  background: color-mix(in srgb, var(--ink) 7%, transparent);
-}
-
-/* "¿Tiene terraza?" with a small Sí / No on the right, nothing chosen. */
-.change-row--answer {
-  padding-right: 6px;
-  white-space: nowrap;
-  cursor: default;
-}
-
-.change-answer {
+.change-item {
   flex: none;
-  width: 104px;
   background: color-mix(in srgb, var(--ink) 7%, transparent);
 }
 
-.change-link:hover {
+.change-item button {
+  height: 32px;
+  padding: 0 var(--space-3);
+}
+
+/* "Mover": the bar and the tables, two pills that open the map picker. */
+.change-row--move {
+  align-items: flex-start;
+  min-height: 52px;
+  /* 52 px on one line, with the 1 px rule above. */
+  padding: 7px 6px 8px var(--space-3);
+  cursor: default;
+}
+
+.change-row--move > span {
+  line-height: 36px;
+}
+
+/* Both pills placed don't fit beside "Mover" on a 280 px card: the
+   tables' pill then takes a second line, right-aligned. */
+.change-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 6px;
+  min-width: 0;
+}
+
+.change-pills .change-fold > * {
+  /* The gap lives inside the fold, so it goes with the pill. */
+  padding-left: 6px;
+}
+
+/* 12 px / 600 like the card's "Sugerir un cambio" pill, so "El bar" and
+   "Mesas · 12 m", or "Bar · 34 m" and "Las mesas", fit on one line. */
+.change-pill {
+  height: 36px;
+  padding: 0 9px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.change-pill:hover {
   background: var(--surface-hover);
 }
 
-.change-hint,
-.change-select {
-  color: var(--muted);
+/* Inside, since a fold clips what passes its edges. */
+.change-pill:focus-visible {
+  outline: 2px solid var(--sun);
+  outline-offset: -2px;
+}
+
+/* Placed: the pill says so, with the distance. */
+.change-pill.is-set {
+  border-color: var(--sun-dark);
+  background: var(--highlight);
+}
+
+/* "Marca", for a tercio: one quiet line under the price. */
+.change-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: 40px;
+  margin: 0 var(--space-2) var(--space-2) 6px;
+  padding: 0 var(--space-1) 0 10px;
+  border-radius: var(--radius-s);
+  background: var(--bg);
   font-size: 14px;
+  cursor: pointer;
+}
+
+.change-brand > span {
+  color: var(--muted);
 }
 
 .change-select {
-  max-width: 60%;
+  min-width: 0;
+  max-width: 70%;
+  height: 100%;
   border: 0;
   background: transparent;
+  color: var(--ink);
   font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
   text-align: right;
   cursor: pointer;
 }
 
 .change-amount {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 4px;
-  width: 84px;
-  height: 32px;
-  padding: 0 var(--space-2);
+  width: 92px;
+  height: 36px;
+  padding: 0 10px;
   border-radius: var(--radius-s);
   background: var(--bg);
 }
@@ -305,10 +411,59 @@
 }
 
 .change-note {
-  margin: 0;
+  /* A margin, not the form's gap: it folds away with the form. */
+  margin: var(--space-2) 0 0;
   color: var(--muted);
   font-size: 13px;
   text-align: center;
+}
+
+/* "Ya no existe" on: the form folds into this one line. */
+.change-closed {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: var(--highlight);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+/* "Ya no existe": a quiet full-width toggle button, ringed in sun-dark on
+   a highlight while on. */
+.change-flag {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-m);
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.change-flag:hover {
+  background: color-mix(in srgb, var(--ink) 7%, var(--field));
+}
+
+.change-flag[aria-pressed='true'] {
+  border-color: var(--sun-dark);
+  background: var(--highlight);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .change-fold,
+  .change-fold.is-open,
+  .change-pill,
+  .change-flag {
+    transition: none;
+  }
 }
 
 .change-send {
