@@ -256,20 +256,8 @@ export function reviewServer(): Plugin {
         if (refusal === null) return next()
         send(res, 403, { error: refusal })
       })
-      server.middlewares.use(ADMIN_ENDPOINTS.publish, (req, res) => {
-        if (req.method === 'GET') return send(res, 200, publishStatus())
-        if (req.method !== 'POST')
-          return send(res, 405, { error: 'method not allowed' })
-        // Waits for pending saves so the snapshot of the CSV is complete.
-        void queue.then(() =>
-          startPublish()
-            ? send(res, 202, publishStatus())
-            : send(res, 409, { error: 'a Publish is still building' }),
-        )
-      })
-      // The suggestions, reports and sun reports review queues, proxied to the API so the
-      // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
-      // browser: GET reads the queue, POST resolves entries.
+      // The API's admin connection: the review queues below, and Publish,
+      // which copies the owner's phone prices into venue_prices.csv first.
       const env = loadEnv(
         server.config.mode,
         server.config.envDir || process.cwd(),
@@ -277,6 +265,20 @@ export function reviewServer(): Plugin {
       )
       const api = env['VITE_PRICES_API'] ?? ''
       const token = env['PRICES_ADMIN_TOKEN'] ?? ''
+      server.middlewares.use(ADMIN_ENDPOINTS.publish, (req, res) => {
+        if (req.method === 'GET') return send(res, 200, publishStatus())
+        if (req.method !== 'POST')
+          return send(res, 405, { error: 'method not allowed' })
+        // Waits for pending saves so the snapshot of the CSV is complete.
+        void queue.then(() =>
+          startPublish(api && token ? { api, token } : null)
+            ? send(res, 202, publishStatus())
+            : send(res, 409, { error: 'a Publish is still building' }),
+        )
+      })
+      // The suggestions, reports and sun reports review queues, proxied to the API so the
+      // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
+      // browser: GET reads the queue, POST resolves entries.
       const proxy =
         (getPath: string, postPath: string) =>
         (req: IncomingMessage, res: ServerResponse) => {

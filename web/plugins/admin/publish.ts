@@ -8,8 +8,14 @@ import {
   isBusy,
   type PublishStatus,
 } from '../../src/admin/publishStatus.ts'
+import { formatPricesCsv, parsePricesCsv } from '../../src/admin/pricesCsv.ts'
 import { parseReviewCsv, type Review } from '../../src/admin/review.ts'
 import { REPO_ROOT as ROOT } from '../paths.ts'
+import {
+  fetchOwnerPrices,
+  mergeOwnerPrices,
+  type PriceApi,
+} from './ownerPrices.ts'
 
 const run = promisify(execFile)
 
@@ -161,11 +167,11 @@ async function watch(
 }
 
 /** Starts a Publish in the background; false when one is still building. */
-export function startPublish(): boolean {
+export function startPublish(api: PriceApi | null = null): boolean {
   if (isBusy(status)) return false
   const mine = ++generation
   status = { ...IDLE, step: 'building' }
-  void publishReview(mine).catch((error: unknown) => {
+  void publishReview(mine, api).catch((error: unknown) => {
     if (generation === mine) {
       update({
         step: 'failed',
@@ -185,6 +191,35 @@ function stamp(): string {
 }
 
 /**
+ * `csv` (venue_prices.csv) with the owner's phone prices merged in (#263), and
+ * how many it added or changed. Without the API (not configured, offline) it
+ * ships the CSV as it is: phonePrices null, and the next Publish copies them.
+ * Only the copy that ships changes; the working file is left alone, so an
+ * edit made during the Publish isn't lost.
+ */
+export async function withPhonePrices(
+  csv: string | null,
+  api: PriceApi | null,
+  fetcher: typeof fetch = fetch,
+): Promise<{ prices: string | null; phonePrices: number | null }> {
+  if (!api) return { prices: csv, phonePrices: null }
+  let owner
+  try {
+    owner = await fetchOwnerPrices(api, fetcher)
+  } catch {
+    return { prices: csv, phonePrices: null }
+  }
+  const { prices, changed } = mergeOwnerPrices(
+    csv === null ? [] : parsePricesCsv(csv),
+    owner,
+  )
+  return {
+    prices: changed ? formatPricesCsv(prices) : csv,
+    phonePrices: changed,
+  }
+}
+
+/**
  * Ships venue_review.csv: rebuilds terraces.json in a temporary worktree of
  * origin/main (the checkout you work in is never touched), commits both files
  * and pushes a data/venue-review-* branch. Only git is used, because the
@@ -193,12 +228,16 @@ function stamp(): string {
  * passes. A publish branch whose PR is still open gets a new commit instead.
  * Progress goes to `status`; the review file is read once, at the start.
  */
-async function publishReview(mine: number): Promise<void> {
+async function publishReview(
+  mine: number,
+  api: PriceApi | null,
+): Promise<void> {
   // A snapshot: edits made from here on go out with the next Publish.
   const csv = await readFile(join(ROOT, REVIEW), 'utf-8')
-  const prices = await readFile(join(ROOT, PRICES), 'utf-8').catch(() => null)
+  const local = await readFile(join(ROOT, PRICES), 'utf-8').catch(() => null)
   const reviews = parseReviewCsv(csv)
-  update({ decisions: reviews.length })
+  const { prices, phonePrices } = await withPhonePrices(local, api)
+  update({ decisions: reviews.length, phonePrices })
   await sh(ROOT, 'git', ['fetch', '--quiet', 'origin', 'main'])
   const open = await openPublishBranch()
   const branch = open ?? `${BRANCH_PREFIX}${stamp()}`
@@ -244,7 +283,7 @@ async function publishReview(mine: number): Promise<void> {
       `feat(data): apply venue review (${reviews.length} decisions)`,
       '-m',
       [
-        'Published from the local admin view (`npm run admin`): `venue_review.csv` and the rebuilt `terraces.json`.',
+        "Published from the local admin view (`npm run admin`): `venue_review.csv`, `venue_prices.csv` (with the owner's phone prices) and the rebuilt `terraces.json`.",
         summary(reviews),
         'Merges itself when CI passes, which deploys the site.',
       ].join('\n\n'),
