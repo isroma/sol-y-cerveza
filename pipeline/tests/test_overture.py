@@ -11,6 +11,7 @@ from solycerveza.overture import (
     NearbyVenues,
     _similar_at_least,
     cache_path,
+    drop_brightquery_twins,
     drop_counters,
     fetch_places,
     merge_venues,
@@ -188,6 +189,57 @@ def test_read_places_filters_closed_low_confidence_foursquare_and_non_venues(
     venues = read_places(path)
     assert [(v.id, v.name, v.kind) for v in venues] == [("overture:ok", "Bar Bueno", "bar")]
     assert venues[0].outdoor_seating is None
+
+
+META = frozenset({"meta"})
+BQ = frozenset({"BrightQuery"})
+# Meta's point is right; BrightQuery's sits 500 m off, too far for `merge_venues` to merge.
+BOCCACCIO_META = venue("overture:m", "Ristorante Boccaccio", 38.880, -6.97)
+BOCCACCIO_BQ = venue("overture:q", "Ristorante Boccaccio", 38.8845, -6.97)
+
+
+def test_a_brightquery_only_twin_of_a_meta_venue_is_dropped() -> None:
+    both = frozenset({"meta", "BrightQuery"})
+    places = [(BOCCACCIO_META, both), (BOCCACCIO_BQ, BQ)]
+    assert drop_brightquery_twins(places, reviewed=()) == [BOCCACCIO_META]
+
+
+@pytest.mark.parametrize("reviewed", ["overture:m", "overture:q"])
+def test_a_reviewed_twin_keeps_both(reviewed: str) -> None:
+    places = [(BOCCACCIO_META, META), (BOCCACCIO_BQ, BQ)]
+    assert drop_brightquery_twins(places, reviewed={reviewed}) == [BOCCACCIO_META, BOCCACCIO_BQ]
+
+
+def test_a_brightquery_only_venue_without_a_meta_twin_is_kept() -> None:
+    alone = venue("overture:a", "Bar Solo", 38.88, -6.97)
+    bq_twin = venue("overture:b", "Bar Solo", 38.89, -6.97)  # a BrightQuery twin is no Meta one
+    places = [(alone, BQ), (bq_twin, BQ), (BOCCACCIO_BQ, BQ)]
+    assert drop_brightquery_twins(places, reviewed=()) == [alone, bq_twin, BOCCACCIO_BQ]
+
+
+def test_twin_names_match_ignoring_case_accents_and_spaces_only() -> None:
+    meta = venue("overture:m", "Cervecería  La Marina", 38.88, -6.97)
+    same = venue("overture:s", "CERVECERIA la marina ", 38.885, -6.97)
+    generic_word = venue("overture:g", "Bar La Marina", 38.885, -6.97)
+    other = venue("overture:o", "Cervecería La Marina 2", 38.885, -6.97)
+    places = [(meta, META), (same, BQ), (generic_word, BQ), (other, BQ)]
+    assert drop_brightquery_twins(places, reviewed=()) == [meta, generic_word, other]
+
+
+def test_read_places_drops_brightquery_twins_unless_reviewed(tmp_path: Path) -> None:
+    path = tmp_path / "places.parquet"
+    duckdb.execute(
+        f"""
+        COPY (
+          SELECT * FROM (VALUES
+            ('m', 'Bar Sol', -6.97, 38.88, 0.9, 'open', 'bar', [], ['meta']),
+            ('q', 'Bar Sol', -6.97, 38.885, 0.9, 'open', 'bar', [], ['BrightQuery'])
+          ) AS t(id, name, lon, lat, confidence, operating_status, category, hierarchy, datasets)
+        ) TO '{path}' (FORMAT parquet)
+        """
+    )
+    assert [v.id for v in read_places(path)] == ["overture:m"]
+    assert [v.id for v in read_places(path, {"overture:q"})] == ["overture:m", "overture:q"]
 
 
 def overture_release_file(path: Path) -> None:

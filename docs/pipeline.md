@@ -9,6 +9,7 @@
 Sources, in the order they are applied (a later one wins):
 
 1. **Venues** from OSM, from Overture ([ADR-0003](adr/0003-venue-base-osm-plus-overture.md)) and recent entries of the Junta de Extremadura's restaurant register ([ADR-0004](adr/0004-junta-register-and-website-evidence.md)).
+   - An Overture record whose only position source is BrightQuery (its `datasets` have `BrightQuery` and not `meta`) is dropped when a Meta-sourced Overture record has the same name (equal after case, accent and whitespace folding; generic words like "bar" count). On release 2026-11-18.0, Meta points were a median 14 m from the OSM position of the same venue and BrightQuery-only points a median 296 m, too far for the distance+name dedupe, so such pairs showed one venue twice. A pair is left alone when either record has a row in `venue_review.csv`.
 2. **Terraces** come only from OSM (`outdoor_seating=yes` on a venue, or a `leisure=outdoor_seating` point within 40 m, which then sets the terrace position) and from `pipeline/data/curated_terraces.csv`, which wins over OSM.
 3. **Corrections**: wrong Overture or Junta venues are dropped through `pipeline/data/venue_corrections.csv`. Wrong OSM venues should be fixed in OSM instead.
 4. **Reviews**: the admin's `pipeline/data/venue_review.csv` ([admin guide](admin.md)) is applied last, on top of everything else.
