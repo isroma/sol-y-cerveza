@@ -14,9 +14,10 @@
  * - Owner mode (bearer OWNER_TOKEN, which can only change prices and send
  *   reports): GET /v1/owner/check, PUT/DELETE /v1/owner/prices saves a
  *   confirmed price, POST /v1/owner/changes is the card back as the owner's
- *   change (a price shows at once; a move or closed waits for the admin's next
- *   Publish, applied without review), POST /v1/owner/reports adds a missing
- *   venue the same way. No bot check and no caps.
+ *   change (a price shows at once; a move, closed, terrace answer or pin waits
+ *   for the admin's next Publish, applied without review), POST
+ *   /v1/owner/reports adds a missing venue the same way. No bot check and no
+ *   caps.
  * - POST /v1/login: the owner's username and password for OWNER_TOKEN, at most
  *   LOGIN_NETWORK_LIMIT attempts per network in 15 minutes and
  *   LOGIN_HOURLY_LIMIT from everyone in an hour.
@@ -24,9 +25,10 @@
  * - POST /v1/reports: a visitor reports a venue that moved, closed or is missing,
  *   whether it has a terrace, or where the terrace is (ADR-0009), with the same
  *   identity and caps as suggestions. Never applied automatically.
- * - POST /v1/changes: the card back's price, move and closed for one venue,
- *   behind one bot check (action 'change'), checked and capped as the two
- *   endpoints above would, and stored together or not at all.
+ * - POST /v1/changes: the card back's price, move, closed, terrace answer and
+ *   tables pin for one venue, behind one bot check (action 'change'), checked
+ *   and capped as the two endpoints above would, and stored together or not at
+ *   all.
  * - GET /v1/admin/reports, POST /v1/admin/reports/resolve: the reports queue.
  * - Sun reports (ADR-0012): `sun: true` in POST /v1/changes says the sun is on
  *   the terrace now; the Worker works out where the sun is (refused when it is

@@ -2,6 +2,7 @@
 
 - Status: accepted (2026-11-24)
 - Date: 2026-11-24
+- Amended (2026-11-26): `POST /v1/changes` also carries the terrace answer (`terrace: true | false`) and the tables pin (`pin: {lat, lon}`) of [ADR-0009](0009-terrace-reports.md), each a venue report counted as one part; a `pin` with `terrace: false` is refused. The app UI that sends them is still to come (#210).
 - Issue: #242 (and #233, #235, #239 before it)
 
 ## Context
