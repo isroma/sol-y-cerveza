@@ -23,10 +23,12 @@ async function getJson(url: string): Promise<unknown> {
 /**
  * Copies the accepted sun reports the API lists into sun_corrections.csv,
  * adding only the ids it lacks (the dev server checks again as it writes).
- * Resolves with the number of rows added, or why it failed; never rejects.
+ * A report the CSV can't hold (e.g. a venue id the build's reader refuses)
+ * is skipped and named in `skipped`, so it never blocks the others. Resolves
+ * with the number of rows added, or why it failed; never rejects.
  */
 export async function syncSunCorrections(): Promise<
-  { added: number } | { error: string }
+  { added: number; skipped: number[] } | { error: string }
 > {
   try {
     const accepted = acceptedSunResponseSchema.parse(
@@ -35,15 +37,27 @@ export async function syncSunCorrections(): Promise<
     const rows = z
       .array(sunCorrectionSchema)
       .parse(await getJson(ADMIN_ENDPOINTS.sunCorrections))
-    const missing = missingSunCorrections(rows, accepted.map(toSunCorrection))
-    if (missing.length === 0) return { added: 0 }
+    const skipped: number[] = []
+    const incoming = accepted.flatMap((report) => {
+      try {
+        return [toSunCorrection(report)]
+      } catch {
+        skipped.push(report.id)
+        return []
+      }
+    })
+    const missing = missingSunCorrections(rows, incoming)
+    if (missing.length === 0) return { added: 0, skipped }
     const response = await fetch(ADMIN_ENDPOINTS.sunCorrections, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: missing }),
     })
     if (!response.ok) return { error: `HTTP ${response.status}` }
-    return z.object({ added: z.number().int() }).parse(await response.json())
+    const { added } = z
+      .object({ added: z.number().int() })
+      .parse(await response.json())
+    return { added, skipped }
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) }
   }
@@ -75,7 +89,11 @@ export function useSunCorrections({
     const next = chain.current.then(async () => {
       const result = await syncSunCorrections()
       if ('error' in result) return setError(result.error)
-      setError(null)
+      setError(
+        result.skipped.length > 0
+          ? `accepted report${result.skipped.length === 1 ? '' : 's'} ${result.skipped.join(', ')} not recorded: not a valid sun_corrections.csv row`
+          : null,
+      )
       if (result.added > 0) latest.current(result.added)
     })
     chain.current = next

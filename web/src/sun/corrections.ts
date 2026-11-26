@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import * as z from 'zod/mini'
 import { PRICES_API } from '../apiClient.ts'
+import type { Terrace } from '../data/terraces.ts'
 
 /**
  * Visitors' sun reports (issue #364, docs/adr/0012-sun-reports.md): where 3
@@ -26,6 +27,26 @@ const correctionSchema = z.object({
 const answerSchema = z.object({ corrections: z.array(z.unknown()) })
 
 export type SunCorrection = z.infer<typeof correctionSchema>
+
+/** What applying a correction needs: the API's and the dataset's alike. */
+export type HorizonCap = Pick<
+  SunCorrection,
+  'leafOff' | 'from' | 'to' | 'altitude' | 'confirmed'
+>
+
+/**
+ * A record's own `sun_corrections` (terraces.json, issue #463): the owner's
+ * accepted reports, so confirmed caps, applied with or without the API.
+ */
+export function datasetCaps(venue: Terrace): HorizonCap[] {
+  return (venue.sun_corrections ?? []).map((c) => ({
+    leafOff: c.leaf_off,
+    from: c.from,
+    to: c.to,
+    altitude: c.altitude,
+    confirmed: true,
+  }))
+}
 
 /**
  * The corrections in an API answer. One this client can't read is left out
@@ -118,7 +139,7 @@ export type CorrectedHorizons = {
 
 export function correctHorizon(
   horizon: readonly number[],
-  corrections: readonly SunCorrection[],
+  corrections: readonly HorizonCap[],
   leafOff: boolean,
 ): CorrectedHorizons | null {
   const here = corrections.filter((c) => c.leafOff === leafOff)

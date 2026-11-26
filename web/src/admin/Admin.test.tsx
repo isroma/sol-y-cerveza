@@ -43,6 +43,8 @@ const json = (body: unknown, status = 200) =>
 
 type Call = { url: string; method: string; body: unknown }
 
+const SUN_VENUE = 'osm:node/4242'
+
 /** The dev server's answers, from fixtures; every request is recorded. */
 function stubServer() {
   const calls: Call[] = []
@@ -226,7 +228,9 @@ describe('Admin', () => {
           accepted = [
             {
               id: 4,
-              venueId: paseoSanFrancisco.id,
+              // A real id: the CSV takes only ids the build's reader does,
+              // which the fixtures' sample: ids are not.
+              venueId: SUN_VENUE,
               leafOff: true,
               azimuth: 176.3,
               altitude: 27.1,
@@ -281,7 +285,7 @@ describe('Admin', () => {
           rows: [
             {
               id: 4,
-              venueId: paseoSanFrancisco.id,
+              venueId: SUN_VENUE,
               leafOff: true,
               azimuth: 176.3,
               altitude: 27.1,

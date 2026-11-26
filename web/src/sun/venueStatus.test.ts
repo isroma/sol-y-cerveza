@@ -320,6 +320,62 @@ describe("visitors' sun corrections", () => {
     expect(gained.every((i) => approximate[i])).toBe(true)
   })
 
+  describe("the record's own accepted corrections", () => {
+    const accepted: Terrace = {
+      ...shady,
+      sun_corrections: [{ leaf_off: true, from: 160, to: 200, altitude: 200 }],
+    }
+
+    it('apply as plain sun without any from the API', () => {
+      const day = venueDay(accepted, winter)
+      expect(day.timeline).toEqual(
+        venueDay(shady, winter, [south({ confirmed: true })]).timeline,
+      )
+      expect(day.timeline).toContain('sun')
+      expect(day.approximate).toBeNull()
+    })
+
+    it('only in their season', () => {
+      const summerOnly: Terrace = {
+        ...shady,
+        sun_corrections: [
+          { leaf_off: false, from: 160, to: 200, altitude: 200 },
+        ],
+      }
+      expect(venueDay(summerOnly, winter).timeline).not.toContain('sun')
+    })
+
+    it("merge with the API's, which still count as approximate", () => {
+      // Confirmed in a narrow slice from the file, visitors' wider.
+      const narrow: Terrace = {
+        ...shady,
+        sun_corrections: [
+          { leaf_off: true, from: 175, to: 190, altitude: 200 },
+        ],
+      }
+      const merged = venueDay(narrow, winter, [south()])
+      const expected = venueDay(shady, winter, [
+        south({ confirmed: true, from: 175, to: 190 }),
+        south(),
+      ])
+      expect(merged.timeline).toEqual(expected.timeline)
+      expect(merged.approximate).toEqual(expected.approximate)
+      expect(merged.approximate?.some(Boolean)).toBe(true)
+    })
+
+    it('stay when the API corrects the venue too', () => {
+      const days = [venueDay(accepted, winter)]
+      const elsewhere = south({ leafOff: false })
+      const corrected = correctDays(
+        days,
+        correctionsByVenue([elsewhere]),
+        winter,
+      )
+      expect(corrected[0]).not.toBe(days[0])
+      expect(corrected[0]?.timeline).toEqual(days[0]?.timeline)
+    })
+  })
+
   it('recomputes only the venues with corrections', () => {
     const days = [venueDay(shady, winter), venueDay(plazaAlta, winter)]
     expect(correctDays(days, new Map(), winter)).toBe(days)

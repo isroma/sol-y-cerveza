@@ -131,7 +131,7 @@ Only one Publish builds at a time.
 
 ## Owner mode on the phone
 
-The owner can also record prices at the bar from the public site on a phone ([ADR-0005](adr/0005-price-suggestions.md), "Owner mode"): a private link `#owner=<OWNER_TOKEN>` turns it on and keeps the token in the phone's local storage. The venue card then shows price fields that save straight to the API (`PUT`/`DELETE /v1/owner/prices`), and "Foto de la carta" reads a price-board photo with the Claude API (`POST /v1/owner/photo`, at most 50 a day). The token can only add or remove prices and read photos (`web/src/prices/owner.ts`). Owner prices live in the API's database; copying them into `venue_prices.csv` (`GET /v1/admin/owner-prices` exists for it) is not built yet.
+The owner can also record prices at the bar from the public site on a phone ([ADR-0005](adr/0005-price-suggestions.md), "Owner mode"): a private link `#owner=<OWNER_TOKEN>` turns it on and keeps the token in the phone's local storage. The venue card then shows price fields that save straight to the API (`PUT`/`DELETE /v1/owner/prices`), and "Foto de la carta" reads a price-board photo with the Claude API (`POST /v1/owner/photo`, at most 50 a day). The token can only add or remove prices and read photos (`web/src/prices/owner.ts`). Owner prices live in the API's database; every **Publish** first copies them into `venue_prices.csv` (`GET /v1/admin/owner-prices`, through the same `PRICES_ADMIN_TOKEN` as the queues), keeping the newer `seen` for each venue, item and brand, so they ship with the rest (#263). The Publish line counts them; without the API, Publish ships the CSV as it is and the next one copies them.
 
 ## Dev-server endpoints
 

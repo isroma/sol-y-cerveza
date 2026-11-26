@@ -123,8 +123,10 @@ export async function report(request: Request, env: Env): Promise<Response> {
 
 /**
  * Everything a visitor suggests for one venue from the card's back (a price,
- * a move, closed, sun now) behind one bot check, stored together or not at
- * all. Each part counts towards the caps as its own request would.
+ * a move, closed, a terrace answer, a tables pin, sun now) behind one bot
+ * check, stored together or not at all. Each part counts towards the caps as
+ * its own request would, and each report replaces the voter's open one of its
+ * kind, as on POST /v1/reports.
  */
 export async function change(request: Request, env: Env): Promise<Response> {
   const salt = ipSalt(env)

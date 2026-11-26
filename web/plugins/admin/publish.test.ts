@@ -108,9 +108,8 @@ describe('publish paths', () => {
     expect(existsSync(join(REPO_ROOT, 'pipeline', 'pyproject.toml'))).toBe(true)
   })
 
-  // SUN is left out: Publish copes with it missing (it commits only files there).
   it('commits files that exist', () => {
-    for (const file of [REVIEW, PRICES, DATA])
+    for (const file of PUBLISHED)
       expect(existsSync(join(REPO_ROOT, file)), file).toBe(true)
   })
 })

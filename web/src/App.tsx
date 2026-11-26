@@ -129,7 +129,8 @@ export function App() {
   }, [])
 
   const track = useMemo(() => dayTrack(date), [date])
-  // Sun/shade per venue for the whole day: recomputed only when the day changes.
+  // Sun/shade per venue for the whole day, with the records' own accepted
+  // sun corrections: recomputed only when the day changes.
   const modelDays = useMemo(
     () =>
       load.status === 'ready'

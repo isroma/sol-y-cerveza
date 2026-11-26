@@ -40,6 +40,21 @@ describe('sun_corrections.csv', () => {
     const rows = [row({ id: 2, leafOff: true }), row({ id: 7, altitude: 0 })]
     expect(parseSunCorrectionsCsv(formatSunCorrectionsCsv(rows))).toEqual(rows)
     expect(parseSunCorrectionsCsv(`${HEADER}\r\n`)).toEqual([])
+    // Byte for byte: a header-only file, or one the formatter wrote, comes
+    // back unchanged, so a sync with nothing to add never dirties the repo.
+    for (const text of [
+      `${HEADER}\n`,
+      formatSunCorrectionsCsv([row({ id: 4, azimuth: 360 }), row({ id: 9 })]),
+    ])
+      expect(formatSunCorrectionsCsv(parseSunCorrectionsCsv(text))).toBe(text)
+  })
+
+  it('refuses a venue id the build’s reader refuses', () => {
+    expect(() =>
+      parseSunCorrectionsCsv(
+        `${HEADER}\n1,osm:relation/1,0,1.0,2.0,2026-11-25T12:31:04.000Z\n`,
+      ),
+    ).toThrow(/:2:/)
   })
 
   it('refuses a wrong header, a bad row or an id twice', () => {
@@ -62,7 +77,7 @@ describe('sun_corrections.csv', () => {
     )
     expect(
       bad(
-        '1,a,0,1.0,2.0,2026-11-25T12:31:04.000Z\n1,b,0,1.0,2.0,2026-11-25T12:31:04.000Z',
+        '1,osm:node/1,0,1.0,2.0,2026-11-25T12:31:04.000Z\n1,osm:node/2,0,1.0,2.0,2026-11-25T12:31:04.000Z',
       ),
     ).toThrow(/:3: id 1 is there twice/)
   })

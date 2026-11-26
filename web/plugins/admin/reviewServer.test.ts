@@ -12,6 +12,8 @@ import {
   reviewServer,
 } from './reviewServer.ts'
 import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from '../../src/admin/endpoints.ts'
+import { formatSunCorrectionsCsv } from '../../src/admin/sunCorrectionsCsv.ts'
+import { REPO_ROOT } from '../paths.ts'
 
 /** The paths the dev-server plugin mounts, in the order it mounts them. */
 function mountedPaths(): string[] {
@@ -80,6 +82,19 @@ describe('sun_corrections.csv on disk', () => {
     expect((await readSunCorrections(path)).map((r) => r.id)).toEqual([
       3, 5, 12,
     ])
+  })
+
+  it('leaves the committed file byte for byte as it is when nothing is missing', async () => {
+    const committed = readFileSync(
+      join(REPO_ROOT, 'pipeline/data/sun_corrections.csv'),
+      'utf-8',
+    )
+    const path = fresh()
+    writeFileSync(path, committed, 'utf-8')
+    const rows = await readSunCorrections(path)
+    expect(await addSunCorrections(path, rows)).toBe(0)
+    expect(readFileSync(path, 'utf-8')).toBe(committed)
+    expect(formatSunCorrectionsCsv(rows)).toBe(committed)
   })
 
   it('refuses to touch a file it cannot read', async () => {

@@ -55,7 +55,7 @@ describe('syncSunCorrections', () => {
       json({ reports: [accepted(3), accepted(5), accepted(8)] }),
       [inCsv(3), inCsv(5)],
     )
-    expect(await syncSunCorrections()).toEqual({ added: 1 })
+    expect(await syncSunCorrections()).toEqual({ added: 1, skipped: [] })
     expect(posts).toEqual([
       {
         url: ADMIN_ENDPOINTS.sunCorrections,
@@ -77,8 +77,19 @@ describe('syncSunCorrections', () => {
 
   it('writes nothing when every accepted report is there', async () => {
     const posts = stub(json({ reports: [accepted(3)] }), [inCsv(3), inCsv(4)])
-    expect(await syncSunCorrections()).toEqual({ added: 0 })
+    expect(await syncSunCorrections()).toEqual({ added: 0, skipped: [] })
     expect(posts).toEqual([])
+  })
+
+  it('skips a report the CSV cannot hold and still adds the others', async () => {
+    const posts = stub(
+      json({
+        reports: [{ ...accepted(2), venueId: 'osm:relation/7' }, accepted(3)],
+      }),
+      [],
+    )
+    expect(await syncSunCorrections()).toEqual({ added: 1, skipped: [2] })
+    expect(posts.map((p) => p.body)).toMatchObject([{ rows: [{ id: 3 }] }])
   })
 
   it('says why it failed, without throwing', async () => {

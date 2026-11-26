@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { VENUE_ID } from '../data/geo.ts'
 
 /**
  * Accepted sun reports recorded for Publish (issue #463), in
@@ -19,7 +20,8 @@ export const SUN_CORRECTION_COLUMNS = [
 export const sunCorrectionSchema = z.object({
   /** The API's sun_reports.id. */
   id: z.number().int().positive(),
-  venueId: z.string().regex(/^[^,"\r\n]+$/),
+  /** As the build's reader requires (VENUE_ID mirrors the pipeline's pattern). */
+  venueId: z.string().regex(VENUE_ID),
   /** The season the report was made in. */
   leafOff: z.boolean(),
   /** Degrees, 1 decimal. 360.0 is a rounded 359.95 or more: the build takes it mod 360. */

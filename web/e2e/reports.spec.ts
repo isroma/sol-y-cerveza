@@ -301,6 +301,37 @@ test("shows visitors' sun with a ~ on the card and the day strip", async ({
   ).toHaveCount(0)
 })
 
+test("shows the data's accepted sun as plain sun", async ({ page }) => {
+  // The owner accepted sun at Bar Sombra Uno around midday (issue #463): the
+  // cap is in terraces.json, the API serves nothing for it.
+  const terraces = terracesFile.terraces.map((venue) =>
+    venue.id === 'test:5'
+      ? {
+          ...venue,
+          sun_corrections: [
+            { leaf_off: false, from: 90, to: 270, altitude: 640 },
+          ],
+        }
+      : venue,
+  )
+  await page.route(/\/data\/terraces\.json$/, (route) =>
+    route.fulfill({ json: { ...terracesFile, terraces } }),
+  )
+  await openCard(page, 'Bar Sombra Uno')
+  const card = page.locator('.pin-card')
+  await expect(card.locator('.pin-card-sun')).toContainText(/\d+ h/)
+  await expect(card.locator('.pin-card-sun')).not.toContainText('~')
+  await expect(card.locator('.pin-card-sun')).not.toContainText(
+    'Según los visitantes',
+  )
+  await expect(card.locator('.sun-day-part.is-visitors')).toHaveCount(0)
+  await card.getByRole('button', { name: 'Sugerir un cambio' }).click()
+  await expect(card.getByRole('button', { name: /Ubicación/ })).toBeVisible()
+  await expect(
+    card.getByRole('switch', { name: 'Ahora mismo da el sol' }),
+  ).toHaveCount(0)
+})
+
 test('adds a missing venue from the menu', async ({ page, reports }) => {
   await page.goto('./')
   await expect(page.locator('.pin-marker')).toHaveCount(TERRACE_COUNT, {

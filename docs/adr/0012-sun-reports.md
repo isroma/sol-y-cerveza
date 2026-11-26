@@ -2,6 +2,7 @@
 
 - Status: accepted (2026-11-25)
 - Date: 2026-11-25
+- Amended (2026-11-26, #463): accepted corrections are also in the dataset. Accepted reports are recorded in `pipeline/data/sun_corrections.csv`, which the build turns, with the same rules as `GET /v1/sun`'s confirmed runs, into an optional `sun_corrections` list per terrace in `terraces.json` ([data contract](../data-contract.md)). The app applies that list as confirmed corrections, merged with the API's, so they hold with no API at all. The model's horizons stay untouched. The admin side (writing the CSV from the API's accepted reports, and shipping it with Publish) lands in its own PR (#463).
 - Issue: #364
 
 ## Context
@@ -41,7 +42,6 @@ This changes one invariant: sun reports, like prices, are shown on consensus wit
 
 ## Follow-ups (not built)
 
-- **Accepted corrections in the build.** Writing accepted corrections into a pipeline file that the build applies, so they live in `terraces.json` and survive without the API. Until then they are served by `GET /v1/sun`.
 - **A location check.** Refusing a report from a visitor who is not near the venue. Not built, for the reasons above; reconsider if the queue shows abuse.
 
 ## Consequences

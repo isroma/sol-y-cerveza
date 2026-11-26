@@ -9,6 +9,14 @@ group('publish status', () => {
     expect(isActive({ ...IDLE, step: 'live' })).toBe(false)
   })
 
+  it('counts the phone prices a Publish copies in', () => {
+    expect(
+      describe({ ...IDLE, step: 'building', decisions: 51, phonePrices: 3 }),
+    ).toContain('51 decisions, 3 phone prices')
+    expect(
+      describe({ ...IDLE, step: 'building', decisions: 51, phonePrices: 0 }),
+    ).not.toContain('phone')
+  })
   it('says what is happening', () => {
     expect(describe({ ...IDLE, step: 'building', decisions: 51 })).toContain(
       '51 decisions',

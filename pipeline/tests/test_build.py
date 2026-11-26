@@ -25,6 +25,13 @@ from solycerveza.build import (
 from solycerveza.envelope import Structures, pack_low, terrace_points, unpack
 from solycerveza.horizon import HorizonModel
 from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
+from solycerveza.sun_corrections import (
+    SUN_CORRECTIONS_CSV,
+    SunCorrection,
+    SunReport,
+    read_sun_reports,
+    sun_corrections_by_venue,
+)
 from solycerveza.terraces import Terrace
 from solycerveza.venues import LatLon
 
@@ -277,6 +284,47 @@ def test_shipped_terraces_json_has_the_prices_in_venue_prices_csv() -> None:
     assert wrong == [], "venue_prices.csv changed without a rebuild of terraces.json"
 
 
+def test_shipped_terraces_json_has_the_sun_corrections_in_sun_corrections_csv() -> None:
+    shipped = TerracesFile.model_validate_json(OUTPUT.read_text(encoding="utf-8"))
+    expected = sun_corrections_by_venue(
+        read_sun_reports(SUN_CORRECTIONS_CSV),
+        {t.id: t.horizon is not None for t in shipped.terraces},
+        shipped.generated,
+    )
+    wrong = sorted(t.id for t in shipped.terraces if t.sun_corrections != expected.get(t.id, []))
+    assert wrong == [], "sun_corrections.csv changed without a rebuild of terraces.json"
+
+
+def test_render_puts_sun_corrections_after_the_envelope_and_leaves_out_empty_ones() -> None:
+    corrections = [
+        SunCorrection(leaf_off=False, from_=171, to=181, altitude=251),
+        SunCorrection(leaf_off=True, from_=355, to=3, altitude=0),
+    ]
+    with_runs = add_horizons([_terrace()], _ring_horizon, points_for=_points)[0].model_copy(
+        update={"sun_corrections": corrections}
+    )
+    without = add_horizons([_terrace("curated:calle")], lambda _a, _b: [1] * 360)[0]
+    text = render(_file([without, with_runs]))
+    data = json.loads(text)
+    assert "sun_corrections" not in data["terraces"][0]
+    assert list(data["terraces"][1])[9:] == ["horizon_low", "sun_corrections", "prices"]
+    assert data["terraces"][1]["sun_corrections"] == [
+        {"leaf_off": False, "from": 171, "to": 181, "altitude": 251},
+        {"leaf_off": True, "from": 355, "to": 3, "altitude": 0},
+    ]
+    assert render(TerracesFile.model_validate_json(text)) == text
+
+
+def test_sun_corrections_need_a_horizon() -> None:
+    with pytest.raises(ValidationError, match="sun_corrections need a horizon"):
+        Terrace.model_validate(
+            {
+                **_terrace().model_dump(),
+                "sun_corrections": [{"leaf_off": False, "from": 1, "to": 2, "altitude": 3}],
+            }
+        )
+
+
 def _ring_horizon(lat: float, _lon: float) -> list[int]:
     """The pin sees 100 everywhere, the points north of it 300 and those south 50."""
     if lat > 38.88257:
@@ -340,6 +388,12 @@ def test_render_leaves_out_null_envelopes() -> None:
     assert render(TerracesFile.model_validate_json(text)) == text
 
 
+def _sun_report(report_id: int, seen: datetime, venue_id: str = "osm:node/1") -> SunReport:
+    return SunReport(
+        id=report_id, venue_id=venue_id, leaf_off=False, azimuth=176.3, altitude=27.1, seen=seen
+    )
+
+
 def _city_raster(path: Path, data: np.ndarray, x: float, y: float) -> Path:
     """An 800 m x 800 m, 2 m raster in EPSG:25829 centred on ``(x, y)``."""
     with rasterio.open(
@@ -381,15 +435,24 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
         "review_venues": lambda venues, _reviews: venues,
         "read_curated": lambda: [],
         "load_seating": lambda refresh=False: None,
-        "build_terraces": lambda _venues, _curated, _seating: [_terrace()],
+        "build_terraces": lambda _venues, _curated, _seating: [_terrace("osm:node/1")],
         "review_terraces": lambda terraces, _reviews: terraces,
         "read_prices": lambda: [],
         "load_structures": lambda: [],
+        "read_sun_reports": lambda: [
+            _sun_report(1, datetime(2026, 11, 25, 12, 0, tzinfo=UTC)),
+            _sun_report(2, datetime(2025, 11, 1, 12, 0, tzinfo=UTC)),  # out of the window
+            _sun_report(3, datetime(2026, 11, 25, 12, 0, tzinfo=UTC), "osm:node/404"),
+        ],
     }
     for name, stub in stubs.items():
         monkeypatch.setattr(build_module, name, stub)
 
-    built = build_module.build(dsm_path=dsm, dtm_path=dtm, leafoff_path=leafoff)
+    generated = datetime(2026, 11, 26, 9, 0, 0, 500, tzinfo=UTC)
+    built = build_module.build(
+        dsm_path=dsm, dtm_path=dtm, leafoff_path=leafoff, generated=generated
+    )
+    assert built.generated == generated.replace(microsecond=0)
 
     structures = Structures([])
     with (
@@ -398,12 +461,13 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
         _HeightSampler(dsm, dtm) as heights,
     ):
         expected = add_horizons(
-            [_terrace()],
+            [_terrace("osm:node/1")],
             summer.horizon,
             winter.horizon,
             lambda a, b: terrace_points(a, b, heights.height, structures.contains),
         )
-    assert built.terraces == expected
+    sun = [SunCorrection(leaf_off=False, from_=171, to=181, altitude=251)]
+    assert built.terraces == [t.model_copy(update={"sun_corrections": sun}) for t in expected]
     (terrace,) = expected
     assert terrace.horizon_winter is not None
     assert terrace.horizon_low is not None
