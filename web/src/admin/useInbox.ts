@@ -16,6 +16,7 @@ import type { JunkItem } from './junk.ts'
 import type { VenuePrice } from './pricesCsv.ts'
 import { toPrice, candidateKey, type Lead } from './priceCandidates.ts'
 import { resolveReports, type VenueReport } from './reports.ts'
+import { useSunCorrections } from './useSunCorrections.ts'
 
 export type InboxFilter = 'all' | InboxKind
 
@@ -28,6 +29,8 @@ type Options = {
   savePrice: (price: VenuePrice) => Promise<void>
   /** Marks a venue "not a venue" in venue_review.csv; true once saved. */
   markNotVenue: (venueId: string) => Promise<boolean>
+  /** Accepted sun reports were added to sun_corrections.csv. */
+  onSunRecorded: (added: number) => void
 }
 
 type Data = Awaited<ReturnType<typeof fetchInbox>>
@@ -43,6 +46,7 @@ export function useInbox({
   acceptSuggestion,
   savePrice,
   markNotVenue,
+  onSunRecorded,
 }: Options) {
   const [data, setData] = useState<Data | null>(null)
   const [kept, setKept] = useState<ReadonlySet<string>>(new Set())
@@ -61,6 +65,13 @@ export function useInbox({
       live = false
     }
   }, [])
+
+  // Accepted sun reports go into sun_corrections.csv for Publish: once the
+  // Inbox has loaded, and after each accepted sun report.
+  const sunCsv = useSunCorrections({
+    ready: data !== null,
+    onAdded: onSunRecorded,
+  })
 
   const items = useMemo(
     () =>
@@ -100,12 +111,16 @@ export function useInbox({
         if (yes && !(await acceptReport(item.report)))
           return 'not saved in venue_review.csv'
         return resolveReports(item.report.ids, yes ? 'accepted' : 'rejected')
-      case 'sun':
-        // Saved in the API only: nothing to write here or to Publish.
-        return postDecision(ADMIN_ENDPOINTS.sun, {
+      case 'sun': {
+        // Saved in the API at once; an accepted one is then copied into
+        // sun_corrections.csv, which ships with the next Publish.
+        const failed = await postDecision(ADMIN_ENDPOINTS.sun, {
           ids: item.sun.ids,
           status: yes ? 'accepted' : 'rejected',
         })
+        if (!failed && yes) void sunCsv.sync()
+        return failed
+      }
       case 'suggestion':
         if (yes) await acceptSuggestion(item.group)
         return postDecision(ADMIN_ENDPOINTS.suggestions, {
@@ -153,7 +168,10 @@ export function useInbox({
     answer,
     busy,
     failure,
-    errors: data?.errors ?? [],
+    errors: [
+      ...(data?.errors ?? []),
+      ...(sunCsv.error ? [`Sun corrections: ${sunCsv.error}`] : []),
+    ],
     loaded: data !== null,
     reload: load,
     leads: data?.leads ?? ([] as Lead[]),

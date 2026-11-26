@@ -43,6 +43,8 @@ const json = (body: unknown, status = 200) =>
 
 type Call = { url: string; method: string; body: unknown }
 
+const SUN_VENUE = 'osm:node/4242'
+
 /** The dev server's answers, from fixtures; every request is recorded. */
 function stubServer() {
   const calls: Call[] = []
@@ -186,9 +188,11 @@ describe('Admin', () => {
     ).toMatchObject({ venueId: plazaAlta.id, item: 'cana', cents: 150 })
   })
 
-  it('shows a sun report against the model and resolves it in the API only', async () => {
+  it('shows a sun report against the model, resolves it and records it for Publish', async () => {
     const calls = stubServer()
     const server = globalThis.fetch
+    let accepted: unknown[] = []
+    const csv: unknown[] = []
     let reports = [
       {
         ids: [4, 9],
@@ -210,9 +214,29 @@ describe('Admin', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) !== ADMIN_ENDPOINTS.sun) return server(input, init)
+        const url = String(input)
+        // Recorded by stubServer, answered here.
+        if (url === ADMIN_ENDPOINTS.sunAccepted)
+          return server(input, init).then(() => json({ reports: accepted }))
+        if (url === ADMIN_ENDPOINTS.sunCorrections)
+          return server(input, init).then(() =>
+            json(init?.method === 'POST' ? { added: 1 } : csv),
+          )
+        if (url !== ADMIN_ENDPOINTS.sun) return server(input, init)
         if (init?.method === 'POST') {
           reports = []
+          accepted = [
+            {
+              id: 4,
+              // A real id: the CSV takes only ids the build's reader does,
+              // which the fixtures' sample: ids are not.
+              venueId: SUN_VENUE,
+              leafOff: true,
+              azimuth: 176.3,
+              altitude: 27.1,
+              at: '2026-11-25T12:31:04.000Z',
+            },
+          ]
           return server(input, init).then(() => json({ ok: true }))
         }
         return json({ reports })
@@ -220,6 +244,12 @@ describe('Admin', () => {
     )
     render(<Admin />)
     await screen.findByRole('button', { name: new RegExp(plazaAlta.name) })
+    // The sync on open finds nothing accepted yet.
+    await waitFor(() =>
+      expect(
+        calls.filter((c) => c.url === ADMIN_ENDPOINTS.sunAccepted),
+      ).toHaveLength(1),
+    )
 
     fireEvent.click(screen.getByRole('tab', { name: /^Inbox/ }))
     fireEvent.click(
@@ -233,16 +263,49 @@ describe('Admin', () => {
     const row = screen.getByRole('row', { name: /2026-11-25 13:31/ })
     expect(row).toHaveTextContent('176° / 27.1°')
     expect(row).toHaveTextContent('31.0°sun 3.9° below it')
-    expect(screen.getByText(/nothing to Publish/)).toBeInTheDocument()
+    expect(screen.getByText(/ships with the next Publish/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /^Accept/ }))
 
     await waitFor(() =>
       expect(screen.getByText('Nothing waiting here.')).toBeInTheDocument(),
     )
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Recorded 1 accepted sun report in sun_corrections/),
+      ).toBeInTheDocument(),
+    )
     expect(
       calls.filter((c) => c.method !== 'GET').map((c) => [c.url, c.body]),
-    ).toEqual([[ADMIN_ENDPOINTS.sun, { ids: [4, 9], status: 'accepted' }]])
+    ).toEqual([
+      [ADMIN_ENDPOINTS.sun, { ids: [4, 9], status: 'accepted' }],
+      [
+        ADMIN_ENDPOINTS.sunCorrections,
+        {
+          rows: [
+            {
+              id: 4,
+              venueId: SUN_VENUE,
+              leafOff: true,
+              azimuth: 176.3,
+              altitude: 27.1,
+              seen: '2026-11-25T12:31:04.000Z',
+            },
+          ],
+        },
+      ],
+    ])
+  })
+
+  it('shows a failed sun corrections sync as an Inbox error and goes on', async () => {
+    stubServer()
+    render(<Admin />)
+    await screen.findByRole('button', { name: new RegExp(plazaAlta.name) })
+    fireEvent.click(screen.getByRole('tab', { name: /^Inbox/ }))
+    expect(
+      await screen.findByText(/Sun corrections: not configured/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Sun reports: not configured/)).toBeInTheDocument()
   })
 
   it('opens a sun report’s venue in To review to move its pin', async () => {

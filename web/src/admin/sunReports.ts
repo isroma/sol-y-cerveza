@@ -8,8 +8,9 @@ import { formatClock, toMadridLocal } from '../time/madrid.ts'
  * Visitor sun reports ("the sun is on this terrace now" where the model says
  * shade, issue #364), as the API's `GET /v1/admin/sun` serves them (proxied
  * by the dev server): pending reports only, one entry per venue and season.
- * Accepting or rejecting one is saved in the API alone; nothing goes to
- * pipeline/data/, so there is nothing to Publish. Pure.
+ * Accepting or rejecting one is saved in the API; accepted ones are then
+ * copied into pipeline/data/sun_corrections.csv for Publish
+ * (useSunCorrections.ts). Pure.
  */
 const sightingSchema = z.object({
   id: z.number().int(),

@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,6 +11,7 @@ import {
 } from '../../src/admin/publishStatus.ts'
 import { formatPricesCsv, parsePricesCsv } from '../../src/admin/pricesCsv.ts'
 import { parseReviewCsv, type Review } from '../../src/admin/review.ts'
+import { parseSunCorrectionsCsv } from '../../src/admin/sunCorrectionsCsv.ts'
 import { REPO_ROOT as ROOT } from '../paths.ts'
 import {
   fetchOwnerPrices,
@@ -22,7 +24,17 @@ const run = promisify(execFile)
 /** The files a Publish commits, relative to the repository root. */
 export const REVIEW = 'pipeline/data/venue_review.csv'
 export const PRICES = 'pipeline/data/venue_prices.csv'
+/** Accepted sun reports (issue #463); may not exist yet. */
+export const SUN = 'pipeline/data/sun_corrections.csv'
 export const DATA = 'web/public/data/terraces.json'
+/**
+ * Every file a Publish may change. The Publish review workflows
+ * (.github/workflows/publish-review.yml, publish-review-pr.yml) refuse a
+ * branch that changes anything else; publish.test.ts checks they list these.
+ */
+export const PUBLISHED = [REVIEW, PRICES, SUN, DATA] as const
+/** The admin's own edits: without a change to one of them, a build ships nothing. */
+const EDITS = [REVIEW, PRICES, SUN] as const
 const BRANCH_PREFIX = 'data/venue-review-'
 
 /** Polling GitHub (git only) for the PR and its merge: every 10 s, for up to 30 min. */
@@ -116,16 +128,16 @@ async function branchExists(branch: string): Promise<boolean> {
 }
 
 /**
- * Whether the review or prices file in the checkout at `dir` differs from
- * its commit (new files included). Without that, a build ships nothing.
+ * Whether the review, prices or sun corrections file in the checkout at `dir`
+ * differs from its commit (new files included). Without that, a build ships
+ * nothing.
  */
 export async function editsToShip(dir: string): Promise<boolean> {
   const changed = await sh(dir, 'git', [
     'status',
     '--porcelain',
     '--',
-    REVIEW,
-    PRICES,
+    ...EDITS,
   ])
   return changed !== ''
 }
@@ -220,13 +232,15 @@ export async function withPhonePrices(
 }
 
 /**
- * Ships venue_review.csv: rebuilds terraces.json in a temporary worktree of
- * origin/main (the checkout you work in is never touched), commits both files
- * and pushes a data/venue-review-* branch. Only git is used, because the
+ * Ships venue_review.csv, venue_prices.csv (with the owner's phone prices)
+ * and sun_corrections.csv: rebuilds terraces.json in a temporary worktree of
+ * origin/main (the checkout you work in is never touched), commits them with
+ * it (PUBLISHED, nothing else) and pushes a data/venue-review-* branch. Only
+ * git is used, because the
  * admin's network cannot reach api.github.com: the Publish review workflow
  * opens the PR and enables auto-merge, and GitHub Pages deploys it once CI
  * passes. A publish branch whose PR is still open gets a new commit instead.
- * Progress goes to `status`; the review file is read once, at the start.
+ * Progress goes to `status`; the files are read once, at the start.
  */
 async function publishReview(
   mine: number,
@@ -235,7 +249,9 @@ async function publishReview(
   // A snapshot: edits made from here on go out with the next Publish.
   const csv = await readFile(join(ROOT, REVIEW), 'utf-8')
   const local = await readFile(join(ROOT, PRICES), 'utf-8').catch(() => null)
+  const sun = await readFile(join(ROOT, SUN), 'utf-8').catch(() => null)
   const reviews = parseReviewCsv(csv)
+  const sunRows = sun === null ? 0 : parseSunCorrectionsCsv(sun).length
   const { prices, phonePrices } = await withPhonePrices(local, api)
   update({ decisions: reviews.length, phonePrices })
   await sh(ROOT, 'git', ['fetch', '--quiet', 'origin', 'main'])
@@ -255,6 +271,7 @@ async function publishReview(
     ])
     await writeFile(join(dir, REVIEW), csv, 'utf-8')
     if (prices !== null) await writeFile(join(dir, PRICES), prices, 'utf-8')
+    if (sun !== null) await writeFile(join(dir, SUN), sun, 'utf-8')
     // Already live: the build (about 30 s) could not change what ships.
     if (!(await editsToShip(dir))) {
       update({ step: 'nothing' })
@@ -269,10 +286,13 @@ async function publishReview(
       '-m',
       'solycerveza.build',
     ])
-    await sh(dir, 'git', ['add', REVIEW, PRICES, DATA])
+    // Only the published files, and of those only the ones there (git add
+    // refuses a path that matches nothing, e.g. no sun_corrections.csv yet).
+    const present = PUBLISHED.filter((file) => existsSync(join(dir, file)))
+    await sh(dir, 'git', ['add', '--', ...present])
     const changed = await sh(dir, 'git', ['diff', '--cached', '--name-only'])
     const files = changed.split('\n')
-    if (!files.includes(REVIEW) && !files.includes(PRICES)) {
+    if (!EDITS.some((file) => files.includes(file))) {
       update({ step: 'nothing' })
       return
     }
@@ -283,8 +303,8 @@ async function publishReview(
       `feat(data): apply venue review (${reviews.length} decisions)`,
       '-m',
       [
-        "Published from the local admin view (`npm run admin`): `venue_review.csv`, `venue_prices.csv` (with the owner's phone prices) and the rebuilt `terraces.json`.",
-        summary(reviews),
+        "Published from the local admin view (`npm run admin`): `venue_review.csv`, `venue_prices.csv` (with the owner's phone prices), `sun_corrections.csv` and the rebuilt `terraces.json`.",
+        `${summary(reviews)}\n- ${sunRows} accepted sun reports`,
         'Merges itself when CI passes, which deploys the site.',
       ].join('\n\n'),
     ])

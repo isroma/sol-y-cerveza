@@ -151,6 +151,17 @@ export type SunQueueEntry = {
   last: string
 }
 
+/** One report of GET /v1/admin/sun/accepted, for the admin's sun_corrections.csv. */
+export type AcceptedSun = {
+  id: number
+  venueId: string
+  leafOff: boolean
+  /** Degrees, 1 decimal. */
+  azimuth: number
+  altitude: number
+  at: string
+}
+
 /** A bin's cap and the reports behind it. */
 type BinCap = { cap: number; rows: SunRow[] }
 
@@ -347,6 +358,28 @@ export function sunCorrections(
 }
 
 const oneDecimal = (degrees: number) => Math.round(degrees * 10) / 10
+
+/**
+ * GET /v1/admin/sun/accepted: every accepted report (visitors' and the
+ * owner's) in the last SUN_WINDOW_DAYS, sorted by id, degrees to 1 decimal.
+ */
+export function acceptedSun(
+  rows: readonly SunRow[],
+  now: number,
+): AcceptedSun[] {
+  const from = since(now)
+  return rows
+    .filter((r) => r.status === 'accepted' && r.created_at >= from)
+    .sort((a, b) => a.id - b.id)
+    .map((r) => ({
+      id: r.id,
+      venueId: r.venue_id,
+      leafOff: Boolean(r.leaf_off),
+      azimuth: oneDecimal(r.azimuth),
+      altitude: oneDecimal(r.altitude),
+      at: r.created_at,
+    }))
+}
 
 /**
  * The admin's queue: pending reports, one entry per venue and season, most

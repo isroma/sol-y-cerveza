@@ -306,6 +306,10 @@ export function Admin() {
           today(),
         ),
       ),
+    onSunRecorded: (added) =>
+      setMessage(
+        `Recorded ${added} accepted sun report${added === 1 ? '' : 's'} in sun_corrections.csv: Publish to ship ${added === 1 ? 'it' : 'them'}.`,
+      ),
   })
 
   useEffect(() => {
