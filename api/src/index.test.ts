@@ -864,6 +864,42 @@ describe('migration 0006', () => {
   })
 })
 
+describe('GET /v1/version', () => {
+  it('reports the build it was deployed with, never cached, with CORS', async () => {
+    const api = await startApi({ BUILD_ID: '0123456789abcdef0123456789abcdef' })
+    try {
+      const response = await api.call('/v1/version', {
+        headers: { Origin: 'https://isroma.github.io' },
+      })
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Cache-Control')).toBe('no-store')
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+        'https://isroma.github.io',
+      )
+      expect(await response.json()).toEqual({
+        build: '0123456789abcdef0123456789abcdef',
+      })
+      expect((await api.call('/v1/version', { method: 'POST' })).status).toBe(
+        404,
+      )
+    } finally {
+      await api.dispose()
+    }
+  })
+
+  it('reports null when deployed without a build', async () => {
+    const api = await startApi()
+    try {
+      const response = await api.call('/v1/version')
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Cache-Control')).toBe('no-store')
+      expect(await response.json()).toEqual({ build: null })
+    } finally {
+      await api.dispose()
+    }
+  })
+})
+
 describe('GET /v1/prices', () => {
   let api: Api
   beforeAll(async () => {

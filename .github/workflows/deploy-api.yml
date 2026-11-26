@@ -7,10 +7,19 @@ name: Deploy API to Cloudflare
 # variable DEPLOY_API to "true" and adds the secrets to the cloudflare
 # environment (api/README.md, "Deploys from GitHub").
 #
-# It runs after every green CI on main, not only when api/ changed: both steps
-# are idempotent (no pending migration is a no-op, and the same code deploys
-# the same Worker), and diffing against the parent commit would miss an api/
-# change whose own deploy was skipped because a newer commit had landed.
+# It deploys only what the live Worker is not already running. The deploy job
+# builds the Worker without uploading it and fingerprints that build (the
+# bundle, wrangler.toml, the migrations and the wrangler version:
+# api/scripts/deployCheck.ts), then asks the live API for its build
+# (GET /v1/version). Only when the answer is that same fingerprint does it
+# skip the migrations and the upload; any other answer (another build, null,
+# an error, no answer, no PRICES_API) deploys as before. A skip rule from
+# bookkeeping (did api/ change? a recorded SHA?) would fail silently: the
+# Worker also bundles web/src/data/, and diffing against the parent commit
+# misses an api/ change whose own deploy was skipped because a newer commit
+# had landed. After uploading, with the fingerprint as the BUILD_ID variable,
+# it waits for the live API to report that build and fails if it never does,
+# so a deploy that did not take effect turns the run red.
 #
 # Its only secrets are CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, secrets
 # of the cloudflare environment the deploy job declares. When ci.yml calls it,
@@ -105,17 +114,44 @@ jobs:
           cache-dependency-path: api/package-lock.json
       - if: steps.tip.outputs.deploy == 'true'
         run: npm ci
+      # Needs no credentials, like CI's build:dry. The deploy below builds the
+      # same bundle again: the build is deterministic, whatever the checkout path.
+      - name: Fingerprint the build
+        id: build
+        if: steps.tip.outputs.deploy == 'true'
+        run: |
+          npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/worker"
+          node scripts/deploy-check.ts fingerprint "$RUNNER_TEMP/worker"
+      # Skips only when the live Worker reports this exact build; anything else deploys.
+      - name: Ask the live API for its build
+        id: live
+        if: steps.tip.outputs.deploy == 'true'
+        run: node scripts/deploy-check.ts decide
+        env:
+          API_URL: ${{ vars.PRICES_API }}
+          BUILD: ${{ steps.build.outputs.build }}
       # Migrations apply before the new code is live, so each one must work with
       # the Worker that is still running (api/README.md). CI=true answers yes.
       - name: Apply the D1 migrations
-        if: steps.tip.outputs.deploy == 'true'
+        if: steps.tip.outputs.deploy == 'true' && steps.live.outputs.deploy == 'true'
         run: npx wrangler d1 migrations apply sol-y-cerveza --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # BUILD_ID is a plain variable next to wrangler.toml's [vars]; it does not
+      # change the bundle, so the fingerprint stays that of this build.
       - name: Deploy the Worker
-        if: steps.tip.outputs.deploy == 'true'
-        run: npx wrangler deploy
+        if: steps.tip.outputs.deploy == 'true' && steps.live.outputs.deploy == 'true'
+        run: npx wrangler deploy --var "BUILD_ID:$BUILD"
         env:
+          BUILD: ${{ steps.build.outputs.build }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Up to 13 tries 5 s apart (about a minute): fails unless the live API
+      # reports this build. Without PRICES_API it can only warn.
+      - name: Check the live API runs this build
+        if: steps.tip.outputs.deploy == 'true' && steps.live.outputs.deploy == 'true'
+        run: node scripts/deploy-check.ts verify
+        env:
+          API_URL: ${{ vars.PRICES_API }}
+          BUILD: ${{ steps.build.outputs.build }}

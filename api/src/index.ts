@@ -38,6 +38,9 @@
  *   /v1/admin/sun/resolve are their queue. The owner's own is stored accepted.
  *   GET /v1/admin/sun/accepted lists the accepted ones, which the admin
  *   copies into pipeline/data/sun_corrections.csv for Publish.
+ * - GET /v1/version: `{build}`, the build fingerprint this Worker was deployed
+ *   with (BUILD_ID), or null; never cached. CI's deploy skips an upload the
+ *   live Worker already runs and checks that its own upload took effect.
  *
  * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
  * that hash addresses, and a Turnstile test secret only passes on localhost.
@@ -76,6 +79,10 @@ async function route(
     return prices(request, env, ctx)
   if (pathname === '/v1/sun' && request.method === 'GET')
     return sun(request, env, ctx)
+  if (pathname === '/v1/version' && request.method === 'GET')
+    return json({ build: env.BUILD_ID || null }, 200, {
+      'Cache-Control': 'no-store',
+    })
   if (pathname === '/v1/suggestions' && request.method === 'POST')
     return suggest(request, env)
   if (pathname === '/v1/changes' && request.method === 'POST')
