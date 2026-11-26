@@ -61,6 +61,7 @@ The app speaks **Spanish (Spain)**; the repo is English.
 | Sun seen by visitors          | "~1 h 9 min de sol" · Según los visitantes                  |
 | Report sun here now           | Ahora mismo da el sol                                       |
 | Sun report sent               | ¡Gracias! Marcaremos el sol cuando tres personas coincidan. |
+| Privacy (README link)         | Privacidad                                                  |
 
 ## 3. Colour
 

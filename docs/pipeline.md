@@ -128,6 +128,14 @@ For a blind trial, have subagents judge the crops, each given only its share of 
 
 **Trial result (2026-11-25, #388):** on the 109 venues with a terrace decision, 91 answers were "unsure"; `terrace` reached 67 % precision (8/12) and 15 % recall, `no_terrace` 50 % (3/6) and 5 %, and no confidence threshold gives 90 % precision for either, so neither kind is trusted. The right pins were a median 10 m (p90 48 m) from the owner's, against 9 m (p90 27 m) for the pre-review position. Details in [ADR-0008](adr/0008-machine-venue-proposals.md#consequences).
 
+## Trust tiers for the admin
+
+```bash
+cd pipeline && uv run python -m solycerveza.trust [--evaluate]
+```
+
+It tiers every Overture-only venue as strong or weak, and flags BrightQuery-only positions as doubtful, from the Overture `confidence` and `datasets` and the Junta register's matches (`junta.add_register_venues`), on the venue list before `venue_review.csv` is applied. It writes `pipeline/.cache/venue_trust.json` for the admin's review queue ([admin guide](admin.md#trust-tiers)); `--evaluate` also prints the `not_venue` rate of reviewed venues per tier. It uses the same caches as the build. The build never reads the file.
+
 ## OSM write-back
 
 ```bash

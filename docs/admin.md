@@ -53,10 +53,36 @@ The sidebar has the title with **Publish**, the count, and two tabs: **To review
 
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
-- **To review** (with an empty search) is the review queue: the venues without a decision, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
+- **To review** (with an empty search) is the review queue: the venues without a decision. Overture venues from a weak source come first ([Trust tiers](#trust-tiers)); within that group and after it, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score and the order). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
 - **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Sun**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**A**), **Reject** (**R**) and **Skip** (**J**). Each answer moves on to the next Inbox item, not to To review.
 - **Not venues** (an Inbox filter) lists Overture-only venues that are probably not a bar or restaurant (name, takeaway or delivery only, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), one at a time: **Not a venue** (**A**) marks it; **Keep it** (**R**) takes it off the Inbox until the admin reloads, and it stays in To review.
 - **+** (next to the search) adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
+
+## Trust tiers
+
+Overture venues are the least reliable (issue #493), so the queue puts the doubtful ones first. Write the tiers once, and again after refreshing Overture, OSM or the Junta register:
+
+```bash
+cd pipeline && uv run python -m solycerveza.trust --evaluate   # writes pipeline/.cache/venue_trust.json
+```
+
+It writes one row per Overture-only venue (`pipeline/src/solycerveza/trust.py`), on the venue list the build sees before `venue_review.csv` is applied; the admin reads it through `GET /__admin/trust` (`web/src/admin/trust.ts`). Without the file the queue keeps its plain order and says how to write it. The build never reads the file, and nothing of it reaches `terraces.json` or visitors.
+
+- **Strong source**: Overture confidence 0.9 or more, and either both Meta and BrightQuery list the place or a Junta register row confirms it (the build's own matcher, `junta.add_register_venues`).
+- **Weak source**: every other Overture-only venue. The queue shows these first, with "Weak source" before the reason.
+- **Position doubtful**: BrightQuery is the only position source. On release 2026-11-18.0 such points sat a median 296 m from the OSM position of the same venue, against 14 m for Meta, so check the position before deciding.
+- OSM, curated, `review:` and Junta-only venues have no tier.
+
+The venue panel shows the tier and what it rests on (confidence, datasets, Junta match). `--evaluate` prints how often you marked each tier `not_venue`. Measured on 2026-11-26 (Overture 2026-11-18.0, your 128 decisions on Overture venues still in the venue list):
+
+| Group                        | Reviewed | `not_venue` | Unreviewed |
+| ---------------------------- | -------- | ----------- | ---------- |
+| strong                       | 20       | 4 (20 %)    | 95         |
+| weak                         | 108      | 41 (38 %)   | 252        |
+| position doubtful (any tier) | 26       | 12 (46 %)   | 49         |
+| Junta only (no tier)         | 10       | 4 (40 %)    | 83         |
+
+Weak venues were `not_venue` 1.9 times as often as strong ones. The strong sample is small (20), so re-run `--evaluate` after each batch of reviews; Junta-only venues have too few decisions to tier yet.
 
 ## Fixing a terrace
 
@@ -143,6 +169,7 @@ All under `/__admin/`, served by `web/plugins/admin/reviewServer.ts` in the dev 
 | `/__admin/prices`           | GET, PUT, DELETE | `venue_prices.csv`: read, upsert a price, remove one (`?key=`)                                   |
 | `/__admin/price-candidates` | GET, POST        | `price_candidates.csv` and the menu leads; record an accept or a dismiss                         |
 | `/__admin/proposals`        | GET, POST        | `venue_proposals.csv`; ignore one (accepting goes through `/__admin/review`)                     |
+| `/__admin/trust`            | GET              | `pipeline/.cache/venue_trust.json` ([trust tiers](#trust-tiers)), or `missing` when absent       |
 | `/__admin/probe`            | GET              | the sun preview at a point (`python -m solycerveza.probe`); a newer probe cancels the one before |
 | `/__admin/suggestions`      | GET, POST        | proxy to the API's `GET /v1/admin/suggestions` and `POST /v1/admin/resolve`                      |
 | `/__admin/reports`          | GET, POST        | proxy to the API's `GET /v1/admin/reports` and `POST /v1/admin/reports/resolve`                  |

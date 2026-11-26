@@ -18,6 +18,8 @@ describe('QueueList', () => {
     render(
       <QueueList
         queue={queue}
+        trust={new Map()}
+        trustMissing={false}
         skipped={[calleMenacho.id]}
         selectedId={plazaAlta.id}
         onSelect={onSelect}

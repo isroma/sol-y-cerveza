@@ -7,6 +7,7 @@ import type { Proposal } from './proposals.ts'
 import { ADDED_PREFIX, type Review } from './review.ts'
 import { SunPreview } from './SunPreview.tsx'
 import { today } from './today.ts'
+import { trustDetails, type Trust } from './trust.ts'
 
 type Props = {
   venue: Terrace
@@ -15,6 +16,8 @@ type Props = {
   queueMode: boolean
   /** Why the queue ranks this venue where it is, if it is in the queue. */
   queueReason: string | null
+  /** The venue's trust tier (Overture venues only, trust.ts). */
+  trust: Trust | undefined
   proposals: readonly Proposal[]
   onAcceptProposal: (proposal: Proposal) => void
   onIgnoreProposal: (proposal: Proposal) => void
@@ -46,6 +49,7 @@ export function VenuePanel({
   review,
   queueMode,
   queueReason,
+  trust,
   proposals,
   onAcceptProposal,
   onIgnoreProposal,
@@ -77,6 +81,9 @@ export function VenuePanel({
           <span title={venue.id}>{venue.sources.join(', ')}</span>
         )}
       </p>
+      {trust && !review?.status && (
+        <p className="admin-meta">{trustDetails(trust)}</p>
+      )}
       {queueMode && queueReason !== null && (
         <p className="admin-meta admin-reason">{queueReason}</p>
       )}
