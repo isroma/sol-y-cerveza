@@ -1,4 +1,9 @@
-import type { LayerSpecification, Map as MapLibreMap } from 'maplibre-gl'
+import type {
+  ExpressionSpecification,
+  LayerSpecification,
+  Map as MapLibreMap,
+} from 'maplibre-gl'
+import { DOTS_LAYER } from './dotLayers.ts'
 import { TREES } from './layerIds.ts'
 
 type PaintProperty = Parameters<MapLibreMap['setPaintProperty']>[1]
@@ -7,8 +12,11 @@ type PaintValue = Parameters<MapLibreMap['setPaintProperty']>[2]
 export type PaintPatch = {
   layer: string
   property: PaintProperty
-  value: string | number
+  value: PaintValue
 }
+
+/** The grey dots' ring at night: their tan, a step darker. */
+const DOT_RING_NIGHT = '#9C8670'
 
 /** Just after sunset: blue hour, dark but still soft. */
 const DUSK = {
@@ -96,11 +104,8 @@ export function nightPaint(
 ): PaintPatch[] {
   const NIGHT = palette(depth)
   const patches: PaintPatch[] = []
-  const set = (
-    layer: string,
-    property: PaintProperty,
-    value: string | number,
-  ) => patches.push({ layer, property, value })
+  const set = (layer: string, property: PaintProperty, value: PaintValue) =>
+    patches.push({ layer, property, value })
   for (const layer of layers) {
     const { id, type } = layer
     if (type === 'background') set(id, 'background-color', NIGHT.background)
@@ -129,7 +134,37 @@ export function nightPaint(
         'line-color',
         id.startsWith('waterway') ? NIGHT.water : NIGHT.road,
       )
-    else if (type === 'symbol') {
+    else if (id === DOTS_LAYER) {
+      // Venues without a terrace: by night the dot empties into a tan ring,
+      // so it stays findable without glowing on the dark map. The selected
+      // one stays filled.
+      const selected: ExpressionSpecification = ['get', 'selected']
+      const round = (n: number) => Math.round(n * 100) / 100
+      const opacity: ExpressionSpecification = [
+        'case',
+        selected,
+        1,
+        round(1 - depth),
+      ]
+      const ring: ExpressionSpecification = [
+        'case',
+        selected,
+        '#FFFFFF',
+        mixHex('#FFFFFF', DOT_RING_NIGHT, depth),
+      ]
+      const width: ExpressionSpecification = [
+        'interpolate',
+        ['linear'],
+        ['zoom'],
+        15.5,
+        ['case', selected, 3, round(0.8 + 0.6 * depth)],
+        17,
+        ['case', selected, 3, round(1.5 + 0.4 * depth)],
+      ]
+      set(id, 'circle-opacity', opacity)
+      set(id, 'circle-stroke-color', ring)
+      set(id, 'circle-stroke-width', width)
+    } else if (type === 'symbol') {
       set(id, 'text-color', NIGHT.text)
       set(id, 'text-halo-color', NIGHT.halo)
     }
