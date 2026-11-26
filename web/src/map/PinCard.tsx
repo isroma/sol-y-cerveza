@@ -8,6 +8,7 @@ import { PriceSection } from '../prices/PriceSection.tsx'
 import { useCanSend, useOwner } from '../prices/owner.ts'
 import { emptyDraft, useDraft, type ChangeDraft } from '../reports/draft.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
+import { track } from '../telemetry.ts'
 import { shareUrl } from '../urlState.ts'
 import { useMediaQuery } from '../ui/useMediaQuery.ts'
 
@@ -139,6 +140,7 @@ export function PinCard({ status, minutes }: Props) {
   useEffect(() => () => clearTimeout(turnTimer.current), [])
   /** Turns to the back (with what the front already answered), or the front. */
   const flipTo = (id: string | null, start: Partial<ChangeDraft> = {}) => {
+    if (id !== null) track('card_back')
     const swap = () =>
       setDraft(id === null ? null : { ...emptyDraft(id), ...start })
     if (reduceMotion) {

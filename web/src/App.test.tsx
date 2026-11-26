@@ -31,6 +31,20 @@ vi.mock('./map/MapView.tsx', () => ({
   ),
 }))
 
+// The usage counters, to check what the app counts (src/telemetry.ts).
+const telemetry = vi.hoisted(() => ({
+  track: vi.fn(),
+  trackOnce: vi.fn(),
+  trackSettled: vi.fn(),
+}))
+vi.mock('./telemetry.ts', () => telemetry)
+
+/** The venue ids counted as opened so far. */
+const venuesOpened = () =>
+  telemetry.track.mock.calls
+    .filter(([name]: unknown[]) => name === 'venue_open')
+    .map(([, id]: unknown[]) => id)
+
 function stubFetch(response: Response) {
   const fetchMock = vi.fn(async () => response)
   vi.stubGlobal('fetch', fetchMock)
@@ -58,6 +72,7 @@ describe('App', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    telemetry.track.mockClear()
   })
 
   it('renders the brand, the controls and the map', async () => {
@@ -186,6 +201,30 @@ describe('App', () => {
     await waitFor(() =>
       expect(window.location.search).toBe('?t=18:00&v=sample:plaza-alta'),
     )
+  })
+
+  it('counts a card opened from a link or the list once each', async () => {
+    window.history.replaceState(null, '', '/?v=sample:plaza-alta')
+    stubFetch(Response.json(sampleFile))
+    render(<App />)
+    await listedNames()
+    await waitFor(() => expect(venuesOpened()).toEqual(['sample:plaza-alta']))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Terraza de ejemplo · Plaza Alta/ }),
+    )
+    expect(venuesOpened()).toEqual(['sample:plaza-alta', 'sample:plaza-alta'])
+  })
+
+  it('does not count a linked venue that is not in the data', async () => {
+    window.history.replaceState(null, '', '/?v=sample:gone')
+    stubFetch(Response.json(sampleFile))
+    render(<App />)
+    await listedNames()
+    await waitFor(() =>
+      expect(screen.getByTestId('map-selected')).toBeEmptyDOMElement(),
+    )
+    expect(venuesOpened()).toEqual([])
   })
 
   it('ignores bad values and unknown venues in the URL', async () => {

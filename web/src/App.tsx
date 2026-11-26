@@ -21,6 +21,7 @@ import {
   type PlaceTarget,
 } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
+import * as telemetry from './telemetry.ts'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { isLeafOff } from './sun/leafOff.ts'
@@ -53,6 +54,10 @@ const URL_WRITE_DELAY_MS = 400
 
 /** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
+
+/** The hour a minute of the day falls in, as the usage counters take it: "00" … "23". */
+const hourOf = (minutes: number) =>
+  String(Math.floor(minutes / 60) % 24).padStart(2, '0')
 
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
@@ -91,8 +96,12 @@ export function App() {
         // terrace needs the terrace filter off to show.
         if (linked.venue === null) return
         const venue = file.terraces.find((v) => v.id === linked.venue)
-        if (!venue) setSelectedId((id) => (id === linked.venue ? null : id))
-        else if (venue.terrace === null)
+        if (!venue) {
+          setSelectedId((id) => (id === linked.venue ? null : id))
+          return
+        }
+        telemetry.track('venue_open', venue.id)
+        if (venue.terrace === null)
           setFilters((f) => ({ ...f, onlyTerrace: false }))
       },
       () => {
@@ -187,13 +196,26 @@ export function App() {
 
   const times = useMemo(() => sunTimes(track), [track])
 
+  const chooseTime = useCallback((chosen: number) => {
+    setTime(chosen)
+    telemetry.trackSettled('time_change', hourOf(chosen))
+  }, [])
+
   const goToNow = useCallback(() => {
     setNow(madridNow())
     setTime(null)
   }, [])
 
+  // A card the visitor opens, from the map or the list (not one shown
+  // again after the move picker): counted where it opens.
+  const selectOnMap = useCallback((id: string | null) => {
+    if (id !== null) telemetry.track('venue_open', id)
+    setSelectedId(id)
+  }, [])
+
   // Picking a venue from the list closes the menu so its map card shows.
   const selectFromList = useCallback((id: string | null) => {
+    if (id !== null) telemetry.track('venue_open', id)
     setSelectedId(id)
     setMenuOpen(false)
     setPicking(null)
@@ -217,6 +239,7 @@ export function App() {
     [draft],
   )
   const startAdd = useCallback((name?: string) => {
+    telemetry.track('add_open')
     setMenuOpen(false)
     setSelectedId(null)
     setPicking(name ? { kind: 'add', name } : { kind: 'add' })
@@ -255,7 +278,7 @@ export function App() {
   const timeSlider = (
     <TimeSlider
       minutes={minutes}
-      onChange={setTime}
+      onChange={chooseTime}
       onNow={goToNow}
       now={now.minutes}
       sunrise={times?.sunrise ?? null}
@@ -323,7 +346,7 @@ export function App() {
             <MapView
               statuses={visible}
               selectedId={selectedId}
-              onSelect={picking ? ignoreSelect : setSelectedId}
+              onSelect={picking ? ignoreSelect : selectOnMap}
               sun={sun}
               minutes={minutes}
               sunset={times?.sunset ?? null}

@@ -1,3 +1,4 @@
+import { trackOnce } from '../telemetry.ts'
 import { CloseIcon, SearchIcon } from './icons.tsx'
 
 type Props = { value: string; onChange: (value: string) => void }
@@ -11,7 +12,10 @@ export function SearchBox({ value, onChange }: Props) {
         placeholder="Buscar bar o terraza…"
         aria-label="Buscar bar o terraza"
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value)
+          trackOnce('search')
+        }}
       />
       {value !== '' && (
         <button

@@ -34,6 +34,7 @@ import { useOwner } from '../prices/owner.ts'
 import { refreshCrowdPrices } from '../prices/crowd.ts'
 import { refreshSunCorrections, useSunCorrections } from '../sun/corrections.ts'
 import { canReportSun } from '../sun/reportable.ts'
+import { track } from '../telemetry.ts'
 import './reports.css'
 
 const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
@@ -209,6 +210,8 @@ export function SuggestChange({
     setSending(true)
     const answer = await sendChange({ venueId: venue.id, ...parts, token })
     setSending(false)
+    if (answer === 'ok') track('suggest_sent')
+    if (answer === 'ok' && withSun) track('sun_report')
     // A price or sun waits for agreement; a move, closure or terrace for review.
     setResult(
       (reviewed ? RESULT_TEXT : sunOnly ? SUN_RESULT_TEXT : PRICE_RESULT_TEXT)[

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Filters } from '../filters/filters.ts'
+import { track } from '../telemetry.ts'
+import { FILTER_KEYS } from '../data/telemetryEvents.ts'
 import { ChevronDownIcon, SunIcon, TerraceIcon } from './icons.tsx'
 import { Toggle } from './Toggle.tsx'
 
@@ -7,7 +9,10 @@ type Props = { filters: Filters; onChange: (filters: Filters) => void }
 
 export function FiltersPanel({ filters, onChange }: Props) {
   const [open, setOpen] = useState(true)
-  const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
+  const set = (patch: Partial<Filters>) => {
+    for (const key of FILTER_KEYS) if (patch[key]) track('filter', key)
+    onChange({ ...filters, ...patch })
+  }
 
   return (
     <section className="filters">

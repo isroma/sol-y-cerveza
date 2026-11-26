@@ -17,8 +17,8 @@
 #   web/ios/**, web/android/**    none     Capacitor projects (mobile.yml, manual)
 #   web/public/data/terraces.json web e2e pipeline   pipeline/tests/test_build.py
 #                                          checks it is the build's own output
-#   web/src/data/**               web e2e api   api/src imports prices.ts and
-#                                          photoReading.ts from it
+#   web/src/data/**               web e2e api   api/src imports prices.ts,
+#                                          geo.ts and telemetryEvents.ts from it
 #   web/**/*.test.ts(x), web/.prettier*, web/.oxlintrc.json   web only (vitest,
 #                                          prettier and oxlint; not the app)
 #   web/**                        web e2e

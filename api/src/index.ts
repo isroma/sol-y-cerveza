@@ -38,12 +38,19 @@
  *   /v1/admin/sun/resolve are their queue. The owner's own is stored accepted.
  *   GET /v1/admin/sun/accepted lists the accepted ones, which the admin
  *   copies into pipeline/data/sun_corrections.csv for Publish.
+ * - POST /v1/events (ADR-0013): anonymous usage counters, `{events: [{name,
+ *   value?}]}`, at most MAX_EVENTS. Daily aggregate counts per allowlisted
+ *   (name, value) only: no bot check, no voter hash, no IP, nothing about the
+ *   visitor; a venue id counts only when it is in the published data. 204,
+ *   never cached. GET /v1/admin/stats?days=N reads them (default 30, at most
+ *   90).
  * - GET /v1/version: `{build}`, the build fingerprint this Worker was deployed
  *   with (BUILD_ID), or null; never cached. CI's deploy skips an upload the
  *   live Worker already runs and checks that its own upload took effect.
  *
- * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
- * that hash addresses, and a Turnstile test secret only passes on localhost.
+ * It fails closed when misconfigured: no usable IP_SALT means 503 on the
+ * endpoints that hash addresses (not POST /v1/events, which hashes nothing),
+ * and a Turnstile test secret only passes on localhost.
  */
 import type { Env } from './env.ts'
 import { bearer, json } from './http.ts'
@@ -54,6 +61,7 @@ import {
   ownerPrices,
   ownerReport,
 } from './routes/owner.ts'
+import { postEvents, stats } from './routes/events.ts'
 import { login } from './routes/login.ts'
 import { pending, prices, resolve, suggest } from './routes/prices.ts'
 import {
@@ -89,6 +97,8 @@ async function route(
     return change(request, env)
   if (pathname === '/v1/reports' && request.method === 'POST')
     return report(request, env)
+  if (pathname === '/v1/events' && request.method === 'POST')
+    return postEvents(request, env)
   if (pathname === '/v1/login' && request.method === 'POST')
     return login(request, env)
   if (pathname.startsWith('/v1/owner/')) {
@@ -125,6 +135,8 @@ async function route(
       return acceptedSunReports(env)
     if (pathname === '/v1/admin/sun/resolve' && request.method === 'POST')
       return resolveSun(request, env)
+    if (pathname === '/v1/admin/stats' && request.method === 'GET')
+      return stats(request, env)
   }
   return json({ error: 'not found' }, 404)
 }

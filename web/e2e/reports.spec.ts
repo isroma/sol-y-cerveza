@@ -68,6 +68,9 @@ const test = base.extend<{ reports: unknown[] }>({
           return route.fulfill({ json: { prices: [] } })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/sun')
           return route.fulfill({ json: { corrections: [] } })
+        // The usage counters (src/telemetry.ts): accepted and not looked at.
+        if (url.hostname === 'prices.test' && url.pathname === '/v1/events')
+          return route.fulfill({ status: 204 })
         if (url.hostname === 'prices.test' && url.pathname === '/v1/changes') {
           reports.push({ change: request.postDataJSON() })
           return route.fulfill({ status: 201, json: { ok: true } })
