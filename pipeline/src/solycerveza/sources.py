@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 
 def load_all_venues(*, refresh: bool = False, cache_dir: Path = CACHE_DIR) -> list[Venue]:
     """Every venue, downloading what is not cached (or everything with `refresh`)."""
+    return load_venues_and_confirmed(refresh=refresh, cache_dir=cache_dir)[0]
+
+
+def load_venues_and_confirmed(
+    *, refresh: bool = False, cache_dir: Path = CACHE_DIR
+) -> tuple[list[Venue], frozenset[str]]:
+    """`load_all_venues`, plus the ids of the OSM and Overture venues a Junta register row
+    confirms (`junta.add_register_venues`)."""
     places = cache_path(cache_dir)
     if refresh or not places.exists():
         fetch_places(cache_dir=cache_dir)
@@ -23,5 +31,7 @@ def load_all_venues(*, refresh: bool = False, cache_dir: Path = CACHE_DIR) -> li
     )
     venues, confirmed = add_register_venues(venues, load_register(cache_dir, refresh=refresh))
     venues = apply_corrections(venues, read_corrections())
-    logger.info("Junta register confirms %d venues; %d venues in total", confirmed, len(venues))
-    return venues
+    logger.info(
+        "Junta register confirms %d venues; %d venues in total", len(confirmed), len(venues)
+    )
+    return venues, confirmed

@@ -145,6 +145,14 @@ describe('queueOrder', () => {
     ])
   })
 
+  it('puts weak-source venues first, each group by score', () => {
+    expect(
+      queueOrder(scored, new Map(), [], new Set(['c', 'b'])).map(
+        (s) => s.venue.id,
+      ),
+    ).toEqual(['b', 'c', 'd', 'a'])
+  })
+
   it('puts skipped venues last, in skip order', () => {
     expect(
       queueOrder(scored, new Map(), ['a', 'd']).map((s) => s.venue.id),
