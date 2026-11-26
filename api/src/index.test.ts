@@ -497,6 +497,82 @@ describe('POST /v1/changes', () => {
     ).toEqual([])
   })
 
+  it('stores a terrace answer and a tables pin, and a resend replaces them', async () => {
+    const send = (body: Record<string, unknown>) =>
+      api.call('/v1/changes', {
+        ...change({ venueId: 'osm:node/9', ...body }),
+        ip: '93.1.1.5',
+      })
+    const open = () =>
+      api.rows<{ kind: string; terrace: number | null; lat: number | null }>(
+        `SELECT kind, terrace, lat FROM venue_reports
+         WHERE status = 'pending' AND venue_id = ? ORDER BY kind`,
+        'osm:node/9',
+      )
+    const events = async () =>
+      (
+        await api.rows<{ n: number }>(
+          'SELECT COUNT(*) AS n FROM suggestion_events WHERE venue_id = ?',
+          'osm:node/9',
+        )
+      )[0]?.n
+    const before = api.calls.siteverify
+    expect(
+      (await send({ terrace: true, pin: { lat: 38.8781, lon: -6.9701 } }))
+        .status,
+    ).toBe(201)
+    expect(api.calls.siteverify - before).toBe(1)
+    expect(await open()).toEqual([
+      { kind: 'pin', terrace: null, lat: 38.8781 },
+      { kind: 'terrace', terrace: 1, lat: null },
+    ])
+    // Each part is its own event for the caps.
+    expect(await events()).toBe(2)
+    // A new answer or pin from the same voter replaces the open one.
+    expect((await send({ pin: { lat: 38.8782, lon: -6.9702 } })).status).toBe(
+      201,
+    )
+    expect((await send({ terrace: false })).status).toBe(201)
+    expect(await open()).toEqual([
+      { kind: 'pin', terrace: null, lat: 38.8782 },
+      { kind: 'terrace', terrace: 0, lat: null },
+    ])
+    expect(await events()).toBe(4)
+  })
+
+  it('refuses a pin with no terrace, or too far away, storing nothing', async () => {
+    const send = (body: Record<string, unknown>) =>
+      api.call('/v1/changes', {
+        ...change({
+          venueId: 'osm:node/10',
+          price: { item: 'cana', brand: null, cents: 150 },
+          ...body,
+        }),
+        ip: '93.1.1.6',
+      })
+    const contradiction = await send({
+      terrace: false,
+      pin: { lat: 38.8781, lon: -6.9701 },
+    })
+    expect(contradiction.status).toBe(400)
+    expect(await readJson<{ error: string }>(contradiction)).toEqual({
+      error: 'invalid pin with no terrace',
+    })
+    // About 220 m away: over the 150 m a pin may go.
+    const far = await send({ terrace: true, pin: { lat: 38.88, lon: -6.97 } })
+    expect(far.status).toBe(400)
+    expect(await readJson<{ error: string }>(far)).toEqual({
+      error: 'invalid position',
+    })
+    for (const table of ['suggestions', 'venue_reports', 'suggestion_events'])
+      expect(
+        await api.rows(
+          `SELECT 1 FROM ${table} WHERE venue_id = ?`,
+          'osm:node/10',
+        ),
+      ).toEqual([])
+  })
+
   it('refuses a token made for another action, or a failed check', async () => {
     const real = await startApi({ TURNSTILE_SECRET: REAL_SECRET })
     try {
@@ -617,6 +693,20 @@ describe('caps under parallel requests', () => {
       move: { lat: 38.8781, lon: -6.9701 },
       closed: true,
     })
+    expect(over.status).toBe(429)
+    // So would a terrace answer and a pin with a price.
+    const terraceOver = await change({
+      price: { item: 'cana', brand: null, cents: 150 },
+      terrace: true,
+      pin: { lat: 38.8781, lon: -6.9701 },
+    })
+    expect(terraceOver.status).toBe(429)
+    expect(
+      await api.rows(
+        'SELECT 1 FROM venue_reports WHERE venue_id = ?',
+        'osm:node/36',
+      ),
+    ).toEqual([])
     expect(over.status).toBe(429)
     expect(over.headers.get('Retry-After')).toBe('86400')
     expect(
@@ -908,6 +998,36 @@ describe('owner changes', () => {
     )
     // The owner's come first, for the admin to apply.
     expect(reports[0]?.owner).toBe(true)
+  })
+
+  it('queue a terrace answer and a tables pin as the owner’s', async () => {
+    const send = (body: Record<string, unknown>) =>
+      api.call(
+        '/v1/owner/changes',
+        postJson({ venueId: 'osm:node/11', ...body }, { Authorization: OWNER }),
+      )
+    expect(
+      (await send({ terrace: true, pin: { lat: 38.8781, lon: -6.9701 } }))
+        .status,
+    ).toBe(201)
+    // A second one replaces the owner's open pin, as a visitor's would.
+    expect((await send({ pin: { lat: 38.8782, lon: -6.9702 } })).status).toBe(
+      201,
+    )
+    expect(
+      await api.rows(
+        `SELECT kind, terrace, lat, by_owner FROM venue_reports
+         WHERE status = 'pending' AND venue_id = ? ORDER BY kind`,
+        'osm:node/11',
+      ),
+    ).toEqual([
+      { kind: 'pin', terrace: null, lat: 38.8782, by_owner: 1 },
+      { kind: 'terrace', terrace: 1, lat: null, by_owner: 1 },
+    ])
+    expect(
+      (await send({ terrace: false, pin: { lat: 38.8781, lon: -6.9701 } }))
+        .status,
+    ).toBe(400)
   })
 
   it('add a missing venue as the owner’s', async () => {

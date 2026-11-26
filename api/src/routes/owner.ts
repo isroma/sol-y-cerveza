@@ -63,8 +63,9 @@ function ownerPriceWrites(
 
 /**
  * The card back in owner mode: what a visitor would suggest, as the owner's
- * change. A price is saved as confirmed and shows at once; a move or closed is
- * stored as the owner's report, which the admin applies at its next Publish;
+ * change. A price is saved as confirmed and shows at once; a move, closed, a
+ * terrace answer or a tables pin is stored as the owner's report, which the
+ * admin applies as it opens and ships with Publish;
  * sun now is stored accepted and served at once as confirmed.
  * No bot check and no caps, stored together or not at all.
  */

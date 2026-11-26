@@ -4,6 +4,7 @@ import { parseChange } from './changes.ts'
 const base = { venueId: 'osm:node/1', token: 't' }
 const price = { item: 'tercio', brand: 'cruzcampo', cents: 220 }
 const move = { lat: 38.878, lon: -6.97 }
+const pin = { lat: 38.8781, lon: -6.9701 }
 
 describe('parseChange', () => {
   it('takes a price, a move and closed together', () => {
@@ -24,6 +25,43 @@ describe('parseChange', () => {
         sun: false,
       },
       token: 't',
+    })
+  })
+
+  it('takes a terrace answer and a tables pin, as terrace reports', () => {
+    expect(parseChange({ ...base, terrace: true, pin })).toEqual({
+      ok: true,
+      value: {
+        venueId: 'osm:node/1',
+        price: null,
+        reports: [
+          { kind: 'terrace', venueId: 'osm:node/1', terrace: true },
+          { kind: 'pin', venueId: 'osm:node/1', ...pin },
+        ],
+        sun: false,
+      },
+      token: 't',
+    })
+    expect(parseChange({ ...base, terrace: false })).toEqual({
+      ok: true,
+      value: {
+        venueId: 'osm:node/1',
+        price: null,
+        reports: [{ kind: 'terrace', venueId: 'osm:node/1', terrace: false }],
+        sun: false,
+      },
+      token: 't',
+    })
+    expect(parseChange({ ...base, pin }).ok).toBe(true)
+    expect(parseChange({ venueId: 'osm:node/1', pin }, true)).toEqual({
+      ok: true,
+      value: {
+        venueId: 'osm:node/1',
+        price: null,
+        reports: [{ kind: 'pin', venueId: 'osm:node/1', ...pin }],
+        sun: false,
+      },
+      token: 'owner',
     })
   })
 
@@ -58,6 +96,14 @@ describe('parseChange', () => {
     ],
     ['move', { ...base, move: null }],
     ['move lat', { ...base, move: { lat: 40, lon: -6.97 } }],
+    ['terrace', { ...base, terrace: 'yes' }],
+    ['terrace', { ...base, terrace: null, closed: true }],
+    ['pin', { ...base, pin: null }],
+    ['pin', { ...base, pin: 'here', terrace: true }],
+    ['pin lat', { ...base, pin: { lat: 40, lon: -6.97 } }],
+    ['pin lon', { ...base, pin: { lat: 38.878 } }],
+    ['pin with no terrace', { ...base, terrace: false, pin }],
+    ['venueId', { ...base, venueId: 'google:1', terrace: true }],
   ])('refuses a bad %s', (error, body) => {
     expect(parseChange(body)).toEqual({ ok: false, error })
   })
@@ -67,12 +113,18 @@ describe('parseChange', () => {
       ...base,
       price: { ...price, venueId: 'osm:node/9', token: 'x' },
       move: { ...move, kind: 'add', venueId: 'osm:node/9' },
+      pin: { ...pin, kind: 'closed', venueId: 'osm:node/9', token: 'x' },
     })
     expect(parsed.ok && parsed.value.price?.venueId).toBe('osm:node/1')
     expect(parsed.ok && parsed.value.reports[0]).toEqual({
       kind: 'move',
       venueId: 'osm:node/1',
       ...move,
+    })
+    expect(parsed.ok && parsed.value.reports[1]).toEqual({
+      kind: 'pin',
+      venueId: 'osm:node/1',
+      ...pin,
     })
   })
 })
