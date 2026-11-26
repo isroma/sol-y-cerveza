@@ -32,7 +32,7 @@ import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
-import { createPin, NAMES_ON_HOVER_ZOOM, updatePin } from './pins.ts'
+import { createPin, updatePin } from './pins.ts'
 import {
   canaPrice,
   pricedBadges,
@@ -190,14 +190,14 @@ export function MapView({
           const { lat, lng } = map.getCenter()
           onCenterChangeRef.current?.({ lat, lon: lng })
         })
-        // Hovering a badge shows its name only zoomed in and while the map
-        // rests (pins.css); set on the container, not through React, so a
+        // Hovering a badge shows its name only where badges show prices (out
+        // of the overview) and while the map rests (pins.css); set on the container, not through React, so a
         // pan doesn't re-render.
         const mapEl = map.getContainer()
         const namesOnHover = () =>
           mapEl.classList.toggle(
             'names-on-hover',
-            (map?.getZoom() ?? 0) >= NAMES_ON_HOVER_ZOOM,
+            (map?.getZoom() ?? 0) >= OVERVIEW_ZOOM,
           )
         namesOnHover()
         map.on('movestart', () => mapEl.classList.add('is-moving'))
