@@ -11,15 +11,15 @@ name: Deploy API to Cloudflare
 # are idempotent (no pending migration is a no-op, and the same code deploys
 # the same Worker), and diffing against the parent commit would miss an api/
 # change whose own deploy was skipped because a newer commit had landed.
+#
+# Its only secrets are CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, secrets
+# of the cloudflare environment the deploy job declares. When ci.yml calls it,
+# they resolve only because the caller job has `secrets: inherit`: with nothing
+# passed (and the two declared under workflow_call.secrets), both came through
+# empty (run 45839292704). Keep this file free of any other secret, since
+# inherit makes all of them available here.
 on:
   workflow_call:
-    secrets:
-      # Environment secrets of `cloudflare`, resolved in the deploy job below,
-      # which declares that environment; the caller passes nothing.
-      CLOUDFLARE_API_TOKEN:
-        required: false
-      CLOUDFLARE_ACCOUNT_ID:
-        required: false
   workflow_dispatch:
 
 permissions:

@@ -134,7 +134,7 @@ It does nothing until you turn it on:
 
 1. Create a Cloudflare API token (My Profile → API Tokens → Create Token, custom token) for your account only, with **Account → Workers Scripts → Edit** and **Account → D1 → Edit**. (Written from memory of the Cloudflare and wrangler docs, which were not reachable when this was written; if wrangler reports a missing permission, the "Edit Cloudflare Workers" template plus D1 Edit is the documented fallback.) Note your account ID (Workers & Pages → Overview, or `npx wrangler whoami`).
 2. In the GitHub repository, Settings → Environments → New environment `cloudflare`. Under Deployment branches and tags choose Selected branches and add `main`.
-3. In that environment, add the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+3. In that environment, add the secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The `deploy` job in `deploy-api.yml` declares the environment, and CI's `deploy-api` job calls it with `secrets: inherit`; without that the two came through empty when CI called it (a manual run was unaffected). Because inherit makes every repository secret available to `deploy-api.yml`, that file must read no secret but these two and `github.token`, and the caller job must stay limited to pushes to `main`.
 4. Settings → Secrets and variables → Actions → Variables: add the repository variable `DEPLOY_API` = `true`. Delete it (or set anything else) to stop deploying from GitHub.
 
 The Worker's own secrets (`TURNSTILE_SECRET`, `ADMIN_TOKEN` and the rest) stay in Cloudflare: `wrangler deploy` keeps them.
