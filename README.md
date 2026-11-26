@@ -74,7 +74,11 @@ Local API, admin, owner mode and browser tests: [development guide](docs/develop
 
 ## Privacy
 
-The app has a short privacy notice in Spanish: the "i" in the map's legend, then **Privacidad** (`web/src/ui/PrivacyNotice.tsx`). In English:
+The app links here from the "i" in the map's legend (**Privacidad**); it carries no privacy text of its own.
+
+**En pocas palabras:** Sol y Cerveza no usa cookies ni publicidad, y no necesitas cuenta. Tu ubicación solo se usa en tu dispositivo. Contamos de forma anónima cuánto se usa cada función. Si envías un precio o un aviso, guardamos lo que envías y unos códigos derivados de tu dirección IP, solo para evitar abusos. ¿Dudas, o quieres que borremos algo? Abre una [incidencia](https://github.com/isroma/sol-y-cerveza/issues).
+
+The detail:
 
 - **Controller.** Sol y Cerveza is a personal, non-commercial project by its author, the GitHub account [isroma](https://github.com/isroma). Questions and requests go to the [repository's issues](https://github.com/isroma/sol-y-cerveza/issues).
 - **No cookies, no visitor accounts, no advertising or tracking.** The browser keeps a copy of the app, its data and the map tiles (the service worker's caches) so it opens fast and offline; nothing that identifies you. The only other browser storage is a timestamp in session storage that stops a reload loop after a failed update, and, for the owner only, the owner-mode login token.
@@ -85,7 +89,7 @@ The app has a short privacy notice in Spanish: the "i" in the map's legend, then
 - **Providers** that see your IP address because they serve the requests: GitHub Pages (the site), OpenFreeMap (the map tiles and fonts), Cloudflare (the API Worker). The bot check (Turnstile) is Cloudflare's own service, loaded only when a form that sends something opens. GitHub and Cloudflare are US companies and may process data outside the EU, under the safeguards their own privacy policies describe. The Worker keeps no per-request invocation logs (`invocation_logs = false` in `api/wrangler.toml`); entries for errors (`console.error`, uncaught exceptions) remain in Workers Logs and may carry Cloudflare's own request metadata, which we have not inspected. GitHub and Cloudflare also run their own infrastructure logs, which we don't control.
 - **Your rights.** Access, rectification, erasure, restriction, objection and portability through the contact above (tell us what you sent and when, so we can find it); complaints to the Spanish data protection authority, the AEPD ([www.aepd.es](https://www.aepd.es)).
 
-Keep the notice and this section true: when what the app stores, sends or what the API keeps changes, update both in the same PR.
+Keep this section true: when what the app stores, sends or what the API keeps changes, update it in the same PR.
 
 ## Contributing
 

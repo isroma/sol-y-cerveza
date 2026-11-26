@@ -1,20 +1,12 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { BADAJOZ_BBOX } from '../data/geo.ts'
 import { track } from '../telemetry.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
 import { CATEGORY_LABELS, LEAF_OFF_INFO } from '../ui/categoryStyle.ts'
-import { PrivacyNotice } from '../ui/PrivacyNotice.tsx'
 import {
   ChevronDownIcon,
-  ChevronLeftIcon,
   CloseIcon,
   CompassIcon,
   InfoIcon,
@@ -23,6 +15,9 @@ import {
   PinIcon,
   PlusIcon,
 } from '../ui/icons.tsx'
+
+/** What the app stores and sends, in the README; kept out of the UI on purpose (owner, 2026-11-26). */
+export const PRIVACY_URL = 'https://github.com/isroma/sol-y-cerveza#privacy'
 
 type Props = {
   mapRef: RefObject<MapLibreMap | null>
@@ -40,24 +35,6 @@ export function MapControls({
 }: Props) {
   const [cityOpen, setCityOpen] = useState(false)
   const [infoOpen, setInfoOpen] = useState(false)
-  /** The info panel shows the privacy notice instead of "Sobre los datos". */
-  const [privacyOpen, setPrivacyOpen] = useState(false)
-  const legendRef = useRef<HTMLElement>(null)
-  const infoMaxHeight = useInfoMaxHeight(legendRef, infoOpen)
-  // Focus follows the panel's view: the back button when the notice opens,
-  // the "Privacidad" link when it goes back. Only after those clicks.
-  const backRef = useRef<HTMLButtonElement>(null)
-  const privacyLinkRef = useRef<HTMLButtonElement>(null)
-  const focusAfterSwitch = useRef(false)
-  useEffect(() => {
-    if (!focusAfterSwitch.current) return
-    focusAfterSwitch.current = false
-    ;(privacyOpen ? backRef : privacyLinkRef).current?.focus()
-  }, [privacyOpen])
-  const showPrivacy = (show: boolean) => {
-    focusAfterSwitch.current = true
-    setPrivacyOpen(show)
-  }
   const [locateError, setLocateError] = useState<string | null>(null)
   const userMarker = useRef<Marker | null>(null)
   const [bearing, setBearing] = useState(0)
@@ -233,7 +210,7 @@ export function MapControls({
       )}
 
       <div className="map-bottom">
-        <aside className="map-legend" aria-label="Leyenda" ref={legendRef}>
+        <aside className="map-legend" aria-label="Leyenda">
           <ul>
             {(['sun', 'soon', 'nosun'] as const).map((category) => (
               <li key={category}>
@@ -251,42 +228,15 @@ export function MapControls({
             className="icon-button legend-info"
             aria-label="Información sobre los datos"
             aria-expanded={infoOpen}
-            onClick={() => {
-              setInfoOpen(!infoOpen)
-              setPrivacyOpen(false)
-            }}
+            onClick={() => setInfoOpen(!infoOpen)}
           >
             <InfoIcon size={20} />
           </button>
-          {infoOpen && privacyOpen && (
-            <div
-              className="map-info"
-              role="dialog"
-              aria-label="Privacidad"
-              style={infoMaxHeight}
-            >
-              <div className="map-info-head">
-                <button
-                  type="button"
-                  className="icon-button map-info-back"
-                  aria-label="Volver a Sobre los datos"
-                  title="Volver"
-                  ref={backRef}
-                  onClick={() => showPrivacy(false)}
-                >
-                  <ChevronLeftIcon size={20} />
-                </button>
-                <h3>Privacidad</h3>
-              </div>
-              <PrivacyNotice />
-            </div>
-          )}
-          {infoOpen && !privacyOpen && (
+          {infoOpen && (
             <div
               className="map-info"
               role="dialog"
               aria-label="Sobre los datos"
-              style={infoMaxHeight}
             >
               <h3>Sobre los datos</h3>
               <p>
@@ -324,69 +274,16 @@ export function MapControls({
                 {attribution.map((line) => (
                   <li key={line}>{line}</li>
                 ))}
+                <li>
+                  <a href={PRIVACY_URL} target="_blank" rel="noreferrer">
+                    Privacidad
+                  </a>
+                </li>
               </ul>
-              <button
-                type="button"
-                className="map-info-link"
-                ref={privacyLinkRef}
-                onClick={() => showPrivacy(true)}
-              >
-                Privacidad
-              </button>
             </div>
           )}
         </aside>
       </div>
     </>
   )
-}
-
-/** The info panel's height when the room above the legend can't be measured or is tiny. */
-export const MIN_INFO_HEIGHT = 160
-
-/**
- * The info panel opens above the legend: cap its height at the room between
- * the legend and the top of the map, so a long text (the privacy notice)
- * scrolls inside the panel instead of running off the map. Measured, since
- * the legend's height depends on the layout, and measured again whenever the
- * map or the legend changes size (a rotation, the legend hidden while a
- * card's back shows on phones and shown again). Never less than
- * MIN_INFO_HEIGHT, and never uncapped while open.
- */
-function useInfoMaxHeight(
-  legendRef: RefObject<HTMLElement | null>,
-  open: boolean,
-): { maxHeight: string } | undefined {
-  const [maxHeight, setMaxHeight] = useState<number | null>(null)
-  // Before paint, so the panel never shows at the wrong height first.
-  useLayoutEffect(() => {
-    if (!open) return
-    const legend = legendRef.current
-    const wrap = legend?.closest('.map-wrap')
-    if (!legend || !wrap) return
-    const measure = () => {
-      const legendBox = legend.getBoundingClientRect()
-      // Hidden (display: none): nothing to place the panel against; keep
-      // the last height and wait for the legend to come back.
-      if (legendBox.width === 0 && legendBox.height === 0) return
-      const style = getComputedStyle(legend)
-      const gap = parseFloat(style.getPropertyValue('--space-3')) || 12
-      const inset = parseFloat(style.getPropertyValue('--map-inset')) || 16
-      const room =
-        legendBox.top - wrap.getBoundingClientRect().top - gap - inset
-      setMaxHeight(Math.max(MIN_INFO_HEIGHT, Math.floor(room)))
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    const observer =
-      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
-    observer?.observe(wrap)
-    observer?.observe(legend)
-    return () => {
-      window.removeEventListener('resize', measure)
-      observer?.disconnect()
-    }
-  }, [legendRef, open])
-  if (!open) return undefined
-  return { maxHeight: `${maxHeight ?? MIN_INFO_HEIGHT}px` }
 }
