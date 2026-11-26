@@ -439,15 +439,16 @@ export function MapView({
             else onSelectRef.current(id)
           },
           // The label hides only when the tab shows the name (pins.css).
-          (hovered) =>
+          (target, hovered) =>
             hideTerraceName(
               map,
-              id,
+              target.dataset['venueId'] ?? id,
               hovered &&
                 map.getContainer().matches('.names-on-hover:not(.is-moving)') &&
                 !map.getContainer().closest('.map-wrap.has-card'),
             ),
         )
+        el.dataset['venueId'] = id
         const position = status.venue.terrace ?? status.venue.venue
         const marker = new Marker({ element: el, anchor: 'bottom' })
           .setLngLat([position.lon, position.lat])
