@@ -10,6 +10,8 @@ How the site and the API are deployed and configured, how the offline cache beha
 - **Data.** The admin's Publish pushes a `data/venue-review-*` branch; the **Publish review** and **Publish review PR** workflows check it, open its PR and enable auto-merge ([admin guide](admin.md#publish)). Once merged, the deploy above ships it.
 - **Mobile** is paused: `.github/workflows/mobile.yml` only runs by hand ([mobile](mobile.md)).
 
+**Usage counters.** The app's anonymous daily counters (ADR-0013) live in the `event_counts` table; read them with `GET /v1/admin/stats?days=N` and the admin token, or with `wrangler d1 execute`: [api/README.md](../api/README.md#usage-counters). Their migration ships like any other (CI applies it before deploying the Worker).
+
 ## Variables and secrets
 
 Names only; values live in GitHub, Cloudflare or local files that are never committed.

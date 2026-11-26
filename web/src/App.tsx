@@ -21,6 +21,7 @@ import {
   type PlaceTarget,
 } from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
+import * as telemetry from './telemetry.ts'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
 import { isLeafOff } from './sun/leafOff.ts'
@@ -53,6 +54,10 @@ const URL_WRITE_DELAY_MS = 400
 
 /** The app always shows today in Madrid. */
 const madridNow = () => toMadridLocal(new Date())
+
+/** The hour a minute of the day falls in, as the usage counters take it: "00" … "23". */
+const hourOf = (minutes: number) =>
+  String(Math.floor(minutes / 60) % 24).padStart(2, '0')
 
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
@@ -125,6 +130,11 @@ export function App() {
     return () => window.clearTimeout(timer)
   }, [time, selectedId])
 
+  // A card opened, from the map, the list or a link.
+  useEffect(() => {
+    if (selectedId !== null) telemetry.track('venue_open', selectedId)
+  }, [selectedId])
+
   // Keep "now" current: the marker on the bar, the time while it follows the
   // clock, and the date after midnight.
   useEffect(() => {
@@ -187,6 +197,11 @@ export function App() {
 
   const times = useMemo(() => sunTimes(track), [track])
 
+  const chooseTime = useCallback((chosen: number) => {
+    setTime(chosen)
+    telemetry.trackSettled('time_change', hourOf(chosen))
+  }, [])
+
   const goToNow = useCallback(() => {
     setNow(madridNow())
     setTime(null)
@@ -217,6 +232,7 @@ export function App() {
     [draft],
   )
   const startAdd = useCallback((name?: string) => {
+    telemetry.track('add_open')
     setMenuOpen(false)
     setSelectedId(null)
     setPicking(name ? { kind: 'add', name } : { kind: 'add' })
@@ -255,7 +271,7 @@ export function App() {
   const timeSlider = (
     <TimeSlider
       minutes={minutes}
-      onChange={setTime}
+      onChange={chooseTime}
       onNow={goToNow}
       now={now.minutes}
       sunrise={times?.sunrise ?? null}

@@ -1,6 +1,7 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { BADAJOZ_BBOX } from '../data/geo.ts'
+import { track } from '../telemetry.ts'
 import { CategoryIcon } from '../ui/CategoryIcon.tsx'
 import { pitchForZoom } from './camera.ts'
 import { CATEGORY_LABELS, LEAF_OFF_INFO } from '../ui/categoryStyle.ts'
@@ -94,6 +95,7 @@ export function MapControls({
 
   // The first tap starts following you; later taps centre the map on the dot.
   const locate = () => {
+    track('locate')
     setLocateError(null)
     if (!('geolocation' in navigator)) {
       setLocateError('Tu navegador no permite localizarte.')

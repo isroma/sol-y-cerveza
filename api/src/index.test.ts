@@ -1640,3 +1640,116 @@ describe('sun reports', () => {
     ).toBe(400)
   })
 })
+
+describe('usage counters', () => {
+  type CountRow = { day: string; name: string; value: string; count: number }
+
+  /** A beacon as the app sends it: a JSON string as text/plain, no preflight. */
+  function beacon(events: unknown, headers: Record<string, string> = {}) {
+    return {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8', ...headers },
+      body: JSON.stringify({ events }),
+    }
+  }
+
+  it('counts allowed events per Madrid day and drops the rest, without IP_SALT or a bot check', async () => {
+    const api = await startApi({ IP_SALT: undefined })
+    try {
+      const response = await api.call(
+        '/v1/events',
+        beacon(
+          [
+            { name: 'open', value: 'phone' },
+            { name: 'venue_open', value: 'osm:node/1' },
+            { name: 'venue_open', value: 'osm:node/1' },
+            { name: 'venue_open', value: 'osm:node/999' },
+            { name: 'time_change', value: '13' },
+            { name: 'search', value: 'the text typed' },
+            { name: 'nope' },
+          ],
+          { Origin: 'https://isroma.github.io' },
+        ),
+      )
+      expect(response.status).toBe(204)
+      expect(response.headers.get('Cache-Control')).toBe('no-store')
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+        'https://isroma.github.io',
+      )
+      expect(
+        (
+          await api.call(
+            '/v1/events',
+            postJson({ events: [{ name: 'open', value: 'phone' }] }),
+          )
+        ).status,
+      ).toBe(204)
+      const day = madridDate(new Date())
+      expect(
+        await api.rows<CountRow>(
+          'SELECT day, name, value, count FROM event_counts ORDER BY name, value',
+        ),
+      ).toEqual([
+        { day, name: 'open', value: 'phone', count: 2 },
+        { day, name: 'time_change', value: '13', count: 1 },
+        { day, name: 'venue_open', value: 'osm:node/1', count: 2 },
+      ])
+      expect(api.calls.siteverify).toBe(0)
+    } finally {
+      await api.dispose()
+    }
+  })
+
+  it('refuses a malformed or oversized body', async () => {
+    const api = await startApi()
+    try {
+      const call = (init: MfRequestInit) => api.call('/v1/events', init)
+      expect((await call(beacon('open'))).status).toBe(400)
+      expect(
+        (
+          await call(
+            beacon(Array.from({ length: 21 }, () => ({ name: 'locate' }))),
+          )
+        ).status,
+      ).toBe(400)
+      expect(
+        (await call({ method: 'POST', body: '{"events": [' })).status,
+      ).toBe(400)
+      expect(
+        (await call(beacon([{ name: 'locate', value: 'x'.repeat(5000) }])))
+          .status,
+      ).toBe(413)
+      expect(await api.rows('SELECT * FROM event_counts')).toEqual([])
+    } finally {
+      await api.dispose()
+    }
+  })
+
+  it('serves the counters to the admin token only, newest day first', async () => {
+    const api = await startApi()
+    try {
+      const today = madridDate(new Date())
+      await api.sql(
+        `INSERT INTO event_counts (day, name, value, count) VALUES
+         ('2000-01-01', 'open', 'phone', 9), (?, 'open', 'desktop', 3),
+         (?, 'locate', '', 1), ('2000-01-02', 'locate', '', 4)`,
+        today,
+        today,
+      )
+      expect((await api.call('/v1/admin/stats')).status).toBe(401)
+      const response = await api.call('/v1/admin/stats?days=7', {
+        headers: { Authorization: ADMIN },
+      })
+      expect(response.status).toBe(200)
+      expect(response.headers.get('Cache-Control')).toBe('no-store')
+      expect(await response.json()).toEqual({
+        rows: [
+          { day: today, name: 'locate', value: '', count: 1 },
+          { day: today, name: 'open', value: 'desktop', count: 3 },
+        ],
+      })
+    } finally {
+      await api.dispose()
+    }
+  })
+})

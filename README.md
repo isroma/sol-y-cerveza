@@ -72,6 +72,10 @@ Local API, admin, owner mode and browser tests: [development guide](docs/develop
 | [Operations](docs/operations.md)                                                                                   | Deploys, secrets, the service worker, CI                        |
 | [Data contract](docs/data-contract.md) · [ADRs](docs/adr/) · [Research](docs/research/) · [Mobile](docs/mobile.md) |                                                                 |
 
+## Privacy
+
+The app counts how it is used, so we can improve it, as daily totals only: page loads (phone or desktop), venue cards opened (which venue), the hour picked on the time bar, filters switched on, and whether the card's back, search, the locate button, "¿Falta un bar?" or a suggestion were used. It sets no cookies, stores nothing in your browser for this, and sends no identifier: we never record your IP address, browser, the page you came from, what you type or where you are, and nothing ties one count to another, so we can't tell visitors apart. With Global Privacy Control or Do Not Track on, it counts nothing. Details: [ADR-0013](docs/adr/0013-anonymous-usage-counters.md).
+
 ## Contributing
 
 Spotted a wrong or missing terrace? You don't need GitHub: open it in [the app](https://isroma.github.io/sol-y-cerveza/) and use **Sugerir un cambio**. For code, see [CONTRIBUTING.md](CONTRIBUTING.md); every change goes through a PR with green CI.

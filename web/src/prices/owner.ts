@@ -49,6 +49,11 @@ export function useOwner(): State {
   )
 }
 
+/** Whether owner mode is on now (outside React: the usage counters skip the owner). */
+export function isOwner(): boolean {
+  return state.token !== null
+}
+
 /** Whether the change forms can send: a visitor's build needs the bot check, the owner only the API. */
 export function useCanSend(): boolean {
   const { token } = useOwner()

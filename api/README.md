@@ -1,6 +1,6 @@
 # Price suggestions API
 
-A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices that 5 people (on 5 different networks) agree on are served to the app. Visitors can also report venues that moved, closed or are missing, and whether a venue has a terrace and where; reports only wait for the owner's review. And they can say the sun is on a terrace now: where 3 networks agree, the API serves a correction to that terrace's horizon. The design is in [ADR-0005](../docs/adr/0005-price-suggestions.md), for terraces [ADR-0009](../docs/adr/0009-terrace-reports.md) and for the sun [ADR-0012](../docs/adr/0012-sun-reports.md).
+A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices that 5 people (on 5 different networks) agree on are served to the app. Visitors can also report venues that moved, closed or are missing, and whether a venue has a terrace and where; reports only wait for the owner's review. And they can say the sun is on a terrace now: where 3 networks agree, the API serves a correction to that terrace's horizon. It also keeps anonymous daily usage counters (see [Usage counters](#usage-counters)). The design is in [ADR-0005](../docs/adr/0005-price-suggestions.md), for terraces [ADR-0009](../docs/adr/0009-terrace-reports.md), for the sun [ADR-0012](../docs/adr/0012-sun-reports.md) and for the counters [ADR-0013](../docs/adr/0013-anonymous-usage-counters.md).
 
 | Endpoint                          | Who                | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | --------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -23,6 +23,8 @@ A Cloudflare Worker with a D1 database: visitors suggest beer prices, and prices
 | `GET /v1/admin/sun`               | the admin view     | pending sun reports, one entry per venue and season: `{ids, venueId, leafOff, sightings: [{id, azimuth, altitude, at}], reporters, shown, last}`, most reporters first                                                                                                                                                                                                                                                                                                                                             |
 | `POST /v1/admin/sun/resolve`      | the admin view     | `{ids, status: accepted \| rejected}` → `{ok: true}`; a rejection blocks each report's slice of sky for a year                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `GET /v1/admin/sun/accepted`      | the admin view     | every accepted sun report (visitors' and the owner's) of the last 365 days, by id: `{reports: [{id, venueId, leafOff, azimuth, altitude, at}]}`, degrees to 1 decimal; the admin copies them into `pipeline/data/sun_corrections.csv`                                                                                                                                                                                                                                                                              |
+| `POST /v1/events`                 | the app            | `{events: [{name, value?}]}`, at most 20 (`400` beyond, or for a body of another shape; `413` over 4 KB): anonymous usage counters. No bot check, no hashing, nothing about the visitor; each allowlisted (name, value) adds one to today's counter (Madrid date), anything else is dropped without a word. `204`, `Cache-Control: no-store`. The app sends it as `text/plain`, so no preflight                                                                                                                    |
+| `GET /v1/admin/stats?days=N`      | the owner (curl)   | `{rows: [{day, name, value, count}]}` for the last N Madrid days, today included (default 30, at most 365), newest day first, then name and value; `Cache-Control: no-store`                                                                                                                                                                                                                                                                                                                                       |
 
 **Rejected prices.** Rejecting a price in the admin's Suggestions queue records its venue, item, brand and cents in `rejected_prices`: from then on no vote for it counts, neither the same voters voting again nor new networks, and it no longer shows in the queue. To undo a rejection, accept that price (`POST /v1/admin/resolve` with `status: accepted`; its earlier votes count again) or save it as an owner price at the same cents.
 
@@ -61,9 +63,46 @@ Nothing about a visitor is kept in the browser: cookies or local storage would b
 - **Caps** (every accepted request counts, re-votes and venue reports included; 429 with `Retry-After` when hit): 20 a day per voter, 60 a day per network, 15 an hour per venue from everyone (a report of a missing venue counts against its area instead: a cell of about 1 km, `new:<lat>,<lon>` to 2 decimals). A change from the card's back counts once per part (price, move, closed, sun) and goes in only if all its parts fit. The check and the logging are one SQL statement, so parallel requests can't slip past a cap. The log behind them (`suggestion_events`) holds hashes only and is pruned after 48 hours.
 - **Validity**: plausible prices only, venues in the published data only.
 - Only hashes are stored, salted with `IP_SALT`; never an IP address. If `IP_SALT` is unset or shorter than 16 characters, `POST /v1/suggestions`, `POST /v1/reports` and `POST /v1/changes` answer `503 {error: "not configured"}` (and log why) rather than hash with a guessable salt.
-- **Body size**: 8 KB for every JSON body, counted in bytes; a larger `Content-Length` is refused before reading, and a body without one stops being read at the limit (`413`).
+- **Body size**: 8 KB for every JSON body (4 KB for `POST /v1/events`), counted in bytes; a larger `Content-Length` is refused before reading, and a body without one stops being read at the limit (`413`).
 
 The numbers live in `src/logic.ts`. A determined attacker with many networks (a residential proxy pool) can still get through; the review queue in the admin, where any suggestion can be rejected, is the last line.
+
+## Usage counters
+
+`POST /v1/events` keeps daily aggregate counters of how the app is used, and nothing else ([ADR-0013](../docs/adr/0013-anonymous-usage-counters.md)): one row per Madrid date, event name and value in `event_counts`, with a count. No IP (not even hashed), no voter or session id, no user agent, referrer, free text or position is read or stored, so the endpoint needs neither Turnstile nor `IP_SALT`. The allowlist is `web/src/data/telemetryEvents.ts`, which the Worker imports, so the app and the API can't disagree:
+
+| Event          | Value                                             | When                                                      |
+| -------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| `open`         | `phone` or `desktop` (the 900 px breakpoint)      | a page load                                               |
+| `venue_open`   | the venue id, only if it is in the published data | a venue card opens (map, list, search or a link)          |
+| `card_back`    |                                                   | a card turns to its back                                  |
+| `time_change`  | the hour, `00` … `23` (Madrid)                    | the time slider comes to rest (1.5 s after the last move) |
+| `filter`       | `sunNow` or `onlyTerrace`                         | a filter is switched on                                   |
+| `search`       |                                                   | the first time the search box is typed in, per page load  |
+| `locate`       |                                                   | the locate button is tapped                               |
+| `add_open`     |                                                   | "¿Falta un bar? Añádelo" opens                            |
+| `suggest_sent` |                                                   | a card-back change is sent and accepted                   |
+| `sun_report`   |                                                   | a change with "the sun is here now" is sent and accepted  |
+
+The app (`web/src/telemetry.ts`) sends nothing without an API, with Global Privacy Control or Do Not Track on, or in owner mode, and the admin never sends any. Anyone can inflate the counts: there are no caps, because a cap needs to know who is asking. The venue check and the fixed values keep the table bounded at about (venues + 40) rows a day whatever is sent.
+
+**Reading the numbers.** With the admin token:
+
+```bash
+curl -s -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "https://<your-worker>.workers.dev/v1/admin/stats?days=7"
+```
+
+Or straight from the database (`npx wrangler login` first, in `api/`), for example each event's total over the last 30 days, and the most opened venues:
+
+```bash
+npx wrangler d1 execute sol-y-cerveza --remote --command \
+  "SELECT name, value, SUM(count) AS total FROM event_counts
+   WHERE day >= date('now', '-30 days') GROUP BY name, value ORDER BY name, total DESC"
+npx wrangler d1 execute sol-y-cerveza --remote --command \
+  "SELECT value AS venue, SUM(count) AS opens FROM event_counts
+   WHERE name = 'venue_open' GROUP BY value ORDER BY opens DESC LIMIT 20"
+```
 
 ## Code
 
@@ -76,8 +115,10 @@ The numbers live in `src/logic.ts`. A determined attacker with many networks (a 
 | `src/routes/prices.ts`                             | suggestions, `GET /v1/prices` and its cache, the admin's suggestions queue                              |
 | `src/routes/reports.ts`                            | `POST /v1/reports`, `POST /v1/changes` and the admin's reports queue                                    |
 | `src/routes/owner.ts`                              | owner mode (prices, changes, reports) and `GET /v1/admin/owner-prices`                                  |
+| `src/routes/events.ts`                             | `POST /v1/events` and `GET /v1/admin/stats`, the usage counters                                         |
 | `src/logic.ts`, `src/reports.ts`, `src/changes.ts` | pure rules: parsing, limits, consensus, the report queue                                                |
 | `src/sun.ts`                                       | pure rules of sun reports: the sun's position, the season, corrections and the sun queue                |
+| `src/events.ts`                                    | pure rules of the usage counters: parsing, the allowlist check, adding up a batch, the stats window     |
 | `scripts/deployCheck.ts`                           | CI's deploy guard (run by `scripts/deploy-check.ts`): build fingerprint, live build                     |
 
 ## Local development
