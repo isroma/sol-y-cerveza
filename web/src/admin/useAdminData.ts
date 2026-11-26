@@ -52,6 +52,23 @@ function addedVenue(review: Review): Terrace | null {
   }
 }
 
+/**
+ * The dataset's venues plus the ones added in the admin view that it doesn't
+ * hold yet: once published, an added venue is in terraces.json too, and that
+ * record (with its terrace and horizon) is the one to show.
+ */
+export function withAddedVenues(
+  data: readonly Terrace[],
+  reviews: Iterable<Review>,
+): Terrace[] {
+  const published = new Set(data.map((v) => v.id))
+  const added = [...reviews].flatMap((r) => {
+    const venue = addedVenue(r)
+    return venue && !published.has(venue.id) ? [venue] : []
+  })
+  return [...data, ...added].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+}
+
 async function fetchPrices(): Promise<Map<string, VenuePrice>> {
   const response = await fetch(ADMIN_ENDPOINTS.prices)
   if (!response.ok)
@@ -128,11 +145,7 @@ export function useAdminData(selectedId: string | null) {
   }, [])
 
   const venues = useMemo(
-    () =>
-      [
-        ...dataVenues,
-        ...[...reviews.values()].flatMap((r) => addedVenue(r) ?? []),
-      ].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    () => withAddedVenues(dataVenues, reviews.values()),
     [dataVenues, reviews],
   )
 
