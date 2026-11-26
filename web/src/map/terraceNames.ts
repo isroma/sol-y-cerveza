@@ -50,7 +50,12 @@ export function addTerraceNameLayers(
   if (!map.hasImage('badge-box')) map.addImage('badge-box', blankImage(BOX))
   if (!map.hasImage('badge-box-priced'))
     map.addImage('badge-box-priced', blankImage(PRICED_BOX))
-  map.addSource(NAMES_SOURCE, { type: 'geojson', data: empty })
+  // Ids promoted so a hovered badge's name can be hidden (hideTerraceName).
+  map.addSource(NAMES_SOURCE, {
+    type: 'geojson',
+    data: empty,
+    promoteId: 'id',
+  })
   map.addSource(BADGES_SOURCE, { type: 'geojson', data: empty })
   map.addLayer({
     id: NAMES_LAYER,
@@ -84,7 +89,8 @@ export function addTerraceNameLayers(
         NAMES_FROM_ZOOM - 0.3,
         0,
         NAMES_FROM_ZOOM,
-        1,
+        // Hidden while its badge is hovered: the badge's tab shows the name.
+        ['case', ['boolean', ['feature-state', 'hovered'], false], 0, 1],
       ],
     },
   })
@@ -132,6 +138,16 @@ type NameProps = {
   sunny: boolean
   priced: boolean
   named: boolean
+}
+
+/** Hides (or shows again) one terrace's name while its badge is hovered. */
+export function hideTerraceName(
+  map: MapLibreMap,
+  id: string,
+  hidden: boolean,
+): void {
+  if (!map.getSource(NAMES_SOURCE)) return
+  map.setFeatureState({ source: NAMES_SOURCE, id }, { hovered: hidden })
 }
 
 /** The names and badge boxes for the terraces shown as badges. */

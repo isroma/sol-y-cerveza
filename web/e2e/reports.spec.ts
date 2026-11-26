@@ -597,7 +597,8 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
   })
   await page.waitForFunction(() => window.__map !== undefined)
   const marker = page.locator('.pin-marker[aria-label^="Bar Sol Uno"]')
-  const price = marker.locator('.pin-price')
+  const price = marker.locator('.pin-price-text')
+  const tab = marker.locator('.pin-price')
   // Zoomed out the badges shrink and show no price (it fades out, so it
   // stays in the page; .pin--priced is what shows it).
   await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
@@ -613,10 +614,10 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
   await marker.click()
   // It stays in the badge and folds on the card's curve (frame-by-frame
   // timing is too unsteady in a headless browser to sample).
-  const tuck = await price.evaluate((el) => {
+  const tuck = await tab.evaluate((el) => {
     const style = getComputedStyle(el)
     return {
-      text: el.textContent,
+      text: el.querySelector('.pin-price-text')?.textContent,
       properties: style.transitionProperty,
       durations: style.transitionDuration,
     }
@@ -626,7 +627,7 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
   expect(tuck.durations).toBe('0.36s, 0.2s')
   await expect(marker.locator('.pin')).not.toHaveClass(/pin--priced/)
   await expect
-    .poll(() => price.evaluate((el) => getComputedStyle(el).scale))
+    .poll(() => tab.evaluate((el) => getComputedStyle(el).scale))
     .toBe('0 1')
   await shot(page, 'badge-price')
 })

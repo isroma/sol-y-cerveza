@@ -21,6 +21,7 @@ import { addDotLayers, DOTS_SOURCE } from './dotLayers.ts'
 import { dotsUpdate } from './dots.ts'
 import {
   addTerraceNameLayers,
+  hideTerraceName,
   NAMES_SOURCE,
   terraceNamesData,
   updateTerraceNames,
@@ -409,13 +410,17 @@ export function MapView({
     for (const [id, status] of wanted) {
       let entry = pins.get(id)
       if (!entry) {
-        const el = createPin(() => {
-          // Tapping the selected badge (folded in the overview) zooms back
-          // in to open its card.
-          const current = statusesRef.current.find((s) => s.venue.id === id)
-          if (id === selectedIdRef.current && current) focusVenue(map, current)
-          else onSelectRef.current(id)
-        })
+        const el = createPin(
+          () => {
+            // Tapping the selected badge (folded in the overview) zooms back
+            // in to open its card.
+            const current = statusesRef.current.find((s) => s.venue.id === id)
+            if (id === selectedIdRef.current && current)
+              focusVenue(map, current)
+            else onSelectRef.current(id)
+          },
+          (hovered) => hideTerraceName(map, id, hovered),
+        )
         const position = status.venue.terrace ?? status.venue.venue
         const marker = new Marker({ element: el, anchor: 'bottom' })
           .setLngLat([position.lon, position.lat])
