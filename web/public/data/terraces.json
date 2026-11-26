@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2026-11-26T19:14:55Z",
+  "generated": "2026-11-26T19:18:15Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
@@ -9445,7 +9445,20 @@
       "horizon_winter": null,
       "horizon_low": "QUUUWWWWZZZZ[[[_____aabbbbbcceeeeefgggggggggggggghhhhgggggfgggggggggggggddddcccccceeeedccccccccccccbbaa````^^^^^^^[[[ZWWVVUUQNNNNDCCC@;554333333331-('),,,,,,-2255666688888887222222...++**++++**+++++..0111234444558;;;;<<<<<<==================<=<==<=<<=<<<<<<<<;;;;;;;;;;;;;;;;;;;;;;<<==>>========>>??@@@AABBBBBB@??=<;:822110/.,+*********+/179<=@BCEEGGHJMMMOOQQQ",
       "horizon_low_winter": "QUUUWWWWZZZZ[[[_____aabbbbbcceeeeefgggggggggggggghhhhgggggfgggggggggggggddddcccccceeeedccccccccccccbbaa````^^^^^^^[[[ZWWVVUUQNNNNDCCC@;554333333331-('),,,,,,-2255666688888887222222...++**++++**+++++..0111234444558;;;;<<<<<<==================<=<==<=<<=<<<<<<<<;;;;;;;;;;;;;;;;;;;;;;<<==>>========>>??@@@AABBBBBB@??=<;:822110/.,+(()))))))+/179<=@BCEEGGHJMMMOOQQQ",
-      "prices": []
+      "prices": [
+        {
+          "item": "tercio",
+          "brand": "alhambra-especial",
+          "cents": 350,
+          "seen": "2026-11-26"
+        },
+        {
+          "item": "tercio",
+          "brand": "mahou-5-estrellas",
+          "cents": 300,
+          "seen": "2026-11-26"
+        }
+      ]
     },
     {
       "id": "overture:a9d1f6c9-649d-4ea9-937d-f8a5c8d371e5",
@@ -12414,6 +12427,30 @@
           "item": "cana",
           "brand": null,
           "cents": 260,
+          "seen": "2026-11-26"
+        }
+      ]
+    },
+    {
+      "id": "review:la-moncloa",
+      "name": "La Moncloa",
+      "kind": "bar",
+      "venue": {
+        "lat": 38.871925,
+        "lon": -6.981783
+      },
+      "terrace": null,
+      "sources": [
+        "review"
+      ],
+      "verified": null,
+      "horizon": null,
+      "horizon_winter": null,
+      "prices": [
+        {
+          "item": "cana",
+          "brand": null,
+          "cents": 150,
           "seen": "2026-11-26"
         }
       ]
