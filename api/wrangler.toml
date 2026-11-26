@@ -3,10 +3,11 @@ name = "sol-y-cerveza-api"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 
-# Workers Logs: console.error from misconfiguration (IP_SALT, a Turnstile test
-# secret) and server errors show in the dashboard. Invocation logs (one entry
-# per request, with its URL and request metadata) are off: the Worker keeps no
-# per-request log of visitors (README.md, "Privacy"; the notice in the app).
+# Workers Logs: entries for errors (console.error from misconfiguration such as
+# IP_SALT or a Turnstile test secret, server errors, uncaught exceptions) show
+# in the dashboard, with whatever request metadata Cloudflare attaches to them
+# (not inspected). Per-request invocation logs are off: the Worker keeps no log
+# of each request (README.md, "Privacy"; the notice in the app).
 [observability]
 enabled = true
 

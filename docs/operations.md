@@ -12,7 +12,7 @@ How the site and the API are deployed and configured, how the offline cache beha
 
 **Usage counters.** The app's anonymous daily counters (ADR-0013) live in the `event_counts` table; read them with `GET /v1/admin/stats?days=N` and the admin token, or with `wrangler d1 execute`: [api/README.md](../api/README.md#usage-counters). Their migration ships like any other (CI applies it before deploying the Worker).
 
-**Worker logs.** Workers Logs (Cloudflare dashboard → the Worker → Logs) show only the Worker's `console.error` lines: misconfiguration (`IP_SALT`, a Turnstile test secret) and server errors. Invocation logs, one entry per request, are off on purpose (`[observability.logs] invocation_logs = false` in `api/wrangler.toml`, issue #495): README.md's Privacy section says the Worker keeps no per-request log, so to debug a request, reproduce it locally (`npm run dev` in `api/`) or with `wrangler tail`, which streams live without storing, rather than turning them back on.
+**Worker logs.** The Worker keeps no per-request invocation logs, on purpose (`[observability.logs] invocation_logs = false` in `api/wrangler.toml`, issue #495). Workers Logs (Cloudflare dashboard → the Worker → Logs) still show entries for errors: `console.error` (misconfiguration such as `IP_SALT` or a Turnstile test secret, server errors) and uncaught exceptions, which may carry Cloudflare's own request metadata (not inspected). README.md's Privacy section relies on this, so to debug a request, reproduce it locally (`npm run dev` in `api/`) or watch it live with `wrangler tail` rather than turning invocation logs back on.
 
 ## Variables and secrets
 

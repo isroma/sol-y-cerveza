@@ -44,6 +44,20 @@ export function MapControls({
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const legendRef = useRef<HTMLElement>(null)
   const infoMaxHeight = useInfoMaxHeight(legendRef, infoOpen)
+  // Focus follows the panel's view: the back button when the notice opens,
+  // the "Privacidad" link when it goes back. Only after those clicks.
+  const backRef = useRef<HTMLButtonElement>(null)
+  const privacyLinkRef = useRef<HTMLButtonElement>(null)
+  const focusAfterSwitch = useRef(false)
+  useEffect(() => {
+    if (!focusAfterSwitch.current) return
+    focusAfterSwitch.current = false
+    ;(privacyOpen ? backRef : privacyLinkRef).current?.focus()
+  }, [privacyOpen])
+  const showPrivacy = (show: boolean) => {
+    focusAfterSwitch.current = true
+    setPrivacyOpen(show)
+  }
   const [locateError, setLocateError] = useState<string | null>(null)
   const userMarker = useRef<Marker | null>(null)
   const [bearing, setBearing] = useState(0)
@@ -257,7 +271,8 @@ export function MapControls({
                   className="icon-button map-info-back"
                   aria-label="Volver a Sobre los datos"
                   title="Volver"
-                  onClick={() => setPrivacyOpen(false)}
+                  ref={backRef}
+                  onClick={() => showPrivacy(false)}
                 >
                   <ChevronLeftIcon size={20} />
                 </button>
@@ -313,7 +328,8 @@ export function MapControls({
               <button
                 type="button"
                 className="map-info-link"
-                onClick={() => setPrivacyOpen(true)}
+                ref={privacyLinkRef}
+                onClick={() => showPrivacy(true)}
               >
                 Privacidad
               </button>
@@ -325,11 +341,17 @@ export function MapControls({
   )
 }
 
+/** The info panel's height when the room above the legend can't be measured or is tiny. */
+export const MIN_INFO_HEIGHT = 160
+
 /**
  * The info panel opens above the legend: cap its height at the room between
  * the legend and the top of the map, so a long text (the privacy notice)
  * scrolls inside the panel instead of running off the map. Measured, since
- * the legend's height depends on the layout.
+ * the legend's height depends on the layout, and measured again whenever the
+ * map or the legend changes size (a rotation, the legend hidden while a
+ * card's back shows on phones and shown again). Never less than
+ * MIN_INFO_HEIGHT, and never uncapped while open.
  */
 function useInfoMaxHeight(
   legendRef: RefObject<HTMLElement | null>,
@@ -339,23 +361,32 @@ function useInfoMaxHeight(
   // Before paint, so the panel never shows at the wrong height first.
   useLayoutEffect(() => {
     if (!open) return
+    const legend = legendRef.current
+    const wrap = legend?.closest('.map-wrap')
+    if (!legend || !wrap) return
     const measure = () => {
-      const legend = legendRef.current
-      const wrap = legend?.closest('.map-wrap')
-      if (!legend || !wrap) return
+      const legendBox = legend.getBoundingClientRect()
+      // Hidden (display: none): nothing to place the panel against; keep
+      // the last height and wait for the legend to come back.
+      if (legendBox.width === 0 && legendBox.height === 0) return
       const style = getComputedStyle(legend)
       const gap = parseFloat(style.getPropertyValue('--space-3')) || 12
       const inset = parseFloat(style.getPropertyValue('--map-inset')) || 16
       const room =
-        legend.getBoundingClientRect().top -
-        wrap.getBoundingClientRect().top -
-        gap -
-        inset
-      setMaxHeight(room > 0 ? Math.floor(room) : null)
+        legendBox.top - wrap.getBoundingClientRect().top - gap - inset
+      setMaxHeight(Math.max(MIN_INFO_HEIGHT, Math.floor(room)))
     }
     measure()
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(wrap)
+    observer?.observe(legend)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
   }, [legendRef, open])
-  return maxHeight === null ? undefined : { maxHeight: `${maxHeight}px` }
+  if (!open) return undefined
+  return { maxHeight: `${maxHeight ?? MIN_INFO_HEIGHT}px` }
 }
