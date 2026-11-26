@@ -45,6 +45,13 @@ import {
   parseProposalsCsv,
   type ProposalsResponse,
 } from '../../src/admin/proposals.ts'
+import {
+  formatSunCorrectionsCsv,
+  missingSunCorrections,
+  parseSunCorrectionsCsv,
+  sunCorrectionsPostSchema,
+  type SunCorrectionRow,
+} from '../../src/admin/sunCorrectionsCsv.ts'
 import { ADMIN_ENDPOINTS, ADMIN_PREFIX } from '../../src/admin/endpoints.ts'
 
 const CSV = repoPath('pipeline/data/venue_review.csv')
@@ -81,6 +88,39 @@ async function writePrices(prices: readonly VenuePrice[]): Promise<void> {
   const partial = `${PRICES_CSV}.part`
   await writeFile(partial, formatPricesCsv(prices), 'utf-8')
   await rename(partial, PRICES_CSV)
+}
+
+// Accepted sun reports for Publish (issue #463); may not exist yet.
+const SUN_CSV = repoPath('pipeline/data/sun_corrections.csv')
+
+/**
+ * Adds the rows `path` (sun_corrections.csv) lacks, by id; rows already there
+ * stay as they are. Creates the file, header first, when it is missing.
+ * Resolves with how many rows it added.
+ */
+export async function addSunCorrections(
+  path: string,
+  incoming: readonly SunCorrectionRow[],
+): Promise<number> {
+  const text = await readOptional(path)
+  const rows = text === null ? [] : parseSunCorrectionsCsv(text)
+  const missing = missingSunCorrections(rows, incoming)
+  if (missing.length === 0 && text !== null) return 0
+  const partial = `${path}.part`
+  await writeFile(
+    partial,
+    formatSunCorrectionsCsv([...rows, ...missing]),
+    'utf-8',
+  )
+  await rename(partial, path)
+  return missing.length
+}
+
+export async function readSunCorrections(
+  path: string,
+): Promise<SunCorrectionRow[]> {
+  const text = await readOptional(path)
+  return text === null ? [] : parseSunCorrectionsCsv(text)
 }
 
 // Written by `python -m solycerveza.price_candidates` (ADR-0006).
@@ -220,7 +260,8 @@ function send(res: ServerResponse, status: number, payload: unknown) {
  * Dev-server only: lets the admin page (admin.html) read and write
  * pipeline/data/venue_review.csv and venue_prices.csv, decide on website
  * price candidates (price_candidates.csv), read and ignore machine
- * proposals (venue_proposals.csv), probe the sun at a pin
+ * proposals (venue_proposals.csv), record accepted sun reports
+ * (sun_corrections.csv), probe the sun at a pin
  * (`python -m solycerveza.probe`). Never part of the built site.
  */
 export function reviewServer(): Plugin {
@@ -278,17 +319,23 @@ export function reviewServer(): Plugin {
       })
       // The suggestions, reports and sun reports review queues, proxied to the API so the
       // admin token (PRICES_ADMIN_TOKEN in web/.env.local) never reaches the
-      // browser: GET reads the queue, POST resolves entries.
+      // browser: GET reads the queue, POST resolves entries. Without postPath,
+      // a read-only proxy: anything but GET is refused.
       const proxy =
-        (getPath: string, postPath: string) =>
+        (getPath: string, postPath?: string) =>
         (req: IncomingMessage, res: ServerResponse) => {
+          if (req.method !== 'GET' && postPath === undefined)
+            return send(res, 405, { error: 'method not allowed' })
           if (!api || !token)
             return send(res, 503, {
               error:
                 'set VITE_PRICES_API and PRICES_ADMIN_TOKEN in web/.env.local',
             })
           const forward = async () => {
-            const path = req.method === 'POST' ? postPath : getPath
+            const path =
+              req.method === 'POST' && postPath !== undefined
+                ? postPath
+                : getPath
             const init: RequestInit = {
               method: req.method === 'POST' ? 'POST' : 'GET',
               headers: {
@@ -317,6 +364,28 @@ export function reviewServer(): Plugin {
         ADMIN_ENDPOINTS.sun,
         proxy('/v1/admin/sun', '/v1/admin/sun/resolve'),
       )
+      server.middlewares.use(
+        ADMIN_ENDPOINTS.sunAccepted,
+        proxy('/v1/admin/sun/accepted'),
+      )
+      // sun_corrections.csv (issue #463): read it, and add accepted sun
+      // reports it lacks. Rows already there are never rewritten or removed.
+      server.middlewares.use(ADMIN_ENDPOINTS.sunCorrections, (req, res) => {
+        const run = queue.then(async () => {
+          if (req.method === 'GET')
+            return send(res, 200, await readSunCorrections(SUN_CSV))
+          if (req.method === 'POST') {
+            const { rows } = sunCorrectionsPostSchema.parse(await body(req))
+            return send(res, 200, {
+              added: await addSunCorrections(SUN_CSV, rows),
+            })
+          }
+          send(res, 405, { error: 'method not allowed' })
+        })
+        queue = run.catch((error: unknown) => {
+          send(res, 400, { error: String(error) })
+        })
+      })
       // Sun preview: the horizon and height above ground at a pin, from the
       // LiDAR rasters. PROBE_DSM and PROBE_DTM (e.g. in web/.env.local)
       // override the rasters in pipeline/.cache/.

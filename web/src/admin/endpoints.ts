@@ -20,6 +20,10 @@ export const ADMIN_ENDPOINTS = {
   reports: '/__admin/reports',
   /** Visitor sun reports, proxied to the API (issue #364). */
   sun: '/__admin/sun',
+  /** Accepted sun reports, proxied to the API's GET /v1/admin/sun/accepted (issue #463). */
+  sunAccepted: '/__admin/sun-accepted',
+  /** sun_corrections.csv: GET, POST rows to add the ones it lacks (issue #463). */
+  sunCorrections: '/__admin/sun-corrections',
   /** Sun preview at a pin: GET ?lat=&lon= (`python -m solycerveza.probe`). */
   probe: '/__admin/probe',
 } as const
