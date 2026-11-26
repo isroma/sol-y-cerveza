@@ -143,7 +143,9 @@ describe('statsDays', () => {
     ['abc', STATS_DEFAULT_DAYS],
     ['1', 1],
     ['7', 7],
-    ['365', 365],
+    ['90', 90],
+    ['91', 90],
+    ['365', 90],
     ['10000', STATS_MAX_DAYS],
   ])('reads %j as %i', (param, days) => {
     expect(statsDays(param)).toBe(days)

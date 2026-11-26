@@ -15,8 +15,11 @@ export { MAX_EVENTS }
 /** The largest POST /v1/events body, in bytes: 20 events with long venue ids fit easily. */
 export const EVENTS_MAX_BODY = 4 * 1024
 
-/** The most days GET /v1/admin/stats returns, and the default. */
-export const STATS_MAX_DAYS = 365
+/**
+ * The most days GET /v1/admin/stats returns (at most about 700 rows a day),
+ * and the default. Longer ranges are a `wrangler d1 execute` query.
+ */
+export const STATS_MAX_DAYS = 90
 export const STATS_DEFAULT_DAYS = 30
 
 /** One event as the app sends it, not yet checked. */

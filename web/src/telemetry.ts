@@ -85,6 +85,7 @@ export function trackSettled<N extends EventName>(
   ...args: ValueArg<N>
 ) {
   try {
+    if (!enabled()) return
     const waiting = settling.get(name)
     if (waiting) window.clearTimeout(waiting.timer)
     const run = () => {
@@ -97,14 +98,17 @@ export function trackSettled<N extends EventName>(
   }
 }
 
-/** Sends what is waiting, in one request; failures are dropped. */
+/**
+ * Sends what is waiting, in one request; failures are dropped. Nothing is
+ * sent if counting has been turned off since (owner logged in, GPC on).
+ */
 export function flush() {
   if (flushTimer !== undefined) window.clearTimeout(flushTimer)
   flushTimer = undefined
   const events = queue
   queue = []
-  if (events.length === 0 || PRICES_API === null) return
   try {
+    if (events.length === 0 || PRICES_API === null || !enabled()) return
     // text/plain, so the browser sends it without a CORS preflight; keepalive,
     // so it still goes as the page unloads.
     void fetch(`${PRICES_API}/v1/events`, {

@@ -20,7 +20,7 @@ The app counts a short, fixed list of events into **daily aggregate counters** i
 4. **GPC and DNT respected.** With Global Privacy Control (`navigator.globalPrivacyControl`) or Do Not Track (`navigator.doNotTrack === '1'`) on, the app sends nothing. It also sends nothing without an API (`VITE_PRICES_API` unset), in owner mode (the owner's own use would skew the numbers) or from the admin.
 5. **No unique visitors.** Counting distinct people needs something that recognises a person again (a cookie, a stored id, a hashed IP), which is exactly what the principle rules out. `open` counts page loads, not people; that is enough to see trends.
 6. **No consent banner.** Our reasoning, not legal advice: nothing is stored on or read from the visitor's device for this (no cookie, no storage), and no personal data is processed (no identifier, no IP stored, nothing that can single out a person), so there is nothing to ask consent for. The README's Privacy note says what is counted and what is not.
-7. **The owner reads them** with `GET /v1/admin/stats?days=N` (the admin token, like the other `/v1/admin/*` routes) or straight from D1 with `wrangler d1 execute` ([api/README.md](../../api/README.md#usage-counters)).
+7. **The owner reads them** with `GET /v1/admin/stats?days=N` (the admin token, like the other `/v1/admin/*` routes; at most 90 days) or straight from D1, for any range, with `wrangler d1 execute` ([api/README.md](../../api/README.md#usage-counters)).
 
 ## Alternatives considered
 
@@ -32,6 +32,6 @@ The app counts a short, fixed list of events into **daily aggregate counters** i
 
 - One migration, `api/migrations/0010_event_counts.sql`, additive; CI's deploy applies it before the new Worker goes live (`deploy-api.yml`), as every migration.
 - **Anyone can inflate the counts.** There is no bot check and no cap, because a cap needs to know who is asking. The numbers are a guide to trends, not an audit. If they are ever abused, a cap on the whole endpoint (not per visitor) is the step that keeps the principle.
-- **Bounded cardinality.** Fixed values plus published venue ids keep the table at about (venues + 40) rows a day at most, whatever anyone sends, and every request is at most 20 events and 4 KB.
+- **Bounded cardinality.** Fixed values plus published venue ids keep the table at about (venues + 40) rows a day at most (around 700 today, hence the 90-day cap on `GET /v1/admin/stats`), whatever anyone sends, and every request is at most 20 events and 4 KB.
 - **Counters only.** Questions that need sequences or people (funnels, retention, time on the page, where visitors come from) can't be answered, by design. Adding an event means adding it to the allowlist file; adding an identifier, an IP, free text or coordinates is never allowed (CLAUDE.md invariants).
-- Cloudflare, which runs the Worker, sees each request as it sees every request to the API, and Workers Logs (on in `wrangler.toml` for errors) keeps its own short-lived invocation logs. Our database stores only the counters.
+- **What we control, and what we don't.** The principle covers what the app sends and what our database stores. Cloudflare, which runs the Worker, keeps its own short-lived request logs for every API request (Workers Logs, `[observability]` in `wrangler.toml`, with no sampling), as it already did for `GET /v1/prices` and `GET /v1/sun`; GitHub Pages, which serves the site, keeps its own too. We don't know exactly which request metadata those logs hold, and we never copy any of it into our data.

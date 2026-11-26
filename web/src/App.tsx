@@ -96,8 +96,12 @@ export function App() {
         // terrace needs the terrace filter off to show.
         if (linked.venue === null) return
         const venue = file.terraces.find((v) => v.id === linked.venue)
-        if (!venue) setSelectedId((id) => (id === linked.venue ? null : id))
-        else if (venue.terrace === null)
+        if (!venue) {
+          setSelectedId((id) => (id === linked.venue ? null : id))
+          return
+        }
+        telemetry.track('venue_open', venue.id)
+        if (venue.terrace === null)
           setFilters((f) => ({ ...f, onlyTerrace: false }))
       },
       () => {
@@ -129,11 +133,6 @@ export function App() {
     }, URL_WRITE_DELAY_MS)
     return () => window.clearTimeout(timer)
   }, [time, selectedId])
-
-  // A card opened, from the map, the list or a link.
-  useEffect(() => {
-    if (selectedId !== null) telemetry.track('venue_open', selectedId)
-  }, [selectedId])
 
   // Keep "now" current: the marker on the bar, the time while it follows the
   // clock, and the date after midnight.
@@ -207,8 +206,16 @@ export function App() {
     setTime(null)
   }, [])
 
+  // A card the visitor opens, from the map or the list (not one shown
+  // again after the move picker): counted where it opens.
+  const selectOnMap = useCallback((id: string | null) => {
+    if (id !== null) telemetry.track('venue_open', id)
+    setSelectedId(id)
+  }, [])
+
   // Picking a venue from the list closes the menu so its map card shows.
   const selectFromList = useCallback((id: string | null) => {
+    if (id !== null) telemetry.track('venue_open', id)
     setSelectedId(id)
     setMenuOpen(false)
     setPicking(null)
@@ -339,7 +346,7 @@ export function App() {
             <MapView
               statuses={visible}
               selectedId={selectedId}
-              onSelect={picking ? ignoreSelect : setSelectedId}
+              onSelect={picking ? ignoreSelect : selectOnMap}
               sun={sun}
               minutes={minutes}
               sunset={times?.sunset ?? null}

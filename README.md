@@ -74,7 +74,7 @@ Local API, admin, owner mode and browser tests: [development guide](docs/develop
 
 ## Privacy
 
-The app counts how it is used, so we can improve it, as daily totals only: page loads (phone or desktop), venue cards opened (which venue), the hour picked on the time bar, filters switched on, and whether the card's back, search, the locate button, "¿Falta un bar?" or a suggestion were used. It sets no cookies, stores nothing in your browser for this, and sends no identifier: we never record your IP address, browser, the page you came from, what you type or where you are, and nothing ties one count to another, so we can't tell visitors apart. With Global Privacy Control or Do Not Track on, it counts nothing. Details: [ADR-0013](docs/adr/0013-anonymous-usage-counters.md).
+The app counts how it is used, so we can improve it, as daily totals only: page loads (phone or desktop), venue cards opened (which venue), the hour picked on the time bar, filters switched on, and whether the card's back, search, the locate button, "¿Falta un bar?" or a suggestion were used. For this the app sets no cookies, stores nothing in your browser and sends no identifier, and what it sends never includes what you type or where you are. Our database keeps only the daily totals: no IP address, browser, referring page or anything that ties one count to another, so we can't tell visitors apart. With Global Privacy Control or Do Not Track on, the app counts nothing. Like any website, our hosting providers (Cloudflare for the API, GitHub Pages for the site) keep their usual request logs. Details: [ADR-0013](docs/adr/0013-anonymous-usage-counters.md).
 
 ## Contributing
 

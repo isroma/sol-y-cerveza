@@ -56,7 +56,7 @@ export async function postEvents(
 
 type StatsRow = { day: string; name: string; value: string; count: number }
 
-/** GET /v1/admin/stats?days=N: the counters of the last N Madrid days (default 30, at most 365). */
+/** GET /v1/admin/stats?days=N: the counters of the last N Madrid days (default 30, at most 90). */
 export async function stats(request: Request, env: Env): Promise<Response> {
   const days = statsDays(new URL(request.url).searchParams.get('days'))
   const { results } = await env.DB.prepare(

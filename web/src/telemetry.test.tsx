@@ -173,6 +173,36 @@ describe('telemetry', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('drops what waits when the owner logs in before it is sent', async () => {
+    const { startTelemetry, track, FLUSH_DELAY_MS } = await load()
+    const owner = await import('./prices/owner.ts')
+    startTelemetry()
+    track('locate')
+    fetchMock.mockResolvedValueOnce(Response.json({ token: 'the-owner-token' }))
+    expect(await owner.logIn('dueño', 'secreto')).toBe('ok')
+    fetchMock.mockClear()
+    vi.advanceTimersByTime(FLUSH_DELAY_MS)
+    window.dispatchEvent(new Event('pagehide'))
+    expect(fetchMock).not.toHaveBeenCalled()
+    owner.logOut()
+  })
+
+  it('drops what waits when Global Privacy Control turns on', async () => {
+    const { startTelemetry, flush, track } = await load()
+    startTelemetry()
+    track('locate')
+    vi.stubGlobal('navigator', { ...navigator, globalPrivacyControl: true })
+    flush()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sets no timer for a settled value while counting is off', async () => {
+    const { trackSettled } = await load()
+    const timers = vi.getTimerCount()
+    trackSettled('time_change', '10')
+    expect(vi.getTimerCount()).toBe(timers)
+  })
+
   it('does nothing in owner mode', async () => {
     window.localStorage.setItem('sol-y-cerveza-owner', 'the-owner-token')
     const { flush, startTelemetry, track } = await load()

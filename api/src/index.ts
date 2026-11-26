@@ -43,13 +43,14 @@
  *   (name, value) only: no bot check, no voter hash, no IP, nothing about the
  *   visitor; a venue id counts only when it is in the published data. 204,
  *   never cached. GET /v1/admin/stats?days=N reads them (default 30, at most
- *   365).
+ *   90).
  * - GET /v1/version: `{build}`, the build fingerprint this Worker was deployed
  *   with (BUILD_ID), or null; never cached. CI's deploy skips an upload the
  *   live Worker already runs and checks that its own upload took effect.
  *
- * It fails closed when misconfigured: no usable IP_SALT means 503 on the endpoints
- * that hash addresses (not POST /v1/events, which hashes nothing), and a Turnstile test secret only passes on localhost.
+ * It fails closed when misconfigured: no usable IP_SALT means 503 on the
+ * endpoints that hash addresses (not POST /v1/events, which hashes nothing),
+ * and a Turnstile test secret only passes on localhost.
  */
 import type { Env } from './env.ts'
 import { bearer, json } from './http.ts'
