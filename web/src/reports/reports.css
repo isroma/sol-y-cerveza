@@ -225,19 +225,14 @@
   overflow: hidden;
 }
 
-/* A pill in a row folds by its width instead. */
-.change-fold--x,
-.change-fold--x.is-open {
-  grid-template-rows: auto;
-  transition-property: grid-template-columns, opacity;
-}
-
-.change-fold--x {
-  grid-template-columns: 0fr;
-}
-
-.change-fold--x.is-open {
-  grid-template-columns: 1fr;
+/* The form and the closure's line swap places: one shuts as the other
+   opens, both in 0.25 s on one symmetric curve, so the card's height
+   moves straight from one to the other while they cross-fade. */
+.change-swap > .change-fold,
+.change-swap > .change-fold.is-open {
+  transition:
+    grid-template-rows 0.25s ease-in-out,
+    opacity 0.25s ease-in-out;
 }
 
 .change-group {
@@ -278,37 +273,59 @@
   padding: 0 var(--space-3);
 }
 
-/* "Mover": the bar and the tables, two pills that open the map picker. */
+/* "Mover": two equal buttons for the bar and the tables, filling the
+   row. The tables' one folds by its width (its flex share), so the bar's
+   takes the whole row while the terrace is switched off. */
 .change-row--move {
-  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
   min-height: 52px;
-  /* 52 px on one line, with the 1 px rule above. */
-  padding: 7px 6px 8px var(--space-3);
+  /* 52 px with the 1 px rule above. */
+  padding: 7px var(--space-2) 8px;
   cursor: default;
 }
 
-.change-row--move > span {
-  line-height: 36px;
+.change-row--move > .change-pill {
+  flex: 1 1 0;
 }
 
-/* Both pills placed don't fit beside "Mover" on a 280 px card: the
-   tables' pill then takes a second line, right-aligned. */
-.change-pills {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  row-gap: 6px;
+/* The 6 px gap is inside the fold, so it goes with the button. Open, the
+   fold's basis is that gap plus what the bar's button can't shrink below
+   (its padding and border, 22 px), so both buttons get the same width. */
+.change-row--move > .change-fold {
+  display: block;
+  flex: 0 0 0;
   min-width: 0;
+  overflow: hidden;
+  transition:
+    flex-grow 0.15s cubic-bezier(0.4, 0, 1, 1),
+    flex-basis 0.15s cubic-bezier(0.4, 0, 1, 1),
+    opacity 0.15s;
 }
 
-.change-pills .change-fold > * {
-  /* The gap lives inside the fold, so it goes with the pill. */
+.change-row--move > .change-fold.is-open {
+  flex: 1 1 28px;
+  transition:
+    flex-grow 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    flex-basis 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s;
+}
+
+.change-row--move > .change-fold > * {
+  display: flex;
   padding-left: 6px;
 }
 
-/* 12 px / 600 like the card's "Sugerir un cambio" pill, so "El bar" and
-   "Mesas · 12 m", or "Bar · 34 m" and "Las mesas", fit on one line. */
+.change-row--move .change-fold .change-pill {
+  flex: 1 1 0;
+}
+
+/* 12 px / 600 like the card's "Sugerir un cambio" pill, so "Bar · 480 m"
+   and "Mesas · 150 m" fit side by side; never wrapped. */
 .change-pill {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   height: 36px;
   padding: 0 9px;
   border: 2px solid transparent;
@@ -460,6 +477,10 @@
 @media (prefers-reduced-motion: reduce) {
   .change-fold,
   .change-fold.is-open,
+  .change-swap > .change-fold,
+  .change-swap > .change-fold.is-open,
+  .change-row--move > .change-fold,
+  .change-row--move > .change-fold.is-open,
   .change-pill,
   .change-flag {
     transition: none;

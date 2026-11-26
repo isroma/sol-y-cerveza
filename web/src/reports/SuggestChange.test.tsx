@@ -395,7 +395,7 @@ describe('SuggestChange: the terrace', () => {
     // On offers the tables; off again is back where it started.
     fireEvent.click(terraceSwitch())
     expect(terraceSwitch()).toBeChecked()
-    expect(tables()).toHaveTextContent('Las mesas')
+    expect(tables()).toHaveTextContent('Mover mesas')
     expect(send()).toBeEnabled()
     fireEvent.click(terraceSwitch())
     expect(tables()).toBeNull()
@@ -405,7 +405,7 @@ describe('SuggestChange: the terrace', () => {
   it('starts on where the data has a terrace, with its tables', () => {
     render(<Back of={terraced} />, withPicker())
     expect(terraceSwitch()).toBeChecked()
-    expect(tables()).toHaveTextContent('Las mesas')
+    expect(tables()).toHaveTextContent('Mover mesas')
     expect(send()).toBeDisabled()
   })
 
@@ -517,7 +517,7 @@ describe('SuggestChange: the terrace', () => {
 
   it('keeps folded rows out of the tab order', () => {
     render(<Back of={terraced} />, withPicker())
-    const pill = screen.getByRole('button', { name: 'Las mesas' })
+    const pill = screen.getByRole('button', { name: 'Mover mesas' })
     expect(pill.closest('[inert]')).toBeNull()
     fireEvent.click(terraceSwitch())
     const folded = pill.closest('.change-fold')

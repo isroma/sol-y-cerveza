@@ -9,8 +9,11 @@ import {
   FIT_MARGIN,
   fitCard,
   focusVenue,
+  parseTiming,
+  pendingFolds,
   sizeCard,
 } from './cardFit.ts'
+import { LngLat, Point, type LngLatLike, type PointLike } from 'maplibre-gl'
 
 // A .tsx test only to run in jsdom (see vite.config.ts), which has no
 // layout: every rect and size below is stubbed.
@@ -164,7 +167,11 @@ describe('fitCard', () => {
     })
     fitCard(map, marker, wrap)
     const past = 340 - FIT_GAP - 360
-    expect(map.panBy).toHaveBeenCalledWith([-past, 0], { duration: 300 })
+    // Uncapped there, it grows to 700 px: up too, so its bottom stays clear.
+    expect(map.panBy).toHaveBeenCalledWith(
+      [-past, 100 + 700 - (800 - FIT_MARGIN)],
+      { duration: 300 },
+    )
     expect(marker.style.getPropertyValue('--card-max')).toBe(
       `${800 - 2 * FIT_MARGIN}px`,
     )
@@ -202,6 +209,99 @@ describe('fitCard', () => {
     expect(marker.style.getPropertyValue('--card-max')).toBe(
       `${(800 - 2 * FIT_MARGIN) / 0.8}px`,
     )
+  })
+
+  it('fits for the height the card is growing to, with the given motion', () => {
+    const { map, marker, wrap } = layout({
+      wrap: PHONE,
+      card: { left: 60, top: 400, width: 280, height: 300 },
+    })
+    const easing = (t: number) => t
+    fitCard(map, marker, wrap, { grow: 100, motion: { duration: 200, easing } })
+    expect(map.panBy).toHaveBeenCalledWith(
+      [0, 400 + 400 - (800 - FIT_MARGIN)],
+      {
+        duration: 200,
+        easing,
+      },
+    )
+  })
+
+  it('moves the anchor by exactly the pixels wanted on a tilted map', () => {
+    const { marker, wrap } = layout({
+      wrap: PHONE,
+      card: { left: 200, top: 200, width: 280, height: 260 },
+    })
+    // A map where 1 px is 0.001° either way, centred on (0, 0).
+    const map = {
+      panBy: vi.fn(),
+      easeTo: vi.fn(),
+      getCenter: () => new LngLat(0, 0),
+      project: (p: LngLatLike) => {
+        const { lng, lat } = LngLat.convert(p)
+        return new Point(200 + lng * 1000, 400 - lat * 1000)
+      },
+      unproject: (p: PointLike) => {
+        const { x, y } = Point.convert(p)
+        return new LngLat((x - 200) / 1000, (400 - y) / 1000)
+      },
+    }
+    fitCard(map, marker, wrap, { anchor: new LngLat(0.01, 0.02) })
+    expect(map.panBy).not.toHaveBeenCalled()
+    const dx = 480 - (400 - FIT_MARGIN)
+    expect(map.easeTo).toHaveBeenCalledWith({
+      center: [expect.closeTo(dx / 1000, 9), expect.closeTo(0, 9)],
+      duration: 300,
+    })
+  })
+})
+
+describe('pendingFolds', () => {
+  /** A fold as SuggestChange draws it, its inner sizes stubbed. */
+  function fold(open: boolean, now: number, full: number) {
+    const el = document.createElement('div')
+    el.dataset['fold'] = 'y'
+    el.className = open ? 'change-fold is-open' : 'change-fold'
+    el.style.transitionProperty = 'grid-template-rows, opacity'
+    el.style.transitionDuration = open ? '0.2s, 0.2s' : '0.15s, 0.15s'
+    el.style.transitionTimingFunction = open
+      ? 'cubic-bezier(0.22, 1, 0.36, 1), ease'
+      : 'ease-in, ease'
+    const inner = document.createElement('div')
+    stubRect(inner, { left: 0, top: 0, width: 200, height: now })
+    Object.defineProperty(inner, 'scrollHeight', { value: full })
+    el.append(inner)
+    return el
+  }
+
+  it('adds up what the folds are about to open and shut', () => {
+    const card = document.createElement('div')
+    card.append(fold(true, 0, 244), fold(false, 83, 83), fold(true, 46, 46))
+    document.body.append(card)
+    const { delta, motion } = pendingFolds(card)
+    expect(delta).toBe(244 - 83)
+    expect(motion?.duration).toBe(200)
+    expect(motion?.easing?.(0.5)).toBeGreaterThan(0.9)
+    card.remove()
+  })
+
+  it('leaves out rows inside a shut fold, and sideways folds', () => {
+    const card = document.createElement('div')
+    const outer = fold(false, 0, 0)
+    outer.firstElementChild?.append(fold(true, 0, 48))
+    const sideways = fold(true, 0, 36)
+    sideways.dataset['fold'] = 'x'
+    card.append(outer, sideways)
+    expect(pendingFolds(card)).toEqual({ delta: 0, motion: null })
+  })
+})
+
+describe('parseTiming', () => {
+  it('reads keywords and cubic-bezier, and nothing else', () => {
+    expect(parseTiming('linear')?.(0.3)).toBeCloseTo(0.3, 3)
+    expect(parseTiming('ease-in-out')?.(0.5)).toBeCloseTo(0.5, 3)
+    expect(parseTiming('cubic-bezier(0.4, 0, 1, 1)')?.(0.5)).toBeLessThan(0.5)
+    expect(parseTiming('steps(4)')).toBeNull()
   })
 })
 
