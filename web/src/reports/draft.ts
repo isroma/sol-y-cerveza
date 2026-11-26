@@ -24,6 +24,13 @@ export type ChangeDraft = {
   /** Where the visitor placed the venue on the map, if they moved it. */
   move: LatLon | null
   /**
+   * The terrace answer: true "Sí, tiene terraza" (asked only where the data
+   * doesn't know), false "No tiene terraza", null: not answered.
+   */
+  terrace: boolean | null
+  /** Where the visitor marked the tables, if they did. */
+  pin: LatLon | null
+  /**
    * The bot check's token, kept here so the trip to the map picker (which
    * unmounts the card) doesn't run a second check; `tokenAt` is when it came.
    */
@@ -40,6 +47,8 @@ export function emptyDraft(venueId: string): ChangeDraft {
     closed: false,
     sun: false,
     move: null,
+    terrace: null,
+    pin: null,
     token: null,
     tokenAt: 0,
   }

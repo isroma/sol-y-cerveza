@@ -6,7 +6,7 @@ import { KIND_LABELS, sunBox, VISITORS_NOTE } from '../ui/categoryStyle.ts'
 import { SunDay } from './SunDay.tsx'
 import { PriceSection } from '../prices/PriceSection.tsx'
 import { useCanSend, useOwner } from '../prices/owner.ts'
-import { emptyDraft, useDraft } from '../reports/draft.ts'
+import { emptyDraft, useDraft, type ChangeDraft } from '../reports/draft.ts'
 import { SuggestChange } from '../reports/SuggestChange.tsx'
 import { shareUrl } from '../urlState.ts'
 import { useMediaQuery } from '../ui/useMediaQuery.ts'
@@ -137,8 +137,10 @@ export function PinCard({ status, minutes }: Props) {
   const turnTimer = useRef(0)
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   useEffect(() => () => clearTimeout(turnTimer.current), [])
-  const flipTo = (id: string | null) => {
-    const swap = () => setDraft(id === null ? null : emptyDraft(id))
+  /** Turns to the back (with what the front already answered), or the front. */
+  const flipTo = (id: string | null, start: Partial<ChangeDraft> = {}) => {
+    const swap = () =>
+      setDraft(id === null ? null : { ...emptyDraft(id), ...start })
     if (reduceMotion) {
       swap()
       return
@@ -162,6 +164,30 @@ export function PinCard({ status, minutes }: Props) {
       {token ? 'Editar' : 'Sugerir un cambio'}
     </button>
   ) : null
+  // Where the data doesn't know if there is a terrace, the front asks: an
+  // answer turns the card with it chosen, so Sí then Enviar sends it.
+  const ask =
+    canSend && venue.terrace === null ? (
+      <div
+        className="card-ask"
+        role="group"
+        aria-labelledby={`card-ask-${venue.id}`}
+      >
+        <span id={`card-ask-${venue.id}`}>¿Tiene terraza?</span>
+        <button
+          type="button"
+          onClick={() => flipTo(venue.id, { terrace: true })}
+        >
+          Sí
+        </button>
+        <button
+          type="button"
+          onClick={() => flipTo(venue.id, { terrace: false })}
+        >
+          No
+        </button>
+      </div>
+    ) : null
 
   return (
     <div className={`pin-card pin-card--${status.category}`}>
@@ -213,6 +239,7 @@ export function PinCard({ status, minutes }: Props) {
                 />
               )}
               <PriceSection venue={venue} />
+              {ask}
               {!bar && suggest}
             </>
           )}

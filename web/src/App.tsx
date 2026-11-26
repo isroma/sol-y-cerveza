@@ -15,7 +15,11 @@ import { MapView } from './map/LazyMapView.tsx'
 import { AdminButton } from './prices/AdminButton.tsx'
 import { useCanSend } from './prices/owner.ts'
 import { DraftContext, type ChangeDraft } from './reports/draft.ts'
-import { StartMoveContext, type Picking } from './reports/picking.ts'
+import {
+  StartMoveContext,
+  type Picking,
+  type PlaceTarget,
+} from './reports/picking.ts'
 import { ReportPicker } from './reports/ReportPicker.tsx'
 import { mixHex, nightDepth } from './map/night.ts'
 import { dayTrack, stepIndex, sunTimes } from './sun/dayTrack.ts'
@@ -196,13 +200,16 @@ export function App() {
     setCenter(null)
   }, [])
 
-  // A move starts where the visitor last placed it, else at the badge.
+  // A move starts where the visitor last placed it, else at the badge; the
+  // tables likewise, else at the terrace (or the venue, with none yet).
   const startMove = useCallback(
-    (venue: Terrace) => {
-      const placed = draft?.venueId === venue.id ? draft.move : null
+    (venue: Terrace, target: PlaceTarget = 'move') => {
+      const mine = draft?.venueId === venue.id ? draft : null
+      const placed =
+        target === 'pin' ? (mine?.pin ?? null) : (mine?.move ?? null)
       setSelectedId(null)
       setPicking({
-        kind: 'move',
+        kind: target,
         venue,
         from: placed ?? venue.terrace ?? venue.venue,
       })
@@ -215,23 +222,24 @@ export function App() {
     setPicking(name ? { kind: 'add', name } : { kind: 'add' })
   }, [])
   const stopPicking = useCallback(() => {
-    // A move returns to its card's back; adding a venue just ends.
-    if (picking?.kind === 'move') setSelectedId(picking.venue.id)
+    // A move or the tables return to the card's back; adding a venue just ends.
+    if (picking && picking.kind !== 'add') setSelectedId(picking.venue.id)
     setPicking(null)
     setCenter(null)
   }, [picking])
-  // The spot a move was placed at goes back to the card's draft.
+  // The spot placed goes back to the card's draft, as the move or the tables.
   const placeMove = useCallback(
     (spot: LatLon) => {
-      if (picking?.kind !== 'move') return
+      if (!picking || picking.kind === 'add') return
       const id = picking.venue.id
-      setDraft((d) => (d?.venueId === id ? { ...d, move: spot } : d))
+      const patch = picking.kind === 'pin' ? { pin: spot } : { move: spot }
+      setDraft((d) => (d?.venueId === id ? { ...d, ...patch } : d))
       stopPicking()
     },
     [picking, stopPicking],
   )
   const flyTo = useMemo(
-    () => (picking?.kind === 'move' ? picking.from : null),
+    () => (picking && picking.kind !== 'add' ? picking.from : null),
     [picking],
   )
 
@@ -329,7 +337,11 @@ export function App() {
         </StartMoveContext>
         {picking && (
           <ReportPicker
-            key={picking.kind === 'move' ? picking.venue.id : 'add'}
+            key={
+              picking.kind === 'add'
+                ? 'add'
+                : `${picking.kind}:${picking.venue.id}`
+            }
             picking={picking}
             center={center}
             onPlace={placeMove}

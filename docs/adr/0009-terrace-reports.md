@@ -4,6 +4,7 @@
 - Date: 2026-11-24
 - Amended (2026-11-25): built so far: the API (`terrace` and `pin` kinds, #217) and the admin's Reports queue (#218). The visitor side, asking "¿Tiene terraza?" and placing the tables from the venue card, is not built yet (#210; open PR #219). Until it ships, `POST /v1/reports` receives no `terrace` or `pin` reports from the app.
 - Amended (2026-11-26): the card back's one request, `POST /v1/changes` ([ADR-0010](0010-one-change-request.md)), now carries the answer (`terrace: true | false`) and the tables (`pin: {lat, lon}`), stored as these two kinds by the same rules; a `pin` with `terrace: false` is refused. The owner's go to the admin as `by_owner` reports like a move. The app UI is still to come (#210).
+- Amended (2026-11-26): the app now asks. A card whose venue has `terrace: null` asks "¿Tiene terraza?" (Sí / No) on its front and back, and "Mesas" marks the tables on the map (within 150 m of the venue); a venue with a terrace offers "Mesas" and "No tiene terraza". Both go through `/v1/changes` with the rest of the card; the old separate-form PR #219 was superseded.
 - Issue: #210
 
 ## Context

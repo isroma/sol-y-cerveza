@@ -91,7 +91,7 @@ The venue panel takes beer prices, a caña and tercios by brand, into `pipeline/
 | `pin`              | the terrace position                                                                                  |
 | `add`              | a new `review:` venue                                                                                 |
 
-The app sends `move`, `closed` and `add` today; `terrace` and `pin` exist in the API and this queue, but no app UI sends them yet (#210).
+The app sends all five: `add` from the picker, the rest from the card's back in one `POST /v1/changes` ("¿Tiene terraza?" and "Mesas", #210).
 
 ## Sun reports
 
