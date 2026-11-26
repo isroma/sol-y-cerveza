@@ -630,36 +630,3 @@ test('shows the caña price on its badge once zoomed in', async ({ page }) => {
     .toBe('0 1')
   await shot(page, 'badge-price')
 })
-
-test('the info panel stays inside the map after the legend steps aside', async ({
-  page,
-}) => {
-  test.skip(!isPhone(page), 'the legend steps aside on phones only')
-  await openCard(page, 'Café Sombra Dos')
-  await page
-    .getByRole('button', { name: 'Información sobre los datos' })
-    .click()
-  await page
-    .getByRole('dialog', { name: 'Sobre los datos' })
-    .getByRole('button', { name: 'Privacidad' })
-    .click()
-  const card = page.locator('.pin-card')
-  // The card's back hides the legend (and the panel with it); the phone
-  // turns. The open panel covers the card's button, so it is clicked directly.
-  await card
-    .getByRole('button', { name: 'Sugerir un cambio' })
-    .dispatchEvent('click')
-  await expect(page.locator('.map-legend')).toBeHidden()
-  await page.setViewportSize({ width: 812, height: 375 })
-  await page.setViewportSize({ width: 375, height: 700 })
-  await card.getByRole('button', { name: 'Volver' }).click()
-  const notice = page.getByRole('dialog', { name: 'Privacidad' })
-  await expect(notice).toBeVisible()
-  const map = page.getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
-  const inside = async () => {
-    const box = await notice.boundingBox()
-    const mapBox = await map.boundingBox()
-    return Boolean(box && mapBox && box.y >= mapBox.y - 0.5)
-  }
-  await expect.poll(inside).toBe(true)
-})

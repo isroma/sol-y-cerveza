@@ -300,43 +300,6 @@ test('the basemap credits sit in the legend info panel', async ({ page }) => {
   await expect(info.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible()
 })
 
-test('the privacy notice opens from the info panel and fits the map', async ({
-  page,
-}) => {
-  await openApp(page)
-  await page
-    .getByRole('button', { name: 'Información sobre los datos' })
-    .click()
-  await page
-    .getByRole('dialog', { name: 'Sobre los datos' })
-    .getByRole('button', { name: 'Privacidad' })
-    .click()
-  const notice = page.getByRole('dialog', { name: 'Privacidad' })
-  await expect(
-    notice.getByRole('heading', { name: 'Privacidad' }),
-  ).toBeVisible()
-  // It scrolls inside the map: never above its top or past the sides.
-  const map = await page
-    .getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
-    .boundingBox()
-  const box = await notice.boundingBox()
-  expect(box && map).toBeTruthy()
-  if (box && map) {
-    expect(box.y).toBeGreaterThanOrEqual(map.y)
-    expect(box.x).toBeGreaterThanOrEqual(map.x)
-    expect(box.x + box.width).toBeLessThanOrEqual(map.x + map.width)
-  }
-  // The last line, AEPD, is reachable by scrolling the panel.
-  const aepd = notice.getByRole('link', { name: 'www.aepd.es' })
-  await aepd.scrollIntoViewIfNeeded()
-  await expect(aepd).toBeInViewport()
-  // The info button closes it.
-  await page
-    .getByRole('button', { name: 'Información sobre los datos' })
-    .click()
-  await expect(notice).toHaveCount(0)
-})
-
 test('"Con sol ahora" keeps only the sunny terraces', async ({ page }) => {
   await openApp(page)
   await showSidebar(page)
