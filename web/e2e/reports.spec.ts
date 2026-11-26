@@ -384,23 +384,16 @@ test('marks where the tables are and sends them with Sí', async ({
   await expect(bar).toContainText('¿Dónde están las mesas?')
   await settled(page)
   const done = bar.getByRole('button', { name: 'Listo' })
-  await expect(done).toBeDisabled()
-  await shot(page, '8-tables-picker')
-
-  const map = page.getByRole('region', { name: 'Mapa de terrazas de Badajoz' })
-  const box = await map.boundingBox()
-  if (!box) throw new Error('no map')
-  await page.mouse.move(box.x + 60, box.y + 120)
-  await page.mouse.down()
-  await page.mouse.move(box.x + 80, box.y + 160, { steps: 8 })
-  await page.mouse.up()
+  // Tables right at the bar's door: Listo works without moving the map.
   await expect(done).toBeEnabled()
+  await expect(bar).toContainText('Si no están justo aquí, mueve el mapa')
+  await shot(page, '8-tables-picker')
   await done.click()
   await expect(bar).toHaveCount(0)
   const card = page.locator('.pin-card')
   await expect(card.getByRole('radio', { name: 'Sí' })).toBeChecked()
   await expect(card.getByRole('button', { name: /Mesas/ })).toContainText(
-    /Marcadas a \d+ m/,
+    'Marcadas junto al bar',
   )
   await card.getByRole('button', { name: 'Enviar' }).click()
   await expect(card.getByRole('status')).toHaveText(

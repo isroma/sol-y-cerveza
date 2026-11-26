@@ -91,10 +91,11 @@ describe('ReportPicker', () => {
       screen.getByRole('region', { name: 'Mesas de Bar Uno' }),
     ).toHaveFocus()
     expect(screen.getByText('¿Dónde están las mesas?')).toBeInTheDocument()
+    // Tables right at the bar's door: Listo works in place.
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Mueve el mapa hasta ponerlas bajo el pin',
+      'Si no están justo aquí, mueve el mapa',
     )
-    expect(done()).toBeDisabled()
+    expect(done()).toBeEnabled()
 
     // About 222 m north: fine for a move, too far for the tables.
     rerender(picker({ lat: 38.88, lon: -6.97 }))
@@ -108,6 +109,28 @@ describe('ReportPicker', () => {
     rerender(picker({ lat: 38.8782, lon: -6.97 }))
     fireEvent.click(done())
     expect(onPlace).toHaveBeenCalledWith({ lat: 38.8782, lon: -6.97 })
+  })
+
+  it('waits for the known tables to move before Listo', () => {
+    const onPlace = vi.fn()
+    const terraced = { ...venue, terrace: venue.venue }
+    const picking: Picking = { kind: 'pin', venue: terraced, from: venue.venue }
+    const picker = (center: { lat: number; lon: number }) => (
+      <ReportPicker
+        picking={picking}
+        center={center}
+        onPlace={onPlace}
+        onClose={vi.fn()}
+      />
+    )
+    const { rerender } = render(picker(venue.venue))
+    const done = () => screen.getByRole('button', { name: 'Listo' })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mueve el mapa hasta ponerlas bajo el pin',
+    )
+    expect(done()).toBeDisabled()
+    rerender(picker({ lat: 38.8782, lon: -6.97 }))
+    expect(done()).toBeEnabled()
   })
 
   it('adds a venue with a name, a kind and its terrace', async () => {

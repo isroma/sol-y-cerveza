@@ -414,6 +414,11 @@ describe('SuggestChange: the terrace', () => {
     })
   })
 
+  it('says tables marked in place are by the bar', () => {
+    render(<Back start={{ terrace: true, pin: venue.venue }} />, withPicker())
+    expect(tables()).toHaveTextContent('Marcadas junto al bar')
+  })
+
   it('drops the tables on No, and never sends them with it', async () => {
     const sent = stubFetch()
     render(<Back start={{ terrace: true, pin: spot }} />, withPicker())

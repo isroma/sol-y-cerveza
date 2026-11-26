@@ -15,6 +15,7 @@ import { Toggle } from '../ui/Toggle.tsx'
 import { StartMoveContext } from './picking.ts'
 import type { ChangeDraft } from './draft.ts'
 import {
+  MIN_MOVE_M,
   OWNER_RESULT_TEXT,
   PRICE_RESULT_TEXT,
   RESULT_TEXT,
@@ -288,7 +289,9 @@ export function SuggestChange({
                       : 'Marcar en el mapa ›'
                     : known
                       ? `Movidas ${pinned} m ›`
-                      : `Marcadas a ${pinned} m ›`}
+                      : pinned <= MIN_MOVE_M
+                        ? 'Marcadas junto al bar ›'
+                        : `Marcadas a ${pinned} m ›`}
                 </span>
               </button>
             )}

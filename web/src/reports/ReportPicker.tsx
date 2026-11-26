@@ -86,8 +86,13 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
   const tables = picking.kind === 'pin'
   const limit = tables ? MAX_PIN_M : MAX_MOVE_M
   const start = venue ? (venue.terrace ?? venue.venue) : null
+  // Tables for a terrace the data doesn't have yet can be right at the
+  // bar's door: Listo works in place. A move, or moving known tables,
+  // waits until the pin has really moved.
+  const inPlace = tables && venue?.terrace === null
   const moved =
     start === null ||
+    inPlace ||
     (center !== null && distanceMetres(start, center) > MIN_MOVE_M)
   const tooFar =
     venue !== null &&
@@ -188,7 +193,9 @@ export function ReportPicker({ picking, center, onPlace, onClose }: Props) {
                     ? 'Ese sitio está fuera de Badajoz.'
                     : tooFar
                       ? `Está a más de ${MAX_PIN_M} m del bar. Las mesas tienen que estar cerca.`
-                      : 'Mueve el mapa hasta ponerlas bajo el pin'}
+                      : inPlace
+                        ? 'Si no están justo aquí, mueve el mapa'
+                        : 'Mueve el mapa hasta ponerlas bajo el pin'}
                 </p>
               </div>
             ) : (
