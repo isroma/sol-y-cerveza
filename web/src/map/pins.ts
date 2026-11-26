@@ -5,6 +5,30 @@ import { badgePriceText, type BadgePrice } from './badgePrices.ts'
 const BEER_SVG =
   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 11h1.5a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H16"/><path d="M6 8c0-2 1.5-3 3-2.5C9.7 4 12 3.7 13 5c1.5-.7 3 .4 3 3"/><path d="M9.5 12v6M12.5 12v6"/></svg>'
 
+/**
+ * How far a badge's price tab reaches right of the badge's centre at full
+ * size, in px: the tab starts at the centre, with 26 px before the price and
+ * 13 px after it (pins.css). The price is measured where the badge already
+ * shows it (its layout width, before the badge's scale); a new badge, not yet
+ * on the page, is estimated from the number of characters.
+ */
+export function priceTabReach(
+  el: HTMLElement | undefined,
+  text: string,
+): number {
+  const shown = el?.querySelector<HTMLElement>('.pin-price-text')
+  const width =
+    shown && shown.textContent === text && shown.offsetWidth > 0
+      ? shown.offsetWidth
+      : text.length * 8
+  return 26 + width + 13
+}
+
+/** Grey badges (no sun, unknown) are drawn at 78 % (pins.css). */
+export function badgeScale(status: VenueStatus): number {
+  return status.category === 'nosun' || status.category === 'unknown' ? 0.78 : 1
+}
+
 /** A terrace pin like the design: a sun-coloured beer badge, with the caña price when it is shown (badgePrices.ts). */
 export function createPin(
   onClick: () => void,

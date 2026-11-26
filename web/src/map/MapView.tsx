@@ -32,8 +32,9 @@ import { createNightSwitch, nightDepth } from './night.ts'
 import { PinCard } from './PinCard.tsx'
 import { INITIAL_ZOOM, MAP_OPTIONS } from './mapOptions.ts'
 import { parseBasemapStyle, sunLight, sunlitStyle } from './mapStyle.ts'
-import { createPin, updatePin } from './pins.ts'
+import { badgeScale, createPin, priceTabReach, updatePin } from './pins.ts'
 import {
+  badgePriceText,
   canaPrice,
   pricedBadges,
   priceScore,
@@ -410,6 +411,11 @@ export function MapView({
                   sunLeft(status.timeline, minutes),
                   price.cents,
                 ),
+                tab: priceTabReach(
+                  pinsRef.current.get(id)?.el,
+                  badgePriceText(price),
+                ),
+                scale: badgeScale(status),
               },
             ]
           }),
