@@ -16,7 +16,7 @@ export type PaintPatch = {
 }
 
 /** The grey dots' ring at night: their tan, a step darker. */
-const DOT_RING_NIGHT = '#9C8670'
+const DOT_RING_NIGHT = '#7A6A5B'
 
 /** Just after sunset: blue hour, dark but still soft. */
 const DUSK = {
