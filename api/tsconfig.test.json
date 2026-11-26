@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["src/index.test.ts", "src/sun.test.ts"],
+  "include": ["src/index.test.ts", "src/sun.test.ts", "scripts"],
   "exclude": []
 }
