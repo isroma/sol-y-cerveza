@@ -32,12 +32,12 @@ describe('search', () => {
 })
 
 describe('applyFilters', () => {
-  it('shows only venues with a terrace by default', () => {
-    expect(DEFAULT_FILTERS.onlyTerrace).toBe(true)
-    expect(applyFilters(statuses, DEFAULT_FILTERS, '')).toHaveLength(2)
+  it('shows every venue by default, and only terraces when asked', () => {
+    expect(DEFAULT_FILTERS.onlyTerrace).toBe(false)
+    expect(applyFilters(statuses, DEFAULT_FILTERS, '')).toHaveLength(3)
     expect(
-      applyFilters(statuses, { ...DEFAULT_FILTERS, onlyTerrace: false }, ''),
-    ).toHaveLength(3)
+      applyFilters(statuses, { ...DEFAULT_FILTERS, onlyTerrace: true }, ''),
+    ).toHaveLength(2)
   })
 
   it('filters by sun, terrace and search', () => {

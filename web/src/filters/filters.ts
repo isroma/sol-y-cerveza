@@ -9,7 +9,9 @@ export type Filters = {
 
 export const DEFAULT_FILTERS: Filters = {
   sunNow: false,
-  onlyTerrace: true,
+  // Off, so the list shows every bar and restaurant, not only those with a
+  // known terrace (owner, 2026-11-26).
+  onlyTerrace: false,
 }
 
 /** Lower case without accents, so "cafe" finds "Café". */

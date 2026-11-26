@@ -180,6 +180,7 @@ Spacing follows a **4-point grid**, and every value comes from the tokens in `we
 ### Sidebar
 
 - 400 px wide, **24 px padding** on every side, **24 px between blocks** (brand, search, time, filters, results).
+- **Filters** start off: "Con sol ahora" and "Solo con terraza" are both unchecked, so the list opens with every bar and restaurant (owner, 2026-11-26).
 - Sections that follow a divider (filters, results) start **20 px** below it.
 - Search field: at least **48 px** tall, 12 px radius, icon 16 px from the left edge, text starting at 44 px.
 - List rows: 10 px × 12 px padding, 12 px icon-to-text gap. The list bleeds 12 px past the sidebar padding, so **row content lines up with every other element's left edge** and the selected row's highlight extends past it, as in iOS grouped lists.

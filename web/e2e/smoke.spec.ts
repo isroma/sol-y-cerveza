@@ -300,20 +300,29 @@ test('the basemap credits sit in the legend info panel', async ({ page }) => {
   await expect(info.getByRole('link', { name: 'OpenStreetMap' })).toBeVisible()
 })
 
-test('"Con sol ahora" keeps only the sunny terraces', async ({ page }) => {
+test('the list shows every venue; the filters narrow it', async ({ page }) => {
   await openApp(page)
   await showSidebar(page)
   const title = resultsTitle(page)
+  // "Solo con terraza" starts off: every bar and restaurant is listed.
+  await expect(title).toContainText(
+    `${VENUE_COUNT} bares · ${SUNNY_COUNT} con sol ahora`,
+  )
+  await expect(page.locator('.venue-row')).toHaveCount(VENUE_COUNT)
+  const terraceFilter = page.getByRole('switch', { name: 'Solo con terraza' })
+  await terraceFilter.check()
   await expect(title).toContainText(
     `${TERRACE_COUNT} de ${VENUE_COUNT} bares · ${SUNNY_COUNT} con sol ahora`,
   )
+  await expect(page.locator('.venue-row')).toHaveCount(TERRACE_COUNT)
   const sunFilter = page.getByRole('switch', { name: 'Con sol ahora' })
   await sunFilter.check()
   await expect(title).toContainText(`${SUNNY_COUNT} de ${VENUE_COUNT} bares`)
   await expect(page.locator('.venue-row')).toHaveCount(SUNNY_COUNT)
   await expect(page.locator('.pin-marker')).toHaveCount(SUNNY_COUNT)
   await sunFilter.uncheck()
-  await expect(page.locator('.venue-row')).toHaveCount(TERRACE_COUNT)
+  await terraceFilter.uncheck()
+  await expect(page.locator('.venue-row')).toHaveCount(VENUE_COUNT)
 })
 
 /** Loses the map's WebGL context and gets it back, as a phone may under memory pressure. */
