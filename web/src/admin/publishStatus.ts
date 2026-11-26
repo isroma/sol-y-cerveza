@@ -15,6 +15,8 @@ export const PUBLISH_STEPS = [
 export const publishStatusSchema = z.object({
   step: z.enum(PUBLISH_STEPS),
   decisions: z.number().int().nullable(),
+  /** Phone prices copied in (#263); null when the API wasn't reached. */
+  phonePrices: z.number().int().nullable(),
   pr: z.number().int().nullable(),
   url: z.string().nullable(),
   error: z.string().nullable(),
@@ -25,6 +27,7 @@ export type PublishStatus = z.infer<typeof publishStatusSchema>
 export const IDLE: PublishStatus = {
   step: 'idle',
   decisions: null,
+  phonePrices: null,
   pr: null,
   url: null,
   error: null,
@@ -42,8 +45,11 @@ export function isActive(status: PublishStatus): boolean {
 
 /** One line on what is happening, for the admin page. */
 export function describe(status: PublishStatus): string {
+  const phone = status.phonePrices
+    ? `, ${status.phonePrices} phone price${status.phonePrices === 1 ? '' : 's'}`
+    : ''
   const decisions =
-    status.decisions === null ? '' : ` (${status.decisions} decisions)`
+    status.decisions === null ? '' : ` (${status.decisions} decisions${phone})`
   switch (status.step) {
     case 'idle':
       return 'Rebuilds the data and opens a PR that deploys itself when CI passes.'

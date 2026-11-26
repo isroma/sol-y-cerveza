@@ -3,7 +3,7 @@
 - Status: accepted (2026-11-23)
 - Date: 2026-11-23
 - Amended (2026-11-25):
-  - The admin's "Import phone prices" (Owner mode, "Repo copy") is **planned, not built** (#263). The API has `GET /v1/admin/owner-prices`, but nothing in `web/` calls it, so owner prices exist only in D1 for now.
+  - The repo copy of owner prices is built into **Publish** (2026-11-26, #263) instead of a button: before it builds, Publish reads `GET /v1/admin/owner-prices` and merges the phone prices into `venue_prices.csv` (the newer `seen` wins; the same day, the phone's), so the repo keeps them and the offline data has them. Without the API it ships the CSV as it is. A price deleted on the phone stays in the CSV until it is removed in the admin.
   - The phone admin (#181) was removed in favour of owner mode on the public site (#199): prices at the bar go through owner mode, locations stay in the desk admin.
   - The card back sends a price together with a move or closed report in one request ([ADR-0010](0010-one-change-request.md)); `POST /v1/suggestions` stays, but the app no longer calls it.
 - Issue: #8
