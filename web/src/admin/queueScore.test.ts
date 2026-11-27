@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { LatLon, Terrace } from '../data/terraces.ts'
 import type { Proposal } from './proposals.ts'
 import type { Review } from './review.ts'
-import { queueOrder, scoreVenues } from './queueScore.ts'
+import { nextInQueue, queueOrder, scoreVenues } from './queueScore.ts'
 
 const CENTRE: LatLon = { lat: 38.8789, lon: -6.9707 }
 
@@ -157,5 +157,33 @@ describe('queueOrder', () => {
     expect(
       queueOrder(scored, new Map(), ['a', 'd']).map((s) => s.venue.id),
     ).toEqual(['b', 'c', 'a', 'd'])
+  })
+})
+
+describe('nextInQueue', () => {
+  const venues = [
+    venue('far', east(2000)),
+    venue('near', east(300)),
+    venue('skipped', east(110)),
+  ]
+  const queue = scoreVenues(venues, new Map(), new Map(), CENTRE)
+
+  it('moves to the nearest venue left, not the best scored', () => {
+    expect(nextInQueue(queue, 'here', east(100), ['skipped'])?.venue.id).toBe(
+      'near',
+    )
+  })
+
+  it('comes to skipped venues only when nothing else is left', () => {
+    const only = queue.filter((s) => s.venue.id === 'skipped')
+    expect(nextInQueue(only, 'here', east(100), ['skipped'])?.venue.id).toBe(
+      'skipped',
+    )
+  })
+
+  it('never stays on the venue just decided, and falls back to the head', () => {
+    expect(nextInQueue(queue, 'near', null, [])?.venue.id).toBe(
+      queue.find((s) => s.venue.id !== 'near')?.venue.id,
+    )
   })
 })

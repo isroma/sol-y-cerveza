@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { Terrace } from '../data/terraces.ts'
-import { queueOrder, type Scored } from './queueScore.ts'
+import { nextInQueue, queueOrder, type Scored } from './queueScore.ts'
 import type { Review } from './review.ts'
 import type { ReviewChange } from './useAdminData.ts'
 
@@ -44,15 +44,19 @@ export function useReviewQueue({
     [scored, reviews, skipped, weak],
   )
 
-  // The queue's next venue after `fromId` is decided or skipped: the best
-  // one left (the order can change as terraces get confirmed).
-  // Applied in the render that already has the decision, so the next venue
-  // comes from the new order (a confirmed terrace raises its neighbours).
+  // The queue's next venue after `fromId` is decided or skipped: the
+  // nearest one left (nextInQueue), so the map stays where the reviewer is.
+  // Applied in the render that already has the decision, so the decided
+  // venue is already out of the queue.
   const [advanceFrom, setAdvanceFrom] = useState<string | null>(null)
   const advance = useCallback((fromId: string) => setAdvanceFrom(fromId), [])
   if (advanceFrom !== null) {
     setAdvanceFrom(null)
-    select(queue.find((s) => s.venue.id !== advanceFrom)?.venue.id ?? null)
+    const from =
+      reviews.get(advanceFrom)?.venue ??
+      venues.find((v) => v.id === advanceFrom)?.venue ??
+      null
+    select(nextInQueue(queue, advanceFrom, from, skipped)?.venue.id ?? null)
   }
 
   const skip = useCallback(() => {

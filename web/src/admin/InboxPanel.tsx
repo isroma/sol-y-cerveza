@@ -1,19 +1,12 @@
 import type { Terrace } from '../data/terraces.ts'
-import { describeItem, KIND_LABELS, type InboxItem } from './inbox.ts'
+import { ANSWERS, describeItem, KIND_LABELS, type InboxItem } from './inbox.ts'
 import type { ReportedVenue } from './reports.ts'
 import { SunReportDetails } from './SunReportDetails.tsx'
 
-const ANSWERS: Record<InboxItem['kind'], { yes: string; no: string }> = {
-  report: { yes: 'Accept', no: 'Reject' },
-  sun: { yes: 'Accept', no: 'Reject' },
-  suggestion: { yes: 'Accept', no: 'Reject' },
-  price: { yes: 'Accept', no: 'Dismiss' },
-  junk: { yes: 'Not a venue', no: 'Keep it' },
-}
-
 /**
- * The open Inbox item on the map: what it says and Accept (A), Reject (R) or
- * Skip (J). Each answer moves on to the next item.
+ * The open Inbox item on the map: what it says and Accept (Y), Reject (N) or
+ * Skip (S), keys as in To review (ANSWERS). Each answer moves on to the next
+ * item.
  */
 export function InboxPanel({
   item,
@@ -83,13 +76,13 @@ export function InboxPanel({
           disabled={busy}
           onClick={() => onAnswer('yes')}
         >
-          {answers.yes} <kbd>A</kbd>
+          {answers.yes.label} <kbd>{answers.yes.key.toUpperCase()}</kbd>
         </button>
         <button type="button" disabled={busy} onClick={() => onAnswer('no')}>
-          {answers.no} <kbd>R</kbd>
+          {answers.no.label} <kbd>{answers.no.key.toUpperCase()}</kbd>
         </button>
         <button type="button" disabled={busy} onClick={() => onAnswer('skip')}>
-          Skip <kbd>J</kbd>
+          Skip <kbd>S</kbd>
         </button>
       </div>
       {failure && (

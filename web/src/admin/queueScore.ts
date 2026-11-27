@@ -200,3 +200,31 @@ export function queueOrder(
     )
   })
 }
+
+/**
+ * The venue the queue moves on to once `from` is decided or skipped: the
+ * nearest one left to `from`, so the reviewer keeps their place on the map.
+ * Skipped venues come only when nothing else is left, in queue order; with
+ * no `from` position, the head of the queue.
+ */
+export function nextInQueue(
+  queue: readonly Scored[],
+  fromId: string,
+  from: LatLon | null,
+  skipped: readonly string[],
+): Scored | null {
+  const later = new Set(skipped)
+  const left = queue.filter((s) => s.venue.id !== fromId)
+  const fresh = left.filter((s) => !later.has(s.venue.id))
+  if (!from || fresh.length === 0) return fresh[0] ?? left[0] ?? null
+  let best = fresh[0] ?? null
+  let bestM = Infinity
+  for (const s of fresh) {
+    const m = distanceMetres(from, s.venue.venue)
+    if (m < bestM) {
+      best = s
+      bestM = m
+    }
+  }
+  return best
+}

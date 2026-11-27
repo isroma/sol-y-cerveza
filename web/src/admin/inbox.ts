@@ -283,3 +283,47 @@ export async function postDecision(
     return String(e)
   }
 }
+
+type Answer = { label: string; key: string }
+
+/**
+ * Each answer's label and key, with To review's letters: Y yes, N no, S skip;
+ * for a probable non-venue, X marks it (as in To review) and Y keeps it.
+ */
+export const ANSWERS: Record<InboxItem['kind'], { yes: Answer; no: Answer }> = {
+  report: {
+    yes: { label: 'Accept', key: 'y' },
+    no: { label: 'Reject', key: 'n' },
+  },
+  sun: {
+    yes: { label: 'Accept', key: 'y' },
+    no: { label: 'Reject', key: 'n' },
+  },
+  suggestion: {
+    yes: { label: 'Accept', key: 'y' },
+    no: { label: 'Reject', key: 'n' },
+  },
+  price: {
+    yes: { label: 'Accept', key: 'y' },
+    no: { label: 'Dismiss', key: 'n' },
+  },
+  junk: {
+    yes: { label: 'Not a venue', key: 'x' },
+    no: { label: 'Keep it', key: 'y' },
+  },
+}
+
+/** Skip in the Inbox, as in To review. */
+export const SKIP_KEYS = ['s', 'j']
+
+/** The answer a key gives for an item of `kind`, if any. */
+export function answerForKey(
+  kind: InboxItem['kind'],
+  key: string,
+): 'yes' | 'no' | 'skip' | null {
+  const answers = ANSWERS[kind]
+  if (key === answers.yes.key) return 'yes'
+  if (key === answers.no.key) return 'no'
+  if (SKIP_KEYS.includes(key)) return 'skip'
+  return null
+}
