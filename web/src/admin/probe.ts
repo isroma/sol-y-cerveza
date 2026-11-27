@@ -15,12 +15,33 @@ const DECIMALS = 5
 
 export type Position = { lat: number; lon: number }
 
+const tenths = z.array(z.number().int().min(0).max(900)).length(360)
+
+/** Why the envelope leaves a cell out (pipeline: envelope.SKIP_REASONS). */
+export const SKIP_REASONS = ['no_data', 'raised', 'building', 'road'] as const
+
+const probeCellSchema = z.object({
+  lat: z.number(),
+  lon: z.number(),
+  skip: z.enum(SKIP_REASONS).nullable(),
+  // Packed like the envelope; null for a cell left out.
+  horizon: z.string().nullable(),
+  // Null when the same as `horizon` or there is no leaf-off model.
+  horizon_winter: z.string().nullable(),
+})
+
 export const probeResultSchema = z.object({
   // Tenths of a degree per compass azimuth bin, as in terraces.json.
-  horizon: z.array(z.number().int().min(0).max(900)).length(360),
+  horizon: tenths,
+  // The same with deciduous crowns bare; null when the same or no leaf-off model.
+  horizon_winter: tenths.nullable(),
   // The envelope across the terrace, packed as in terraces.json (docs/data-contract.md,
   // "Horizon envelope"); null when the build would leave it out.
   horizon_low: z.string().nullable(),
+  // The envelope on the leaf-off model; null without one.
+  horizon_low_winter: z.string().nullable(),
+  // The envelope's sample cells round the pin, for the admin map.
+  cells: z.array(probeCellSchema),
   // Surface minus terrain at the point, metres; null where a raster has no data.
   height_above_ground: z.number().nullable(),
   // The build's threshold for "on a roof or under a canopy" (MAX_HEIGHT_ABOVE_GROUND_M).
@@ -36,6 +57,7 @@ export const probeErrorSchema = z.object({
 export const probeOutputSchema = z.union([probeResultSchema, probeErrorSchema])
 
 export type ProbeResult = z.infer<typeof probeResultSchema>
+export type ProbeCell = z.infer<typeof probeCellSchema>
 export type ProbeOutput = z.infer<typeof probeOutputSchema>
 
 const NUMBER = /^-?\d{1,3}(\.\d+)?$/
@@ -94,13 +116,27 @@ export function isTooHigh(result: ProbeResult): boolean {
   return height !== null && height > result.max_height_above_ground
 }
 
+/** A packed horizon in tenths, or null when absent or malformed. */
+function unpacked(packed: string | null): readonly number[] | null {
+  return packed === null ? null : unpackHorizon(packed)
+}
+
 /**
  * The horizon the app answers from at this position, as in
- * docs/data-contract.md (step 7): the envelope across the terrace when there
- * is one (and it is well formed), else the pin's horizon.
+ * docs/data-contract.md (steps 6 and 7): the envelope across the terrace when
+ * there is one (and it is well formed), else the pin's horizon; in the
+ * leaf-off period the leaf-off ones first.
  */
-export function terraceHorizon(result: ProbeResult): readonly number[] {
-  const low =
-    result.horizon_low === null ? null : unpackHorizon(result.horizon_low)
-  return low ?? result.horizon
+export function terraceHorizon(
+  result: ProbeResult,
+  leafOff = false,
+): readonly number[] {
+  if (leafOff)
+    return (
+      unpacked(result.horizon_low_winter) ??
+      unpacked(result.horizon_low) ??
+      result.horizon_winter ??
+      result.horizon
+    )
+  return unpacked(result.horizon_low) ?? result.horizon
 }

@@ -12,7 +12,10 @@ import {
 
 const result: ProbeResult = {
   horizon: new Array<number>(360).fill(120),
+  horizon_winter: null,
   horizon_low: null,
+  horizon_low_winter: null,
+  cells: [],
   height_above_ground: 0.4,
   max_height_above_ground: 2,
 }
@@ -97,6 +100,23 @@ describe('terraceHorizon', () => {
     const low = terraceHorizon({ ...result, horizon_low: '%'.repeat(360) })
     expect(low).toHaveLength(360)
     expect(low[0]).toBe(20)
+  })
+
+  it('uses the leaf-off envelope in the leaf-off period', () => {
+    const both = {
+      ...result,
+      horizon_low: '%'.repeat(360),
+      horizon_low_winter: '$'.repeat(360),
+    }
+    expect(terraceHorizon(both, true)[0]).toBe(10)
+    expect(terraceHorizon(both, false)[0]).toBe(20)
+  })
+
+  it('falls back to the pin leaf-off horizon without envelopes', () => {
+    const winter = new Array<number>(360).fill(40)
+    expect(terraceHorizon({ ...result, horizon_winter: winter }, true)).toBe(
+      winter,
+    )
   })
 
   it('falls back to the pin horizon on a malformed envelope', () => {

@@ -39,6 +39,9 @@ SAMPLE_RADIUS_M = 7.0
 # Parked cars, hedges and counters stand up to 2 m; tree crowns start above that (trees.py: 2.5
 # m). The same threshold as the build's "pin on a roof or under a canopy" warning.
 MAX_GROUND_HEIGHT_M = 2.0
+# Why a point is left out (``point_skips``): no LiDAR data, more than MAX_GROUND_HEIGHT_M up
+# (canopy, awning or roof), inside an OSM structure, on an OSM carriageway.
+SKIP_REASONS = ("no_data", "raised", "building", "road")
 
 # Whole degrees 0-90 as one character each: the 91 printable ASCII characters from "#" (35) to
 # "~" (126) without the backslash, so a packed string needs no escaping in JSON.
@@ -102,6 +105,29 @@ class Structures:
         return len(self._tree.query(Point(lon, lat), predicate="within")) > 0
 
 
+def point_skips(
+    points: Sequence[LatLonPair],
+    height_for: Callable[[float, float], float | None],
+    inside_structure: Callable[[float, float], bool],
+    on_road: Callable[[float, float], bool],
+) -> list[str | None]:
+    """Why each point is not open ground (``SKIP_REASONS``), or None when it is."""
+    skips: list[str | None] = []
+    for lat, lon in points:
+        height = height_for(lat, lon)
+        if height is None:
+            skips.append("no_data")
+        elif height > MAX_GROUND_HEIGHT_M:
+            skips.append("raised")
+        elif inside_structure(lat, lon):
+            skips.append("building")
+        elif on_road(lat, lon):
+            skips.append("road")
+        else:
+            skips.append(None)
+    return skips
+
+
 def ground_points(
     points: Sequence[LatLonPair],
     height_for: Callable[[float, float], float | None],
@@ -110,15 +136,8 @@ def ground_points(
 ) -> list[LatLonPair]:
     """The points on open ground: low enough above the terrain, outside every structure and off
     every carriageway."""
-    kept: list[LatLonPair] = []
-    for lat, lon in points:
-        height = height_for(lat, lon)
-        if height is None or height > MAX_GROUND_HEIGHT_M:
-            continue
-        if inside_structure(lat, lon) or on_road(lat, lon):
-            continue
-        kept.append((lat, lon))
-    return kept
+    skips = point_skips(points, height_for, inside_structure, on_road)
+    return [point for point, skip in zip(points, skips, strict=True) if skip is None]
 
 
 def terrace_points(
