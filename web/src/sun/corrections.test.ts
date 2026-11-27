@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   correctHorizon,
+  crownSpans,
   correctionsByVenue,
   parseSunCorrections,
   runBins,
@@ -166,5 +167,49 @@ describe('shade floors', () => {
     const result = correctHorizon(flat(200), [floor], false)
     expect(result?.all[10]).toBe(300)
     expect(result?.confirmed?.[10]).toBe(200)
+  })
+})
+
+// A cap through a deciduous crown spans the crown (#535, ADR-0015).
+describe('crown spans', () => {
+  /** A 60° crown from 150 to 210 that leaf-off lowers to 15°, open sky elsewhere. */
+  const leafOn = flat(0).map((v, bin) => (bin >= 150 && bin <= 210 ? 600 : v))
+  const bare = leafOn.map((v) => (v === 600 ? 150 : v))
+  const cap = {
+    leafOff: false,
+    from: 175,
+    to: 185,
+    altitude: 250,
+    confirmed: false,
+  }
+
+  it('lowers the whole crown to the leaf-off horizon, approximately', () => {
+    const result = correctHorizon(leafOn, [cap], false, bare)
+    expect(result?.all[150]).toBe(150)
+    expect(result?.all[210]).toBe(150)
+    expect(result?.all[180]).toBe(150)
+    expect(result?.all[149]).toBe(0)
+    expect(result?.confirmed?.[150]).toBe(600)
+  })
+
+  it('stays in its slice without a crown, in leaf-off, or for a floor', () => {
+    const building = correctHorizon(leafOn, [cap], false, leafOn)
+    expect(building?.all[150]).toBe(600)
+    expect(building?.all[180]).toBe(250)
+    expect(
+      correctHorizon(leafOn, [{ ...cap, leafOff: true }], true, bare)?.all[150],
+    ).toBe(600)
+    expect(correctHorizon(leafOn, [cap], false, null)?.all[150]).toBe(600)
+    const floor = { ...cap, altitude: 700, floor: true }
+    expect(correctHorizon(leafOn, [floor], false, bare)?.all[150]).toBe(600)
+  })
+
+  it('does not reach a crown the cap does not contradict', () => {
+    // A second crown from 230 to 240, apart from the first.
+    const two = leafOn.map((v, bin) => (bin >= 230 && bin <= 240 ? 600 : v))
+    const twoBare = two.map((v) => (v === 600 ? 150 : v))
+    const result = correctHorizon(two, [cap], false, twoBare)
+    expect(result?.all[230]).toBe(600)
+    expect(crownSpans(two, twoBare, cap)).toHaveLength(61)
   })
 })

@@ -121,3 +121,24 @@ export function anySunHorizon(
     (isLeafOff(date) ? venue.horizon_low_winter : null) ?? venue.horizon_low
   return packed ? unpackHorizon(packed) : null
 }
+
+/**
+ * The leaf-off twin of the horizon that answers for `venue` in the leaf-on
+ * season (ADR-0015): `horizon_low_winter` when the envelope answers,
+ * `horizon_winter` when the single horizon does. Null when the twin is absent
+ * (the same as the leaf-on one: no deciduous crowns) or malformed.
+ */
+export function bareTwin(
+  venue: Pick<
+    Terrace,
+    'horizon' | 'horizon_winter' | 'horizon_low' | 'horizon_low_winter'
+  >,
+): readonly number[] | null {
+  if (venue.horizon === null) return null
+  if (venue.horizon_low && unpackHorizon(venue.horizon_low)) {
+    return venue.horizon_low_winter
+      ? unpackHorizon(venue.horizon_low_winter)
+      : null
+  }
+  return venue.horizon_winter ?? null
+}
