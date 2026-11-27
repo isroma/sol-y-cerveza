@@ -8,13 +8,16 @@ import {
 
 // Leaf-off horizons (docs/adr/0007-seasonal-trees.md): a terrace under
 // deciduous trees is walled in by crowns all year, but open once they are
-// bare, from 1 December to 15 March. The card shows nothing extra.
+// bare: from the day Sentinel-2 saw them bare (`leaf_off_from`), else from
+// 1 December, until 15 April at the latest. The card shows nothing extra.
 
 /** Midday in Madrid (CET) in January: the sun is about 30° up. */
 const JANUARY_NOON = new Date('2027-01-15T11:30:00Z')
 /** Midday in Madrid on the last and the first day after the period. */
-const MARCH_15_NOON = new Date('2027-03-15T11:30:00Z')
-const MARCH_16_NOON = new Date('2027-03-16T11:30:00Z')
+const APRIL_15_NOON = new Date('2027-04-15T10:30:00Z')
+const APRIL_16_NOON = new Date('2027-04-16T10:30:00Z')
+/** Midday in Madrid in late November, before the fixed start. */
+const NOVEMBER_25_NOON = new Date('2026-11-25T11:30:00Z')
 
 const NAME = 'Bar Bajo Plátanos'
 const crowns = Array.from({ length: 360 }, () => 850)
@@ -38,7 +41,7 @@ const withTrees = {
   ],
 }
 
-const INFO = /Del 1 de diciembre al 15 de marzo/
+const INFO = /mientras Sentinel-2 los ve sin hojas/
 
 const test = base.extend<{ errors: string[] }>({
   // Stubbed basemap, no other network, no console errors.
@@ -113,11 +116,21 @@ test('in January, sun through bare trees, with nothing new on the card', async (
   await expect(await openInfo(page)).toContainText(INFO)
 })
 
-test('the period ends on 15 March', async ({ page }) => {
-  await open(page, MARCH_15_NOON, withTrees)
+test('without seen dates, the period ends on 15 April', async ({ page }) => {
+  await open(page, APRIL_15_NOON, withTrees)
   await expect(await openCard(page, NAME)).toHaveClass(/pin-card--sun/)
-  await open(page, MARCH_16_NOON, withTrees)
+  await open(page, APRIL_16_NOON, withTrees)
   await expect(await openCard(page, NAME)).not.toHaveClass(/pin-card--sun/)
+})
+
+test('it starts when Sentinel-2 saw the trees bare', async ({ page }) => {
+  await open(page, NOVEMBER_25_NOON, withTrees)
+  await expect(await openCard(page, NAME)).not.toHaveClass(/pin-card--sun/)
+  await open(page, NOVEMBER_25_NOON, {
+    ...withTrees,
+    leaf_off_from: '2026-11-23',
+  })
+  await expect(await openCard(page, NAME)).toHaveClass(/pin-card--sun/)
 })
 
 test('in June, the same trees give shade', async ({ page }) => {

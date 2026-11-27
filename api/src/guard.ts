@@ -13,8 +13,13 @@ import {
   voterKeys,
 } from './logic.ts'
 import type { LatLon } from '../../web/src/data/geo.ts'
+import type { LeafOffSeen } from './sun.ts'
 
-let venues: { ids: Map<string, LatLon>; until: number } | null = null
+let venues: {
+  ids: Map<string, LatLon>
+  seen: LeafOffSeen
+  until: number
+} | null = null
 
 /** Venue ids in the published data and each venue's position, cached for an hour per isolate. */
 export async function knownVenues(env: Env): Promise<Map<string, LatLon>> {
@@ -48,8 +53,27 @@ export async function knownVenues(env: Env): Promise<Map<string, LatLon>> {
           : { lat: NaN, lon: NaN }
       ids.set(record.id, position)
     }
-  venues = { ids, until: Date.now() + 3600_000 }
+  const file = typeof data === 'object' && data !== null ? data : {}
+  const from =
+    'leaf_off_from' in file && typeof file.leaf_off_from === 'string'
+      ? file.leaf_off_from
+      : null
+  const until =
+    'leaf_off_until' in file && typeof file.leaf_off_until === 'string'
+      ? file.leaf_off_until
+      : null
+  venues = {
+    ids,
+    seen: { leaf_off_from: from, leaf_off_until: until },
+    until: Date.now() + 3600_000,
+  }
   return ids
+}
+
+/** The leaf-off dates in the published data (from the same cached fetch as knownVenues). */
+export async function leafOffSeen(env: Env): Promise<LeafOffSeen> {
+  await knownVenues(env)
+  return venues?.seen ?? {}
 }
 
 export async function sha256(text: string): Promise<string> {

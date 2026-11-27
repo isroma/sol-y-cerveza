@@ -14,6 +14,8 @@ type TerracesFile = {
   generated: string // ISO 8601 UTC timestamp of the pipeline run
   sample: boolean // true while the file holds fake data; the app shows a notice
   attribution: string[] // shown in the app, one line each
+  leaf_off_from?: string // YYYY-MM-DD: the day Sentinel-2 saw the deciduous crowns bare this autumn (see "Leaf-off season"); absent = not seen yet
+  leaf_off_until?: string // YYYY-MM-DD: the first day it saw them in leaf again this spring; absent = not seen yet
   terraces: Terrace[] // one per named venue, sorted by id
 }
 
@@ -76,6 +78,17 @@ A terrace is several metres across (usually 5 to 10 tables in one or two rows), 
 - `horizon_low` is left out when no point is on open ground, or when it equals `horizon`.
 - `horizon_low_winter` is the same on the leaf-off model, left out when it equals `horizon_low` (or, without one, `horizon_winter`).
 
+## Leaf-off season
+
+`leaf_off_from` and `leaf_off_until` (added 2026-11-27, #526, not a breaking change) are the dates Sentinel-2 saw this year (`pipeline/src/solycerveza/season.py`): the second of the first two clear scenes in a row with the deciduous crowns at least 40 % bare from 1 October, and the second of the first two in a row less than 40 % bare from 1 March. The pipeline writes them only when it has the leaf-off model and has seen them; files without them are valid.
+
+A season runs from July to June. For a date in the season that starts in autumn `Y`, the leaf-off period is:
+
+- **from** `leaf_off_from` when it lies between `Y-10-01` and `Y-12-01`, else from `Y-12-01`;
+- **until** the day before `leaf_off_until` when it lies between `(Y+1)-03-01` and `(Y+1)-04-15`, else until `(Y+1)-04-15`, inclusive.
+
+So the period starts on 1 December and ends on 15 April at the latest, whatever the file says; a malformed date, or one from another season, counts as absent. The API decides a sun report's season with the same rule and the dates in the published file (`api/src/sun.ts`).
+
 ## Sun / shade rule (client)
 
 1. Compute the sun's altitude `alt` and compass azimuth `az`, in degrees, for the chosen instant at `terrace`.
@@ -83,7 +96,7 @@ A terrace is several metres across (usually 5 to 10 tables in one or two rows), 
 3. Otherwise `bin = round(az) mod 360`: **sun** if `alt * 10 > horizon[bin]`, else **shade**.
 4. If `horizon` is `null`, the result is **unknown**.
 5. If `terrace` is `null`, there is no state: the app shows the venue at `venue`, greyed out and labelled "terraza sin confirmar" (unconfirmed terrace).
-6. **Leaf-off period** (1 December to 15 March, by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
+6. **Leaf-off period** (see "Leaf-off season", by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
 7. **Envelope**: when the terrace has an envelope (a malformed one counts as absent), it replaces `horizon` in step 3 (and `horizon_winter` in step 6; in the leaf-off period use `horizon_low_winter` when present, else `horizon_low`): with `low` decoded to degrees, **sun** if `alt > low[bin]`, that is when any part of the terrace is in sun, else **shade**. There is no separate partial state.
 8. **Visitors' sun** (issue #364, [ADR-0012](adr/0012-sun-reports.md)): the record's own `sun_corrections` are confirmed corrections, applied whether or not the app has an API. In addition, when the build has `VITE_PRICES_API`, the app loads `GET /v1/sun` once per page load and merges its corrections for the venue with the record's. For each correction of the venue whose season (`leaf_off` / `leafOff`) matches the day (`isLeafOff`), the horizon that answers in steps 3, 6 and 7 becomes `min(horizon[bin], altitude)` in every bin from `from` to `to` (inclusive, wrapping across north when `from > to`). The day's sun/shade is then computed as usual, including short shade counting as sun. A step is sun **only by visitors** (shown "~") when it is sun with every correction but not with the `confirmed: true` ones alone; confirmed corrections give plain sun.
 
@@ -93,7 +106,7 @@ Times are entered and shown in `Europe/Madrid`.
 
 ## Determinism (pipeline output)
 
-- Keys appear in the order above, and `terraces` is sorted by `id`.
+- Keys appear in the order above, and `terraces` is sorted by `id`. `leaf_off_from` and `leaf_off_until` are left out when not seen.
 - Coordinates are rounded to 6 decimals.
 - UTF-8, 2-space indent, each `horizon` and `horizon_winter` array on a single line, trailing newline. Null envelope keys and empty `sun_corrections` are left out; `sun_corrections` entries are sorted by `leaf_off` (false first), then `from`.
 

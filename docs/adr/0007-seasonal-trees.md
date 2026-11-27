@@ -47,7 +47,7 @@ LiDAR alone can't tell. Options:
 
    Clouds and shadows are masked with the L2A scene classification, and only scenes whose bbox is at least 95 % clear are used.
 2. **Data contract:** a new optional field, `horizon_winter`, holds the leaf-off profile. It is `null` (or absent, in older files) when it would equal `horizon`, or when there is no leaf-off surface model. The app then uses `horizon`. Old files stay valid, so this is not a version bump.
-3. **The leaf-off period runs from 1 December to 15 March, by Madrid date.** In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
+3. **The leaf-off period runs from 1 December to 15 March, by Madrid date** (amended 2026-11-27, #526: from the day Sentinel-2 sees the deciduous crowns 40 % bare, 1 December at the latest, until it sees them in leaf again, 15 April at the latest; see "Amendment" below). In that period the app uses `horizon_winter` when it exists, for everything: the badge, the list, the card, the sun bar and minutes of sun. Outside it, or without the field, nothing changes.
 4. **What the app says.** Nothing new on the venue card: the owner wants the UI as simple as possible, so the leaf-off horizon just changes the answer (badge, list, filters, card, sun bar). The "Sobre los datos" panel explains the rule, but only when the file has leaf-off horizons:
 
    > Del 1 de diciembre al 15 de marzo, los árboles de hoja caduca (según Sentinel-2) no dan sombra.
@@ -60,7 +60,7 @@ LiDAR alone can't tell. Options:
    - A mixed 10 m pixel, a deciduous tree over winter-green grass (common in Badajoz, where grass greens up with the autumn rain), or a crown too small for Sentinel-2 keeps its leaves in the model.
    - Outside the period, the full horizon applies.
 
-### Why 1 December to 15 March
+### Why 1 December to 15 March (superseded by the amendment)
 
 - It is a rule of thumb, not a phenology model. Plane trees in south-west Iberia usually drop most of their leaves from November into December and leaf out again during March, but dates vary by year, species and how well-watered a tree is.
 - I first proposed only the core of the season (15 December to the end of February), because in early December and in March many crowns still (or already) hold enough leaves to shade. **The owner chose the wider window on 2026-11-23**, accepting more risk at the edges: in early December and early March some terraces will show sun where crowns still cast real shade.
@@ -81,7 +81,7 @@ The horizon is one angle per direction, and the app's answer is sun or shade. Ba
 - **Epochs differ:** the LiDAR is from 2018–2019 and the Sentinel-2 composite from 2025. Where a tree has been felled since, Sentinel-2 sees no vegetation, so the DSM crown stays (shade, as today). A tree planted since isn't in the DSM at all (sun all year, as today).
 - **The LiDAR flight season is unknown.** The 2nd coverage of Extremadura was flown between July 2018 and April 2019 ([lidar research](../research/lidar.md)). If sheet 0775 was flown in winter, its deciduous crowns are already thinner in the DSM. Then the summer answer under them is too sunny, and this ADR doesn't fix that. The CNIG file listing ("Fecha" column) settles it.
 - The admin's probe returns `horizon_winter` too, so a curator can compare the two horizons for a pin. The admin page doesn't show it yet (follow-up).
-- The ADR-0001 bias becomes "deciduous trees are bare from 1 December to 15 March, where Sentinel-2 sees them".
+- The ADR-0001 bias becomes "deciduous trees are bare from 1 December to 15 March, where Sentinel-2 sees them" (since #526: while Sentinel-2 sees them bare, 1 December to 15 April at the latest).
 - The card doesn't say when sun depends on bare trees. Only the "Sobre los datos" panel explains the rule.
 
 ## What was verified and what wasn't (2026-11-23)
@@ -117,3 +117,19 @@ Not verified, and needing the owner:
 - Let OSM `natural=tree` with `leaf_cycle=evergreen` (or a curator flag) override the satellite.
 - Show the leaf-off horizon in the admin's sun preview.
 - Repeat the Sentinel-2 composite when the 3rd-coverage LiDAR (2023) replaces MDS02, and pick the composite year closest to the LiDAR.
+
+## Amendment (owner, 2026-11-27, #526): the season from Sentinel-2
+
+The owner sat in sun at Floco Original Coffee on 27 November, under crowns the leaf-off model removes, while the app still used the leaf-on horizon. Measured over the crowns `horizon_winter` removes (7,327 Sentinel-2 pixels, against 5,648 evergreen ones; 353 scenes from autumn 2024 to now, [#526](https://github.com/isroma/sol-y-cerveza/issues/526)):
+
+- The crowns were half bare around 1 December in 2024 and 2025, but by 19 November in 2026.
+- In spring they are still two-thirds bare on 31 March, and below 40 % bare only from about 10 April (2026) or late April to May (2025). 15 March was a month too early.
+
+Fixed dates are wrong by weeks in one year or another, so:
+
+1. **Each build measures the season** (`solycerveza.season`): the leaf loss in the latest clear scenes (the deciduous − evergreen NDVI gap, scaled between the summer and winter composites the leaf-off model came from), and writes `leaf_off_from` (two clear scenes in a row at least 40 % bare, from 1 October) and `leaf_off_until` (two in a row less than 40 % bare, from 1 March) into `terraces.json`. Each scene's measurement is cached, so a Publish reads only new scenes (the first run of a season reads about 35, in under half a minute). When Sentinel-2 can't be read, the build keeps the dates of the previous file.
+2. **Fixed dates bound it:** leaf-off from 1 December and until 15 April at the latest, so a season without a Publish still switches. Replayed on the scenes: 2024/25 from 1 December (no two clear scenes in a row at 40 % before), 2025/26 from 21 November, 2026/27 from 23 November; both springs end on 15 April.
+3. **40 %**, not 50 %: the owner's observation (sun at about 55 % on 27 November, under young crowns that were thin even in leaf) and a test at 35 % that a noisy October scene would have triggered. It is one constant (`THRESHOLD`).
+4. **No weather data and no new UI:** the switch follows the trees themselves, and the app's answer stays sun or shade. "Sobre los datos" now says: "Los árboles de hoja caduca no dan sombra mientras Sentinel-2 los ve sin hojas (como tarde, del 1 de diciembre al 15 de abril)."
+5. The API decides a sun report's season with the same rule and the dates in the published `terraces.json`, so a report made under bare trees in late November counts in the leaf-off season.
+

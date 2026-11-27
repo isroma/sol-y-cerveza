@@ -23,18 +23,55 @@ export const SUN_WINDOW_DAYS = 365
 export const MIN_SUN_ALTITUDE = 2
 
 /**
- * The leaf-off period, by Madrid date, both ends inclusive. Mirrors LEAF_OFF in
- * web/src/sun/leafOff.ts (ADR-0007), which can't be imported here: its file
- * pulls in the app's zod schemas, which the Worker doesn't have (sun.test.ts
- * checks the two stay the same).
+ * The leaf-off period, by Madrid date: from the day Sentinel-2 saw the
+ * deciduous crowns bare this autumn (`leaf_off_from` in the published
+ * terraces.json) until the first day it saw them in leaf (`leaf_off_until`),
+ * else from 1 December until 15 April, both inclusive. Mirrors LEAF_OFF,
+ * LEAF_OFF_SEEN and isLeafOff in web/src/sun/leafOff.ts (ADR-0007, #526),
+ * kept apart so the Worker doesn't import the app (sun.test.ts checks the two
+ * stay the same).
  */
-export const LEAF_OFF = { from: '12-01', until: '03-15' } as const
+export const LEAF_OFF = { from: '12-01', until: '04-15' } as const
+export const LEAF_OFF_SEEN = { from: '10-01', until: '03-01' } as const
+
+/** The dates Sentinel-2 saw, as terraces.json has them (YYYY-MM-DD). */
+export type LeafOffSeen = {
+  leaf_off_from?: string | null | undefined
+  leaf_off_until?: string | null | undefined
+}
+
+const DATE = /^(\d{4})-(\d{2}-\d{2})$/
+
+function within(
+  day: string | null | undefined,
+  earliest: string,
+  latest: string,
+): string | null {
+  if (!day || !DATE.test(day)) return null
+  return day >= earliest && day <= latest ? day : null
+}
 
 /** True when `date` (YYYY-MM-DD, Madrid) is inside the leaf-off period, as isLeafOff in the app. */
-export function isLeafOff(date: string): boolean {
-  const monthDay = /^\d{4}-(\d{2}-\d{2})$/.exec(date)?.[1]
-  if (monthDay === undefined) return false
-  return monthDay >= LEAF_OFF.from || monthDay <= LEAF_OFF.until
+export function isLeafOff(date: string, seen: LeafOffSeen = {}): boolean {
+  const match = DATE.exec(date)
+  if (!match) return false
+  const year = Number(match[1])
+  const autumn = (match[2] ?? '') >= '07-01' ? year : year - 1
+  const spring = autumn + 1
+  const latestStart = `${autumn}-${LEAF_OFF.from}`
+  const latestEnd = `${spring}-${LEAF_OFF.until}`
+  const start =
+    within(
+      seen.leaf_off_from,
+      `${autumn}-${LEAF_OFF_SEEN.from}`,
+      latestStart,
+    ) ?? latestStart
+  const end = within(
+    seen.leaf_off_until,
+    `${spring}-${LEAF_OFF_SEEN.until}`,
+    latestEnd,
+  )
+  return date >= start && (end === null ? date <= latestEnd : date < end)
 }
 
 /**
@@ -77,11 +114,13 @@ export type Sighting = {
 /**
  * Where the sun is at `now` seen from a venue at `position`, or why a sun
  * report there is refused: the venue has no position, or the sun is below
- * MIN_SUN_ALTITUDE. The season is the Madrid date of `now`.
+ * MIN_SUN_ALTITUDE. The season is that of the Madrid date of `now`, going by
+ * the leaf-off dates the published data carries (`seen`).
  */
 export function sighting(
   position: LatLon | undefined,
   now: Date,
+  seen: LeafOffSeen = {},
 ): { ok: true; value: Sighting } | { ok: false; error: string } {
   if (
     !position ||
@@ -98,7 +137,7 @@ export function sighting(
       azimuth,
       altitude,
       bin: horizonBin(azimuth),
-      leafOff: isLeafOff(madridDate(now)),
+      leafOff: isLeafOff(madridDate(now), seen),
     },
   }
 }
