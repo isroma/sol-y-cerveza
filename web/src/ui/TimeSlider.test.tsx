@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { nowMarker } from './nowMarker.ts'
+import { daylight } from './daylight.ts'
 import { TimeSlider } from './TimeSlider.tsx'
 
 describe('nowMarker', () => {
@@ -39,5 +40,35 @@ describe('TimeSlider', () => {
     expect(container.querySelector('.time-now-bubble')).toHaveTextContent(
       'Ahora',
     )
+  })
+})
+
+describe('daylight on the bar (#537)', () => {
+  it('puts sunrise and sunset in percent of 08:00–22:00, clamped to the bar', () => {
+    expect(daylight(9 * 60, 18 * 60)).toEqual({
+      rise: (1 / 14) * 100,
+      set: (10 / 14) * 100,
+    })
+    expect(daylight(7 * 60, 23 * 60)).toEqual({ rise: 0, set: 100 })
+    expect(daylight(null, null)).toEqual({ rise: 0, set: 100 })
+  })
+
+  it('marks the hours before sunrise and after sunset as night, and stops the fill at sunset', () => {
+    const { container } = render(
+      <TimeSlider
+        minutes={21 * 60}
+        now={840}
+        onChange={() => {}}
+        onNow={() => {}}
+        sunrise={9 * 60}
+        sunset={18 * 60}
+      />,
+    )
+    const night = [...container.querySelectorAll('.time-tick.is-night')].map(
+      (t) => t.textContent,
+    )
+    expect(night).toEqual(['08:00', '20:00', '22:00'])
+    const input = container.querySelector('input')
+    expect(input?.style.getPropertyValue('--fill')).toBe(`${(10 / 14) * 100}%`)
   })
 })

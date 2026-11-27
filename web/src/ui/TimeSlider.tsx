@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { STEP_MINUTES } from '../sun/sunState.ts'
 import { formatClock } from '../time/madrid.ts'
 import { nowMarker } from './nowMarker.ts'
+import { daylight } from './daylight.ts'
 import { SunriseIcon, SunsetIcon } from './icons.tsx'
 
 /** Terrace hours shown on the slider. */
@@ -36,6 +37,9 @@ export function TimeSlider({
   const percent = percentOf(clamped)
   const marker = inRange(now) ? nowMarker(now, minutes) : 'none'
   const at = (m: number) => ({ left: `${percentOf(m)}%` })
+  const { rise, set } = daylight(sunrise, sunset)
+  const night = (m: number) =>
+    (sunrise !== null && m < sunrise) || (sunset !== null && m > sunset)
   return (
     <section className="time" aria-label="Hora">
       <div className="time-header">
@@ -81,7 +85,14 @@ export function TimeSlider({
           max={SLIDER_END}
           step={STEP_MINUTES}
           value={clamped}
-          style={{ '--fill': `${percent}%` } as CSSProperties}
+          style={
+            {
+              // The fill stops at sunset and starts at sunrise: night shows as night.
+              '--fill': `${Math.min(set, Math.max(rise, percent))}%`,
+              '--rise': `${rise}%`,
+              '--set': `${set}%`,
+            } as CSSProperties
+          }
           onChange={(event) => onChange(Number(event.target.value))}
         />
         {marker !== 'none' && (
@@ -105,13 +116,19 @@ export function TimeSlider({
           </div>
         )}
       </div>
-      {/* Each hour label sits over a small mark on the bar's line, yellow up
-          to the chosen time like the bar's fill. */}
+      {/* Each hour label sits over a small mark on the bar's line, in the
+          bar's colour there: night, yellow up to the chosen time, or grey. */}
       <div className="time-ticks" aria-hidden="true">
         {TICKS.map((tick) => (
           <span
             key={tick}
-            className={tick <= clamped ? 'time-tick is-past' : 'time-tick'}
+            className={
+              night(tick)
+                ? 'time-tick is-night'
+                : tick <= clamped
+                  ? 'time-tick is-past'
+                  : 'time-tick'
+            }
             style={at(tick)}
           >
             {formatClock(tick)}

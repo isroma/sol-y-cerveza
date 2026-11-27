@@ -111,10 +111,16 @@
   height: 8px;
   margin: var(--slider-top) 0 var(--space-2);
   border-radius: 999px;
+  /* Night before sunrise and after sunset (the night map's blue, as on the
+     card's day strip, but mixed into the bar's grey so it shows on the night
+     map too), then daylight: yellow up to the chosen time, grey after it. */
+  --night-part: color-mix(in srgb, #2d3348 35%, #e5e7eb);
   background: linear-gradient(
     to right,
-    var(--sun-soft) var(--fill),
-    #e5e7eb var(--fill)
+    var(--night-part) var(--rise, 0%),
+    var(--sun-soft) var(--rise, 0%) var(--fill),
+    #e5e7eb var(--fill) var(--set, 100%),
+    var(--night-part) var(--set, 100%)
   );
   appearance: none;
   cursor: pointer;
@@ -173,6 +179,10 @@
 
 .time-tick.is-past::before {
   background: var(--sun-soft);
+}
+
+.time-tick.is-night::before {
+  background: color-mix(in srgb, #2d3348 35%, #e5e7eb);
 }
 
 /* Filters */
