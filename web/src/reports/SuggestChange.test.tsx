@@ -376,6 +376,53 @@ describe('SuggestChange: the sun right now', () => {
   })
 })
 
+describe('SuggestChange: shade right now', () => {
+  /** Open sky: sun all day. */
+  const sunny: Terrace = {
+    ...venue,
+    terrace: venue.venue,
+    horizon: new Array<number>(360).fill(0),
+  }
+  const shadeRow = () =>
+    screen.queryByRole('switch', { name: 'Ahora mismo hay sombra' })
+
+  it('offers shade where the app says sun, and not sun', () => {
+    middayInWinter()
+    render(<Back of={sunny} />)
+    expect(shadeRow()).not.toBeNull()
+    expect(sunRow()).toBeNull()
+  })
+
+  it('sends shade and says it shows once three people agree', async () => {
+    middayInWinter()
+    const sent = stubFetch()
+    render(<Back of={sunny} />)
+    fireEvent.click(shadeRow() ?? document.body)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Gracias! Marcaremos la sombra cuando tres personas coincidan.',
+    )
+    expect(sent[0]?.body).toEqual({
+      venueId: venue.id,
+      token: 'token-change',
+      shade: true,
+    })
+  })
+
+  it('says why when the sun is not out', async () => {
+    middayInWinter()
+    vi.stubGlobal('fetch', async () =>
+      Response.json({ error: 'not sunny' }, { status: 400 }),
+    )
+    render(<Back of={sunny} />)
+    fireEvent.click(shadeRow() ?? document.body)
+    fireEvent.click(send())
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Ahora no luce el sol en Badajoz',
+    )
+  })
+})
+
 describe('SuggestChange: the terrace', () => {
   const tables = () => screen.queryByRole('button', { name: /mesas/i })
   const withPicker = (startMove = vi.fn()) => ({

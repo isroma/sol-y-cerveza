@@ -25,7 +25,7 @@ export const SOON_MINUTES = 60
  * In the leaf-off period it follows the leaf-off horizon (ADR-0007). Short
  * shade between two sunny stretches counts as sun (`fillShortShade`).
  * Visitors' corrections (`corrections.ts`: the API's and the record's own
- * `sun_corrections`) add sun; `approximate` marks the
+ * `sun_corrections` and `shade_corrections`) add sun or shade; `approximate` marks the
  * steps that are sun only because of unconfirmed ones (null: none are).
  */
 export type VenueDay = {
@@ -78,10 +78,8 @@ export function venueDay(
     anySunHorizon(venue, track.date) ?? horizonFor(venue, track.date)
   if (venue.terrace === null || horizon === null)
     return { venue, timeline: null, approximate: null }
-  const caps =
-    venue.sun_corrections && venue.sun_corrections.length > 0
-      ? [...datasetCaps(venue), ...corrections]
-      : corrections
+  const own = datasetCaps(venue)
+  const caps = own.length > 0 ? [...own, ...corrections] : corrections
   const corrected =
     caps.length > 0
       ? correctHorizon(horizon, caps, isLeafOff(track.date))

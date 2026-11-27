@@ -108,3 +108,63 @@ describe('correctionsByVenue', () => {
     expect(byVenue.get('b')).toEqual([b])
   })
 })
+
+// Shade floors (#527, ADR-0014).
+describe('shade floors', () => {
+  it('reads the answer’s shade list as floors, and an answer without one', () => {
+    const run = correction({})
+    expect(parseSunCorrections({ corrections: [], shade: [run] })).toEqual([
+      { ...run, floor: true },
+    ])
+    expect(parseSunCorrections({ corrections: [run] })).toEqual([run])
+  })
+
+  it('raises the horizon to the floor, never lowers it', () => {
+    const floor = {
+      leafOff: false,
+      from: 10,
+      to: 11,
+      altitude: 300,
+      confirmed: true,
+      floor: true,
+    }
+    const result = correctHorizon(flat(200), [floor], false)
+    expect(result?.all[10]).toBe(300)
+    expect(result?.all[12]).toBe(200)
+    expect(correctHorizon(flat(400), [floor], false)?.all[10]).toBe(400)
+    expect(result?.confirmed).toBeNull()
+  })
+
+  it('lets a cap win where both apply', () => {
+    const floor = {
+      leafOff: false,
+      from: 10,
+      to: 10,
+      altitude: 300,
+      confirmed: true,
+      floor: true,
+    }
+    const cap = {
+      leafOff: false,
+      from: 10,
+      to: 10,
+      altitude: 150,
+      confirmed: true,
+    }
+    expect(correctHorizon(flat(200), [cap, floor], false)?.all[10]).toBe(150)
+  })
+
+  it('keeps an unconfirmed floor out of the confirmed horizon', () => {
+    const floor = {
+      leafOff: false,
+      from: 10,
+      to: 10,
+      altitude: 300,
+      confirmed: false,
+      floor: true,
+    }
+    const result = correctHorizon(flat(200), [floor], false)
+    expect(result?.all[10]).toBe(300)
+    expect(result?.confirmed?.[10]).toBe(200)
+  })
+})

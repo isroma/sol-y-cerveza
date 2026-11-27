@@ -23,7 +23,10 @@ export type ChangeDraft = {
   /** The price as typed. */
   text: string
   closed: boolean
-  /** "Ahora mismo da el sol": sun on the terrace right now, where the app says shade. */
+  /**
+   * The sky row's switch: "Ahora mismo da el sol" where the app says shade,
+   * "Ahora mismo hay sombra" where it says sun (reportableSky).
+   */
   sun: boolean
   /** Where the visitor placed the venue on the map, if they moved it. */
   move: LatLon | null
@@ -98,14 +101,15 @@ export type ChangeParts = Omit<Change, 'venueId' | 'token'>
 
 /**
  * What a draft sends: "Ya no existe" goes alone; with the terrace switched
- * off, no sun and no tables; the sun only where its row shows (`sunRow`).
+ * off, no sun or shade and no tables; sun or shade only as the sky row
+ * offers it (`sky`, reportableSky).
  * A price is left out unless it parses (the back checks its range before
  * it lets it go).
  */
 export function sentParts(
   venue: Terrace,
   draft: ChangeDraft,
-  sunRow: boolean,
+  sky: 'sun' | 'shade' | null,
 ): ChangeParts {
   if (draft.closed) return { closed: true }
   const said = terraceAnswer(venue, draft)
@@ -122,7 +126,10 @@ export function sentParts(
         }
       : {}),
     ...(draft.move ? { move: draft.move } : {}),
-    ...(sunRow && terrace && draft.sun ? { sun: true as const } : {}),
+    ...(sky === 'sun' && terrace && draft.sun ? { sun: true as const } : {}),
+    ...(sky === 'shade' && terrace && draft.sun
+      ? { shade: true as const }
+      : {}),
     ...(said !== null ? { terrace: said } : {}),
     ...(terrace && draft.pin ? { pin: draft.pin } : {}),
   }
