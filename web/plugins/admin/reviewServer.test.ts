@@ -40,7 +40,7 @@ function mountedPaths(): string[] {
 }
 
 describe('sun_corrections.csv on disk', () => {
-  const HEADER = 'id,venue_id,leaf_off,azimuth,altitude,seen'
+  const HEADER = 'id,venue_id,leaf_off,azimuth,altitude,seen,kind'
   const row = (id: number, altitude = 27.1) => ({
     id,
     venueId: 'osm:node/123',
@@ -48,6 +48,7 @@ describe('sun_corrections.csv on disk', () => {
     azimuth: 176.3,
     altitude,
     seen: '2026-11-25T12:31:04.000Z',
+    kind: 'sun' as const,
   })
   const fresh = () =>
     join(mkdtempSync(join(tmpdir(), 'sun-csv-')), 'sun_corrections.csv')
@@ -63,7 +64,7 @@ describe('sun_corrections.csv on disk', () => {
     const path = fresh()
     writeFileSync(
       path,
-      `${HEADER}\n5,osm:node/9,1,10.0,5.0,2026-01-02T03:04:05.000Z\n`,
+      `${HEADER}\n5,osm:node/9,1,10.0,5.0,2026-01-02T03:04:05.000Z,sun\n`,
       'utf-8',
     )
     const before = statSync(path).mtimeMs
@@ -73,9 +74,9 @@ describe('sun_corrections.csv on disk', () => {
     expect(readFileSync(path, 'utf-8')).toBe(
       [
         HEADER,
-        '3,osm:node/123,0,176.3,27.1,2026-11-25T12:31:04.000Z',
-        '5,osm:node/9,1,10.0,5.0,2026-01-02T03:04:05.000Z',
-        '12,osm:node/123,0,176.3,27.1,2026-11-25T12:31:04.000Z',
+        '3,osm:node/123,0,176.3,27.1,2026-11-25T12:31:04.000Z,sun',
+        '5,osm:node/9,1,10.0,5.0,2026-01-02T03:04:05.000Z,sun',
+        '12,osm:node/123,0,176.3,27.1,2026-11-25T12:31:04.000Z,sun',
         '',
       ].join('\n'),
     )

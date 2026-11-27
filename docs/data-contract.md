@@ -32,6 +32,7 @@ type Terrace = {
   horizon_low?: string | null // envelope across the terrace: lowest obstacle per bin, packed (see "Horizon envelope"); absent = same as horizon
   horizon_low_winter?: string | null // the envelope on the leaf-off model; absent = same as horizon_low (or, without it, horizon_winter)
   sun_corrections?: SunCorrection[] // horizon caps from accepted sun reports, summer first, then by from; absent = none
+  shade_corrections?: SunCorrection[] // horizon floors from accepted shade reports (ADR-0014), same shape and order; absent = none
   prices: Price[] // beer prices seen at the venue, caña first, then tercios by brand; [] if none
 }
 
@@ -99,6 +100,7 @@ So the period starts on 1 December and ends on 15 April at the latest, whatever 
 6. **Leaf-off period** (see "Leaf-off season", by `Europe/Madrid` date): use `horizon_winter` instead of `horizon` when it is not `null` (ADR-0007).
 7. **Envelope**: when the terrace has an envelope (a malformed one counts as absent), it replaces `horizon` in step 3 (and `horizon_winter` in step 6; in the leaf-off period use `horizon_low_winter` when present, else `horizon_low`): with `low` decoded to degrees, **sun** if `alt > low[bin]`, that is when any part of the terrace is in sun, else **shade**. There is no separate partial state.
 8. **Visitors' sun** (issue #364, [ADR-0012](adr/0012-sun-reports.md)): the record's own `sun_corrections` are confirmed corrections, applied whether or not the app has an API. In addition, when the build has `VITE_PRICES_API`, the app loads `GET /v1/sun` once per page load and merges its corrections for the venue with the record's. For each correction of the venue whose season (`leaf_off` / `leafOff`) matches the day (`isLeafOff`), the horizon that answers in steps 3, 6 and 7 becomes `min(horizon[bin], altitude)` in every bin from `from` to `to` (inclusive, wrapping across north when `from > to`). The day's sun/shade is then computed as usual, including short shade counting as sun. A step is sun **only by visitors** (shown "~") when it is sun with every correction but not with the `confirmed: true` ones alone; confirmed corrections give plain sun.
+9. **Visitors' shade** (issue #527, [ADR-0014](adr/0014-shade-reports.md)): the record's own `shade_corrections`, and the API answer's `shade` list, are floors, applied before step 8's caps: in their bins the horizon becomes `max(horizon[bin], altitude)`, and then any cap applies, so where both apply the cap wins. The build computes `shade_corrections` from the shade rows of `sun_corrections.csv` (`kind = shade`) as `sun_corrections` but mirrored: each report covers the bins within 2° of its azimuth, at `min(900, ceil(altitude * 10))` with no margin, and the highest report in a bin wins. Shade from a floor shows as plain shade.
 
 `suncalc` 2.x (the version in the lockfile) already returns degrees, with a compass azimuth (0 = north, clockwise) and a refraction-corrected altitude, so no conversion is needed. suncalc 1.x used radians measured from south; don't apply its `+180°` conversion to 2.x.
 

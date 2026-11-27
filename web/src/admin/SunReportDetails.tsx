@@ -2,6 +2,7 @@ import type { Terrace } from '../data/terraces.ts'
 import {
   seasonLabel,
   sightingRows,
+  SHADE_SPREAD_DEGREES,
   SUN_SPREAD_DEGREES,
   SUN_THRESHOLD,
   type SightingRow,
@@ -10,7 +11,7 @@ import {
 
 const degrees = (n: number) => `${n.toFixed(1)}°`
 
-function ModelCell({ row }: { row: SightingRow }) {
+function ModelCell({ row, shade }: { row: SightingRow; shade: boolean }) {
   if (row.model === null || row.below === null) return <>no horizon</>
   const pin =
     row.model.atPin === null ? '' : ` (pin ${degrees(row.model.atPin)})`
@@ -19,9 +20,13 @@ function ModelCell({ row }: { row: SightingRow }) {
       {degrees(row.model.obstacle)}
       {pin}
       <span className="admin-reason">
-        {row.below > 0
-          ? `sun ${degrees(row.below)} below it`
-          : 'the model already says sun'}
+        {shade
+          ? row.below < 0
+            ? `sun ${degrees(-row.below)} above it`
+            : 'the model already says shade'
+          : row.below > 0
+            ? `sun ${degrees(row.below)} below it`
+            : 'the model already says sun'}
       </span>
     </>
   )
@@ -48,14 +53,20 @@ export function SunReportDetails({
 }) {
   const rows = sightingRows(report, terrace)
   const season = seasonLabel(report.leafOff)
+  const shade = report.kind === 'shade'
+  const seen = shade
+    ? 'Shade seen where the model says sun, with the sun out over Badajoz'
+    : 'Sun seen where the model says shade'
   return (
     <section className="admin-sun" aria-label="Sun report">
       <p className="admin-sun-line">
         {report.leafOff
-          ? 'Sun seen where the model says shade, leaf-off (1 Dec–15 Mar). '
-          : 'Sun seen where the model says shade, leaf-on (16 Mar–30 Nov). '}
+          ? `${seen}, leaf-off (1 Dec–15 Mar). `
+          : `${seen}, leaf-on (16 Mar–30 Nov). `}
         {report.shown
-          ? 'Visitors already see sun here, as approximate (~).'
+          ? shade
+            ? 'Visitors already see shade here.'
+            : 'Visitors already see sun here, as approximate (~).'
           : `Visitors don’t see it until ${SUN_THRESHOLD} people agree.`}
       </p>
       <table className="admin-sightings">
@@ -74,7 +85,7 @@ export function SunReportDetails({
                 {Math.round(row.azimuth)}° / {degrees(row.altitude)}
               </td>
               <td>
-                <ModelCell row={row} />
+                <ModelCell row={row} shade={shade} />
               </td>
             </tr>
           ))}
@@ -92,12 +103,16 @@ export function SunReportDetails({
         </p>
       )}
       <p className="admin-help">
-        <strong>Accept</strong> confirms it: the app shows sun there without
-        &ldquo;~&rdquo;. <strong>Reject</strong>: these stop counting, and the
-        sky within {SUN_SPREAD_DEGREES}° of each sighting is blocked for this
-        venue, {season}, for a year. Either is saved in the API at once. An
-        accepted one is also recorded in pipeline/data/sun_corrections.csv,
-        which ships with the next Publish.
+        <strong>Accept</strong> confirms it:{' '}
+        {shade
+          ? 'the app shows shade there for everyone.'
+          : 'the app shows sun there without “~”.'}{' '}
+        <strong>Reject</strong>: these stop counting, and the sky within{' '}
+        {shade ? SHADE_SPREAD_DEGREES : SUN_SPREAD_DEGREES}° of each sighting is
+        blocked for {shade ? 'shade reports at' : ''} this venue, {season}, for
+        a year. Either is saved in the API at once. An accepted one is also
+        recorded in pipeline/data/sun_corrections.csv, which ships with the next
+        Publish.
       </p>
       <p className="admin-help">
         If the pin is wrong rather than the model (against a wall, under a

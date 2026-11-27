@@ -7,7 +7,8 @@
 4. A horizon envelope across each terrace (`horizon_low` and its leaf-off twin,
    `solycerveza.envelope`): the lowest obstacle over ground points within 7 m of the pin, off
    the road (`solycerveza.roads`).
-5. Accepted sun reports as horizon caps (`sun_corrections`, `solycerveza.sun_corrections`).
+5. Accepted sun reports as horizon caps (`sun_corrections`, `solycerveza.sun_corrections`), and
+   accepted shade reports as floors (`shade_corrections`).
 6. With the leaf-off model, this year's leaf-off dates as Sentinel-2 sees them (`leaf_off_from`,
    `leaf_off_until`, `solycerveza.season`).
 
@@ -346,13 +347,23 @@ def build(
             "%d terraces get a winter horizon (bare deciduous trees)",
             sum(t.horizon_winter is not None for t in terraces),
         )
-    sun = sun_corrections_by_venue(
-        read_sun_reports(), {t.id: t.horizon is not None for t in terraces}, generated
-    )
+    reports = read_sun_reports()
+    known = {t.id: t.horizon is not None for t in terraces}
+    sun = sun_corrections_by_venue(reports, known, generated)
+    shade = sun_corrections_by_venue(reports, known, generated, kind="shade")
     terraces = [
-        t.model_copy(update={"sun_corrections": sun[t.id]}) if t.id in sun else t for t in terraces
+        t.model_copy(
+            update={
+                **({"sun_corrections": sun[t.id]} if t.id in sun else {}),
+                **({"shade_corrections": shade[t.id]} if t.id in shade else {}),
+            }
+        )
+        if t.id in sun or t.id in shade
+        else t
+        for t in terraces
     ]
     logger.info("%d terraces get sun corrections from accepted reports", len(sun))
+    logger.info("%d terraces get shade corrections from accepted reports", len(shade))
     attribution = attribution_lines(terraces, dsm_path, dtm_path, leafoff)
     leaf_off_from = leaf_off_until = None
     if leafoff is not None and any(t.horizon_winter is not None for t in terraces):

@@ -9,6 +9,7 @@ from solycerveza.sun_corrections import (
     SunCorrection,
     SunReport,
     cap_tenths,
+    floor_tenths,
     horizon_bin,
     read_sun_reports,
     sun_corrections_by_venue,
@@ -201,3 +202,45 @@ def test_a_correction_serializes_with_the_contract_keys() -> None:
         "altitude": 251,
     }
     assert SunCorrection.model_validate({"leaf_off": False, "from": 1, "to": 2, "altitude": 3})
+
+
+# Shade reports (#527, ADR-0014).
+
+
+def _shade(azimuth: float, altitude: float, *, report_id: int = 1) -> SunReport:
+    return _report(azimuth, altitude, report_id=report_id).model_copy(update={"kind": "shade"})
+
+
+def _floors(reports: list[SunReport]) -> list[tuple[bool, int, int, int]]:
+    by_venue = sun_corrections_by_venue(reports, {VENUE: True}, GENERATED, kind="shade")
+    return [(c.leaf_off, c.from_, c.to, c.altitude) for c in by_venue.get(VENUE, [])]
+
+
+def test_floor_rounds_up_to_tenths_without_a_margin() -> None:
+    assert floor_tenths(27.1) == 271
+    assert floor_tenths(27.11) == 272
+    assert floor_tenths(95) == 900
+
+
+def test_a_shade_report_floors_2_degrees_either_side_at_the_highest_altitude() -> None:
+    reports = [_shade(180, 25, report_id=1), _shade(180, 30, report_id=2)]
+    assert _floors(reports) == [(False, 178, 182, 300)]
+
+
+def test_sun_and_shade_stay_apart() -> None:
+    reports = [_report(180, 30, report_id=1), _shade(180, 30, report_id=2)]
+    assert _runs(reports) == [(False, 175, 185, 280)]
+    assert _floors(reports) == [(False, 178, 182, 300)]
+
+
+def test_read_sun_reports_reads_kind_and_the_header_without_it(tmp_path: Path) -> None:
+    new = tmp_path / "new.csv"
+    new.write_text(
+        "id,venue_id,leaf_off,azimuth,altitude,seen,kind\n"
+        f"1,{VENUE},0,180.0,30.0,2026-11-25T12:31:04.000Z,shade\n",
+        encoding="utf-8",
+    )
+    assert [r.kind for r in read_sun_reports(new)] == ["shade"]
+    old = tmp_path / "old.csv"
+    old.write_text(HEADER + f"1,{VENUE},0,180.0,30.0,2026-11-25T12:31:04.000Z\n", encoding="utf-8")
+    assert [r.kind for r in read_sun_reports(old)] == ["sun"]

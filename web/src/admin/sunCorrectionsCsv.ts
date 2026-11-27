@@ -2,9 +2,11 @@ import { z } from 'zod'
 import { VENUE_ID } from '../data/geo.ts'
 
 /**
- * Accepted sun reports recorded for Publish (issue #463), in
+ * Accepted sun and shade reports recorded for Publish (issues #463, #527), in
  * `pipeline/data/sun_corrections.csv`: one row per report, keyed by the API's
- * id; the build turns them into each terrace's `sun_corrections`. The admin
+ * id; the build turns them into each terrace's `sun_corrections` (sun) and
+ * `shade_corrections` (shade). A file from before #527 has no `kind` column:
+ * every row is sun. The admin
  * copies them from the API's `GET /v1/admin/sun/accepted` and only ever adds
  * rows. Pure: shared by the admin page and its dev-server endpoint.
  */
@@ -15,7 +17,11 @@ export const SUN_CORRECTION_COLUMNS = [
   'azimuth',
   'altitude',
   'seen',
+  'kind',
 ] as const
+
+/** The header before shade reports (#527): no `kind`, every row sun. */
+const SUN_ONLY_COLUMNS = SUN_CORRECTION_COLUMNS.slice(0, -1)
 
 export const sunCorrectionSchema = z.object({
   /** The API's sun_reports.id. */
@@ -29,6 +35,8 @@ export const sunCorrectionSchema = z.object({
   altitude: z.number().min(0).max(90),
   /** The report's instant, ISO 8601 UTC with milliseconds. */
   seen: z.iso.datetime({ precision: 3 }),
+  /** Sun seen (a cap) or shade seen (a floor, ADR-0014); sun when missing (before #527). */
+  kind: z.enum(['sun', 'shade']).default('sun'),
 })
 
 export type SunCorrectionRow = z.infer<typeof sunCorrectionSchema>
@@ -41,6 +49,8 @@ const acceptedSunSchema = z.object({
   azimuth: z.number(),
   altitude: z.number(),
   at: z.string(),
+  /** An API before #527 sends none: sun. */
+  kind: z.enum(['sun', 'shade']).default('sun'),
 })
 
 export const acceptedSunResponseSchema = z.object({
@@ -65,6 +75,7 @@ export function toSunCorrection(report: AcceptedSun): SunCorrectionRow {
     azimuth: oneDecimal(report.azimuth),
     altitude: oneDecimal(report.altitude),
     seen: report.at,
+    kind: report.kind,
   })
 }
 
@@ -72,20 +83,25 @@ const NUMBER = /^\d+(\.\d+)?$/
 
 export function parseSunCorrectionsCsv(text: string): SunCorrectionRow[] {
   const [header, ...lines] = text.split(/\r?\n/).filter((line) => line !== '')
-  if (header !== SUN_CORRECTION_COLUMNS.join(',')) {
+  const sunOnly = header === SUN_ONLY_COLUMNS.join(',')
+  if (!sunOnly && header !== SUN_CORRECTION_COLUMNS.join(',')) {
     throw new Error(
       `sun_corrections.csv: header must be ${SUN_CORRECTION_COLUMNS.join(',')}`,
     )
   }
+  const width = sunOnly
+    ? SUN_ONLY_COLUMNS.length
+    : SUN_CORRECTION_COLUMNS.length
   const seen = new Set<number>()
   return lines.map((line, index) => {
     const where = `sun_corrections.csv:${index + 2}`
     const fields = line.split(',')
     const [id = '', venueId, leafOff, azimuth = '', altitude = '', at] = fields
-    if (fields.length !== SUN_CORRECTION_COLUMNS.length)
-      throw new Error(
-        `${where}: expected ${SUN_CORRECTION_COLUMNS.length} fields`,
-      )
+    const kind = sunOnly ? 'sun' : fields[6]
+    if (fields.length !== width)
+      throw new Error(`${where}: expected ${width} fields`)
+    if (kind !== 'sun' && kind !== 'shade')
+      throw new Error(`${where}: kind must be sun or shade`)
     if (!/^\d+$/.test(id) || !NUMBER.test(azimuth) || !NUMBER.test(altitude))
       throw new Error(`${where}: id, azimuth and altitude must be numbers`)
     if (leafOff !== '0' && leafOff !== '1')
@@ -97,6 +113,7 @@ export function parseSunCorrectionsCsv(text: string): SunCorrectionRow[] {
       azimuth: Number(azimuth),
       altitude: Number(altitude),
       seen: at,
+      kind,
     })
     if (!parsed.success) throw new Error(`${where}: ${parsed.error.message}`)
     if (seen.has(parsed.data.id))
@@ -120,6 +137,7 @@ export function formatSunCorrectionsCsv(
         r.azimuth.toFixed(1),
         r.altitude.toFixed(1),
         r.seen,
+        r.kind,
       ].join(','),
     )
   return [SUN_CORRECTION_COLUMNS.join(','), ...lines].join('\n') + '\n'
