@@ -8,6 +8,8 @@
    `solycerveza.envelope`): the lowest obstacle over ground points within 7 m of the pin, off
    the road (`solycerveza.roads`).
 5. Accepted sun reports as horizon caps (`sun_corrections`, `solycerveza.sun_corrections`).
+6. With the leaf-off model, this year's leaf-off dates as Sentinel-2 sees them (`leaf_off_from`,
+   `leaf_off_until`, `solycerveza.season`).
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
 venues from Overpass instead of using the cache.
@@ -19,9 +21,10 @@ import logging
 import re
 from collections.abc import Callable, Sequence
 from contextlib import ExitStack
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Literal, Self
+from zoneinfo import ZoneInfo
 
 import rasterio
 from pydantic import BaseModel, ConfigDict, field_serializer
@@ -36,16 +39,24 @@ from solycerveza.envelope import (
     terrace_points,
 )
 from solycerveza.horizon import HorizonModel
-from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
+from solycerveza.leafoff import (
+    DEFAULT_YEAR,
+    LEAFOFF_DSM_PATH,
+    SENTINEL_ATTRIBUTION,
+    load_ndvi,
+    load_structures,
+)
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
 from solycerveza.roads import Carriageways, load_roads
+from solycerveza.season import observed_dates
 from solycerveza.sources import load_all_venues
 from solycerveza.sun_corrections import read_sun_reports, sun_corrections_by_venue
 from solycerveza.terraces import Terrace, build_terraces, read_curated
 from solycerveza.venues import CACHE_DIR, load_seating
 
 logger = logging.getLogger(__name__)
+MADRID = ZoneInfo("Europe/Madrid")
 
 OUTPUT = Path(__file__).resolve().parents[3] / "web" / "public" / "data" / "terraces.json"
 DSM_PATH = CACHE_DIR / "badajoz_dsm.tif"
@@ -77,6 +88,9 @@ class TerracesFile(BaseModel):
     generated: datetime
     sample: bool
     attribution: list[str]
+    # The leaf-off season Sentinel-2 saw this year (solycerveza.season); None: not seen yet.
+    leaf_off_from: date | None = None
+    leaf_off_until: date | None = None
     terraces: list[Terrace]
 
     @field_serializer("generated")
@@ -233,9 +247,14 @@ def attribution_lines(
 def render(file: TerracesFile) -> str:
     """Serialize per the contract: 2-space indent, each horizon on one line, trailing newline.
 
-    Null envelope keys are left out (`Terrace`; the contract makes them optional).
+    Null envelope keys are left out (`Terrace`; the contract makes them optional), and so are
+    null leaf-off dates.
     """
-    text = json.dumps(file.model_dump(mode="json"), ensure_ascii=False, indent=2)
+    data = file.model_dump(mode="json")
+    for key in ("leaf_off_from", "leaf_off_until"):
+        if data[key] is None:
+            del data[key]
+    text = json.dumps(data, ensure_ascii=False, indent=2)
     text = re.sub(
         r'"(horizon|horizon_winter)": \[([^\]]*)\]',
         lambda m: f'"{m.group(1)}": [' + re.sub(r"\s+", "", m.group(2)) + "]",
@@ -251,12 +270,15 @@ def build(
     dtm_path: Path = DTM_PATH,
     leafoff_path: Path | None = LEAFOFF_DSM_PATH,
     generated: datetime | None = None,
+    previous: Path = OUTPUT,
 ) -> TerracesFile:
     """Run every stage and return the file contents.
 
     `horizon_winter` is computed only if `leafoff_path` exists (ADR-0007); otherwise it is null
-    everywhere and the app uses `horizon` all year. `sun_corrections` count reports up to 365
-    days before `generated` (default: now).
+    everywhere and the app uses `horizon` all year. With it, `leaf_off_from` and
+    `leaf_off_until` are the dates Sentinel-2 saw (`solycerveza.season`), or those in `previous`
+    (the last file) when it can't be read. `sun_corrections` count reports up to 365 days before
+    `generated` (default: now).
     """
     # Whole seconds, as the file writes it, so the window can be checked against the file.
     generated = (generated or datetime.now(UTC)).replace(microsecond=0)
@@ -331,10 +353,27 @@ def build(
         t.model_copy(update={"sun_corrections": sun[t.id]}) if t.id in sun else t for t in terraces
     ]
     logger.info("%d terraces get sun corrections from accepted reports", len(sun))
+    attribution = attribution_lines(terraces, dsm_path, dtm_path, leafoff)
+    leaf_off_from = leaf_off_until = None
+    if leafoff is not None and any(t.horizon_winter is not None for t in terraces):
+        today = generated.astimezone(MADRID).date()
+        leaf_off_from, leaf_off_until = observed_dates(
+            today, lambda: load_ndvi(DEFAULT_YEAR), dsm_path, dtm_path, leafoff, previous
+        )
+        logger.info(
+            "leaf-off season seen by Sentinel-2: from %s until %s", leaf_off_from, leaf_off_until
+        )
+        # Copernicus wants the year of the data: the scenes the dates come from.
+        for day in (leaf_off_from, leaf_off_until):
+            line = SENTINEL_ATTRIBUTION.format(year=day.year) if day else None
+            if line and line not in attribution:
+                attribution.append(line)
     return TerracesFile(
         generated=generated,
         sample=False,
-        attribution=attribution_lines(terraces, dsm_path, dtm_path, leafoff),
+        attribution=attribution,
+        leaf_off_from=leaf_off_from,
+        leaf_off_until=leaf_off_until,
         terraces=terraces,
     )
 

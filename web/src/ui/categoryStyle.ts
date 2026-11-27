@@ -16,9 +16,9 @@ export const CATEGORY_LABELS: Record<SunCategory, string> = {
   unknown: 'Terraza sin confirmar',
 }
 
-/** "Sobre los datos" on the winter rule (ADR-0007). */
+/** "Sobre los datos" on the winter rule (ADR-0007, #526). */
 export const LEAF_OFF_INFO =
-  'Del 1 de diciembre al 15 de marzo, los árboles de hoja caduca (según Sentinel-2) no dan sombra.'
+  'Los árboles de hoja caduca no dan sombra mientras Sentinel-2 los ve sin hojas (como tarde, del 1 de diciembre al 15 de abril).'
 
 /** Badge text for a venue's category. */
 export function categoryLabel(status: VenueStatus): string {
