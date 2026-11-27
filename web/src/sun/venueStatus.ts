@@ -7,7 +7,7 @@ import {
   type HorizonCap,
   type SunCorrection,
 } from './corrections.ts'
-import { anySunHorizon, horizonFor, isLeafOff } from './leafOff.ts'
+import { anySunHorizon, bareTwin, horizonFor, isLeafOff } from './leafOff.ts'
 import {
   fillShortShade,
   STEP_MINUTES,
@@ -80,9 +80,11 @@ export function venueDay(
     return { venue, timeline: null, approximate: null }
   const own = datasetCaps(venue)
   const caps = own.length > 0 ? [...own, ...corrections] : corrections
+  const leafOff = isLeafOff(track.date)
+  // In leaf, a cap through a deciduous crown spans the crown (ADR-0015).
   const corrected =
     caps.length > 0
-      ? correctHorizon(horizon, caps, isLeafOff(track.date))
+      ? correctHorizon(horizon, caps, leafOff, leafOff ? null : bareTwin(venue))
       : null
   if (corrected === null)
     return { venue, timeline: dayStates(horizon, track), approximate: null }

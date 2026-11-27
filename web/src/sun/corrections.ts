@@ -167,13 +167,78 @@ export type CorrectedHorizons = {
   confirmed: readonly number[] | null
 }
 
+/** A bin is deciduous crown when the leaf-off twin is at least this much lower (tenths, ADR-0015). */
+export const CROWN_MIN_DROP = 10
+
+/**
+ * The caps a leaf-on sun cap adds across the deciduous crowns it contradicts
+ * (ADR-0015): every crown bin (`bare` at least CROWN_MIN_DROP below
+ * `horizon`) connected without a gap to a bin where the cap is below the
+ * model gets a one-bin cap at `bare` there, with the cap's `confirmed`.
+ */
+export function crownSpans(
+  horizon: readonly number[],
+  bare: readonly number[],
+  cap: HorizonCap,
+): HorizonCap[] {
+  const crown = (bin: number) => {
+    const model = horizon[bin]
+    const leafless = bare[bin]
+    return (
+      model !== undefined &&
+      leafless !== undefined &&
+      leafless + CROWN_MIN_DROP <= model
+    )
+  }
+  const spanned = new Set<number>()
+  const visit = (start: number) => {
+    // Walk both ways from a contradicted crown bin while the crown goes on.
+    for (const step of [1, -1]) {
+      for (
+        let bin = start, n = 0;
+        n < 360 && crown(bin);
+        bin = (bin + step + 360) % 360, n++
+      )
+        spanned.add(bin)
+    }
+  }
+  for (const bin of runBins(cap.from, cap.to)) {
+    const model = horizon[bin]
+    if (model !== undefined && cap.altitude < model && crown(bin)) visit(bin)
+  }
+  return [...spanned]
+    .sort((a, b) => a - b)
+    .map((bin) => ({
+      leafOff: false,
+      from: bin,
+      to: bin,
+      altitude: bare[bin] ?? 0,
+      confirmed: cap.confirmed,
+    }))
+}
+
+/**
+ * `bare` is the leaf-off twin of `horizon` (bareTwin in leafOff.ts): with it,
+ * a leaf-on sun cap also lowers the whole deciduous crown it contradicts to
+ * the leaf-off horizon (crownSpans, ADR-0015).
+ */
 export function correctHorizon(
   horizon: readonly number[],
   corrections: readonly HorizonCap[],
   leafOff: boolean,
+  bare: readonly number[] | null = null,
 ): CorrectedHorizons | null {
-  const here = corrections.filter((c) => c.leafOff === leafOff)
-  if (here.length === 0) return null
+  const season = corrections.filter((c) => c.leafOff === leafOff)
+  if (season.length === 0) return null
+  const here =
+    leafOff || bare === null
+      ? season
+      : [
+          ...season,
+          ...season
+            .filter((c) => !c.floor)
+            .flatMap((c) => crownSpans(horizon, bare, c)),
+        ]
   const all = [...horizon]
   const confirmed = [...horizon]
   let approximate = false
