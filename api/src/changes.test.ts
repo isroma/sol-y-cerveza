@@ -22,7 +22,7 @@ describe('parseChange', () => {
           { kind: 'move', venueId: 'osm:node/1', ...move },
           { kind: 'closed', venueId: 'osm:node/1' },
         ],
-        sun: false,
+        sky: null,
       },
       token: 't',
     })
@@ -38,7 +38,7 @@ describe('parseChange', () => {
           { kind: 'terrace', venueId: 'osm:node/1', terrace: true },
           { kind: 'pin', venueId: 'osm:node/1', ...pin },
         ],
-        sun: false,
+        sky: null,
       },
       token: 't',
     })
@@ -48,7 +48,7 @@ describe('parseChange', () => {
         venueId: 'osm:node/1',
         price: null,
         reports: [{ kind: 'terrace', venueId: 'osm:node/1', terrace: false }],
-        sun: false,
+        sky: null,
       },
       token: 't',
     })
@@ -59,7 +59,7 @@ describe('parseChange', () => {
         venueId: 'osm:node/1',
         price: null,
         reports: [{ kind: 'pin', venueId: 'osm:node/1', ...pin }],
-        sun: false,
+        sky: null,
       },
       token: 'owner',
     })
@@ -71,8 +71,12 @@ describe('parseChange', () => {
     expect(parseChange({ ...base, closed: true }).ok).toBe(true)
     expect(parseChange({ ...base, sun: true })).toEqual({
       ok: true,
-      value: { venueId: 'osm:node/1', price: null, reports: [], sun: true },
+      value: { venueId: 'osm:node/1', price: null, reports: [], sky: 'sun' },
       token: 't',
+    })
+    expect(parseChange({ ...base, shade: true })).toMatchObject({
+      ok: true,
+      value: { sky: 'shade' },
     })
   })
 
@@ -83,6 +87,8 @@ describe('parseChange', () => {
     ['closed', { ...base, closed: false }],
     ['sun', { ...base, sun: false }],
     ['sun', { ...base, sun: 'yes', closed: true }],
+    ['shade', { ...base, shade: false }],
+    ['sun and shade', { ...base, sun: true, shade: true }],
     ['venueId', { ...base, venueId: 'google:1', sun: true }],
     ['token', { ...base, token: undefined, sun: true }],
     ['token', { ...base, closed: true, token: '' }],

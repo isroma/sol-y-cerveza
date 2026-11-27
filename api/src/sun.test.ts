@@ -6,6 +6,7 @@ import {
   acceptedSun,
   binDistance,
   capTenths,
+  floorTenths,
   horizonBin,
   isLeafOff,
   LEAF_OFF,
@@ -402,6 +403,7 @@ describe('acceptedSun', () => {
         id: 3,
         venueId: 'osm:way/2',
         leafOff: true,
+        kind: 'sun',
         azimuth: 180,
         altitude: 30,
         at: TODAY,
@@ -410,10 +412,64 @@ describe('acceptedSun', () => {
         id: 9,
         venueId: 'osm:node/1',
         leafOff: false,
+        kind: 'sun',
         azimuth: 176.3,
         altitude: 27.1,
         at: TODAY,
       },
     ])
+  })
+})
+
+// Shade reports (#527, ADR-0014).
+describe('shade floors', () => {
+  const shade = (fields: Partial<SunRow> = {}) =>
+    row({ kind: 'shade', ...fields })
+  const floors = (rows: SunRow[], rejections: RejectionRow[] = []) =>
+    sunCorrections(rows, rejections, NOW, 'shade').map((c) => [
+      c.from,
+      c.to,
+      c.altitude,
+      c.confirmed,
+    ])
+
+  it('rounds up to tenths, with no margin, at most 90°', () => {
+    expect(floorTenths(27.1)).toBe(271)
+    expect(floorTenths(27.11)).toBe(272)
+    expect(floorTenths(95)).toBe(900)
+  })
+
+  it('floors 2° either side at the 3rd-highest altitude, each network at its highest', () => {
+    const rows = [
+      shade({ net_hash: 'n1', altitude: 25 }),
+      shade({ net_hash: 'n2', altitude: 40 }),
+      shade({ net_hash: 'n3', altitude: 30 }),
+      shade({ net_hash: 'n1', altitude: 20 }),
+    ]
+    expect(floors(rows)).toEqual([[178, 182, 250, false]])
+  })
+
+  it('keeps sun and shade apart, in the answer and in rejections', () => {
+    const rows = [
+      ...networks([30, 30, 30]),
+      ...networks([30, 30, 30], { kind: 'shade' }),
+    ]
+    expect(runs(rows)).toEqual([[175, 185, 280, false]])
+    expect(floors(rows)).toEqual([[178, 182, 300, false]])
+    const shadeRejected = rejection({ kind: 'shade' })
+    expect(runs(rows, [shadeRejected])).toEqual([[175, 185, 280, false]])
+    expect(floors(rows, [shadeRejected])).toEqual([])
+  })
+
+  it('confirms with one accepted shade report, at its altitude', () => {
+    expect(floors([shade({ status: 'accepted', altitude: 33.3 })])).toEqual([
+      [178, 182, 333, true],
+    ])
+  })
+
+  it('queues and lists shade with its kind', () => {
+    const rows = [shade({ status: 'accepted' }), shade({ net_hash: 'n9' })]
+    expect(acceptedSun(rows, NOW).map((r) => r.kind)).toEqual(['shade'])
+    expect(sunQueue(rows, [], NOW).map((e) => e.kind)).toEqual(['shade'])
   })
 })

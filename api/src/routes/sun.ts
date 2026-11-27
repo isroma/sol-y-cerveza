@@ -1,16 +1,21 @@
 import type { Env } from '../env.ts'
 import { json, jsonBody } from '../http.ts'
 import { parseResolution } from '../reports.ts'
+import type { LatLon } from '../../../web/src/data/geo.ts'
 import {
+  SHADE_SPREAD_DEGREES,
   SUN_SPREAD_DEGREES,
   SUN_WINDOW_DAYS,
   acceptedSun,
+  sighting,
   sunCorrections,
   sunQueue,
   type RejectionRow,
   type Sighting,
+  type SkyKind,
   type SunRow,
 } from '../sun.ts'
+import { directSunNow, SHADE_MIN_DNI } from '../weather.ts'
 
 /** How long a GET /v1/sun answer may be reused, by browsers and the Cache API (as prices). */
 const SUN_TTL_SECONDS = 300
@@ -18,8 +23,29 @@ const SUN_TTL_SECONDS = 300
 const SUN_MEMO_SECONDS = 60
 
 /**
- * Stores a sun report. A visitor's replaces their pending one for the venue
- * and season within SUN_SPREAD_DEGREES; the owner's is stored accepted.
+ * Where the sun is for a sun or shade report on a venue at `position`, or the
+ * response that refuses it: the sun is down, the venue has no position, or (for
+ * shade, ADR-0014) the sun isn't clearly out over Badajoz right now.
+ */
+export async function skySighting(
+  kind: SkyKind,
+  position: LatLon | undefined,
+  now: number,
+): Promise<Sighting | Response> {
+  const seen = sighting(position, new Date(now))
+  if (!seen.ok) return json({ error: seen.error }, 400)
+  if (kind === 'shade') {
+    const dni = await directSunNow(now)
+    if (dni === null) return json({ error: 'weather unavailable' }, 503)
+    if (dni < SHADE_MIN_DNI) return json({ error: 'not sunny' }, 400)
+  }
+  return seen.value
+}
+
+/**
+ * Stores a sun or shade report. A visitor's replaces their pending one of the
+ * same kind for the venue and season within that kind's spread; the owner's
+ * is stored accepted.
  */
 export function sunWrites(
   env: Env,
@@ -29,23 +55,26 @@ export function sunWrites(
   netHash: string,
   now: number,
   byOwner = false,
+  kind: SkyKind = 'sun',
 ) {
   const leafOff = Number(value.leafOff)
+  const spread = kind === 'shade' ? SHADE_SPREAD_DEGREES : SUN_SPREAD_DEGREES
   const replaced = byOwner
     ? []
     : [
         env.DB.prepare(
           `DELETE FROM sun_reports
            WHERE status = 'pending' AND voter_hash = ?1 AND venue_id = ?2 AND leaf_off = ?3
+             AND kind = ?6
              AND min((bin - ?4 + 360) % 360, (?4 - bin + 360) % 360) <= ?5`,
-        ).bind(voterHash, venueId, leafOff, value.bin, SUN_SPREAD_DEGREES),
+        ).bind(voterHash, venueId, leafOff, value.bin, spread, kind),
       ]
   return [
     ...replaced,
     env.DB.prepare(
       `INSERT INTO sun_reports
-         (venue_id, azimuth, altitude, bin, leaf_off, voter_hash, net_hash, created_at, status, by_owner)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (venue_id, azimuth, altitude, bin, leaf_off, voter_hash, net_hash, created_at, status, by_owner, kind)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       venueId,
       value.azimuth,
@@ -57,6 +86,7 @@ export function sunWrites(
       new Date(now).toISOString(),
       byOwner ? 'accepted' : 'pending',
       Number(byOwner),
+      kind,
     ),
   ]
 }
@@ -70,12 +100,14 @@ async function readSun(
   const since = new Date(now - SUN_WINDOW_DAYS * 86400_000).toISOString()
   const [rows, rejections] = await env.DB.batch<SunRow | RejectionRow>([
     env.DB.prepare(
-      `SELECT id, venue_id, azimuth, altitude, leaf_off, net_hash, created_at, status
+      `SELECT id, venue_id, azimuth, altitude, leaf_off, net_hash, created_at, status, kind
        FROM sun_reports
        WHERE status != 'rejected' AND (created_at >= ? OR (? AND status = 'pending'))`,
     ).bind(since, Number(pendingAtAnyAge)),
     env.DB.prepare(
-      'SELECT venue_id, leaf_off, bin, rejected_at FROM sun_rejections WHERE rejected_at >= ?',
+      `SELECT venue_id, leaf_off, bin, rejected_at, 'sun' AS kind FROM sun_rejections WHERE rejected_at >= ?1
+       UNION ALL
+       SELECT venue_id, leaf_off, bin, rejected_at, 'shade' AS kind FROM shade_rejections WHERE rejected_at >= ?1`,
     ).bind(since),
   ])
   return {
@@ -119,6 +151,7 @@ export async function sun(
   const { rows, rejections } = await readSun(env, now, false)
   const body = JSON.stringify({
     corrections: sunCorrections(rows, rejections, now),
+    shade: sunCorrections(rows, rejections, now, 'shade'),
   })
   sunMemo = { body, until: now + SUN_MEMO_SECONDS * 1000 }
   ctx.waitUntil(caches.default.put(key, sunResponse(body)))
@@ -139,7 +172,7 @@ export async function acceptedSunReports(env: Env): Promise<Response> {
   const now = Date.now()
   const since = new Date(now - SUN_WINDOW_DAYS * 86400_000).toISOString()
   const { results } = await env.DB.prepare(
-    `SELECT id, venue_id, azimuth, altitude, leaf_off, net_hash, created_at, status
+    `SELECT id, venue_id, azimuth, altitude, leaf_off, net_hash, created_at, status, kind
      FROM sun_reports WHERE status = 'accepted' AND created_at >= ? ORDER BY id`,
   )
     .bind(since)
@@ -155,9 +188,10 @@ export async function pendingSun(env: Env): Promise<Response> {
 }
 
 /**
- * POST /v1/admin/sun/resolve: accepts or rejects pending sun reports. A
- * rejection also records each report's slice of sky in `sun_rejections`, so
- * no consensus lowers the horizon there for SUN_WINDOW_DAYS.
+ * POST /v1/admin/sun/resolve: accepts or rejects pending sun and shade reports.
+ * A rejection also records each report's slice of sky in `sun_rejections` (or
+ * `shade_rejections`), so no consensus of that kind changes the horizon there
+ * for SUN_WINDOW_DAYS.
  */
 export async function resolveSun(
   request: Request,
@@ -171,15 +205,16 @@ export async function resolveSun(
   const pending =
     "status = 'pending' AND id IN (SELECT value FROM json_each(?))"
   // The slices are read before the reports stop being pending: same batch, in order.
+  const at = new Date().toISOString()
   const remember =
     resolution.status === 'rejected'
-      ? [
+      ? (['sun', 'shade'] as const).map((kind) =>
           env.DB.prepare(
-            `INSERT INTO sun_rejections (venue_id, leaf_off, bin, rejected_at)
-             SELECT DISTINCT venue_id, leaf_off, bin, ? FROM sun_reports WHERE ${pending}
+            `INSERT INTO ${kind}_rejections (venue_id, leaf_off, bin, rejected_at)
+             SELECT DISTINCT venue_id, leaf_off, bin, ? FROM sun_reports WHERE ${pending} AND kind = ?
              ON CONFLICT (venue_id, leaf_off, bin) DO UPDATE SET rejected_at = excluded.rejected_at`,
-          ).bind(new Date().toISOString(), ids),
-        ]
+          ).bind(at, ids, kind),
+        )
       : []
   await env.DB.batch([
     ...remember,
