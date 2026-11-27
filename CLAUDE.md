@@ -35,7 +35,7 @@ Don't break these:
 Settled; don't propose or build these again unless the owner asks:
 
 - **Today only.** The app shows today, at any time of day. No date or day picker, and no date in the URL.
-- **No weather.** "Sun" means the sun is up and nothing blocks it. No clouds, forecasts or weather data.
+- **No weather.** "Sun" means the sun is up and nothing blocks it. No clouds, forecasts or weather data. The one exception (owner, 2026-11-27): the API reads the current sunshine over Badajoz only to check a shade report ([ADR-0014](docs/adr/0014-shade-reports.md)); visitors never see weather.
 
 Parked: not now. They may come back later, but don't propose or start them unless the owner asks:
 

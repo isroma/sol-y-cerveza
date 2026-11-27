@@ -4,6 +4,7 @@
 - Date: 2026-11-25
 - Amended (2026-11-26, #463): accepted corrections are also in the dataset. Accepted reports are recorded in `pipeline/data/sun_corrections.csv`, which the build turns, with the same rules as `GET /v1/sun`'s confirmed runs, into an optional `sun_corrections` list per terrace in `terraces.json` ([data contract](../data-contract.md)). The app applies that list as confirmed corrections, merged with the API's, so they hold with no API at all. The model's horizons stay untouched. The admin side (writing the CSV from the API's accepted reports, and shipping it with Publish) lands in its own PR (#463).
 - Issue: #364
+- Amended (2026-11-27, #527): shade reports are accepted too, when the weather at that moment shows the sun was out ([ADR-0014](0014-shade-reports.md)). Decision 1 and the rejected "Shade reports too" below describe the state before that.
 
 ## Context
 
