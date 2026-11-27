@@ -9,6 +9,7 @@ import {
   probeOutputSchema,
   probeUrl,
   roundPosition,
+  terraceHorizon,
   type ProbeResult,
 } from './probe.ts'
 import { describeSun, stretches, sunSummary } from './sunSummary.ts'
@@ -128,7 +129,7 @@ function Result({ result }: { result: ProbeResult }) {
   // Today and the time when the result came in, in Madrid.
   const [{ date, minutes: now }] = useState(() => toMadridLocal(new Date()))
   const summary = useMemo(
-    () => sunSummary(result.horizon, dayTrack(date)),
+    () => sunSummary(terraceHorizon(result), dayTrack(date)),
     [result, date],
   )
   const height = result.height_above_ground
@@ -147,9 +148,8 @@ function Result({ result }: { result: ProbeResult }) {
       </p>
       {noSun && (
         <p className="admin-warn-box">
-          No sun today at the pin. If the tables do get sun, the pin is against
-          a wall or under a tree: move it onto open ground where the tables
-          stand.
+          No sun today on any table within 7 m of the pin. If the tables do get
+          sun, the pin is not where they stand: move it there.
         </p>
       )}
       {tooHigh && (
@@ -163,17 +163,20 @@ function Result({ result }: { result: ProbeResult }) {
   )
 }
 
-/** Today's sun at a terrace position, from the LiDAR rasters via the dev server. */
+/**
+ * Today's sun on a terrace, from the LiDAR rasters via the dev server: sun
+ * when any table within 7 m of the pin, off the road, has it, as the app shows it.
+ */
 export function SunPreview({ at }: { at: LatLon }) {
   const { outcome, loading } = useProbe(at)
   return (
     <section
       className="admin-sun"
-      aria-label="Sun at the terrace pin"
+      aria-label="Sun on the terrace"
       aria-busy={loading}
     >
       <h3 className="admin-subhead">
-        Sun at the terrace pin
+        Sun on the terrace
         {loading && <span className="admin-spinner admin-sun-spinner" />}
       </h3>
       {outcome === null && <p className="admin-sun-line">Checking…</p>}

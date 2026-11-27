@@ -13,18 +13,20 @@ import solycerveza.build as build_module
 from solycerveza.build import (
     OUTPUT,
     PNOA_ATTRIBUTION,
+    HeightSampler,
     TerracesFile,
-    _HeightSampler,
     add_horizons,
     attribution_lines,
     height_above_ground,
     position_warnings,
     raster_attribution,
     render,
+    sample_grid,
 )
 from solycerveza.envelope import Structures, pack_low, terrace_points, unpack
 from solycerveza.horizon import HorizonModel
 from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
+from solycerveza.roads import Carriageways
 from solycerveza.sun_corrections import (
     SUN_CORRECTIONS_CSV,
     SunCorrection,
@@ -439,6 +441,7 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
         "review_terraces": lambda terraces, _reviews: terraces,
         "read_prices": lambda: [],
         "load_structures": lambda: [],
+        "load_roads": lambda: [],
         "read_sun_reports": lambda: [
             _sun_report(1, datetime(2026, 11, 25, 12, 0, tzinfo=UTC)),
             _sun_report(2, datetime(2025, 11, 1, 12, 0, tzinfo=UTC)),  # out of the window
@@ -455,16 +458,19 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
     assert built.generated == generated.replace(microsecond=0)
 
     structures = Structures([])
+    carriageways = Carriageways([])
     with (
         HorizonModel(dsm, dtm_path=dtm) as summer,
         HorizonModel(leafoff, dtm_path=dtm) as winter,
-        _HeightSampler(dsm, dtm) as heights,
+        HeightSampler(dsm, dtm) as heights,
     ):
         expected = add_horizons(
             [_terrace("osm:node/1")],
             summer.horizon,
             winter.horizon,
-            lambda a, b: terrace_points(a, b, heights.height, structures.contains),
+            lambda a, b: terrace_points(
+                a, b, sample_grid(dsm), heights.height, structures.contains, carriageways.contains
+            ),
         )
     sun = [SunCorrection(leaf_off=False, from_=171, to=181, altitude=251)]
     assert built.terraces == [t.model_copy(update={"sun_corrections": sun}) for t in expected]

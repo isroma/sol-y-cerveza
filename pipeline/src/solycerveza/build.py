@@ -5,7 +5,8 @@
 3. One horizon profile per terrace (`solycerveza.horizon`), plus a leaf-off one
    (`horizon_winter`, ADR-0007) when `python -m solycerveza.leafoff` has written its surface model.
 4. A horizon envelope across each terrace (`horizon_low` and its leaf-off twin,
-   `solycerveza.envelope`): the lowest obstacle over ground points round the pin.
+   `solycerveza.envelope`): the lowest obstacle over ground points within 7 m of the pin, off
+   the road (`solycerveza.roads`).
 5. Accepted sun reports as horizon caps (`sun_corrections`, `solycerveza.sun_corrections`).
 
 Run `python -m solycerveza.build [--refresh]` from `pipeline/`. `--refresh` re-downloads the
@@ -28,6 +29,7 @@ from pyproj import Transformer
 
 from solycerveza.envelope import (
     LatLonPair,
+    SampleGrid,
     Structures,
     lowest,
     pack_low,
@@ -37,6 +39,7 @@ from solycerveza.horizon import HorizonModel
 from solycerveza.leafoff import LEAFOFF_DSM_PATH, load_structures
 from solycerveza.prices import prices_by_venue, read_prices
 from solycerveza.review import dropped_ids, read_review, review_terraces, review_venues
+from solycerveza.roads import Carriageways, load_roads
 from solycerveza.sources import load_all_venues
 from solycerveza.sun_corrections import read_sun_reports, sun_corrections_by_venue
 from solycerveza.terraces import Terrace, build_terraces, read_curated
@@ -144,11 +147,11 @@ def raster_attribution(path: Path) -> str:
 
 def height_above_ground(lat: float, lon: float, dsm_path: Path, dtm_path: Path) -> float | None:
     """Surface minus terrain at a WGS84 point, or None where either raster has no data."""
-    with _HeightSampler(dsm_path, dtm_path) as sampler:
+    with HeightSampler(dsm_path, dtm_path) as sampler:
         return sampler.height(lat, lon)
 
 
-class _HeightSampler:
+class HeightSampler:
     """The surface and terrain models, open once to sample many points."""
 
     def __init__(self, dsm_path: Path, dtm_path: Path) -> None:
@@ -184,10 +187,16 @@ class _HeightSampler:
         return values[0] - values[1]
 
 
+def sample_grid(dsm_path: Path) -> SampleGrid:
+    """The surface model's grid, whose cells the envelope samples."""
+    with rasterio.open(dsm_path) as dataset:
+        return SampleGrid(dataset.transform, dataset.crs.to_string())
+
+
 def position_warnings(terraces: Sequence[Terrace], dsm_path: Path, dtm_path: Path) -> list[str]:
     """One message per terrace whose point sits on a roof or under a canopy."""
     warnings: list[str] = []
-    with _HeightSampler(dsm_path, dtm_path) as sampler:
+    with HeightSampler(dsm_path, dtm_path) as sampler:
         for t in terraces:
             if t.terrace is None:
                 continue
@@ -272,11 +281,13 @@ def build(
         logger.info("no leaf-off surface model: horizon_winter stays null (ADR-0007)")
 
     structures = Structures(load_structures())
+    carriageways = Carriageways(load_roads())
+    grid = sample_grid(dsm_path)
 
     # The rasters stay open for every terrace: each takes a horizon and a height per sample point.
     with ExitStack() as stack:
         model = stack.enter_context(HorizonModel(dsm_path, dtm_path=dtm_path, leafoff_path=leafoff))
-        heights = stack.enter_context(_HeightSampler(dsm_path, dtm_path))
+        heights = stack.enter_context(HeightSampler(dsm_path, dtm_path))
         # `add_horizons` asks for a point's leaf-off profile after its summer one; both come
         # from one ray trace (`HorizonModel.horizons`), the leaf-off one kept until asked for.
         pending: dict[LatLonPair, list[int]] = {}
@@ -296,7 +307,9 @@ def build(
             return winter
 
         def points_for(lat: float, lon: float) -> list[LatLonPair]:
-            return terrace_points(lat, lon, heights.height, structures.contains)
+            return terrace_points(
+                lat, lon, grid, heights.height, structures.contains, carriageways.contains
+            )
 
         terraces = add_horizons(
             terraces, summer_for, None if leafoff is None else winter_for, points_for
