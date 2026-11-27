@@ -14,8 +14,27 @@ export const TURNSTILE_SITE_KEY: string | null =
 /** Visitors can send prices and reports: the build has the API and the bot check. */
 export const CAN_SEND = PRICES_API !== null && TURNSTILE_SITE_KEY !== null
 
-/** How a visitor's POST went, for the message they see. */
-export type SuggestResult = 'ok' | 'rate-limited' | 'bot' | 'error'
+/**
+ * How a visitor's POST went, for the message they see. `not-sunny`: a shade
+ * report the API refused because the sun isn't out over Badajoz (ADR-0014).
+ */
+export type SuggestResult =
+  'ok' | 'rate-limited' | 'bot' | 'not-sunny' | 'error'
+
+/** A refused POST's result: `not-sunny` when the API says so, else `error`. */
+export async function refusal(response: Response): Promise<SuggestResult> {
+  if (response.status !== 400) return 'error'
+  try {
+    const body: unknown = await response.json()
+    return typeof body === 'object' &&
+      body !== null &&
+      Reflect.get(body, 'error') === 'not sunny'
+      ? 'not-sunny'
+      : 'error'
+  } catch {
+    return 'error'
+  }
+}
 
 /** POSTs `body` as JSON to `path` on the API; never throws. */
 export async function postJson(
@@ -32,7 +51,7 @@ export async function postJson(
     if (response.ok) return 'ok'
     if (response.status === 429) return 'rate-limited'
     if (response.status === 403) return 'bot'
-    return 'error'
+    return await refusal(response)
   } catch {
     return 'error'
   }

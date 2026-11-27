@@ -4,6 +4,7 @@ import {
   anySunHorizon,
   horizonFor,
   isLeafOff,
+  setLeafOffSeen,
   unpackHorizon,
 } from './leafOff.ts'
 
@@ -13,14 +14,45 @@ describe('isLeafOff', () => {
     ['2026-12-31', true],
     ['2027-01-01', true],
     ['2028-02-29', true],
-    ['2027-03-15', true],
+    ['2027-04-15', true],
     ['2026-11-30', false],
     ['2026-11-23', false],
-    ['2027-03-16', false],
+    ['2027-04-16', false],
     ['2027-06-21', false],
     ['not a date', false],
-  ])('%s → %s', (date, expected) => {
-    expect(isLeafOff(date)).toBe(expected)
+  ])('without seen dates, %s → %s', (date, expected) => {
+    expect(isLeafOff(date, {})).toBe(expected)
+  })
+
+  const seen = { leaf_off_from: '2026-11-23', leaf_off_until: '2027-04-08' }
+
+  it.each([
+    ['2026-11-22', false],
+    ['2026-11-23', true],
+    ['2027-04-07', true],
+    ['2027-04-08', false],
+    // Another season: the seen dates don't apply, the fixed ones do.
+    ['2027-11-23', false],
+    ['2027-12-01', true],
+  ])('from the seen dates, %s → %s', (date, expected) => {
+    expect(isLeafOff(date, seen)).toBe(expected)
+  })
+
+  it.each([
+    [{ leaf_off_from: '2026-09-15' }, '2026-09-20', false], // before 1 Oct
+    [{ leaf_off_from: '2026-12-10' }, '2026-12-05', true], // after 1 Dec
+    [{ leaf_off_until: '2027-02-20' }, '2027-02-25', true], // before 1 Mar
+    [{ leaf_off_until: '2027-05-01' }, '2027-04-20', false], // after 15 Apr
+    [{ leaf_off_from: '23/11/2026' }, '2026-11-25', false],
+  ])('ignores %o outside the windows (%s → %s)', (seen, date, expected) => {
+    expect(isLeafOff(date, seen)).toBe(expected)
+  })
+
+  it('follows the dates of the loaded data', () => {
+    setLeafOffSeen({ leaf_off_from: '2026-11-23' })
+    expect(isLeafOff('2026-11-25')).toBe(true)
+    setLeafOffSeen({})
+    expect(isLeafOff('2026-11-25')).toBe(false)
   })
 })
 
@@ -31,7 +63,7 @@ describe('horizonFor', () => {
   it('uses the leaf-off horizon only inside the period', () => {
     const venue = { horizon: full, horizon_winter: bare }
     expect(horizonFor(venue, '2027-01-10')).toBe(bare)
-    expect(horizonFor(venue, '2027-04-10')).toBe(full)
+    expect(horizonFor(venue, '2027-04-20')).toBe(full)
   })
 
   it('falls back to the full horizon when there is no leaf-off one', () => {

@@ -5,7 +5,7 @@ import {
   sunCorrection,
   withoutHorizon,
 } from '../test/fixtures.ts'
-import { canReportSun } from './reportable.ts'
+import { canReportSun, reportableSky } from './reportable.ts'
 
 // 13:40 in Madrid at the winter solstice: the sun is about 28° up, south.
 const NOON = new Date('2026-12-21T12:40:00Z')
@@ -48,5 +48,24 @@ describe('canReportSun', () => {
     expect(
       canReportSun({ ...paseoSanFrancisco, terrace: null }, [], NOON),
     ).toBe(false)
+  })
+})
+
+describe('reportableSky', () => {
+  it('offers sun where the app says shade, and shade where it says sun', () => {
+    expect(reportableSky(paseoSanFrancisco, [], NOON)).toBe('sun')
+    expect(reportableSky(plazaAlta, [], NOON)).toBe('shade')
+  })
+
+  it('offers nothing with the sun under 2°', () => {
+    expect(reportableSky(plazaAlta, [], DAWN)).toBeNull()
+  })
+
+  it('offers sun again once a floor in the data puts the terrace in shade', () => {
+    const shaded = {
+      ...plazaAlta,
+      shade_corrections: [{ leaf_off: true, from: 0, to: 359, altitude: 900 }],
+    }
+    expect(reportableSky(shaded, [], NOON)).toBe('sun')
   })
 })

@@ -4,6 +4,7 @@ import {
   identity,
   ipSalt,
   knownVenues,
+  leafOffSeen,
   takeAllowance,
   turnstileOk,
 } from '../guard.ts'
@@ -156,7 +157,7 @@ export async function change(request: Request, env: Env): Promise<Response> {
   }
   const now = Date.now()
   const sun = parsed.value.sun
-    ? sighting(published.get(venueId), new Date(now))
+    ? sighting(published.get(venueId), new Date(now), await leafOffSeen(env))
     : null
   if (sun && !sun.ok) return json({ error: sun.error }, 400)
 

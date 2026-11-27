@@ -25,6 +25,7 @@ import {
   orthoSource,
   saveOrthoPreference,
 } from './ortho.ts'
+import type { SunCellCollection } from './sunCells.ts'
 
 setWorkerUrl(workerUrl)
 
@@ -33,6 +34,8 @@ type Props = {
   selected: MapVenue | null
   /** Where the selected venue's tables are, if known. */
   terrace: LatLon | null
+  /** The terrace's sample cells with today's sun (sunCells); null to hide them. */
+  sunCells?: SunCellCollection | null
   /** Terrace pin mode: the next click places the pin, which can be dragged meanwhile. */
   pinning: boolean
   onSelect: (id: string | null) => void
@@ -55,6 +58,13 @@ const NO_GHOSTS: readonly Ghost[] = []
 const SOURCE = 'venues'
 const DOTS = 'venues-dots'
 const LABELS = 'venues-labels'
+const CELLS = 'sun-cells'
+const CELLS_FILL = 'sun-cells-fill'
+const CELLS_SKIPPED = 'sun-cells-skipped'
+/** Minutes of sun at which a cell's amber is strongest. */
+const FULL_SUN_MINUTES = 300
+
+const NO_CELLS: SunCellCollection = { type: 'FeatureCollection', features: [] }
 
 /** The app's palette, always flat: buildings as outlined footprints, so pins land where clicked. */
 function flatStyle(base: StyleSpecification): StyleSpecification {
@@ -103,6 +113,7 @@ export function AdminMap({
   venues,
   selected,
   terrace,
+  sunCells = null,
   pinning,
   onSelect,
   onMapClick,
@@ -178,6 +189,47 @@ export function AdminMap({
         m.on('load', () => {
           m.addSource(ORTHO_SOURCE, orthoSource)
           m.addLayer(orthoLayer(orthoRef.current), orthoBeforeId(style))
+          // Under the dots and pins: the terrace's cells, amber by today's sun.
+          m.addSource(CELLS, { type: 'geojson', data: NO_CELLS })
+          m.addLayer({
+            id: CELLS_FILL,
+            type: 'fill',
+            source: CELLS,
+            filter: ['==', ['get', 'skip'], null],
+            paint: {
+              'fill-color': [
+                'case',
+                ['>', ['get', 'minutes'], 0],
+                STATE_COLORS.terrace,
+                '#3B3228',
+              ],
+              'fill-opacity': [
+                'case',
+                ['>', ['get', 'minutes'], 0],
+                [
+                  'interpolate',
+                  ['linear'],
+                  ['get', 'minutes'],
+                  0,
+                  0.2,
+                  FULL_SUN_MINUTES,
+                  0.7,
+                ],
+                0.35,
+              ],
+            },
+          })
+          m.addLayer({
+            id: CELLS_SKIPPED,
+            type: 'line',
+            source: CELLS,
+            filter: ['!=', ['get', 'skip'], null],
+            paint: {
+              'line-color': '#8A7B66',
+              'line-width': 1,
+              'line-dasharray': [2, 1.5],
+            },
+          })
           m.addSource(SOURCE, {
             type: 'geojson',
             data: collection([], null),
@@ -282,6 +334,12 @@ export function AdminMap({
     const source = mapRef.current?.getSource<GeoJSONSource>(SOURCE)
     void source?.setData(collection(venues, selectedId))
   }, [ready, venues, selectedId])
+
+  // The terrace's sample cells (hidden while there are none).
+  useEffect(() => {
+    const source = mapRef.current?.getSource<GeoJSONSource>(CELLS)
+    void source?.setData(sunCells ?? NO_CELLS)
+  }, [ready, sunCells])
 
   // Fly to a newly selected venue, close enough to place a pin.
   // Only when the selection changes, not when the venue is dragged.

@@ -1,6 +1,7 @@
 // zod/mini: the same checks as classic zod at a third of its size in the
 // entry chunk (classic always bundles its JSON Schema converter).
 import * as z from 'zod/mini'
+import { setLeafOffSeen } from '../sun/leafOff.ts'
 import { BRANDS, ITEMS } from './prices.ts'
 
 /** Relative, so it resolves under /sol-y-cerveza/ on GitHub Pages and inside Capacitor. */
@@ -82,6 +83,11 @@ const terraceSchema = z.object({
   sun_corrections: z.optional(
     z.catch(z.optional(z.array(sunCorrectionSchema)), undefined),
   ),
+  // The floors of the owner's accepted shade reports (ADR-0014), same shape;
+  // applied before the caps, which win. Absent or malformed: none.
+  shade_corrections: z.optional(
+    z.catch(z.optional(z.array(sunCorrectionSchema)), undefined),
+  ),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.optional(z.array(priceSchema)),
 })
@@ -99,6 +105,10 @@ export const terracesFileSchema = z.object({
   generated: z.iso.datetime(),
   sample: z.boolean(),
   attribution: z.array(z.string()),
+  // The leaf-off season Sentinel-2 saw this year; malformed or out-of-window
+  // dates count as absent (isLeafOff).
+  leaf_off_from: z.optional(z.nullable(z.string())),
+  leaf_off_until: z.optional(z.nullable(z.string())),
   terraces: z.array(terraceRecordSchema),
 })
 
@@ -139,5 +149,7 @@ export async function loadTerraces(): Promise<LoadedTerraces> {
   if (!response.ok) {
     throw new Error(`Failed to load ${TERRACES_URL}: HTTP ${response.status}`)
   }
-  return parseTerracesFile(await response.json())
+  const loaded = parseTerracesFile(await response.json())
+  setLeafOffSeen(loaded.file)
+  return loaded
 }

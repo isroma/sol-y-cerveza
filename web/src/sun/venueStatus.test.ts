@@ -107,7 +107,7 @@ describe('leaf-off horizon (ADR-0007)', () => {
     ...paseoSanFrancisco,
     horizon_winter: horizonFromRuns([[0, 359, 83]]),
   }
-  const april = dayTrack('2027-04-10')
+  const april = dayTrack('2027-04-20')
 
   it('gives sun through bare trees inside the leaf-off period', () => {
     expect(at(paseoSanFrancisco, winter, '13:00').state).toBe('shade')

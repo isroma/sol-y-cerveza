@@ -1,20 +1,73 @@
 import type { Terrace } from '../data/terraces.ts'
 
 /**
- * The leaf-off period (docs/adr/0007-seasonal-trees.md): from 1 December to
- * 15 March, by Madrid date, deciduous trees count as bare. A rule of thumb;
- * the owner chose this wider window, accepting more risk at the edges.
- * Month-day strings, both ends inclusive.
+ * The leaf-off period (docs/adr/0007-seasonal-trees.md, #526): deciduous trees
+ * count as bare from the day Sentinel-2 saw them bare this autumn
+ * (`leaf_off_from` in terraces.json) until the day it saw them in leaf again
+ * (`leaf_off_until`, the first day in leaf), by Madrid date. Without those
+ * dates, or with dates outside the windows the pipeline looks in, these
+ * month-days apply: leaf-off from 1 December at the latest and until 15 April
+ * at the latest, both inclusive. Mirrored in api/src/sun.ts.
  */
-export const LEAF_OFF = { from: '12-01', until: '03-15' } as const
+export const LEAF_OFF = { from: '12-01', until: '04-15' } as const
+/** The earliest observed start and end the app accepts (pipeline: solycerveza.season). */
+export const LEAF_OFF_SEEN = { from: '10-01', until: '03-01' } as const
 
-const DATE = /^\d{4}-(\d{2}-\d{2})$/
+/** The dates Sentinel-2 saw, as terraces.json has them (YYYY-MM-DD). */
+export type LeafOffSeen = {
+  leaf_off_from?: string | null | undefined
+  leaf_off_until?: string | null | undefined
+}
 
-/** True when `date` (YYYY-MM-DD, Madrid) is inside the leaf-off period. */
-export function isLeafOff(date: string): boolean {
-  const monthDay = DATE.exec(date)?.[1]
-  if (monthDay === undefined) return false
-  return monthDay >= LEAF_OFF.from || monthDay <= LEAF_OFF.until
+const DATE = /^(\d{4})-(\d{2}-\d{2})$/
+
+let published: LeafOffSeen = {}
+
+/** Called once the data loads: isLeafOff then follows the dates it carries. */
+export function setLeafOffSeen(seen: LeafOffSeen): void {
+  published = {
+    leaf_off_from: seen.leaf_off_from ?? null,
+    leaf_off_until: seen.leaf_off_until ?? null,
+  }
+}
+
+/** `day` when it is a date from `earliest` to `latest`, else null. */
+function within(
+  day: string | null | undefined,
+  earliest: string,
+  latest: string,
+): string | null {
+  if (!day || !DATE.test(day)) return null
+  return day >= earliest && day <= latest ? day : null
+}
+
+/**
+ * True when `date` (YYYY-MM-DD, Madrid) is inside the leaf-off period of its
+ * season (July to June), going by `seen` (the loaded data's dates by default).
+ */
+export function isLeafOff(
+  date: string,
+  seen: LeafOffSeen = published,
+): boolean {
+  const match = DATE.exec(date)
+  if (!match) return false
+  const year = Number(match[1])
+  const autumn = (match[2] ?? '') >= '07-01' ? year : year - 1
+  const spring = autumn + 1
+  const latestStart = `${autumn}-${LEAF_OFF.from}`
+  const latestEnd = `${spring}-${LEAF_OFF.until}`
+  const start =
+    within(
+      seen.leaf_off_from,
+      `${autumn}-${LEAF_OFF_SEEN.from}`,
+      latestStart,
+    ) ?? latestStart
+  const end = within(
+    seen.leaf_off_until,
+    `${spring}-${LEAF_OFF_SEEN.until}`,
+    latestEnd,
+  )
+  return date >= start && (end === null ? date <= latestEnd : date < end)
 }
 
 /**

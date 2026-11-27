@@ -117,6 +117,49 @@ def test_probe_returns_the_envelope_across_the_terrace(tmp_path: Path) -> None:
     assert unpack(low)[180] * 10 < horizon[180] - 30
 
 
+def test_probe_returns_each_cell_of_the_terrace_with_its_horizon(tmp_path: Path) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    cells = probe(LAT, LON, dsm, dtm)["cells"]
+
+    assert 32 <= len(cells) <= 42
+    assert all(cell["skip"] is None for cell in cells)
+    horizons = [cell["horizon"] for cell in cells]
+    assert all(isinstance(h, str) and len(h) == BINS for h in horizons)
+    # The cells nearest the wall to the south see it highest.
+    south = min(cells, key=lambda cell: cell["lat"])
+    north = max(cells, key=lambda cell: cell["lat"])
+    assert isinstance(south["horizon"], str) and isinstance(north["horizon"], str)
+    assert unpack(south["horizon"])[180] > unpack(north["horizon"])[180]
+
+
+def test_probe_says_why_a_cell_is_left_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    dsm, dtm = _rasters(tmp_path, roof=7.0)  # a 3 m roof round the pin
+    monkeypatch.setattr(probe_module, "load_roads", lambda **_: [_road_over_the_north_half()])
+    cells = probe(LAT, LON, dsm, dtm)["cells"]
+
+    skips = {cell["skip"] for cell in cells}
+    assert {"raised", "road", None} <= skips
+    for cell in cells:
+        assert (cell["horizon"] is None) == (cell["skip"] is not None)
+
+
+def test_probe_returns_the_leaf_off_envelope(tmp_path: Path) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    _with_crown(dsm)
+    result = probe(LAT, LON, dsm, dtm, _leafoff(tmp_path))
+
+    low, low_winter = result["horizon_low"], result["horizon_low_winter"]
+    assert isinstance(low, str) and isinstance(low_winter, str)
+    assert all(w <= s for w, s in zip(unpack(low_winter), unpack(low), strict=True))
+    # Cells that see the crown to the north see past it once it is bare.
+    bare = [c for c in result["cells"] if c["horizon_winter"] is not None]
+    assert bare
+    for cell in bare:
+        assert isinstance(cell["horizon"], str) and isinstance(cell["horizon_winter"], str)
+        assert sum(unpack(cell["horizon_winter"])) < sum(unpack(cell["horizon"]))
+    assert probe(LAT, LON, dsm, dtm)["horizon_low_winter"] is None
+
+
 def _road_over_the_north_half() -> Road:
     """A 20 m wide road from west to east, its south edge 1 m north of the pin."""
     north = (LAT + 11 / 111_320, LON)
@@ -207,8 +250,10 @@ def test_main_prints_one_json_object(tmp_path: Path) -> None:
         "horizon",
         "horizon_winter",
         "horizon_low",
+        "horizon_low_winter",
         "height_above_ground",
         "max_height_above_ground",
+        "cells",
     }
     assert payload["horizon_winter"] is None
     assert len(payload["horizon"]) == BINS

@@ -1,84 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { LatLon } from '../data/terraces.ts'
+import { useMemo, useState } from 'react'
 import { dayTrack } from '../sun/dayTrack.ts'
+import { isLeafOff } from '../sun/leafOff.ts'
 import type { SunState } from '../sun/sunState.ts'
 import { MINUTES_PER_DAY, toMadridLocal } from '../time/madrid.ts'
-import {
-  isTooHigh,
-  probeKey,
-  probeOutputSchema,
-  probeUrl,
-  roundPosition,
-  terraceHorizon,
-  type ProbeResult,
-} from './probe.ts'
+import { isTooHigh, terraceHorizon, type ProbeResult } from './probe.ts'
 import { describeSun, stretches, sunSummary } from './sunSummary.ts'
-
-/** Wait this long after the pin stops moving before asking the dev server. */
-const DEBOUNCE_MS = 350
-
-type Outcome =
-  { kind: 'ok'; result: ProbeResult } | { kind: 'error'; message: string }
-
-// Probe results by rounded position, for the whole admin session.
-const cache = new Map<string, ProbeResult>()
-
-async function fetchProbe(at: LatLon, signal: AbortSignal): Promise<Outcome> {
-  const response = await fetch(probeUrl(at), { signal })
-  const parsed = probeOutputSchema.safeParse(await response.json())
-  if (!parsed.success)
-    return {
-      kind: 'error',
-      message: `unexpected answer (HTTP ${response.status})`,
-    }
-  if ('error' in parsed.data)
-    return { kind: 'error', message: parsed.data.error }
-  return { kind: 'ok', result: parsed.data }
-}
-
-/** The probe at `at`, debounced and cached. `loading` while a newer one is on its way. */
-function useProbe(at: LatLon | null): {
-  outcome: Outcome | null
-  loading: boolean
-} {
-  const rounded = at && roundPosition(at)
-  const lat = rounded?.lat ?? null
-  const lon = rounded?.lon ?? null
-  const key = lat === null || lon === null ? null : probeKey({ lat, lon })
-  const [latest, setLatest] = useState<{ key: string; outcome: Outcome }>()
-
-  useEffect(() => {
-    if (lat === null || lon === null) return
-    const position = { lat, lon }
-    const positionKey = probeKey(position)
-    if (cache.has(positionKey)) return
-    const abort = new AbortController()
-    const timer = window.setTimeout(() => {
-      fetchProbe(position, abort.signal)
-        .then((outcome) => {
-          if (outcome.kind === 'ok') cache.set(positionKey, outcome.result)
-          setLatest({ key: positionKey, outcome })
-        })
-        .catch((error: unknown) => {
-          if (abort.signal.aborted) return
-          setLatest({
-            key: positionKey,
-            outcome: { kind: 'error', message: String(error) },
-          })
-        })
-    }, DEBOUNCE_MS)
-    return () => {
-      window.clearTimeout(timer)
-      abort.abort()
-    }
-  }, [lat, lon])
-
-  if (key === null) return { outcome: null, loading: false }
-  const cached = cache.get(key)
-  if (cached) return { outcome: { kind: 'ok', result: cached }, loading: false }
-  if (latest?.key === key) return { outcome: latest.outcome, loading: false }
-  return { outcome: latest?.outcome ?? null, loading: true }
-}
+import type { Outcome } from './useProbe.ts'
 
 const STRIP_COLORS: Record<SunState, string> = {
   sun: 'var(--accent)',
@@ -128,9 +55,11 @@ function DayStrip({
 function Result({ result }: { result: ProbeResult }) {
   // Today and the time when the result came in, in Madrid.
   const [{ date, minutes: now }] = useState(() => toMadridLocal(new Date()))
+  // In the leaf-off period the app uses the leaf-off horizons, and so does this.
+  const leafOff = isLeafOff(date)
   const summary = useMemo(
-    () => sunSummary(terraceHorizon(result), dayTrack(date)),
-    [result, date],
+    () => sunSummary(terraceHorizon(result, leafOff), dayTrack(date)),
+    [result, date, leafOff],
   )
   const height = result.height_above_ground
   const tooHigh = isTooHigh(result)
@@ -138,9 +67,13 @@ function Result({ result }: { result: ProbeResult }) {
   return (
     <>
       <p className={noSun ? 'admin-sun-line admin-warn' : 'admin-sun-line'}>
-        Today: {describeSun(summary)}
+        Today{leafOff ? ' (deciduous trees bare)' : ''}: {describeSun(summary)}
       </p>
       <DayStrip timeline={summary.timeline} now={now} />
+      <p className="admin-sun-legend">
+        On the map: amber cells get sun today (stronger = more), dark ones none;
+        outlined ones are left out (canopy, roof, building or road).
+      </p>
       <p className={tooHigh ? 'admin-sun-line admin-warn' : 'admin-sun-line'}>
         {height === null
           ? 'Height above ground: no LiDAR data at the pin'
@@ -167,8 +100,13 @@ function Result({ result }: { result: ProbeResult }) {
  * Today's sun on a terrace, from the LiDAR rasters via the dev server: sun
  * when any table within 7 m of the pin, off the road, has it, as the app shows it.
  */
-export function SunPreview({ at }: { at: LatLon }) {
-  const { outcome, loading } = useProbe(at)
+export function SunPreview({
+  outcome,
+  loading,
+}: {
+  outcome: Outcome | null
+  loading: boolean
+}) {
   return (
     <section
       className="admin-sun"
