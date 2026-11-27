@@ -4,6 +4,7 @@ import {
   identity,
   ipSalt,
   knownVenues,
+  leafOffSeen,
   takeAllowance,
   turnstileOk,
 } from '../guard.ts'
@@ -155,7 +156,14 @@ export async function change(request: Request, env: Env): Promise<Response> {
   }
   const now = Date.now()
   const { sky } = parsed.value
-  const sun = sky ? await skySighting(sky, published.get(venueId), now) : null
+  const sun = sky
+    ? await skySighting(
+        sky,
+        published.get(venueId),
+        now,
+        await leafOffSeen(env),
+      )
+    : null
   if (sun instanceof Response) return sun
 
   const { voterHash, netHash } = await identity(salt, ip)

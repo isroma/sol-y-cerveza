@@ -1,4 +1,4 @@
-import type { LatLon, Terrace } from '../data/terraces.ts'
+import type { Terrace } from '../data/terraces.ts'
 import { STATE_LABELS, type MapState } from './mapState.ts'
 import { PricesEditor } from './PricesEditor.tsx'
 import { priceKey, type VenuePrice } from './pricesCsv.ts'
@@ -8,6 +8,7 @@ import { ADDED_PREFIX, type Review } from './review.ts'
 import { SunPreview } from './SunPreview.tsx'
 import { today } from './today.ts'
 import { trustDetails, type Trust } from './trust.ts'
+import type { ProbeState } from './useProbe.ts'
 
 type Props = {
   venue: Terrace
@@ -28,8 +29,8 @@ type Props = {
   pinning: boolean
   /** In the queue while pinning: the venue position is the terrace. */
   onKeepPosition: () => void
-  /** Where to preview the sun: the terrace pin, or the one being dragged. */
-  preview: LatLon | null
+  /** The sun probe at the terrace pin (or the one being dragged); null without a pin. */
+  sun: ProbeState | null
   prices: readonly VenuePrice[]
   onSavePrice: (key: string, next: VenuePrice | null) => void
   onNextToReview: () => void
@@ -59,7 +60,7 @@ export function VenuePanel({
   onSkip,
   pinning,
   onKeepPosition,
-  preview,
+  sun,
   prices,
   onSavePrice,
   onNextToReview,
@@ -154,7 +155,7 @@ export function VenuePanel({
           )}
         </p>
       ) : null}
-      {preview && <SunPreview at={preview} />}
+      {sun && <SunPreview outcome={sun.outcome} loading={sun.loading} />}
       <h3 className="admin-subhead">Prices</h3>
       <PricesEditor
         key={venue.id}

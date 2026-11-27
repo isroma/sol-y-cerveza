@@ -1,5 +1,5 @@
 import type { Env } from '../env.ts'
-import { knownVenues } from '../guard.ts'
+import { knownVenues, leafOffSeen } from '../guard.ts'
 import { parseChange } from '../changes.ts'
 import { json, jsonBody } from '../http.ts'
 import {
@@ -86,7 +86,14 @@ export async function ownerChange(
   }
   const now = Date.now()
   const { sky } = parsed.value
-  const sun = sky ? await skySighting(sky, published.get(venueId), now) : null
+  const sun = sky
+    ? await skySighting(
+        sky,
+        published.get(venueId),
+        now,
+        await leafOffSeen(env),
+      )
+    : null
   if (sun instanceof Response) return sun
   await env.DB.batch([
     ...(price ? ownerPriceWrites(env, price, madridDate(new Date(now))) : []),

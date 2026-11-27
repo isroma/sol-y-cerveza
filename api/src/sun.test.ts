@@ -10,6 +10,7 @@ import {
   horizonBin,
   isLeafOff,
   LEAF_OFF,
+  LEAF_OFF_SEEN,
   MIN_SUN_ALTITUDE,
   sighting,
   SUN_THRESHOLD,
@@ -94,11 +95,11 @@ describe('sighting', () => {
 })
 
 describe('the season', () => {
-  it('is leaf-off from 1 December to 15 March, as in the app', async () => {
+  it('is leaf-off from 1 December to 15 April without seen dates, as in the app', async () => {
     expect(isLeafOff('2026-11-30')).toBe(false)
     expect(isLeafOff('2026-12-01')).toBe(true)
-    expect(isLeafOff('2027-03-15')).toBe(true)
-    expect(isLeafOff('2027-03-16')).toBe(false)
+    expect(isLeafOff('2027-04-15')).toBe(true)
+    expect(isLeafOff('2027-04-16')).toBe(false)
     expect(isLeafOff('nonsense')).toBe(false)
     // 23:30 UTC on 30 November is already 1 December in Madrid.
     expect(isLeafOff(madridDate(new Date('2026-11-30T23:30:00Z')))).toBe(true)
@@ -109,6 +110,28 @@ describe('the season', () => {
     expect(app).toContain(
       `LEAF_OFF = { from: '${LEAF_OFF.from}', until: '${LEAF_OFF.until}' }`,
     )
+    expect(app).toContain(
+      `LEAF_OFF_SEEN = { from: '${LEAF_OFF_SEEN.from}', until: '${LEAF_OFF_SEEN.until}' }`,
+    )
+  })
+
+  it('follows the dates Sentinel-2 saw, inside their windows', () => {
+    const seen = { leaf_off_from: '2026-11-23', leaf_off_until: '2027-04-08' }
+    expect(isLeafOff('2026-11-22', seen)).toBe(false)
+    expect(isLeafOff('2026-11-23', seen)).toBe(true)
+    expect(isLeafOff('2027-04-07', seen)).toBe(true)
+    expect(isLeafOff('2027-04-08', seen)).toBe(false)
+    expect(isLeafOff('2027-11-25', seen)).toBe(false)
+    expect(isLeafOff('2026-09-20', { leaf_off_from: '2026-09-15' })).toBe(false)
+  })
+
+  it('gives a sighting the season of the published dates', () => {
+    const lateNovember = new Date('2026-11-25T11:00:00Z')
+    const at = { lat: 38.8794, lon: -6.9707 }
+    const plain = sighting(at, lateNovember)
+    const seen = sighting(at, lateNovember, { leaf_off_from: '2026-11-23' })
+    expect(plain.ok && plain.value.leafOff).toBe(false)
+    expect(seen.ok && seen.value.leafOff).toBe(true)
   })
 })
 

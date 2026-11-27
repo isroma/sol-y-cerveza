@@ -11,6 +11,7 @@ import {
   sunCorrections,
   sunQueue,
   type RejectionRow,
+  type LeafOffSeen,
   type Sighting,
   type SkyKind,
   type SunRow,
@@ -31,8 +32,9 @@ export async function skySighting(
   kind: SkyKind,
   position: LatLon | undefined,
   now: number,
+  leafOff: LeafOffSeen = {},
 ): Promise<Sighting | Response> {
-  const seen = sighting(position, new Date(now))
+  const seen = sighting(position, new Date(now), leafOff)
   if (!seen.ok) return json({ error: seen.error }, 400)
   if (kind === 'shade') {
     const dni = await directSunNow(now)

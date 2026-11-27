@@ -8,11 +8,13 @@ from solycerveza.envelope import (
     MAX_GROUND_HEIGHT_M,
     PACK_ALPHABET,
     SAMPLE_RADIUS_M,
+    SKIP_REASONS,
     SampleGrid,
     Structures,
     ground_points,
     lowest,
     pack_low,
+    point_skips,
     sample_points,
     terrace_points,
     unpack,
@@ -69,6 +71,19 @@ def test_ground_points_drop_canopies_roofs_and_buildings() -> None:
     )
 
     assert kept == [(1.0, 1.0)]
+
+
+def test_point_skips_say_why() -> None:
+    points = [(1.0, 1.0), (2.0, 2.0), (3.0, 3.0), (4.0, 4.0), (5.0, 5.0)]
+    heights = {1.0: 0.2, 2.0: MAX_GROUND_HEIGHT_M + 0.5, 3.0: 0.1, 4.0: None, 5.0: 0.0}
+    skips = point_skips(
+        points,
+        lambda lat, _lon: heights[lat],
+        lambda lat, _lon: lat == 3.0,
+        lambda lat, _lon: lat == 5.0,
+    )
+    assert skips == [None, "raised", "building", "no_data", "road"]
+    assert set(skips) - {None} <= set(SKIP_REASONS)
 
 
 def test_ground_points_drop_the_road() -> None:

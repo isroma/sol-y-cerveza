@@ -1,5 +1,10 @@
 import { useSyncExternalStore } from 'react'
-import { CAN_SEND, PRICES_API, type SuggestResult } from '../apiClient.ts'
+import {
+  CAN_SEND,
+  PRICES_API,
+  refusal,
+  type SuggestResult,
+} from '../apiClient.ts'
 
 /**
  * Owner mode (ADR-0005, "Owner mode"), shown as "Admin": the owner uses the
@@ -124,7 +129,7 @@ export async function ownerPost(
       { method: 'POST', body: JSON.stringify(body) },
       state.token,
     )
-    return response.ok ? 'ok' : 'error'
+    return response.ok ? 'ok' : await refusal(response)
   } catch {
     return 'error'
   }

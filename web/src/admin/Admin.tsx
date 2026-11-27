@@ -12,6 +12,7 @@ import { useOwnerChanges } from './useOwnerChanges.ts'
 import { priceKey } from './pricesCsv.ts'
 import { stateOf, type MapVenue } from './mapState.ts'
 import { dayTrack } from '../sun/dayTrack.ts'
+import { isLeafOff } from '../sun/leafOff.ts'
 import { toMadridLocal } from '../time/madrid.ts'
 import { needsALook, referenceDates, type LookReason } from './needsLook.ts'
 import { BADAJOZ_CENTER } from '../config.ts'
@@ -39,6 +40,8 @@ import { useReportActions } from './useReportActions.ts'
 import { useReviewQueue } from './useReviewQueue.ts'
 import { VenueListPanel } from './VenueListPanel.tsx'
 import { VenuePanel } from './VenuePanel.tsx'
+import { sunCells } from './sunCells.ts'
+import { useProbe } from './useProbe.ts'
 
 const CENTRE: LatLon = { lat: BADAJOZ_CENTER[1], lon: BADAJOZ_CENTER[0] }
 
@@ -214,6 +217,22 @@ export function Admin() {
         : null
       : selectedVenue.terrace
   const preview = dragging ?? terrace
+  // One probe for the panel's sun preview and the map's cells (the dev server
+  // runs one at a time).
+  const sun = useProbe(preview)
+  const [sunDate] = useState(() => toMadridLocal(new Date()).date)
+  const sunTrack = useMemo(() => dayTrack(sunDate), [sunDate])
+  // Read each render: the leaf-off dates arrive with the data.
+  const sunLeafOff = isLeafOff(sunDate)
+  const hasPin = preview !== null
+  const outcome = sun.outcome
+  const cells = useMemo(
+    () =>
+      hasPin && outcome?.kind === 'ok'
+        ? sunCells(outcome.result, sunTrack, sunLeafOff)
+        : null,
+    [hasPin, outcome, sunTrack, sunLeafOff],
+  )
 
   // Moving the pin changes the terrace; the dataset horizon no longer applies.
   const pinMoved = useCallback(
@@ -609,6 +628,7 @@ export function Admin() {
           venues={mapShown}
           selected={selectedMap}
           terrace={terrace}
+          sunCells={cells}
           pinning={pinning}
           proposed={proposed}
           onSelect={(id) => {
@@ -690,7 +710,7 @@ export function Admin() {
               setPinning(false)
               if (selectedId) advance(selectedId)
             }}
-            preview={preview}
+            sun={preview ? sun : null}
             prices={[...prices.values()].filter(
               (p) => p.venueId === selectedVenue.id,
             )}

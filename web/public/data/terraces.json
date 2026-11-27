@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated": "2026-11-27T11:55:28Z",
+  "generated": "2026-11-27T15:23:02Z",
   "sample": false,
   "attribution": [
     "© OpenStreetMap contributors (ODbL)",
@@ -9,8 +9,10 @@
     "Contiene datos modificados de Copernicus Sentinel (2025)",
     "Posiciones de terrazas sobre ortofoto PNOA © IGN (CC-BY 4.0)",
     "Más locales: Overture Maps Foundation, CDLA-Permissive-2.0 (licencia en data/licenses/)",
-    "Más locales: Registro de restauración de la Junta de Extremadura (CC BY 4.0), geocodificado con CartoCiudad (CC BY 4.0 ign.es)"
+    "Más locales: Registro de restauración de la Junta de Extremadura (CC BY 4.0), geocodificado con CartoCiudad (CC BY 4.0 ign.es)",
+    "Contiene datos modificados de Copernicus Sentinel (2026)"
   ],
+  "leaf_off_from": "2026-11-23",
   "terraces": [
     {
       "id": "junta:01ebf6116f88",

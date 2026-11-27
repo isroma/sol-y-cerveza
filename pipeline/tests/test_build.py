@@ -1,5 +1,5 @@
 import json
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +25,7 @@ from solycerveza.build import (
 )
 from solycerveza.envelope import Structures, pack_low, terrace_points, unpack
 from solycerveza.horizon import HorizonModel
+from solycerveza.leafoff import SENTINEL_ATTRIBUTION
 from solycerveza.prices import PRICES_CSV, prices_by_venue, read_prices
 from solycerveza.roads import Carriageways
 from solycerveza.sun_corrections import (
@@ -390,6 +391,22 @@ def test_render_leaves_out_null_envelopes() -> None:
     assert render(TerracesFile.model_validate_json(text)) == text
 
 
+def test_render_writes_leaf_off_dates_before_the_terraces_only_when_seen() -> None:
+    assert "leaf_off_from" not in json.loads(render(_file([])))
+    seen = _file([]).model_copy(update={"leaf_off_from": date(2026, 11, 23)})
+    data = json.loads(render(seen))
+    assert list(data) == [
+        "version",
+        "generated",
+        "sample",
+        "attribution",
+        "leaf_off_from",
+        "terraces",
+    ]
+    assert data["leaf_off_from"] == "2026-11-23"
+    assert render(TerracesFile.model_validate_json(render(seen))) == render(seen)
+
+
 def _sun_report(report_id: int, seen: datetime, venue_id: str = "osm:node/1") -> SunReport:
     return SunReport(
         id=report_id, venue_id=venue_id, leaf_off=False, azimuth=176.3, altitude=27.1, seen=seen
@@ -442,6 +459,7 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
         "read_prices": lambda: [],
         "load_structures": lambda: [],
         "load_roads": lambda: [],
+        "observed_dates": lambda *_: (date(2026, 11, 23), None),
         "read_sun_reports": lambda: [
             _sun_report(1, datetime(2026, 11, 25, 12, 0, tzinfo=UTC)),
             _sun_report(2, datetime(2025, 11, 1, 12, 0, tzinfo=UTC)),  # out of the window
@@ -477,3 +495,6 @@ def test_build_gives_each_terrace_the_profiles_of_its_own_rasters(
     (terrace,) = expected
     assert terrace.horizon_winter is not None
     assert terrace.horizon_low is not None
+    assert built.leaf_off_from == date(2026, 11, 23)
+    assert built.leaf_off_until is None
+    assert SENTINEL_ATTRIBUTION.format(year=2026) in built.attribution
