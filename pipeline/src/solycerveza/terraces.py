@@ -143,6 +143,9 @@ class Terrace(BaseModel):
     # Accepted sun reports as horizon caps (solycerveza.sun_corrections, issue #463). Left out
     # of the file when empty, like the envelope.
     sun_corrections: list[SunCorrection] = Field(default_factory=list, exclude_if=_is_empty)
+    # Accepted shade reports as horizon floors (issue #527, ADR-0014), same shape; left out when
+    # empty.
+    shade_corrections: list[SunCorrection] = Field(default_factory=list, exclude_if=_is_empty)
     prices: list[Price] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -155,8 +158,8 @@ class Terrace(BaseModel):
             self.horizon_low is not None or self.horizon_low_winter is not None
         ):
             raise ValueError("an envelope needs a horizon")
-        if self.horizon is None and self.sun_corrections:
-            raise ValueError("sun_corrections need a horizon")
+        if self.horizon is None and (self.sun_corrections or self.shade_corrections):
+            raise ValueError("sun_corrections and shade_corrections need a horizon")
         return self
 
 

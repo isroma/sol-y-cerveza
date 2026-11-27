@@ -38,6 +38,7 @@ const items = inboxItems({
       ids: [7, 8],
       venueId: 'osm:node/1',
       leafOff: false,
+      kind: 'sun',
       sightings: [
         {
           id: 7,

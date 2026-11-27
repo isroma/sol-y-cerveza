@@ -68,6 +68,7 @@ describe('syncSunCorrections', () => {
               azimuth: 176.3,
               altitude: 27.1,
               seen: '2026-11-25T12:31:04.000Z',
+              kind: 'sun',
             },
           ],
         },

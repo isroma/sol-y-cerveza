@@ -318,7 +318,9 @@ def test_render_puts_sun_corrections_after_the_envelope_and_leaves_out_empty_one
 
 
 def test_sun_corrections_need_a_horizon() -> None:
-    with pytest.raises(ValidationError, match="sun_corrections need a horizon"):
+    with pytest.raises(
+        ValidationError, match="sun_corrections and shade_corrections need a horizon"
+    ):
         Terrace.model_validate(
             {
                 **_terrace().model_dump(),

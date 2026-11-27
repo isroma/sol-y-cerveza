@@ -27,6 +27,8 @@ export const sunReportSchema = z.object({
   venueId: z.string(),
   /** Made from 1 Dec to 15 Mar (Madrid date): counts for the leaf-off season only. */
   leafOff: z.boolean(),
+  /** Sun seen where the model says shade, or shade where it says sun (ADR-0014); an API before #527 sends none. */
+  kind: z.enum(['sun', 'shade']).default('sun'),
   sightings: z.array(sightingSchema).min(1),
   /** Distinct networks. */
   reporters: z.number().int(),
@@ -45,19 +47,26 @@ export const SUN_THRESHOLD = 3
 
 /** Degrees either side of a sighting's azimuth that a report covers and a reject blocks. */
 export const SUN_SPREAD_DEGREES = 5
+/** The same for a shade report (ADR-0014). */
+export const SHADE_SPREAD_DEGREES = 2
 
 export const seasonLabel = (leafOff: boolean) =>
   leafOff ? 'leaf-off' : 'leaf-on'
 
 const people = (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`
 
-/** One line (the row's tag already says "Sun"): "leaf-on · 3 people · shown as ~". */
+/** One line (the row's tag already says "Sun"): "leaf-on · 3 people · shown as ~", "shade · leaf-on · 3 people · shown". */
 export function describeSunReport(
   report: SunReport,
   venueKnown: boolean,
 ): string {
-  const parts = [seasonLabel(report.leafOff), people(report.reporters)]
-  if (report.shown) parts.push('shown as ~')
+  const shade = report.kind === 'shade'
+  const parts = [
+    ...(shade ? ['shade'] : []),
+    seasonLabel(report.leafOff),
+    people(report.reporters),
+  ]
+  if (report.shown) parts.push(shade ? 'shown' : 'shown as ~')
   if (!venueKnown) parts.push('stale: no longer in the data')
   return parts.join(' · ')
 }

@@ -1,4 +1,5 @@
-"""Accepted sun reports as horizon caps per terrace (issue #463, ADR-0012).
+"""Accepted sun reports as horizon caps per terrace (issue #463, ADR-0012), and accepted shade
+reports as floors (issue #527, ADR-0014).
 
 A visitor who says "the sun is on this terrace now" reports where the sun was: its azimuth and
 altitude, in the season (leaf-off or not) of that day. The API serves accepted reports as
@@ -12,12 +13,18 @@ accepted report:
 - `azimuth`, `altitude`: the sun's position in degrees, to 1 decimal; azimuth 0 to 360 (360.0,
   from rounding, is north like 0), altitude 0 to 90.
 - `seen`: the report's instant, ISO 8601 UTC (`2026-11-25T12:31:04.000Z`).
+- `kind`: `sun` (sun seen where the model says shade) or `shade` (shade seen with the sun out).
+  A file from before #527 has no `kind` column: every row is `sun`.
 
 The build turns them into each terrace's `sun_corrections` with the API's rules, so the app
 applies the same caps with or without the API: each report covers the horizon bins within
 `SPREAD_DEGREES` of its azimuth; a bin's cap is the lowest altitude there less `MARGIN_DEGREES`,
 in tenths of a degree; adjacent bins with the same cap merge into one run, across north too.
 Reports older than `WINDOW_DAYS` before the build's `generated` instant stop counting.
+
+Shade reports become each terrace's `shade_corrections` the same way, mirrored: each covers the
+bins within `SHADE_SPREAD_DEGREES` of its azimuth; a bin's floor is the highest altitude there,
+rounded up to tenths of a degree, with no margin.
 """
 
 import logging
@@ -25,7 +32,7 @@ import math
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     AliasChoices,
@@ -42,10 +49,14 @@ from solycerveza.venues import VENUE_ID_PATTERN
 logger = logging.getLogger(__name__)
 
 SUN_CORRECTIONS_CSV = Path(__file__).resolve().parents[2] / "data" / "sun_corrections.csv"
-COLUMNS = ("id", "venue_id", "leaf_off", "azimuth", "altitude", "seen")
+COLUMNS = ("id", "venue_id", "leaf_off", "azimuth", "altitude", "seen", "kind")
+# The header before shade reports (#527): every row is a sun report.
+SUN_ONLY_COLUMNS = COLUMNS[:-1]
 
 # The API's rules (api/src/sun.ts): SUN_SPREAD_DEGREES, SUN_MARGIN_DEGREES, SUN_WINDOW_DAYS.
 SPREAD_DEGREES = 5
+# api/src/sun.ts SHADE_SPREAD_DEGREES (ADR-0014).
+SHADE_SPREAD_DEGREES = 2
 MARGIN_DEGREES = 2
 WINDOW_DAYS = 365
 BINS = 360
@@ -81,6 +92,7 @@ class SunReport(BaseModel):
     azimuth: Annotated[float, Field(ge=0, le=360)]
     altitude: Annotated[float, Field(ge=0, le=90)]
     seen: AwareDatetime
+    kind: Literal["sun", "shade"] = "sun"
 
     @field_validator("leaf_off", mode="before")
     @classmethod
@@ -97,7 +109,7 @@ def read_sun_reports(path: Path = SUN_CORRECTIONS_CSV) -> list[SunReport]:
     """The accepted reports, sorted by id, or none when the file does not exist yet."""
     if not path.exists():
         return []
-    rows = read_rows(path, COLUMNS, SunReport, clean=blank_to_none)
+    rows = read_rows(path, COLUMNS, SunReport, clean=blank_to_none, legacy=(SUN_ONLY_COLUMNS,))
     ids = [r.id for r in rows]
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
     if duplicates:
@@ -118,17 +130,30 @@ def cap_tenths(altitude: float) -> int:
     return max(0, math.floor((altitude - MARGIN_DEGREES) * 10 + 1e-9))
 
 
-def _bin_caps(reports: Sequence[SunReport]) -> list[int | None]:
-    """Per bin, the cap from the lowest report within the spread, or None without one."""
-    lowest: list[float | None] = [None] * BINS
+def floor_tenths(altitude: float) -> int:
+    """The floor for shade seen at `altitude` degrees, in tenths of a degree: rounded up, at most
+    90°, as `floorTenths` in the API (the epsilon keeps 27.1 from rounding up to 272)."""
+    return min(900, max(0, math.ceil(altitude * 10 - 1e-9)))
+
+
+def _bin_caps(reports: Sequence[SunReport], shade: bool = False) -> list[int | None]:
+    """Per bin, the cap from the lowest report within the spread (for shade, the floor from the
+    highest), or None without one."""
+    spread = SHADE_SPREAD_DEGREES if shade else SPREAD_DEGREES
+    best: list[float | None] = [None] * BINS
     for report in reports:
         centre = horizon_bin(report.azimuth)
-        for d in range(-SPREAD_DEGREES, SPREAD_DEGREES + 1):
+        for d in range(-spread, spread + 1):
             b = (centre + d) % BINS
-            current = lowest[b]
-            if current is None or report.altitude < current:
-                lowest[b] = report.altitude
-    return [None if a is None else cap_tenths(a) for a in lowest]
+            current = best[b]
+            if (
+                current is None
+                or (shade and report.altitude > current)
+                or (not shade and report.altitude < current)
+            ):
+                best[b] = report.altitude
+    level = floor_tenths if shade else cap_tenths
+    return [None if a is None else level(a) for a in best]
 
 
 def _runs(caps: Sequence[int | None]) -> list[tuple[int, int, int]]:
@@ -153,26 +178,31 @@ def sun_corrections_by_venue(
     reports: Sequence[SunReport],
     known: Mapping[str, bool],
     generated: datetime,
+    kind: Literal["sun", "shade"] = "sun",
 ) -> dict[str, list[SunCorrection]]:
-    """Venue id -> its runs, sorted by season (not leaf-off first), then `from`.
+    """Venue id -> its runs of `kind` (caps for sun, floors for shade), sorted by season (not
+    leaf-off first), then `from`.
 
     `known` maps each venue in the output to whether it has a horizon; reports for other venues,
     or for one without a horizon, are logged and left out, and so are reports seen more than
     `WINDOW_DAYS` before `generated`.
     """
     since = generated - timedelta(days=WINDOW_DAYS)
-    live = [r for r in reports if r.seen >= since]
+    live = [r for r in reports if r.seen >= since and r.kind == kind]
     for venue_id in sorted({r.venue_id for r in live} - known.keys()):
-        logger.warning("sun correction for %s: no such venue any more, remove its rows", venue_id)
+        logger.warning(
+            "%s correction for %s: no such venue any more, remove its rows", kind, venue_id
+        )
     for venue_id in sorted({r.venue_id for r in live if known.get(r.venue_id) is False}):
-        logger.warning("sun correction for %s: the venue has no horizon, ignored", venue_id)
+        logger.warning("%s correction for %s: the venue has no horizon, ignored", kind, venue_id)
     groups: dict[tuple[str, bool], list[SunReport]] = {}
     for report in live:
         if known.get(report.venue_id):
             groups.setdefault((report.venue_id, report.leaf_off), []).append(report)
     result: dict[str, list[SunCorrection]] = {}
     for venue_id, leaf_off in sorted(groups):
-        for start, end, cap in _runs(_bin_caps(groups[(venue_id, leaf_off)])):
+        caps = _bin_caps(groups[(venue_id, leaf_off)], shade=kind == "shade")
+        for start, end, cap in _runs(caps):
             result.setdefault(venue_id, []).append(
                 SunCorrection(leaf_off=leaf_off, from_=start, to=end, altitude=cap)
             )
