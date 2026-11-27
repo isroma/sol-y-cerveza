@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Terrace } from '../data/terraces.ts'
 import {
+  answerForKey,
   describeItem,
   inboxItems,
   itemPoint,
@@ -110,5 +111,20 @@ describe('the Inbox', () => {
     expect(nextItem(items, items[0]!.key)?.key).toBe(items[1]!.key)
     expect(nextItem(items, items[3]!.key)?.key).toBe(items[2]!.key)
     expect(nextItem(items.slice(0, 1), items[0]!.key)).toBeNull()
+  })
+})
+
+describe('answerForKey', () => {
+  it('uses the To review letters', () => {
+    expect(answerForKey('report', 'y')).toBe('yes')
+    expect(answerForKey('price', 'n')).toBe('no')
+    expect(answerForKey('sun', 's')).toBe('skip')
+    expect(answerForKey('sun', 'a')).toBeNull()
+  })
+
+  it('marks a non-venue with X and keeps it with Y', () => {
+    expect(answerForKey('junk', 'x')).toBe('yes')
+    expect(answerForKey('junk', 'y')).toBe('no')
+    expect(answerForKey('junk', 'n')).toBeNull()
   })
 })

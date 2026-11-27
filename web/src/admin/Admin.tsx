@@ -4,6 +4,7 @@ import { AddVenuePanel, type Adding } from './AddVenuePanel.tsx'
 import { AdminMap } from './AdminMap.tsx'
 import { AdminToolbar } from './AdminToolbar.tsx'
 import { InboxFilters, InboxList } from './InboxList.tsx'
+import { answerForKey } from './inbox.ts'
 import { InboxPanel } from './InboxPanel.tsx'
 import { QueueList } from './QueueList.tsx'
 import { useInbox } from './useInbox.ts'
@@ -340,16 +341,9 @@ export function Admin() {
       const key = event.key.toLowerCase()
       if (tab === 'inbox') {
         const open = inbox.open
+        const answer = open && !inbox.busy ? answerForKey(open.kind, key) : null
         if (key === 'escape') inbox.openItem(null)
-        else if (
-          open &&
-          !inbox.busy &&
-          (key === 'a' || key === 'r' || key === 'j')
-        )
-          void inbox.answer(
-            open,
-            key === 'a' ? 'yes' : key === 'r' ? 'no' : 'skip',
-          )
+        else if (open && answer) void inbox.answer(open, answer)
         else return
         event.preventDefault()
         return

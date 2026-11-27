@@ -53,9 +53,9 @@ The sidebar has the title with **Publish**, the count, and two tabs: **To review
 
 Venues can also be dragged to their real position. Every decision is a row in `pipeline/data/venue_review.csv`.
 
-- **To review** (with an empty search) is the review queue: the venues without a decision. Overture venues from a weak source come first ([Trust tiers](#trust-tiers)); within that group and after it, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score and the order). Each decision moves on to the next one. The list says why each one is where it is. Typing in the search shows plain matches instead.
-- **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Sun**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**A**), **Reject** (**R**) and **Skip** (**J**). Each answer moves on to the next Inbox item, not to To review.
-- **Not venues** (an Inbox filter) lists Overture-only venues that are probably not a bar or restaurant (name, takeaway or delivery only, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), one at a time: **Not a venue** (**A**) marks it; **Keep it** (**R**) takes it off the Inbox until the admin reloads, and it stays in To review.
+- **To review** (with an empty search) is the review queue: the venues without a decision. Overture venues from a weak source come first ([Trust tiers](#trust-tiers)); within that group and after it, those visitors are most likely to look at first: near the centre, next to confirmed terraces, from OSM before the Junta before Overture, bars, cafés and restaurants before pubs, and those with a machine proposal (`web/src/admin/queueScore.ts` has the score and the order). Each decision (or skip) moves on to the nearest venue left in the queue, so the map stays where you are; skipped venues come back only when nothing else is left (`nextInQueue`). The list says why each one is where it is. Typing in the search shows plain matches instead.
+- **Inbox** is one list of everything from outside that waits for a yes or no (`web/src/admin/inbox.ts`, `useInbox.ts`), filtered by **All**, **Reports**, **Sun**, **Suggestions**, **Website prices** or **Not venues**. Each row is the venue and one line on what it is; click a row (or answer one) and its panel opens on the map with **Accept** (**Y**), **Reject** (**N**) and **Skip** (**S**, or **J**), the same letters as To review. Each answer moves on to the next Inbox item, not to To review.
+- **Not venues** (an Inbox filter) lists Overture-only venues that are probably not a bar or restaurant (name, takeaway or delivery only, a duplicate of a venue from another source, far out or alone; `web/src/admin/junk.ts`), one at a time: **Not a venue** (**X**) marks it; **Keep it** (**Y**) takes it off the Inbox until the admin reloads, and it stays in To review.
 - **+** (next to the search) adds a venue no source lists: a name, a kind and a point. It gets a `review:<slug>` id.
 
 ## Trust tiers
@@ -129,9 +129,9 @@ Both answers go straight to the API (`POST /v1/admin/sun/resolve`) and count at 
 
 The copy only adds rows: a row already in the file is never rewritten or removed. Undoing an accept means deleting its row from the CSV by hand, but the next copy puts it back while the report is still accepted in the API (for a year), so undoing one is not supported from the admin yet.
 
-- **Accept** (**A**): the report is confirmed. The app shows sun in that slice of sky (5° either side of each sighting, down to the altitude seen less a 2° margin, that season) without "~", and the report is recorded in `sun_corrections.csv` for Publish.
-- **Reject** (**R**): the reports stop counting, and that slice of sky is blocked for the venue in that season for a year, so new reports there don't count either.
-- **Skip** (**J**): leave it for later.
+- **Accept** (**Y**): the report is confirmed. The app shows sun in that slice of sky (5° either side of each sighting, down to the altitude seen less a 2° margin, that season) without "~", and the report is recorded in `sun_corrections.csv` for Publish.
+- **Reject** (**N**): the reports stop counting, and that slice of sky is blocked for the venue in that season for a year, so new reports there don't count either.
+- **Skip** (**S**): leave it for later.
 
 The routine:
 
