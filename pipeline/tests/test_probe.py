@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import math
@@ -12,9 +13,14 @@ from numpy.typing import NDArray
 from pyproj import Transformer
 from rasterio.transform import from_origin
 
+from solycerveza import probe as probe_module
 from solycerveza.build import MAX_HEIGHT_ABOVE_GROUND_M
+from solycerveza.envelope import unpack
+from solycerveza.geo import BADAJOZ_BBOX
 from solycerveza.horizon import BINS, EYE_HEIGHT_M
+from solycerveza.leafoff import structures_query
 from solycerveza.probe import MISSING_RASTERS, main, probe
+from solycerveza.roads import Road, roads_query
 
 LAT, LON = 38.88256, -6.96976  # Plaza Alta
 GROUND = 190.0
@@ -27,6 +33,24 @@ _X, _Y = Transformer.from_crs("EPSG:4326", "EPSG:25829", always_xy=True).transfo
 # Snap the grid so the point sits at the centre of a cell.
 _LEFT = math.floor(_X / PIXEL) * PIXEL - (SIZE // 2) * PIXEL
 _TOP = math.floor(_Y / PIXEL) * PIXEL + (SIZE // 2 + 1) * PIXEL
+
+
+@pytest.fixture(autouse=True)
+def _no_osm(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No OSM structures or roads unless a test sets them: tests never reach Overpass."""
+    monkeypatch.setattr(probe_module, "load_structures", lambda **_: [])
+    monkeypatch.setattr(probe_module, "load_roads", lambda **_: [])
+
+
+def _empty_osm_cache(cache_dir: Path) -> Path:
+    """Empty cached Overpass answers for structures and roads, named as ``cached_overpass`` does."""
+    for prefix, query in (
+        ("overpass_structures", structures_query(BADAJOZ_BBOX)),
+        ("overpass_roads", roads_query(BADAJOZ_BBOX)),
+    ):
+        digest = hashlib.sha256(query.encode()).hexdigest()[:12]
+        (cache_dir / f"{prefix}_{digest}.json").write_text('{"elements": []}', encoding="utf-8")
+    return cache_dir
 
 
 def _write(path: Path, data: NDArray[np.float32]) -> Path:
@@ -80,6 +104,38 @@ def test_probe_sees_the_wall_to_the_south(tmp_path: Path) -> None:
     assert horizon[0] == 0
     assert result["height_above_ground"] == pytest.approx(0.0)
     assert result["max_height_above_ground"] == MAX_HEIGHT_ABOVE_GROUND_M
+
+
+def test_probe_returns_the_envelope_across_the_terrace(tmp_path: Path) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    result = probe(LAT, LON, dsm, dtm)
+
+    horizon, low = result["horizon"], result["horizon_low"]
+    assert isinstance(horizon, list)
+    assert isinstance(low, str)
+    # Tables 6 m north of the pin are 26 m from the wall: it stands lower from there.
+    assert unpack(low)[180] * 10 < horizon[180] - 30
+
+
+def _road_over_the_north_half() -> Road:
+    """A 20 m wide road from west to east, its south edge 1 m north of the pin."""
+    north = (LAT + 11 / 111_320, LON)
+    east_m = 30 / (111_320 * math.cos(math.radians(LAT)))
+    return Road(points=((north[1] - east_m, north[0]), (north[1] + east_m, north[0])), width_m=20)
+
+
+def test_probe_leaves_the_road_out_of_the_envelope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dsm, dtm = _rasters(tmp_path)
+    open_low = probe(LAT, LON, dsm, dtm)["horizon_low"]
+    monkeypatch.setattr(probe_module, "load_roads", lambda **_: [_road_over_the_north_half()])
+
+    low = probe(LAT, LON, dsm, dtm)["horizon_low"]
+
+    assert isinstance(open_low, str)
+    assert isinstance(low, str)
+    assert unpack(low)[180] > unpack(open_low)[180]
 
 
 def _leafoff(tmp_path: Path) -> Path:
@@ -150,6 +206,7 @@ def test_main_prints_one_json_object(tmp_path: Path) -> None:
     assert set(payload) == {
         "horizon",
         "horizon_winter",
+        "horizon_low",
         "height_above_ground",
         "max_height_above_ground",
     }
@@ -176,6 +233,7 @@ def test_main_reports_a_point_outside_the_rasters_as_an_error(tmp_path: Path) ->
 def test_runs_as_a_module(tmp_path: Path) -> None:
     dsm, dtm = _rasters(tmp_path)
     args = ["--lat", str(LAT), "--lon", str(LON), "--dsm", str(dsm), "--dtm", str(dtm)]
+    args += ["--cache-dir", str(_empty_osm_cache(tmp_path))]
     done = subprocess.run(
         [sys.executable, "-m", "solycerveza.probe", *args],
         capture_output=True,

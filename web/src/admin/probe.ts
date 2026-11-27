@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import { insideBadajoz } from '../data/geo.ts'
+import { unpackHorizon } from '../sun/leafOff.ts'
 import { ADMIN_ENDPOINTS } from './endpoints.ts'
 
 /**
- * The sun probe: horizon and height above ground at one point, computed by
+ * The sun probe: horizon, envelope and height above ground at one point, computed by
  * `python -m solycerveza.probe` (pipeline/src/solycerveza/probe.py) and served
  * by the dev server at ADMIN_ENDPOINTS.probe. Pure: shared by the admin page and its
  * dev-server endpoint.
@@ -17,6 +18,9 @@ export type Position = { lat: number; lon: number }
 export const probeResultSchema = z.object({
   // Tenths of a degree per compass azimuth bin, as in terraces.json.
   horizon: z.array(z.number().int().min(0).max(900)).length(360),
+  // The envelope across the terrace, packed as in terraces.json (docs/data-contract.md,
+  // "Horizon envelope"); null when the build would leave it out.
+  horizon_low: z.string().nullable(),
   // Surface minus terrain at the point, metres; null where a raster has no data.
   height_above_ground: z.number().nullable(),
   // The build's threshold for "on a roof or under a canopy" (MAX_HEIGHT_ABOVE_GROUND_M).
@@ -88,4 +92,15 @@ export function parseProbeOutput(stdout: string): ProbeOutput | null {
 export function isTooHigh(result: ProbeResult): boolean {
   const height = result.height_above_ground
   return height !== null && height > result.max_height_above_ground
+}
+
+/**
+ * The horizon the app answers from at this position, as in
+ * docs/data-contract.md (step 7): the envelope across the terrace when there
+ * is one (and it is well formed), else the pin's horizon.
+ */
+export function terraceHorizon(result: ProbeResult): readonly number[] {
+  const low =
+    result.horizon_low === null ? null : unpackHorizon(result.horizon_low)
+  return low ?? result.horizon
 }

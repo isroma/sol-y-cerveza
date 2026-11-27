@@ -6,11 +6,13 @@ import {
   probeKey,
   probeOutputSchema,
   probeUrl,
+  terraceHorizon,
   type ProbeResult,
 } from './probe.ts'
 
 const result: ProbeResult = {
   horizon: new Array<number>(360).fill(120),
+  horizon_low: null,
   height_above_ground: 0.4,
   max_height_above_ground: 2,
 }
@@ -83,5 +85,23 @@ describe('isTooHigh', () => {
     expect(isTooHigh({ ...result, height_above_ground: 6.3 })).toBe(true)
     expect(isTooHigh({ ...result, height_above_ground: 2 })).toBe(false)
     expect(isTooHigh({ ...result, height_above_ground: null })).toBe(false)
+  })
+})
+
+describe('terraceHorizon', () => {
+  it('is the pin horizon without an envelope', () => {
+    expect(terraceHorizon(result)).toBe(result.horizon)
+  })
+
+  it('is the envelope, in tenths, when there is one', () => {
+    const low = terraceHorizon({ ...result, horizon_low: '%'.repeat(360) })
+    expect(low).toHaveLength(360)
+    expect(low[0]).toBe(20)
+  })
+
+  it('falls back to the pin horizon on a malformed envelope', () => {
+    expect(terraceHorizon({ ...result, horizon_low: 'short' })).toBe(
+      result.horizon,
+    )
   })
 })

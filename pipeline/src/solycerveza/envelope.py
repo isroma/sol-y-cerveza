@@ -1,19 +1,22 @@
 """Horizon envelopes across a terrace (``docs/data-contract.md``, "Horizon envelope").
 
-A terrace is several metres across, and a pin is rarely placed to better than a few metres, so a
-single horizon from the pin can say shade where half the tables are in sun. The envelope samples
-ground-level points around the pin and keeps, per azimuth bin, the lowest obstacle over them:
-when the sun clears it, some part of the terrace is in sun, and the app shows the terrace in sun.
+A terrace is several metres across (usually 5 to 10 tables in one or two rows), and a pin is
+rarely placed to better than a few metres, so a single horizon from the pin can say shade where
+half the tables are in sun. The envelope samples ground-level points across the terrace and
+keeps, per azimuth bin, the lowest obstacle over them: when the sun clears it, some table is in
+sun, and the app shows the terrace in sun.
 
-Points are the pin plus ``SAMPLE_COUNT`` points evenly spaced on a circle of
-``SAMPLE_RADIUS_M`` around it, the first due north, then clockwise. A point counts only on the
-ground: the surface model at most ``MAX_GROUND_HEIGHT_M`` above the terrain there (not under a
-canopy, a crown or on a roof), and outside every closed OSM structure outline.
+Points are the pin plus the centre of every cell of the surface model's grid (``SampleGrid``,
+2 m cells) within ``SAMPLE_RADIUS_M`` of it, other than the pin's own cell: about 37 points,
+listed in the grid's row order (from the north on a north-up grid), west to east (#524; it was a
+3 m circle). Taking the raster's own cells, rather than a pattern laid on the pin, keeps the
+answer steadier as the pin moves: a small move changes only cells at the edge (#524: a 2 m
+move changes the day's sun by a median 30 to 38 min, against 42 to 60 with the 3 m circle).
 
-When that leaves no ground point but the pin (a pin and its 3 m circle all under one canopy or
-crown, or inside a building), ``terrace_points`` falls back to wider circles: ``FALLBACK_COUNT``
-points at each of ``FALLBACK_RADII_M``, kept only if at least ``FALLBACK_MIN_POINTS`` are on the
-ground, so a single far point never stands for the whole terrace.
+A point counts only on open ground: the surface model at most ``MAX_GROUND_HEIGHT_M`` above the
+terrain there (not under a canopy, a crown or on a roof), outside every closed OSM structure
+outline, and off every OSM carriageway (``solycerveza.roads``): tables stand on the pavement, and
+the sun on the road beside a tree-lined terrace is not the terrace's.
 
 The file stores the envelope as a 360-character string, one character per bin, in whole degrees
 (``pack_low``): a string parses far faster than 360 numbers. It rounds down, so rounding can only
@@ -22,21 +25,20 @@ add sun, by under 1° (one 5-minute step of the sun's motion at most).
 
 import math
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
+from functools import cache
 
+from affine import Affine
+from pyproj import Transformer
 from shapely import STRtree
 from shapely.geometry import Point, Polygon
 
 from solycerveza.leafoff import Outline
 
-SAMPLE_RADIUS_M = 3.0
-SAMPLE_COUNT = 8
-MAX_GROUND_HEIGHT_M = 1.0
-FALLBACK_RADII_M = (4.0, 5.0)
-FALLBACK_COUNT = 12
-FALLBACK_MIN_POINTS = 2
-
-# Metres per degree of latitude; good to 0.5 % at Badajoz, which is far below a pin's error.
-_M_PER_DEG_LAT = 111_320.0
+SAMPLE_RADIUS_M = 7.0
+# Parked cars, hedges and counters stand up to 2 m; tree crowns start above that (trees.py: 2.5
+# m). The same threshold as the build's "pin on a roof or under a canopy" warning.
+MAX_GROUND_HEIGHT_M = 2.0
 
 # Whole degrees 0-90 as one character each: the 91 printable ASCII characters from "#" (35) to
 # "~" (126) without the backslash, so a packed string needs no escaping in JSON.
@@ -46,20 +48,44 @@ PACKED_PATTERN = r"^[#-\[\]-~]{360}$"
 LatLonPair = tuple[float, float]
 
 
+@dataclass(frozen=True)
+class SampleGrid:
+    """The surface model's grid: its affine transform and its projected metric CRS."""
+
+    transform: Affine
+    crs: str
+
+
+@cache
+def _transformers(crs: str) -> tuple[Transformer, Transformer]:
+    return (
+        Transformer.from_crs("EPSG:4326", crs, always_xy=True),
+        Transformer.from_crs(crs, "EPSG:4326", always_xy=True),
+    )
+
+
 def sample_points(
-    lat: float, lon: float, *, radius_m: float = SAMPLE_RADIUS_M, count: int = SAMPLE_COUNT
+    lat: float, lon: float, grid: SampleGrid, *, radius_m: float = SAMPLE_RADIUS_M
 ) -> list[LatLonPair]:
-    """The pin, then ``count`` points on a circle of ``radius_m`` round it, from north clockwise."""
+    """The pin, then the centres of ``grid``'s cells within ``radius_m`` of it but its own.
+
+    Cells come in the grid's row order, then column order (north to south, west to east on a
+    north-up grid).
+    """
+    to_grid, to_wgs84 = _transformers(grid.crs)
+    x, y = to_grid.transform(lon, lat)
+    inverse = ~grid.transform
+    col0, row0 = inverse @ (x, y)
+    own = (math.floor(col0), math.floor(row0))
+    reach = math.ceil(radius_m / min(abs(grid.transform.a), abs(grid.transform.e))) + 1
     points = [(lat, lon)]
-    m_per_deg_lon = _M_PER_DEG_LAT * math.cos(math.radians(lat))
-    for k in range(count):
-        bearing = 2 * math.pi * k / count
-        points.append(
-            (
-                lat + radius_m * math.cos(bearing) / _M_PER_DEG_LAT,
-                lon + radius_m * math.sin(bearing) / m_per_deg_lon,
-            )
-        )
+    for row in range(own[1] - reach, own[1] + reach + 1):
+        for col in range(own[0] - reach, own[0] + reach + 1):
+            cx, cy = grid.transform @ (col + 0.5, row + 0.5)
+            if (col, row) == own or math.hypot(cx - x, cy - y) > radius_m:
+                continue
+            cell_lon, cell_lat = to_wgs84.transform(cx, cy)
+            points.append((cell_lat, cell_lon))
     return points
 
 
@@ -80,12 +106,16 @@ def ground_points(
     points: Sequence[LatLonPair],
     height_for: Callable[[float, float], float | None],
     inside_structure: Callable[[float, float], bool],
+    on_road: Callable[[float, float], bool],
 ) -> list[LatLonPair]:
-    """The points on open ground: low enough above the terrain and outside every structure."""
+    """The points on open ground: low enough above the terrain, outside every structure and off
+    every carriageway."""
     kept: list[LatLonPair] = []
     for lat, lon in points:
         height = height_for(lat, lon)
-        if height is None or height > MAX_GROUND_HEIGHT_M or inside_structure(lat, lon):
+        if height is None or height > MAX_GROUND_HEIGHT_M:
+            continue
+        if inside_structure(lat, lon) or on_road(lat, lon):
             continue
         kept.append((lat, lon))
     return kept
@@ -94,21 +124,13 @@ def ground_points(
 def terrace_points(
     lat: float,
     lon: float,
+    grid: SampleGrid,
     height_for: Callable[[float, float], float | None],
     inside_structure: Callable[[float, float], bool],
+    on_road: Callable[[float, float], bool],
 ) -> list[LatLonPair]:
-    """The ground points across a terrace: the pin and its circle, or the wider fallback circles.
-
-    The fallback applies only when the pin and its circle give no ground point but the pin.
-    """
-    points = ground_points(sample_points(lat, lon), height_for, inside_structure)
-    if any(point != (lat, lon) for point in points):
-        return points
-    wider = [(lat, lon)]
-    for radius in FALLBACK_RADII_M:
-        wider += sample_points(lat, lon, radius_m=radius, count=FALLBACK_COUNT)[1:]
-    fallback = ground_points(wider, height_for, inside_structure)
-    return fallback if len(fallback) >= FALLBACK_MIN_POINTS else points
+    """The ground points across a terrace (``sample_points`` on open ground); may be empty."""
+    return ground_points(sample_points(lat, lon, grid), height_for, inside_structure, on_road)
 
 
 def lowest(horizons: Sequence[Sequence[int]]) -> list[int]:
