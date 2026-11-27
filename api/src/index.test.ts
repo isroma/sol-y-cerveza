@@ -68,6 +68,9 @@ const SUN_VENUES = [
   { id: NOWHERE },
 ]
 
+/** What the stubbed Open-Meteo answers; null fails. Read once per Worker (it keeps a reading 15 minutes). */
+const weather: { dni: number | null } = { dni: 600 }
+
 let bundle = ''
 let compatibilityDate = ''
 
@@ -100,7 +103,7 @@ beforeAll(async () => {
   bundle = result.outputFiles[0]?.text ?? ''
 })
 
-type Calls = { siteverify: number }
+type Calls = { siteverify: number; weather: number }
 
 type Api = {
   /** Sends a request to the Worker; `path` is joined to `base`. */
@@ -122,7 +125,7 @@ async function startApi(
   /** Rows to insert just before the migration whose file name starts with `before`. */
   seed?: { before: string; sql: string[] },
 ): Promise<Api> {
-  const calls: Calls = { siteverify: 0 }
+  const calls: Calls = { siteverify: 0, weather: 0 }
   const secrets: Record<string, string> = {}
   const all = {
     TURNSTILE_SECRET: TEST_SECRET,
@@ -148,6 +151,15 @@ async function startApi(
           ...SUN_VENUES,
         ],
       })
+    if (url.hostname === 'api.open-meteo.com') {
+      calls.weather++
+      // Shade reports (ADR-0014): the sun's direct light over Badajoz now.
+      return weather.dni === null
+        ? new MfResponse('down', { status: 502 })
+        : MfResponse.json({
+            current: { direct_normal_irradiance: weather.dni },
+          })
+    }
     if (url.hostname === 'challenges.cloudflare.com') {
       calls.siteverify++
       const form = await request.formData()
@@ -1638,6 +1650,125 @@ describe('sun reports', () => {
         )
       ).status,
     ).toBe(400)
+  })
+})
+
+describe('shade reports', () => {
+  type Run = {
+    venueId: string
+    from: number
+    to: number
+    altitude: number
+    confirmed: boolean
+  }
+  const shadeNow = (api: Api, venueId: string, ip: string) =>
+    api.call('/v1/changes', {
+      ...postJson({ venueId, token: 'ok:change', shade: true }),
+      ip,
+    })
+
+  describe('under a clear sky', () => {
+    let api: Api
+    beforeAll(async () => {
+      weather.dni = 600
+      api = await startApi()
+    })
+    afterAll(() => api.dispose())
+
+    it('refuses sun and shade together', async () => {
+      const response = await api.call('/v1/changes', {
+        ...postJson({
+          venueId: SUNNY,
+          token: 'ok:change',
+          sun: true,
+          shade: true,
+        }),
+        ip: '95.1.1.1',
+      })
+      expect(response.status).toBe(400)
+      expect(await readJson(response)).toEqual({
+        error: 'invalid sun and shade',
+      })
+    })
+
+    it('stores shade, floors the horizon once 3 networks agree, and reads the weather once', async () => {
+      for (const ip of ['95.2.1.1', '95.3.1.1', '95.4.1.1'])
+        expect((await shadeNow(api, SUNNY, ip)).status).toBe(201)
+      expect(api.calls.weather).toBe(1)
+      // The sun moves a little between requests: put them on one spot.
+      await api.sql(
+        `UPDATE sun_reports SET (azimuth, altitude, bin) =
+           (SELECT azimuth, altitude, bin FROM sun_reports WHERE venue_id = ?1 ORDER BY id LIMIT 1)
+         WHERE venue_id = ?1`,
+        SUNNY,
+      )
+      const [first] = await api.rows<{
+        bin: number
+        altitude: number
+        kind: string
+      }>(
+        'SELECT bin, altitude, kind FROM sun_reports WHERE venue_id = ? ORDER BY id',
+        SUNNY,
+      )
+      expect(first?.kind).toBe('shade')
+      const body = await readJson<{ corrections: Run[]; shade: Run[] }>(
+        await api.call('/v1/sun'),
+      )
+      expect(body.corrections).toEqual([])
+      const bin = first?.bin ?? NaN
+      expect(body.shade).toEqual([
+        expect.objectContaining({
+          venueId: SUNNY,
+          from: (bin + 358) % 360,
+          to: (bin + 2) % 360,
+          altitude: Math.ceil((first?.altitude ?? NaN) * 10 - 1e-9),
+          confirmed: false,
+        }),
+      ])
+    })
+
+    it('queues shade apart from sun, and a rejection blocks only shade', async () => {
+      const queued = await readJson<{
+        reports: { ids: number[]; kind: string }[]
+      }>(await api.call('/v1/admin/sun', { headers: { Authorization: ADMIN } }))
+      const entry = queued.reports.find((r) => r.kind === 'shade')
+      expect(entry?.ids).toHaveLength(3)
+      const response = await api.call(
+        '/v1/admin/sun/resolve',
+        postJson(
+          { ids: entry?.ids, status: 'rejected' },
+          { Authorization: ADMIN },
+        ),
+      )
+      expect(response.status).toBe(200)
+      expect(await api.rows('SELECT * FROM sun_rejections')).toEqual([])
+      expect(await api.rows('SELECT venue_id FROM shade_rejections')).toEqual([
+        { venue_id: SUNNY },
+      ])
+    })
+  })
+
+  it('refuses shade under a cloud, and when the weather is unavailable', async () => {
+    weather.dni = 80
+    const cloudy = await startApi()
+    try {
+      const response = await shadeNow(cloudy, SUNNY, '96.1.1.1')
+      expect(response.status).toBe(400)
+      expect(await readJson(response)).toEqual({ error: 'not sunny' })
+      expect(await cloudy.rows('SELECT id FROM sun_reports')).toEqual([])
+    } finally {
+      await cloudy.dispose()
+    }
+    weather.dni = null
+    const down = await startApi()
+    try {
+      const response = await shadeNow(down, SUNNY, '96.2.1.1')
+      expect(response.status).toBe(503)
+      expect(await readJson(response)).toEqual({ error: 'weather unavailable' })
+    } finally {
+      await down.dispose()
+      weather.dni = 600
+    }
   })
 })
 

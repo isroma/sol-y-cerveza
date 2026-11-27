@@ -9,10 +9,9 @@ import {
   type Suggestion,
 } from '../logic.ts'
 import { parseReport } from '../reports.ts'
-import { sighting } from '../sun.ts'
 import { purgePrices } from './prices.ts'
 import { reportRefused, reportWrites } from './reports.ts'
-import { purgeSun, sunWrites } from './sun.ts'
+import { purgeSun, skySighting, sunWrites } from './sun.ts'
 
 /** Stands in for the voter and network hashes on the owner's reports. */
 const OWNER_HASH = 'owner'
@@ -86,17 +85,32 @@ export async function ownerChange(
     if (refused) return refused
   }
   const now = Date.now()
-  const sun = parsed.value.sun
-    ? sighting(published.get(venueId), new Date(now), await leafOffSeen(env))
+  const { sky } = parsed.value
+  const sun = sky
+    ? await skySighting(
+        sky,
+        published.get(venueId),
+        now,
+        await leafOffSeen(env),
+      )
     : null
-  if (sun && !sun.ok) return json({ error: sun.error }, 400)
+  if (sun instanceof Response) return sun
   await env.DB.batch([
     ...(price ? ownerPriceWrites(env, price, madridDate(new Date(now))) : []),
     ...reports.flatMap((value) =>
       reportWrites(env, value, OWNER_HASH, OWNER_HASH, now, true),
     ),
     ...(sun
-      ? sunWrites(env, venueId, sun.value, OWNER_HASH, OWNER_HASH, now, true)
+      ? sunWrites(
+          env,
+          venueId,
+          sun,
+          OWNER_HASH,
+          OWNER_HASH,
+          now,
+          true,
+          sky ?? 'sun',
+        )
       : []),
   ])
   if (price) await purgePrices(request)

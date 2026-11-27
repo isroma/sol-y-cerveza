@@ -1,11 +1,14 @@
 /**
- * Pure rules of sun reports (issue #364, ADR-0012): where the sun is when a
- * visitor says it is on a terrace, and how reports become horizon corrections.
+ * Pure rules of sun and shade reports (issue #364, ADR-0012; #527, ADR-0014):
+ * where the sun is when a visitor says it is on a terrace (or that the terrace
+ * is in shade), and how reports become horizon corrections.
  *
  * A report made with the sun at azimuth A and altitude H says the terrace's
  * horizon near A is below H. A correction caps the horizon bins within
  * SUN_SPREAD_DEGREES of A at H - SUN_MARGIN_DEGREES, in the season the report
  * was made in; the app uses the lower of the model's horizon and the cap.
+ * A shade report at H says the horizon near A is at least H: it floors the
+ * bins within SHADE_SPREAD_DEGREES at H, rounded up; caps win over floors.
  */
 import { getPosition } from 'suncalc'
 import type { LatLon } from '../../web/src/data/geo.ts'
@@ -15,6 +18,8 @@ import { madridDate } from './logic.ts'
 export const SUN_THRESHOLD = 3
 /** A report counts for the horizon bins this many degrees either side of the sun. */
 export const SUN_SPREAD_DEGREES = 5
+/** A shade report counts only this many degrees either side of the sun (ADR-0014). */
+export const SHADE_SPREAD_DEGREES = 2
 /** The cap sits this far below the sun's altitude, so it holds as the sun's path drops. */
 export const SUN_MARGIN_DEGREES = 2
 /** Reports, and the owner's rejections, stop counting after this. */
@@ -104,6 +109,22 @@ export function capTenths(altitude: number): number {
   return Math.max(0, Math.floor((altitude - SUN_MARGIN_DEGREES) * 10 + 1e-9))
 }
 
+/** A sun report ("the sun is on this terrace now") or a shade report. */
+export type SkyKind = 'sun' | 'shade'
+
+/** The floor for shade seen at `altitude` degrees, in tenths of a degree: rounded up, at most 90°. */
+export function floorTenths(altitude: number): number {
+  // The epsilon keeps 27.1 from rounding up to 272 through binary rounding.
+  return Math.min(900, Math.max(0, Math.ceil(altitude * 10 - 1e-9)))
+}
+
+const spreadOf = (kind: SkyKind) =>
+  kind === 'shade' ? SHADE_SPREAD_DEGREES : SUN_SPREAD_DEGREES
+
+/** A row's kind; rows from before #527 (and tests) have none and are sun reports. */
+const kindOf = (row: { kind?: string }): SkyKind =>
+  row.kind === 'shade' ? 'shade' : 'sun'
+
 export type Sighting = {
   azimuth: number
   altitude: number
@@ -152,14 +173,18 @@ export type SunRow = {
   net_hash: string
   created_at: string
   status: string
+  /** 'sun' or 'shade'; missing is 'sun'. */
+  kind?: string
 }
 
-/** A sun_rejections row: a slice the owner rejected. */
+/** A sun_rejections or shade_rejections row: a slice the owner rejected. */
 export type RejectionRow = {
   venue_id: string
   leaf_off: number
   bin: number
   rejected_at: string
+  /** Which table it came from: 'sun' or 'shade'; missing is 'sun'. */
+  kind?: string
 }
 
 /** One run of GET /v1/sun. */
@@ -169,7 +194,7 @@ export type SunCorrection = {
   /** Inclusive horizon bins; a run across north has from > to. */
   from: number
   to: number
-  /** The cap in tenths of a degree, margin already off. */
+  /** The cap in tenths of a degree, margin already off (for shade, the floor). */
   altitude: number
   confirmed: boolean
   /** Distinct networks behind the run. */
@@ -183,6 +208,7 @@ export type SunQueueEntry = {
   ids: number[]
   venueId: string
   leafOff: boolean
+  kind: SkyKind
   sightings: { id: number; azimuth: number; altitude: number; at: string }[]
   reporters: number
   /** Some of these reports are behind a consensus GET /v1/sun serves. */
@@ -195,6 +221,7 @@ export type AcceptedSun = {
   id: number
   venueId: string
   leafOff: boolean
+  kind: SkyKind
   /** Degrees, 1 decimal. */
   azimuth: number
   altitude: number
@@ -208,15 +235,15 @@ function since(now: number): string {
   return new Date(now - SUN_WINDOW_DAYS * 86400_000).toISOString()
 }
 
-const seasonKey = (venueId: string, leafOff: number) =>
-  `${venueId}|${leafOff ? 1 : 0}`
+const seasonKey = (venueId: string, leafOff: number, kind: SkyKind) =>
+  `${venueId}|${leafOff ? 1 : 0}|${kind}`
 
-function groupBySeason<T extends { venue_id: string; leaf_off: number }>(
-  rows: readonly T[],
-): Map<string, T[]> {
+function groupBySeason<
+  T extends { venue_id: string; leaf_off: number; kind?: string },
+>(rows: readonly T[]): Map<string, T[]> {
   const groups = new Map<string, T[]>()
   for (const row of rows) {
-    const key = seasonKey(row.venue_id, row.leaf_off)
+    const key = seasonKey(row.venue_id, row.leaf_off, kindOf(row))
     const group = groups.get(key)
     if (group) group.push(row)
     else groups.set(key, [row])
@@ -225,26 +252,38 @@ function groupBySeason<T extends { venue_id: string; leaf_off: number }>(
 }
 
 /** The reports within the spread of each bin (index 0..359). */
-function rowsPerBin(rows: readonly SunRow[]): SunRow[][] {
+function rowsPerBin(rows: readonly SunRow[], kind: SkyKind): SunRow[][] {
+  const spread = spreadOf(kind)
   const bins: SunRow[][] = Array.from({ length: 360 }, () => [])
   for (const row of rows) {
     const centre = horizonBin(row.azimuth)
-    for (let d = -SUN_SPREAD_DEGREES; d <= SUN_SPREAD_DEGREES; d++)
+    for (let d = -spread; d <= spread; d++)
       bins[(centre + d + 360) % 360]?.push(row)
   }
   return bins
 }
 
-/** Each network once, at its lowest altitude, lowest first. */
-function lowestPerNetwork(rows: readonly SunRow[]): number[] {
-  const lowest = new Map<string, number>()
+/**
+ * Each network once, most cautious first: for sun its lowest altitude, lowest
+ * first; for shade its highest, highest first. The n-th is then the level at
+ * least n networks support.
+ */
+function perNetwork(rows: readonly SunRow[], kind: SkyKind): number[] {
+  const sun = kind === 'sun'
+  const best = new Map<string, number>()
   for (const row of rows) {
-    const current = lowest.get(row.net_hash)
-    if (current === undefined || row.altitude < current)
-      lowest.set(row.net_hash, row.altitude)
+    const current = best.get(row.net_hash)
+    if (
+      current === undefined ||
+      (sun ? row.altitude < current : row.altitude > current)
+    )
+      best.set(row.net_hash, row.altitude)
   }
-  return [...lowest.values()].sort((a, b) => a - b)
+  return [...best.values()].sort((a, b) => (sun ? a - b : b - a))
 }
+
+const tenths = (kind: SkyKind, altitude: number) =>
+  kind === 'sun' ? capTenths(altitude) : floorTenths(altitude)
 
 /**
  * Visitor consensus for one venue and season: in each bin not blocked by a
@@ -255,23 +294,27 @@ function lowestPerNetwork(rows: readonly SunRow[]): number[] {
 function consensusBins(
   rows: readonly SunRow[],
   blocked: ReadonlySet<number>,
+  kind: SkyKind,
 ): (BinCap | null)[] {
-  return rowsPerBin(rows).map((inSpread, bin) => {
+  return rowsPerBin(rows, kind).map((inSpread, bin) => {
     if (blocked.has(bin)) return null
-    const altitude = lowestPerNetwork(inSpread)[SUN_THRESHOLD - 1]
+    const altitude = perNetwork(inSpread, kind)[SUN_THRESHOLD - 1]
     return altitude === undefined
       ? null
-      : { cap: capTenths(altitude), rows: inSpread }
+      : { cap: tenths(kind, altitude), rows: inSpread }
   })
 }
 
-/** Accepted reports for one venue and season: one is enough, the lowest one sets the cap. */
-function confirmedBins(rows: readonly SunRow[]): (BinCap | null)[] {
-  return rowsPerBin(rows).map((inSpread) => {
-    const altitude = lowestPerNetwork(inSpread)[0]
+/** Accepted reports for one venue and season: one is enough, the most cautious one sets the level. */
+function confirmedBins(
+  rows: readonly SunRow[],
+  kind: SkyKind,
+): (BinCap | null)[] {
+  return rowsPerBin(rows, kind).map((inSpread) => {
+    const altitude = perNetwork(inSpread, kind)[0]
     return altitude === undefined
       ? null
-      : { cap: capTenths(altitude), rows: inSpread }
+      : { cap: tenths(kind, altitude), rows: inSpread }
   })
 }
 
@@ -334,9 +377,11 @@ function blockedBins(
   const blocked = new Map<string, Set<number>>()
   for (const rejection of rejections) {
     if (rejection.rejected_at < from) continue
-    const key = seasonKey(rejection.venue_id, rejection.leaf_off)
+    const kind = kindOf(rejection)
+    const key = seasonKey(rejection.venue_id, rejection.leaf_off, kind)
     const bins = blocked.get(key) ?? new Set<number>()
-    for (let d = -SUN_SPREAD_DEGREES; d <= SUN_SPREAD_DEGREES; d++)
+    const spread = spreadOf(kind)
+    for (let d = -spread; d <= spread; d++)
       bins.add((rejection.bin + d + 360) % 360)
     blocked.set(key, bins)
   }
@@ -356,35 +401,46 @@ function consensusBySeason(
   )
   const result = new Map<string, (BinCap | null)[]>()
   for (const [key, group] of groupBySeason(live))
-    result.set(key, consensusBins(group, blocked.get(key) ?? new Set()))
+    result.set(
+      key,
+      consensusBins(
+        group,
+        blocked.get(key) ?? new Set(),
+        kindOf(group[0] ?? {}),
+      ),
+    )
   return result
 }
 
 /**
  * GET /v1/sun: per venue and season, runs of visitor consensus (`confirmed:
  * false`) and of accepted reports (`confirmed: true`), from reports in the
- * last SUN_WINDOW_DAYS. Sorted by venueId, leafOff, confirmed, from.
+ * last SUN_WINDOW_DAYS: the caps of sun reports, or with `kind` 'shade' the
+ * floors of shade reports. Sorted by venueId, leafOff, confirmed, from.
  */
 export function sunCorrections(
   rows: readonly SunRow[],
   rejections: readonly RejectionRow[],
   now: number,
+  kind: SkyKind = 'sun',
 ): SunCorrection[] {
   const from = since(now)
   const corrections: SunCorrection[] = []
   for (const [key, bins] of consensusBySeason(rows, rejections, now)) {
-    const [venueId = '', season] = key.split('|')
+    const [venueId = '', season, keyKind] = key.split('|')
+    if (keyKind !== kind) continue
     const leafOff = season === '1'
     for (const run of runs(bins))
       corrections.push(correction(venueId, leafOff, false, run))
   }
   const accepted = rows.filter(
-    (r) => r.status === 'accepted' && r.created_at >= from,
+    (r) =>
+      r.status === 'accepted' && r.created_at >= from && kindOf(r) === kind,
   )
   for (const group of groupBySeason(accepted).values()) {
     const venueId = group[0]?.venue_id ?? ''
     const leafOff = Boolean(group[0]?.leaf_off)
-    for (const run of runs(confirmedBins(group)))
+    for (const run of runs(confirmedBins(group, kind)))
       corrections.push(correction(venueId, leafOff, true, run))
   }
   return corrections.sort(
@@ -414,6 +470,7 @@ export function acceptedSun(
       id: r.id,
       venueId: r.venue_id,
       leafOff: Boolean(r.leaf_off),
+      kind: kindOf(r),
       azimuth: oneDecimal(r.azimuth),
       altitude: oneDecimal(r.altitude),
       at: r.created_at,
@@ -421,7 +478,7 @@ export function acceptedSun(
 }
 
 /**
- * The admin's queue: pending reports, one entry per venue and season, most
+ * The admin's queue: pending reports, one entry per venue, season and kind, most
  * reporters (distinct networks) first, then newest. `rows` are every report
  * not rejected, so `shown` can tell which pending ones are behind a consensus
  * GET /v1/sun serves.
@@ -441,6 +498,7 @@ export function sunQueue(
       ids: sorted.map((r) => r.id),
       venueId: sorted[0]?.venue_id ?? '',
       leafOff: Boolean(sorted[0]?.leaf_off),
+      kind: kindOf(sorted[0] ?? {}),
       sightings: sorted.map((r) => ({
         id: r.id,
         azimuth: oneDecimal(r.azimuth),
@@ -457,6 +515,7 @@ export function sunQueue(
       b.reporters - a.reporters ||
       (a.last > b.last ? -1 : a.last < b.last ? 1 : 0) ||
       (a.venueId < b.venueId ? -1 : a.venueId > b.venueId ? 1 : 0) ||
-      Number(a.leafOff) - Number(b.leafOff),
+      Number(a.leafOff) - Number(b.leafOff) ||
+      (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0),
   )
 }

@@ -21,9 +21,8 @@ import {
   type Report,
   type ReportRow,
 } from '../reports.ts'
-import { sighting } from '../sun.ts'
 import { suggestionWrite } from './prices.ts'
-import { sunWrites } from './sun.ts'
+import { skySighting, sunWrites } from './sun.ts'
 
 /**
  * Why a report about a published venue is refused (unknown venue, or a
@@ -156,10 +155,16 @@ export async function change(request: Request, env: Env): Promise<Response> {
     if (refused) return refused
   }
   const now = Date.now()
-  const sun = parsed.value.sun
-    ? sighting(published.get(venueId), new Date(now), await leafOffSeen(env))
+  const { sky } = parsed.value
+  const sun = sky
+    ? await skySighting(
+        sky,
+        published.get(venueId),
+        now,
+        await leafOffSeen(env),
+      )
     : null
-  if (sun && !sun.ok) return json({ error: sun.error }, 400)
+  if (sun instanceof Response) return sun
 
   const { voterHash, netHash } = await identity(salt, ip)
   const parts = (price ? 1 : 0) + reports.length + (sun ? 1 : 0)
@@ -178,7 +183,9 @@ export async function change(request: Request, env: Env): Promise<Response> {
     ...reports.flatMap((value) =>
       reportWrites(env, value, voterHash, netHash, now),
     ),
-    ...(sun ? sunWrites(env, venueId, sun.value, voterHash, netHash, now) : []),
+    ...(sun && sky
+      ? sunWrites(env, venueId, sun, voterHash, netHash, now, false, sky)
+      : []),
   ])
   return json({ ok: true }, 201)
 }
