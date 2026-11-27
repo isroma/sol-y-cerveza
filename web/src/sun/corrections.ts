@@ -9,6 +9,11 @@ import type { Terrace } from '../data/terraces.ts'
  * terrace's horizon over a run of bins, for one season. The app uses
  * min(model, cap) there. Unconfirmed caps make that sun approximate ("~");
  * caps the owner accepted look like plain sun.
+ *
+ * Shade reports (#527, docs/adr/0014-shade-reports.md) work the other way:
+ * a floor raises the horizon, served in the answer's `shade` list. The app
+ * uses min(max(model, floor), cap): caps win. Shade from a floor shows as
+ * plain shade, confirmed or not (the app has no approximate shade).
  */
 
 const correctionSchema = z.object({
@@ -24,39 +29,64 @@ const correctionSchema = z.object({
 })
 
 /** The answer's shape is checked strictly, each correction on its own. */
-const answerSchema = z.object({ corrections: z.array(z.unknown()) })
+const answerSchema = z.object({
+  corrections: z.array(z.unknown()),
+  // Shade floors (ADR-0014); absent from an API before #527.
+  shade: z.optional(z.array(z.unknown())),
+})
 
-export type SunCorrection = z.infer<typeof correctionSchema>
+/** A run from the API: a cap, or with `floor` a shade report's floor. */
+export type SunCorrection = z.infer<typeof correctionSchema> & {
+  floor?: boolean
+}
 
 /** What applying a correction needs: the API's and the dataset's alike. */
 export type HorizonCap = Pick<
   SunCorrection,
-  'leafOff' | 'from' | 'to' | 'altitude' | 'confirmed'
+  'leafOff' | 'from' | 'to' | 'altitude' | 'confirmed' | 'floor'
 >
 
 /**
- * A record's own `sun_corrections` (terraces.json, issue #463): the owner's
- * accepted reports, so confirmed caps, applied with or without the API.
+ * A record's own `sun_corrections` and `shade_corrections` (terraces.json,
+ * issues #463 and #527): the owner's accepted reports, so confirmed caps and
+ * floors, applied with or without the API.
  */
 export function datasetCaps(venue: Terrace): HorizonCap[] {
-  return (venue.sun_corrections ?? []).map((c) => ({
+  const caps = (venue.sun_corrections ?? []).map((c) => ({
     leafOff: c.leaf_off,
     from: c.from,
     to: c.to,
     altitude: c.altitude,
     confirmed: true,
   }))
+  const floors = (venue.shade_corrections ?? []).map((c) => ({
+    leafOff: c.leaf_off,
+    from: c.from,
+    to: c.to,
+    altitude: c.altitude,
+    confirmed: true,
+    floor: true,
+  }))
+  return [...caps, ...floors]
 }
 
 /**
- * The corrections in an API answer. One this client can't read is left out
- * instead of discarding all of them; an answer of the wrong shape throws.
+ * The corrections in an API answer, caps and then floors. One this client
+ * can't read is left out instead of discarding all of them; an answer of the
+ * wrong shape throws.
  */
 export function parseSunCorrections(body: unknown): SunCorrection[] {
-  return answerSchema.parse(body).corrections.flatMap((entry) => {
+  const { corrections, shade = [] } = answerSchema.parse(body)
+  const read = (entry: unknown) => {
     const parsed = correctionSchema.safeParse(entry)
     return parsed.success ? [parsed.data] : []
-  })
+  }
+  return [
+    ...corrections.flatMap(read),
+    ...shade.flatMap((entry) =>
+      read(entry).map((c) => ({ ...c, floor: true })),
+    ),
+  ]
 }
 
 let loading: Promise<SunCorrection[]> | null = null
@@ -147,12 +177,24 @@ export function correctHorizon(
   const all = [...horizon]
   const confirmed = [...horizon]
   let approximate = false
-  for (const { from, to, altitude, confirmed: sure } of here) {
-    for (const bin of runBins(from, to)) {
+  // Floors first, then caps: where both apply, the cap wins (ADR-0014).
+  for (const c of here.filter((c) => c.floor)) {
+    for (const bin of runBins(c.from, c.to)) {
       const model = horizon[bin]
-      if (model === undefined || altitude >= model) continue
-      all[bin] = Math.min(all[bin] ?? model, altitude)
-      if (sure) confirmed[bin] = Math.min(confirmed[bin] ?? model, altitude)
+      if (model === undefined || c.altitude <= model) continue
+      all[bin] = Math.max(all[bin] ?? model, c.altitude)
+      if (c.confirmed)
+        confirmed[bin] = Math.max(confirmed[bin] ?? model, c.altitude)
+      else approximate = true
+    }
+  }
+  for (const c of here.filter((c) => !c.floor)) {
+    for (const bin of runBins(c.from, c.to)) {
+      const current = all[bin]
+      if (current === undefined || c.altitude >= current) continue
+      all[bin] = c.altitude
+      if (c.confirmed)
+        confirmed[bin] = Math.min(confirmed[bin] ?? current, c.altitude)
       else approximate = true
     }
   }

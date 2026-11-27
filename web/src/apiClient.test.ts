@@ -38,6 +38,10 @@ describe('postJson', () => {
       vi.stubGlobal('fetch', async () => new Response(null, { status }))
       expect(await postJson('/v1/changes', {})).toBe(result)
     }
+    vi.stubGlobal('fetch', async () =>
+      Response.json({ error: 'not sunny' }, { status: 400 }),
+    )
+    expect(await postJson('/v1/changes', {})).toBe('not-sunny')
     vi.stubGlobal('fetch', async () => {
       throw new TypeError('offline')
     })

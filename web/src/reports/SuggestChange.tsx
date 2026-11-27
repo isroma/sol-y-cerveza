@@ -26,6 +26,7 @@ import {
   OWNER_RESULT_TEXT,
   PRICE_RESULT_TEXT,
   RESULT_TEXT,
+  SHADE_RESULT_TEXT,
   SUN_RESULT_TEXT,
   sendChange,
   sendOwnerChange,
@@ -33,7 +34,7 @@ import {
 import { useOwner } from '../prices/owner.ts'
 import { refreshCrowdPrices } from '../prices/crowd.ts'
 import { refreshSunCorrections, useSunCorrections } from '../sun/corrections.ts'
-import { canReportSun } from '../sun/reportable.ts'
+import { reportableSky } from '../sun/reportable.ts'
 import { track } from '../telemetry.ts'
 import './reports.css'
 
@@ -41,6 +42,12 @@ const ITEMS: Record<Item, string> = { cana: 'Caña', tercio: 'Tercio' }
 
 /** Turnstile tokens last 300 s; one older than this is dropped for a new check. */
 const TOKEN_TTL_MS = 240_000
+
+/** The sky row's label: what a visitor can report against what the app says now. */
+const SKY_LABEL = {
+  sun: 'Ahora mismo da el sol',
+  shade: 'Ahora mismo hay sombra',
+} as const
 
 /**
  * Rows that fold open and shut. Shut, they are out of the tab order and
@@ -102,13 +109,14 @@ export function SuggestChange({
   // moving it is the suggestion, moving it back takes it back.
   const known = venue.terrace !== null
   const terrace = terraceOn(venue, draft)
-  // "Ahora mismo da el sol" is about the real present, so it shows only
-  // while the app says shade here now with the sun up (checked as the back
-  // opens; the corrections can still change while it is open).
+  // The sky row is about the real present: "Ahora mismo da el sol" while the
+  // app says shade here now with the sun up, "Ahora mismo hay sombra" while
+  // it says sun (checked as the back opens; the corrections can still change
+  // while it is open).
   const corrections = useSunCorrections()
   const [openedAt] = useState(() => new Date())
-  const sunRow = useMemo(
-    () => canReportSun(venue, corrections, openedAt),
+  const sky = useMemo(
+    () => reportableSky(venue, corrections, openedAt),
     [venue, corrections, openedAt],
   )
   // A token from before the trip to the map is used if still fresh.
@@ -154,7 +162,7 @@ export function SuggestChange({
   }, [result])
 
   // What would go now: "Ya no existe" alone, nothing folded away.
-  const parts = sentParts(venue, draft, sunRow)
+  const parts = sentParts(venue, draft, sky)
   // A price typed (and not folded away), checked against the range the API
   // accepts for this item.
   const hasPrice = !closed && text.trim() !== ''
@@ -182,7 +190,8 @@ export function SuggestChange({
       parts.terrace !== undefined ||
       parts.pin !== undefined
     const withPrice = parts.price !== undefined
-    const withSun = parts.sun !== undefined
+    const withShade = parts.shade !== undefined
+    const withSun = parts.sun !== undefined || withShade
     const priceOnly = withPrice && !reviewed && !withSun
     const sunOnly = withSun && !reviewed && !withPrice
     if (owner) {
@@ -194,15 +203,19 @@ export function SuggestChange({
       // A price or sun shows at once; a move, closure or terrace at the next
       // Publish.
       setResult(
-        answer !== 'ok'
-          ? OWNER_RESULT_TEXT.error
-          : reviewed
-            ? OWNER_RESULT_TEXT.later
-            : priceOnly
-              ? OWNER_RESULT_TEXT.price
-              : sunOnly
-                ? OWNER_RESULT_TEXT.sun
-                : OWNER_RESULT_TEXT.now,
+        answer === 'not-sunny'
+          ? OWNER_RESULT_TEXT.notSunny
+          : answer !== 'ok'
+            ? OWNER_RESULT_TEXT.error
+            : reviewed
+              ? OWNER_RESULT_TEXT.later
+              : priceOnly
+                ? OWNER_RESULT_TEXT.price
+                : sunOnly
+                  ? withShade
+                    ? OWNER_RESULT_TEXT.shade
+                    : OWNER_RESULT_TEXT.sun
+                  : OWNER_RESULT_TEXT.now,
       )
       return
     }
@@ -211,12 +224,16 @@ export function SuggestChange({
     const answer = await sendChange({ venueId: venue.id, ...parts, token })
     setSending(false)
     if (answer === 'ok') track('suggest_sent')
-    if (answer === 'ok' && withSun) track('sun_report')
-    // A price or sun waits for agreement; a move, closure or terrace for review.
+    if (answer === 'ok' && parts.sun !== undefined) track('sun_report')
+    // A price, sun or shade waits for agreement; a move, closure or terrace for review.
     setResult(
-      (reviewed ? RESULT_TEXT : sunOnly ? SUN_RESULT_TEXT : PRICE_RESULT_TEXT)[
-        answer
-      ],
+      (reviewed
+        ? RESULT_TEXT
+        : sunOnly
+          ? withShade
+            ? SHADE_RESULT_TEXT
+            : SUN_RESULT_TEXT
+          : PRICE_RESULT_TEXT)[answer],
     )
   }
 
@@ -326,14 +343,14 @@ export function SuggestChange({
                     label="Tiene terraza"
                   />
                 </label>
-                {sunRow && (
+                {sky && (
                   <Fold open={terrace}>
                     <label className="change-row">
-                      <span aria-hidden="true">Ahora mismo da el sol</span>
+                      <span aria-hidden="true">{SKY_LABEL[sky]}</span>
                       <Toggle
                         checked={draft.sun}
                         onChange={(on) => onChange({ sun: on })}
-                        label="Ahora mismo da el sol"
+                        label={SKY_LABEL[sky]}
                       />
                     </label>
                   </Fold>

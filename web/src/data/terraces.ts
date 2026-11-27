@@ -82,6 +82,11 @@ const terraceSchema = z.object({
   sun_corrections: z.optional(
     z.catch(z.optional(z.array(sunCorrectionSchema)), undefined),
   ),
+  // The floors of the owner's accepted shade reports (ADR-0014), same shape;
+  // applied before the caps, which win. Absent or malformed: none.
+  shade_corrections: z.optional(
+    z.catch(z.optional(z.array(sunCorrectionSchema)), undefined),
+  ),
   // Curator-confirmed prices; files before 2026-11-23 have none.
   prices: z.optional(z.array(priceSchema)),
 })
